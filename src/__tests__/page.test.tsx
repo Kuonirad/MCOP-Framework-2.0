@@ -120,4 +120,16 @@ describe('Accessibility Tests', () => {
     const listItems = orderedList?.querySelectorAll('li');
     expect(listItems?.length).toBeGreaterThan(0);
   });
+
+  /**
+   * Test Case: H1 Heading Presence
+   * Ground Truth: Page should have a level 1 heading for accessibility
+   * Failure Witness: H1 element not found
+   */
+  it('renders a level 1 heading', () => {
+    render(<Home />);
+    const heading = screen.getByRole('heading', { level: 1 });
+    expect(heading).toBeInTheDocument();
+    expect(heading).toHaveTextContent('MCOP Framework 2.0');
+  });
 });
