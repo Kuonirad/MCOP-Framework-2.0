@@ -15,3 +15,7 @@
 ## 2025-12-22 - Fluid Button Containers
 **Learning:** Fixed width constraints on buttons break layout when adding micro-UX elements like icons and animated arrows.
 **Action:** When enhancing button content, remove fixed width constraints (e.g., `w-[158px]`) and rely on flexbox/padding to allow the container to adapt naturally.
+
+## 2025-12-22 - Visually Hidden Structure
+**Learning:** Landing pages often rely on visual logos for branding, omitting the critical `h1` needed for screen reader navigation and SEO structure.
+**Action:** Always verify a level 1 heading exists. If the visual design uses a logo, add a `span` or `h1` with `sr-only` class containing the site title.
