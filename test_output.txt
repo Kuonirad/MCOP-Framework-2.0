@@ -1,0 +1,45 @@
+
+======================================================================
+M-COP v3.1 SOLUTION
+======================================================================
+
+SOLUTION:
+----------------------------------------------------------------------
+Solution: Refined: Refined: Structural pattern: Implicit structure in problem
+
+Reasoning Mode: STRUCTURAL
+Iterations: 2
+
+Supporting Evidence:
+  1. Refinement evidence for iteration 2 (weight: 0.60)
+
+Confidence: 72.5%
+Grounding Index: 0.57
+
+EVIDENCE CHAIN:
+----------------------------------------------------------------------
+  1. Initial analysis of: Structural pattern: Implicit structure in problem
+     Source: internal_analysis, Weight: 0.50
+  2. Refinement evidence for iteration 1
+     Source: chain_analysis, Weight: 0.60
+  3. Refinement evidence for iteration 2
+     Source: chain_analysis, Weight: 0.60
+  4. Initial analysis of: Causal chain: unknown_mechanism → test problem
+     Source: internal_analysis, Weight: 0.50
+  5. Refinement evidence for iteration 1
+     Source: chain_analysis, Weight: 0.60
+
+ALTERNATIVE SOLUTIONS:
+----------------------------------------------------------------------
+  1. Refined: Causal chain: unknown_mechanism → test problem...
+     Confidence: 63.0%
+  2. Multi-step approach: Analyze problem structure → Identify ke...
+     Confidence: 65.0%
+
+KEY UNCERTAINTIES:
+----------------------------------------------------------------------
+  • 1 chains have grounding below 0.5
+  • 1 hypotheses were pruned during reasoning
+  • Grounding index 0.57 is below 0.6 - consider gathering more evidence
+
+======================================================================
