@@ -108,6 +108,7 @@ export class StigmergyV5 {
       parentHash,
       context,
       magnitude: contextMag, // Cache the magnitude
+      invMagnitude: contextMag > 0 ? 1 / contextMag : 0, // Cache inverse magnitude
       synthesisVector,
       weight,
       metadata,
@@ -129,7 +130,9 @@ export class StigmergyV5 {
     // Optimization: Skip if query vector is zero
     if (queryMag === 0) return { score: 0 };
 
-    let bestScore = 0;
+    // Defer division by queryMag to the end
+    const invQueryMag = 1 / queryMag;
+    let bestRawScore = 0;
     let bestTrace: PheromoneTrace | undefined;
 
     const qLen = context.length;
@@ -140,10 +143,17 @@ export class StigmergyV5 {
       const trace = this.traces[t];
       const tContext = trace.context;
 
-      // Use cached magnitude if available, otherwise calculate it
-      const traceMag = trace.magnitude ?? this.getMagnitude(tContext);
-
-      if (traceMag === 0) continue;
+      // Optimization: use cached inverse magnitude to replace division with multiplication
+      // If invMagnitude is missing (legacy traces), calculate it on the fly
+      let invTraceMag = trace.invMagnitude;
+      if (invTraceMag === undefined) {
+        const mag = trace.magnitude ?? this.getMagnitude(tContext);
+        if (mag === 0) continue;
+        invTraceMag = 1 / mag;
+      } else if (invTraceMag === 0) {
+        // Corresponds to magnitude 0
+        continue;
+      }
 
       // Inline dot product for maximum performance
       const tLen = tContext.length;
@@ -154,16 +164,22 @@ export class StigmergyV5 {
         dot += context[i] * tContext[i];
       }
 
-      const score = dot / (queryMag * traceMag);
+      // Optimization: Replace division with multiplication
+      // rawScore = dot / traceMag = dot * invTraceMag
+      const rawScore = dot * invTraceMag;
 
-      if (score > bestScore) {
-        bestScore = score;
+      if (rawScore > bestRawScore) {
+        bestRawScore = rawScore;
         bestTrace = trace;
       }
     }
 
-    if (bestTrace && bestScore >= this.resonanceThreshold) {
-      return { score: bestScore, trace: bestTrace };
+    // Apply deferred division by queryMag
+    if (bestTrace) {
+      const finalScore = bestRawScore * invQueryMag;
+      if (finalScore >= this.resonanceThreshold) {
+        return { score: finalScore, trace: bestTrace };
+      }
     }
 
     return { score: 0 };

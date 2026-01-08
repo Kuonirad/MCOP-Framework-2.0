@@ -12,6 +12,7 @@ export interface PheromoneTrace {
   parentHash?: string;
   context: ContextTensor;
   magnitude?: number; // Optimization: Cached Euclidean norm of the context tensor
+  invMagnitude?: number; // Optimization: Cached inverse magnitude for faster resonance calc
   synthesisVector: number[];
   weight: number;
   metadata?: Record<string, unknown>;
