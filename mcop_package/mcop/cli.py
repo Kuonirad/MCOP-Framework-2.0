@@ -140,8 +140,6 @@ def cmd_solve(args):
 
     # Save to file if requested
     if args.output:
-        mode = 'w' if args.force else 'x'
-        try:
         try:
             mode = 'w' if args.force else 'x'
             with open(args.output, mode) as f:
@@ -149,9 +147,6 @@ def cmd_solve(args):
             print(f"Solution saved to: {args.output}")
         except FileExistsError:
             print(f"Error: File '{args.output}' already exists. Use --force to overwrite.")
-            sys.exit(1)
-            print(f"Error: Output file '{args.output}' already exists.")
-            print("Use --force to overwrite.")
             sys.exit(1)
         except IsADirectoryError:
             print(f"Error: '{args.output}' is a directory.")
