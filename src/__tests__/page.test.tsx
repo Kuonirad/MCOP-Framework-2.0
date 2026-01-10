@@ -120,4 +120,16 @@ describe('Accessibility Tests', () => {
     const listItems = orderedList?.querySelectorAll('li');
     expect(listItems?.length).toBeGreaterThan(0);
   });
+
+  /**
+   * Test Case: Heading Hierarchy
+   * Ground Truth: Page should have a single h1 for document structure
+   * Failure Witness: h1 not found or multiple h1s found
+   */
+  it('contains a single level 1 heading', () => {
+    render(<Home />);
+    const heading = screen.getByRole('heading', { level: 1 });
+    expect(heading).toBeInTheDocument();
+    expect(heading).toHaveTextContent('MCOP Framework 2.0');
+  });
 });
