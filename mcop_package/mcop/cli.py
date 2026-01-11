@@ -15,7 +15,6 @@ import os
 import sys
 import json
 import logging
-import os
 from typing import Optional
 
 from . import MCOPEngine, MCOPConfig, Problem, Solution, __version__
@@ -140,17 +139,16 @@ def cmd_solve(args):
 
     # Save to file if requested
     if args.output:
-        mode = 'w' if args.force else 'x'
         try:
-        try:
+            # Security: Use 'x' mode for exclusive creation unless forced
+            # This prevents TOCTOU race conditions where file might be created
+            # between check and write
             mode = 'w' if args.force else 'x'
             with open(args.output, mode) as f:
                 f.write(output)
             print(f"Solution saved to: {args.output}")
         except FileExistsError:
-            print(f"Error: File '{args.output}' already exists. Use --force to overwrite.")
-            sys.exit(1)
-            print(f"Error: Output file '{args.output}' already exists.")
+            print(f"Error: File '{args.output}' already exists.")
             print("Use --force to overwrite.")
             sys.exit(1)
         except IsADirectoryError:
@@ -159,21 +157,6 @@ def cmd_solve(args):
         except OSError as e:
             print(f"Error saving to file: {e}")
             sys.exit(1)
-            abs_output = os.path.abspath(args.output)
-
-            # Security Check: Prevent accidental overwrite without force
-            if os.path.exists(abs_output) and not args.force:
-                print(f"Error: File exists: {args.output}")
-                print("Use --force to overwrite.")
-                sys.exit(1)
-
-            with open(abs_output, 'w') as f:
-                f.write(output)
-            print(f"Solution saved to: {args.output}")
-
-        except Exception as e:
-             print(f"Error saving file: {e}")
-             sys.exit(1)
 
 
 def cmd_interactive(args):
@@ -352,11 +335,7 @@ Examples:
         action='store_true',
         help='Verbose output'
     )
-    solve_parser.add_argument(
-        '--force',
-        action='store_true',
-        help='Force overwrite of existing files'
-    )
+    # Duplicate --force argument removed
     solve_parser.set_defaults(func=cmd_solve)
 
     # Interactive command
