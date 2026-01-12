@@ -33,6 +33,17 @@ describe('Home Page Component', () => {
   });
 
   /**
+   * Test Case: Heading Structure
+   * Ground Truth: Page should have a level 1 heading for accessibility
+   * Failure Witness: H1 element not found
+   */
+  it('renders a level 1 heading for document structure', () => {
+    render(<Home />);
+    const heading = screen.getByRole('heading', { level: 1, name: /Next.js/i });
+    expect(heading).toBeInTheDocument();
+  });
+
+  /**
    * Test Case: Next.js Logo Presence
    * Ground Truth: Logo should be present with correct alt text
    * Failure Witness: Image with alt "Next.js logo" not found
