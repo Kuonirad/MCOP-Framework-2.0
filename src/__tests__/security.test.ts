@@ -70,7 +70,18 @@ describe('Security Configuration Tests', () => {
       /password\s*[:=]\s*['"][^'"]+['"]/gi,
     ];
 
+    // Files that are allowed to contain secret-like strings for testing purposes
+    const ALLOWLISTED_FILES = [
+        'security_logger_verification.test.ts'
+    ];
+
     const checkFile = (filePath: string): boolean => {
+      // Exclude allowed test files
+      const fileName = path.basename(filePath);
+      if (ALLOWLISTED_FILES.includes(fileName)) {
+          return true;
+      }
+
       const content = fs.readFileSync(filePath, 'utf-8');
       for (const pattern of secretPatterns) {
         if (pattern.test(content)) {
