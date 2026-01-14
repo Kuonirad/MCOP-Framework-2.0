@@ -15,3 +15,7 @@
 ## 2025-12-22 - Fluid Button Containers
 **Learning:** Fixed width constraints on buttons break layout when adding micro-UX elements like icons and animated arrows.
 **Action:** When enhancing button content, remove fixed width constraints (e.g., `w-[158px]`) and rely on flexbox/padding to allow the container to adapt naturally.
+
+## 2025-12-22 - Keyboard Micro-interactions
+**Learning:** Micro-interactions like animated arrows often only work for mouse users (hover), leaving keyboard users with a static experience.
+**Action:** Always pair `group-hover` animations with `group-focus-visible` to ensure keyboard users receive the same delightful feedback.

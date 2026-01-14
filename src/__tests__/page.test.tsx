@@ -120,4 +120,16 @@ describe('Accessibility Tests', () => {
     const listItems = orderedList?.querySelectorAll('li');
     expect(listItems?.length).toBeGreaterThan(0);
   });
+
+  /**
+   * Test Case: Heading Hierarchy
+   * Ground Truth: Page must have a single h1 element for document structure
+   * Failure Witness: No h1 or multiple h1 elements found
+   */
+  it('contains a single level 1 heading', () => {
+    render(<Home />);
+    const heading = screen.getByRole('heading', { level: 1 });
+    expect(heading).toBeInTheDocument();
+    expect(heading).toHaveTextContent('Next.js');
+  });
 });
