@@ -7,3 +7,8 @@
 **Vulnerability:** The `Dockerfile` defined a `HEALTHCHECK` against a non-existent endpoint `/api/health`, ensuring production containers would fail health checks and be restarted (DoS).
 **Learning:** Operational configuration files (Dockerfile, k8s manifests) are part of the security surface. Availability is a key security pillar.
 **Prevention:** Ensure all endpoints referenced in infrastructure-as-code actually exist in the application.
+
+## 2025-12-19 - TOCTOU in File Write Operations
+**Vulnerability:** The CLI implemented a `check-then-act` pattern (`if os.path.exists(...)`) alongside a secure `open(..., 'x')` pattern, resulting in a Time-of-Check Time-of-Use (TOCTOU) vulnerability where a file could be created/replaced between the check and the write.
+**Learning:** Checking for file existence before writing is inherently racy.
+**Prevention:** Always use atomic file creation modes (`x` mode in Python `open()`, or `O_CREAT | O_EXCL` flags) to ensure the file does not exist at the moment of creation.
