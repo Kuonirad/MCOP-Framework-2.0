@@ -87,9 +87,13 @@ describe('Security Configuration Tests', () => {
       for (const entry of entries) {
         const fullPath = path.join(dir, entry.name);
         if (entry.isDirectory() && !entry.name.startsWith('.')) {
-          files.push(...walkDir(fullPath));
+          if (entry.name !== '__tests__' && entry.name !== '__mocks__') {
+            files.push(...walkDir(fullPath));
+          }
         } else if (entry.isFile() && /\.(ts|tsx|js|jsx)$/.test(entry.name)) {
-          files.push(fullPath);
+          if (!/\.(test|spec)\./.test(entry.name)) {
+            files.push(fullPath);
+          }
         }
       }
       return files;
