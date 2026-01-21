@@ -31,7 +31,7 @@ export class NovaNeoEncoder {
     const hashLen = hash.length;
 
     // Optimization 3: Calculate sum of squares analytically to avoid O(N) additions in the loop
-    let sumSquares = 0;
+    let invNorm = 1;
     if (this.normalize) {
       let hashSumSquares = 0;
       for (let i = 0; i < hashLen; i++) {
@@ -42,30 +42,37 @@ export class NovaNeoEncoder {
       const fullCycles = Math.floor(this.dimensions / hashLen);
       const remainder = this.dimensions % hashLen;
 
-      sumSquares = hashSumSquares * fullCycles;
+      let sumSquares = hashSumSquares * fullCycles;
       for (let i = 0; i < remainder; i++) {
         const v = signedHash[i];
         sumSquares += v * v;
       }
+
+      const norm = Math.sqrt(sumSquares) || 1;
+      invNorm = 1 / norm;
     }
 
-    // Optimization 4: Optimized filling loop
+    // Optimization 4: Optimized filling loop with fused normalization
     // Check for power-of-2 length (standard SHA-256 is 32 bytes) for bitwise AND
     if (hashLen === 32) {
-      for (let i = 0; i < this.dimensions; i++) {
-        values[i] = signedHash[i & 31];
+      if (invNorm === 1) {
+        for (let i = 0; i < this.dimensions; i++) {
+          values[i] = signedHash[i & 31];
+        }
+      } else {
+        for (let i = 0; i < this.dimensions; i++) {
+          values[i] = signedHash[i & 31] * invNorm;
+        }
       }
     } else {
-      for (let i = 0; i < this.dimensions; i++) {
-        values[i] = signedHash[i % hashLen];
-      }
-    }
-
-    if (this.normalize) {
-      const norm = Math.sqrt(sumSquares) || 1;
-      // Optimization 4: In-place normalization to avoid second array allocation from map()
-      for (let i = 0; i < this.dimensions; i++) {
-        values[i] /= norm;
+      if (invNorm === 1) {
+        for (let i = 0; i < this.dimensions; i++) {
+          values[i] = signedHash[i % hashLen];
+        }
+      } else {
+        for (let i = 0; i < this.dimensions; i++) {
+          values[i] = signedHash[i % hashLen] * invNorm;
+        }
       }
     }
 
