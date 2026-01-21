@@ -4,14 +4,16 @@ export default function Home() {
   return (
     <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
       <main id="main-content" className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
+        <h1>
+          <Image
+            className="dark:invert"
+            src="/next.svg"
+            alt="Next.js logo"
+            width={180}
+            height={38}
+            priority
+          />
+        </h1>
         <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
           <li className="mb-2 tracking-[-.01em]">
             Get started by editing{" "}
@@ -33,9 +35,10 @@ export default function Home() {
             rel="noopener noreferrer"
           >
             <Image
+              aria-hidden="true"
               className="dark:invert"
               src="/vercel.svg"
-              alt="Vercel logomark"
+              alt=""
               width={20}
               height={20}
             />
@@ -57,7 +60,7 @@ export default function Home() {
               height={16}
             />
             Read our docs
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none ml-1">
+            <span className="inline-block transition-transform group-hover:translate-x-1 group-focus-visible:translate-x-1 motion-reduce:transform-none ml-1">
               →
             </span>
             <span className="sr-only">(opens in a new tab)</span>
@@ -114,10 +117,10 @@ export default function Home() {
             height={16}
           />
           <span className="flex items-center gap-1">
-            <span className="group-hover:underline group-hover:underline-offset-4">
+            <span className="group-hover:underline group-hover:underline-offset-4 group-focus-visible:underline group-focus-visible:underline-offset-4">
               Go to nextjs.org
             </span>
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
+            <span className="inline-block transition-transform group-hover:translate-x-1 group-focus-visible:translate-x-1 motion-reduce:transform-none">
               →
             </span>
           </span>
