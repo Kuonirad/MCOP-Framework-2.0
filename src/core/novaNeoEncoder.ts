@@ -30,9 +30,9 @@ export class NovaNeoEncoder {
     const values = new Array(this.dimensions);
     const hashLen = hash.length;
 
-    // Optimization 3: Calculate sum of squares analytically to avoid O(N) additions in the loop
-    let sumSquares = 0;
     if (this.normalize) {
+      // Optimization 3: Calculate sum of squares analytically to avoid O(N) additions in the loop
+      let sumSquares = 0;
       let hashSumSquares = 0;
       for (let i = 0; i < hashLen; i++) {
         const v = signedHash[i];
@@ -47,25 +47,32 @@ export class NovaNeoEncoder {
         const v = signedHash[i];
         sumSquares += v * v;
       }
-    }
 
-    // Optimization 4: Optimized filling loop
-    // Check for power-of-2 length (standard SHA-256 is 32 bytes) for bitwise AND
-    if (hashLen === 32) {
-      for (let i = 0; i < this.dimensions; i++) {
-        values[i] = signedHash[i & 31];
+      const norm = Math.sqrt(sumSquares) || 1;
+      // Optimization 4: Use multiplication by inverse norm instead of division
+      const invNorm = 1 / norm;
+
+      // Fused filling and normalization loop
+      if (hashLen === 32) {
+        for (let i = 0; i < this.dimensions; i++) {
+          values[i] = signedHash[i & 31] * invNorm;
+        }
+      } else {
+        for (let i = 0; i < this.dimensions; i++) {
+          values[i] = signedHash[i % hashLen] * invNorm;
+        }
       }
     } else {
-      for (let i = 0; i < this.dimensions; i++) {
-        values[i] = signedHash[i % hashLen];
-      }
-    }
-
-    if (this.normalize) {
-      const norm = Math.sqrt(sumSquares) || 1;
-      // Optimization 4: In-place normalization to avoid second array allocation from map()
-      for (let i = 0; i < this.dimensions; i++) {
-        values[i] /= norm;
+      // Optimization 4: Optimized filling loop (no normalization)
+      // Check for power-of-2 length (standard SHA-256 is 32 bytes) for bitwise AND
+      if (hashLen === 32) {
+        for (let i = 0; i < this.dimensions; i++) {
+          values[i] = signedHash[i & 31];
+        }
+      } else {
+        for (let i = 0; i < this.dimensions; i++) {
+          values[i] = signedHash[i % hashLen];
+        }
       }
     }
 
