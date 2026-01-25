@@ -64,8 +64,10 @@ export class NovaNeoEncoder {
     if (this.normalize) {
       const norm = Math.sqrt(sumSquares) || 1;
       // Optimization 4: In-place normalization to avoid second array allocation from map()
+      // Optimization 5: Use multiplication by inverse norm instead of division
+      const invNorm = 1 / norm;
       for (let i = 0; i < this.dimensions; i++) {
-        values[i] /= norm;
+        values[i] *= invNorm;
       }
     }
 
