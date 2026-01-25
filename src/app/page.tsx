@@ -57,7 +57,7 @@ export default function Home() {
               height={16}
             />
             Read our docs
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none ml-1">
+            <span className="inline-block transition-transform group-hover:translate-x-1 group-focus-visible:translate-x-1 motion-reduce:transform-none ml-1">
               →
             </span>
             <span className="sr-only">(opens in a new tab)</span>
@@ -66,7 +66,7 @@ export default function Home() {
       </main>
       <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
         <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4 rounded-sm focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-2 focus-visible:ring-offset-background focus:outline-none active:scale-95 transition-transform"
+          className="flex items-center gap-2 hover:underline hover:underline-offset-4 focus-visible:underline focus-visible:underline-offset-4 rounded-sm focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-2 focus-visible:ring-offset-background focus:outline-none active:scale-95 transition-transform"
           href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
           target="_blank"
           rel="noopener noreferrer"
@@ -83,7 +83,7 @@ export default function Home() {
           <span className="sr-only">(opens in a new tab)</span>
         </a>
         <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4 rounded-sm focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-2 focus-visible:ring-offset-background focus:outline-none active:scale-95 transition-transform"
+          className="flex items-center gap-2 hover:underline hover:underline-offset-4 focus-visible:underline focus-visible:underline-offset-4 rounded-sm focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-2 focus-visible:ring-offset-background focus:outline-none active:scale-95 transition-transform"
           href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
           target="_blank"
           rel="noopener noreferrer"
@@ -114,10 +114,10 @@ export default function Home() {
             height={16}
           />
           <span className="flex items-center gap-1">
-            <span className="group-hover:underline group-hover:underline-offset-4">
+            <span className="group-hover:underline group-hover:underline-offset-4 group-focus-visible:underline group-focus-visible:underline-offset-4">
               Go to nextjs.org
             </span>
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
+            <span className="inline-block transition-transform group-hover:translate-x-1 group-focus-visible:translate-x-1 motion-reduce:transform-none">
               →
             </span>
           </span>
