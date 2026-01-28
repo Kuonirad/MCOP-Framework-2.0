@@ -120,4 +120,15 @@ describe('Accessibility Tests', () => {
     const listItems = orderedList?.querySelectorAll('li');
     expect(listItems?.length).toBeGreaterThan(0);
   });
+
+  /**
+   * Test Case: Heading Level 1 Presence
+   * Ground Truth: Page should have exactly one H1 for document structure
+   * Failure Witness: H1 element not found
+   */
+  it('contains a level 1 heading for document structure', () => {
+    render(<Home />);
+    const heading = screen.getByRole('heading', { level: 1 });
+    expect(heading).toBeInTheDocument();
+  });
 });
