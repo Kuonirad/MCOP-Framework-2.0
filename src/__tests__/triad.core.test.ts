@@ -16,6 +16,18 @@ describe('Triad seeds', () => {
     expect(entropy).toBeGreaterThanOrEqual(0.05);
   });
 
+  it('NOVA-NEO produces correct output when normalization is disabled', () => {
+    const encoder = new NovaNeoEncoder({ dimensions: 8, normalize: false });
+    const first = encoder.encode('raw entropy');
+    const second = encoder.encode('raw entropy');
+
+    expect(first).toHaveLength(8);
+    expect(second).toEqual(first);
+
+    // Verify consistency: identical inputs yield identical outputs
+    expect(first).toEqual(second);
+  });
+
   it('Stigmergy v5 records traces and returns resonance above threshold', () => {
     const encoder = new NovaNeoEncoder({ dimensions: 8 });
     const stigmergy = new StigmergyV5({ resonanceThreshold: 0.2 });
