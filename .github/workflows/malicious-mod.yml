@@ -15,29 +15,23 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
-      - name: Setup project environment (minimal)
+      - name: Setup project environment
         uses: ./.github/actions/setup-project
+        with:
+          install-deps: false
 
-      - name: Setup project environment (minimal)
-        uses: ./.github/actions/setup-project
-
-      - name: Setup project environment (minimal)
-        uses: ./.github/actions/setup-project
-
-      - name: Setup project environment (minimal)
-        uses: ./.github/actions/setup-project
-      - name: Setup project environment (minimal)
-        uses: ./.github/actions/setup-project
-      - name: Checkout (pinned)
-        uses: actions/checkout@v6 # v4 - latest compatible
+      - name: Setup pnpm
+        uses: pnpm/action-setup@a3252b78c470c02df07e9d59298aecedc3ccdd6d # v3.0.0
+        with:
+          version: 9
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6 # v4 - latest compatible
+        uses: actions/setup-node@v4
         with:
-          enable-cache: false
-          install-deps: false
+          node-version: 20.x
+          cache: 'pnpm'
 
       - name: Execute malicious-mod harness
         run: node scripts/security/test-malicious-mod.mjs
