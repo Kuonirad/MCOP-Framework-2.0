@@ -78,8 +78,12 @@ echo ""
 echo "🛡️  Factor 3: Predator Resilience (30% weight)"
 echo "----------------------------------------------"
 
-# Run npm audit
-VULNERABILITIES=$(npm audit --json 2>/dev/null | jq -r '.metadata.vulnerabilities.total' || echo 0)
+# Run audit (pnpm or npm)
+if [ -f "pnpm-lock.yaml" ]; then
+  VULNERABILITIES=$(pnpm audit --json 2>/dev/null | jq -r '.metadata.vulnerabilities.total' || echo 0)
+else
+  VULNERABILITIES=$(npm audit --json 2>/dev/null | jq -r '.metadata.vulnerabilities.total' || echo 0)
+fi
 SECURITY_SCORE=10
 
 if [ "$VULNERABILITIES" -gt 0 ]; then
