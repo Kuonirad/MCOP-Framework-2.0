@@ -49,23 +49,19 @@ export class NovaNeoEncoder {
       }
     }
 
-    // Optimization 4: Optimized filling loop
+    const norm = this.normalize ? (Math.sqrt(sumSquares) || 1) : 1;
+    // Optimization: Use multiplication by inverse norm for speed
+    const invNorm = 1 / norm;
+
+    // Optimization 4: Optimized filling loop with fused normalization
     // Check for power-of-2 length (standard SHA-256 is 32 bytes) for bitwise AND
     if (hashLen === 32) {
       for (let i = 0; i < this.dimensions; i++) {
-        values[i] = signedHash[i & 31];
+        values[i] = signedHash[i & 31] * invNorm;
       }
     } else {
       for (let i = 0; i < this.dimensions; i++) {
-        values[i] = signedHash[i % hashLen];
-      }
-    }
-
-    if (this.normalize) {
-      const norm = Math.sqrt(sumSquares) || 1;
-      // Optimization 4: In-place normalization to avoid second array allocation from map()
-      for (let i = 0; i < this.dimensions; i++) {
-        values[i] /= norm;
+        values[i] = signedHash[i % hashLen] * invNorm;
       }
     }
 
