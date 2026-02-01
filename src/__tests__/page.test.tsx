@@ -94,6 +94,17 @@ describe('Home Page Component', () => {
 
 describe('Accessibility Tests', () => {
   /**
+   * Test Case: Heading Hierarchy
+   * Ground Truth: Page must have a level 1 heading
+   * Failure Witness: H1 element not found
+   */
+  it('contains a level 1 heading', () => {
+    render(<Home />);
+    const heading = screen.getByRole('heading', { level: 1 });
+    expect(heading).toBeInTheDocument();
+  });
+
+  /**
    * Test Case: Images have alt text
    * Ground Truth: All images should have alt attributes
    * Failure Witness: Image found without alt attribute
