@@ -17,11 +17,20 @@ inputs:
 runs:
   using: 'composite'
   steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+    # Explicit checkout is NOT needed here if the workflow calling this action
+    # has already performed a checkout. However, if this is intended to be atomic,
+    # we should be careful.
+    # Given the CI workflow explicitly calls checkout before using this,
+    # we should remove the redundant checkout inside this composite action OR
+    # remove the checkout in the workflow.
+    #
+    # Best practice for local actions: The caller must checkout first to even access this action.
+    # Therefore, we do not need to checkout AGAIN inside, unless we are checking out a diff repo.
+    # BUT, calling `actions/checkout` with defaults cleans the workspace.
+    # So we will REMOVE the checkout step from here to avoid wiping the caller's workspace.
 
     - name: Setup Node.js
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f # v6.1.0
       with:
         node-version: ${{ inputs.node-version }}
         cache: ${{ inputs.enable-cache == 'true' && 'npm' || '' }}
