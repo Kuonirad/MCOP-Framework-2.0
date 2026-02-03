@@ -16,6 +16,20 @@ describe('Triad seeds', () => {
     expect(entropy).toBeGreaterThanOrEqual(0.05);
   });
 
+  it('NOVA-NEO produces correct non-normalized tensors', () => {
+    const encoder = new NovaNeoEncoder({ dimensions: 8, normalize: false });
+    const first = encoder.encode('raw entropy');
+    const second = encoder.encode('raw entropy');
+
+    expect(first).toHaveLength(8);
+    expect(second).toEqual(first);
+
+    first.forEach((val) => {
+      expect(val).toBeGreaterThanOrEqual(-1);
+      expect(val).toBeLessThanOrEqual(1);
+    });
+  });
+
   it('Stigmergy v5 records traces and returns resonance above threshold', () => {
     const encoder = new NovaNeoEncoder({ dimensions: 8 });
     const stigmergy = new StigmergyV5({ resonanceThreshold: 0.2 });
