@@ -12,7 +12,7 @@ describe('Logger Configuration', () => {
     require('../utils/logger');
 
     expect(pinoMock).toHaveBeenCalledTimes(1);
-    const config = pinoMock.mock.calls[0][0] as any;
+    const config = pinoMock.mock.calls[0][0] as { redact: string[] };
 
     expect(config).toBeDefined();
     expect(config.redact).toEqual(expect.arrayContaining([
