@@ -49,23 +49,32 @@ export class NovaNeoEncoder {
       }
     }
 
-    // Optimization 4: Optimized filling loop
-    // Check for power-of-2 length (standard SHA-256 is 32 bytes) for bitwise AND
-    if (hashLen === 32) {
-      for (let i = 0; i < this.dimensions; i++) {
-        values[i] = signedHash[i & 31];
-      }
-    } else {
-      for (let i = 0; i < this.dimensions; i++) {
-        values[i] = signedHash[i % hashLen];
-      }
-    }
-
+    // Optimization 4: Optimized filling loop with fused normalization
+    // If normalizing, we fuse the fill and normalize steps to avoid iterating twice
+    // and use inverse multiplication instead of division for speed.
     if (this.normalize) {
       const norm = Math.sqrt(sumSquares) || 1;
-      // Optimization 4: In-place normalization to avoid second array allocation from map()
-      for (let i = 0; i < this.dimensions; i++) {
-        values[i] /= norm;
+      const invNorm = 1 / norm;
+
+      if (hashLen === 32) {
+        for (let i = 0; i < this.dimensions; i++) {
+          values[i] = signedHash[i & 31] * invNorm;
+        }
+      } else {
+        for (let i = 0; i < this.dimensions; i++) {
+          values[i] = signedHash[i % hashLen] * invNorm;
+        }
+      }
+    } else {
+      // Standard filling loop for non-normalized case
+      if (hashLen === 32) {
+        for (let i = 0; i < this.dimensions; i++) {
+          values[i] = signedHash[i & 31];
+        }
+      } else {
+        for (let i = 0; i < this.dimensions; i++) {
+          values[i] = signedHash[i % hashLen];
+        }
       }
     }
 
