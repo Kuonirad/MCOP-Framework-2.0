@@ -17,3 +17,8 @@
 **Vulnerability:** Supply chain risk from unverified action versions, compounded by stale or incorrect SHA references breaking the build pipeline.
 **Learning:** The project used an invalid SHA for `actions/upload-artifact`, causing CI failure. This highlights the importance of verifying SHA pins against official tags using tools like `git ls-remote`.
 **Prevention:** Regularly audit and update action pins using automated tools or strict manual verification against the action's repository tags.
+
+## 2025-12-19 - CI Pipeline Resilience
+**Vulnerability:** CI/CD pipeline breakage due to redundant checkout steps wiping dependencies, leading to potential security check bypasses (or inability to run them).
+**Learning:** `actions/checkout` with `clean: true` (default) wipes the workspace. Invoking it multiple times or after dependency installation destroys `node_modules`, causing subsequent steps like linting to fail.
+**Prevention:** Structure CI workflows linearly: Checkout -> Setup -> Install -> Run. Avoid redundant checkouts or complex composite actions that implicitly re-checkout.
