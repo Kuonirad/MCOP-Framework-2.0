@@ -7,3 +7,8 @@
 **Vulnerability:** The `Dockerfile` defined a `HEALTHCHECK` against a non-existent endpoint `/api/health`, ensuring production containers would fail health checks and be restarted (DoS).
 **Learning:** Operational configuration files (Dockerfile, k8s manifests) are part of the security surface. Availability is a key security pillar.
 **Prevention:** Ensure all endpoints referenced in infrastructure-as-code actually exist in the application.
+
+## 2025-12-19 - Ghost Dependency Lockfile Drift
+**Vulnerability:** Inconsistent dependency state leading to potential build instability and masking of malicious dependency changes.
+**Learning:** The project's `package.json` and `pnpm-lock.yaml` are out of sync due to ghost dependencies (e.g., `@eslint/eslintrc`) that `pnpm` automatically prunes during installation. This creates noise in security PRs.
+**Prevention:** Regularly run `pnpm install` and commit the updated lockfile to keep it synchronized with `package.json`.
