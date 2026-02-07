@@ -12,3 +12,8 @@
 **Vulnerability:** Inconsistent dependency state leading to potential build instability and masking of malicious dependency changes.
 **Learning:** The project's `package.json` and `pnpm-lock.yaml` are out of sync due to ghost dependencies (e.g., `@eslint/eslintrc`) that `pnpm` automatically prunes during installation. This creates noise in security PRs.
 **Prevention:** Regularly run `pnpm install` and commit the updated lockfile to keep it synchronized with `package.json`.
+
+## 2025-12-19 - CI Action Pinning Failure
+**Vulnerability:** Supply chain risk from unverified action versions, compounded by stale or incorrect SHA references breaking the build pipeline.
+**Learning:** The project used an invalid SHA for `actions/upload-artifact`, causing CI failure. This highlights the importance of verifying SHA pins against official tags using tools like `git ls-remote`.
+**Prevention:** Regularly audit and update action pins using automated tools or strict manual verification against the action's repository tags.
