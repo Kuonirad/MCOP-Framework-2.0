@@ -9,3 +9,7 @@
 ## 2025-12-19 - [Multiplication vs Division Micro-optimization Surprise]
 **Learning:** Replacing `dot / (A * B)` with `dot * (1/A) * (1/B)` (using cached inverses) in the `StigmergyV5` hot loop resulted in a ~10-20% slowdown (4.0ms -> 5.3ms) in V8 (Node 22), despite theoretical instruction cost savings. This might be due to increased property access overhead, object shape complexity, or V8's efficient handling of the original division.
 **Action:** Always benchmark micro-optimizations like instruction replacement. V8's JIT is often smarter or differently optimized than simple cycle counting suggests.
+
+## 2025-12-19 - [GitHub Action SHA Verification]
+**Learning:** An outdated/missing SHA `507695404364bd5b5d159487a4f94a83b603570c` for `actions/upload-artifact` caused a CI pipeline failure (`An action could not be found at the URI`).
+**Action:** Always verify GitHub Action SHAs against tags using `git ls-remote --tags <repo_url>` before pinning them in workflows. Never assume a SHA is valid without checking.
