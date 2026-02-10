@@ -17,3 +17,7 @@
 ## 2025-12-19 - [Lockfile Drift Causing Missing Binaries in CI]
 **Learning:** A drift between `package.json`, `package-lock.json`, and `pnpm-lock.yaml` caused `npm ci` in CI to install a different tree than `pnpm install` locally, resulting in missing binaries (like `eslint`) and `exit code 127` errors. This happened because `npm ci` strictly follows `package-lock.json`, which was outdated relative to the pnpm-driven development environment.
 **Action:** Always ensure `package-lock.json` and `pnpm-lock.yaml` are synchronized before pushing, especially when CI uses `npm ci` but development uses `pnpm`. Use `pnpm install` to update pnpm's lockfile, and `npm install --package-lock-only` to sync npm's lockfile.
+
+## 2025-12-19 - [CI Workflow Workspace Cleaning]
+**Learning:** `actions/checkout` defaults to `clean: true`. Invoking it *mid-job* (e.g., explicitly or inside a composite action like `setup-project`) after dependency installation deletes `node_modules`, causing subsequent steps like `npm run lint` to fail with missing binaries.
+**Action:** Design workflows to checkout code *once* at the start. If using composite actions that might checkout, ensure they are called before expensive setup steps, or verify their inputs. Avoid redundant checkouts.
