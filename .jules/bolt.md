@@ -13,3 +13,7 @@
 ## 2025-12-19 - [GitHub Action SHA Verification]
 **Learning:** An outdated/missing SHA `507695404364bd5b5d159487a4f94a83b603570c` for `actions/upload-artifact` caused a CI pipeline failure (`An action could not be found at the URI`).
 **Action:** Always verify GitHub Action SHAs against tags using `git ls-remote --tags <repo_url>` before pinning them in workflows. Never assume a SHA is valid without checking.
+
+## 2025-12-19 - [Lockfile Drift Causing Missing Binaries in CI]
+**Learning:** A drift between `package.json`, `package-lock.json`, and `pnpm-lock.yaml` caused `npm ci` in CI to install a different tree than `pnpm install` locally, resulting in missing binaries (like `eslint`) and `exit code 127` errors. This happened because `npm ci` strictly follows `package-lock.json`, which was outdated relative to the pnpm-driven development environment.
+**Action:** Always ensure `package-lock.json` and `pnpm-lock.yaml` are synchronized before pushing, especially when CI uses `npm ci` but development uses `pnpm`. Use `pnpm install` to update pnpm's lockfile, and `npm install --package-lock-only` to sync npm's lockfile.
