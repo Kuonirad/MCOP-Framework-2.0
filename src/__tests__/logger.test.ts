@@ -20,8 +20,8 @@ describe('Logger Configuration', () => {
   it('should be configured with redaction for sensitive keys', async () => {
     // Import the mocked pino function to assert on it
     const pinoModule = await import('pino');
-    // @ts-ignore
-    const pinoMock = pinoModule.default as jest.Mock;
+    // Using double type assertion to bypass TypeScript type check for the mocked module
+    const pinoMock = pinoModule.default as unknown as jest.Mock;
 
     pinoMock.mockClear();
 
