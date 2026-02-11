@@ -5,3 +5,7 @@
 ## 2025-12-19 - [Array.prototype.copyWithin Performance on Holey Arrays]
 **Learning:** Using `copyWithin` on an array initialized with `new Array(n)` (holey) was 10x slower than a simple assignment loop in V8 (Node.js 22). This is likely due to de-optimization or the overhead of handling holey arrays in the implementation of `copyWithin`.
 **Action:** Prefer simple assignment loops over `copyWithin` for filling new arrays, or verify performance with benchmarks. V8 optimizes simple loops heavily.
+
+## 2025-12-19 - [Loop Fusion in NovaNeoEncoder]
+**Learning:** Fusing array filling and normalization loops in `NovaNeoEncoder` reduced execution time by ~20% (1292ms to 1007ms) for `normalize: true`. Iterating over large arrays multiple times is costly; combining operations into a single pass improves cache locality and reduces loop overhead. Replacing division with multiplication (`* (1/norm)`) also contributed.
+**Action:** Look for opportunities to fuse loops where multiple passes are made over the same data, especially in hot paths like vector generation.
