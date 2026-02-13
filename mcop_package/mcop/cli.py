@@ -140,40 +140,23 @@ def cmd_solve(args):
 
     # Save to file if requested
     if args.output:
-        mode = 'w' if args.force else 'x'
         try:
-        try:
+            # Security: Use 'x' mode to prevent TOCTOU race conditions when creating new files.
+            # Only use 'w' mode if force overwrite is explicitly requested.
             mode = 'w' if args.force else 'x'
             with open(args.output, mode) as f:
                 f.write(output)
             print(f"Solution saved to: {args.output}")
+
         except FileExistsError:
             print(f"Error: File '{args.output}' already exists. Use --force to overwrite.")
-            sys.exit(1)
-            print(f"Error: Output file '{args.output}' already exists.")
-            print("Use --force to overwrite.")
             sys.exit(1)
         except IsADirectoryError:
             print(f"Error: '{args.output}' is a directory.")
             sys.exit(1)
-        except OSError as e:
-            print(f"Error saving to file: {e}")
-            sys.exit(1)
-            abs_output = os.path.abspath(args.output)
-
-            # Security Check: Prevent accidental overwrite without force
-            if os.path.exists(abs_output) and not args.force:
-                print(f"Error: File exists: {args.output}")
-                print("Use --force to overwrite.")
-                sys.exit(1)
-
-            with open(abs_output, 'w') as f:
-                f.write(output)
-            print(f"Solution saved to: {args.output}")
-
         except Exception as e:
-             print(f"Error saving file: {e}")
-             sys.exit(1)
+            print(f"Error saving file: {e}")
+            sys.exit(1)
 
 
 def cmd_interactive(args):
