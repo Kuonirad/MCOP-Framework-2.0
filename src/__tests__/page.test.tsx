@@ -120,4 +120,33 @@ describe('Accessibility Tests', () => {
     const listItems = orderedList?.querySelectorAll('li');
     expect(listItems?.length).toBeGreaterThan(0);
   });
+
+  /**
+   * Test Case: Keyboard Focus Feedback
+   * Ground Truth: Directional links should have focus visible styles for arrows
+   * Failure Witness: Arrow span missing group-focus-visible class
+   */
+  it('includes focus visible styles for directional arrows', () => {
+    render(<Home />);
+    const links = document.querySelectorAll('a');
+
+    // Find all links that contain an arrow character
+    const arrowLinks = Array.from(links).filter(link =>
+      link.textContent && link.textContent.includes('→')
+    );
+
+    expect(arrowLinks.length).toBeGreaterThan(0);
+
+    arrowLinks.forEach(link => {
+      // Find the specific span containing the arrow
+      // We look for the one with transition-transform to avoid selecting wrapper spans
+      const arrowSpan = Array.from(link.querySelectorAll('span')).find(
+        span => span.textContent?.includes('→') && span.classList.contains('transition-transform')
+      );
+
+      expect(arrowSpan).toBeInTheDocument();
+      // Check for the class name string directly as classList might handle spaces differently
+      expect(arrowSpan?.className).toContain('group-focus-visible:translate-x-1');
+    });
+  });
 });
