@@ -120,4 +120,27 @@ describe('Accessibility Tests', () => {
     const listItems = orderedList?.querySelectorAll('li');
     expect(listItems?.length).toBeGreaterThan(0);
   });
+
+  /**
+   * Test Case: Directional links focus state
+   * Ground Truth: Directional arrows should move on focus-visible as well as hover
+   * Failure Witness: Arrow spans missing group-focus-visible class
+   */
+  it('directional arrows have focus-visible transition', () => {
+    render(<Home />);
+    const arrows = screen.getAllByText('→');
+
+    expect(arrows.length).toBeGreaterThan(0);
+
+    // Check that our specific arrow spans have the focus class
+    // We filter for elements that already have the hover transition
+    const animatedArrows = arrows.filter(el =>
+      el.classList.contains('group-hover:translate-x-1')
+    );
+
+    expect(animatedArrows.length).toBeGreaterThan(0);
+    animatedArrows.forEach(arrow => {
+      expect(arrow).toHaveClass('group-focus-visible:translate-x-1');
+    });
+  });
 });
