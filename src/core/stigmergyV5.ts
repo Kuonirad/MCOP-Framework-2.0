@@ -150,7 +150,19 @@ export class StigmergyV5 {
       const minLen = qLen < tLen ? qLen : tLen;
 
       let dot = 0;
-      for (let i = 0; i < minLen; i++) {
+      let i = 0;
+      // Loop unrolling with multiple accumulators for ILP (4x)
+      let d1 = 0, d2 = 0, d3 = 0, d4 = 0;
+      const limit = minLen - 3;
+      for (; i < limit; i += 4) {
+        d1 += context[i] * tContext[i];
+        d2 += context[i + 1] * tContext[i + 1];
+        d3 += context[i + 2] * tContext[i + 2];
+        d4 += context[i + 3] * tContext[i + 3];
+      }
+      dot = d1 + d2 + d3 + d4;
+      // Handle remaining elements
+      for (; i < minLen; i++) {
         dot += context[i] * tContext[i];
       }
 
