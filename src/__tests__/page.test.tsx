@@ -120,4 +120,24 @@ describe('Accessibility Tests', () => {
     const listItems = orderedList?.querySelectorAll('li');
     expect(listItems?.length).toBeGreaterThan(0);
   });
+
+  /**
+   * Test Case: Keyboard Accessibility Visual Feedback
+   * Ground Truth: Directional arrows should animate on focus-visible
+   * Failure Witness: Arrow span missing group-focus-visible:translate-x-1 class
+   */
+  it('arrows have focus-visible transition classes', () => {
+    render(<Home />);
+    // Arrows are purely presentational text in spans
+    const arrows = screen.getAllByText('→');
+
+    expect(arrows.length).toBeGreaterThan(0);
+    arrows.forEach(arrow => {
+      // Ensure the span itself has the focus-visible transition class
+      // Note: We check specifically for the arrow span, not a parent
+      if (arrow.tagName === 'SPAN') {
+        expect(arrow).toHaveClass('group-focus-visible:translate-x-1');
+      }
+    });
+  });
 });
