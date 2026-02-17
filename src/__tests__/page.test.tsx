@@ -120,4 +120,19 @@ describe('Accessibility Tests', () => {
     const listItems = orderedList?.querySelectorAll('li');
     expect(listItems?.length).toBeGreaterThan(0);
   });
+
+  /**
+   * Test Case: Keyboard Focus Indication
+   * Ground Truth: Directional arrows should animate on focus for keyboard users
+   * Failure Witness: Arrow span missing group-focus-visible class
+   */
+  it('arrows have focus-visible translation for keyboard users', () => {
+    render(<Home />);
+    const arrows = screen.getAllByText('→');
+    expect(arrows.length).toBeGreaterThan(0);
+
+    arrows.forEach(arrow => {
+      expect(arrow.className).toContain('group-focus-visible:translate-x-1');
+    });
+  });
 });
