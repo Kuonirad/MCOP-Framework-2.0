@@ -16,6 +16,25 @@ export class StigmergyV5 {
     this.maxTraces = config.maxTraces ?? 2048;
   }
 
+  // Optimized dot product with loop unrolling for ILP
+  private dotProduct(a: ContextTensor, b: ContextTensor, len: number): number {
+    let dot = 0;
+    let i = 0;
+    let d1 = 0, d2 = 0, d3 = 0, d4 = 0;
+    // Check for small arrays to avoid overhead if needed, but standard loop unrolling is generally safe
+    for (; i <= len - 4; i += 4) {
+      d1 += a[i] * b[i];
+      d2 += a[i+1] * b[i+1];
+      d3 += a[i+2] * b[i+2];
+      d4 += a[i+3] * b[i+3];
+    }
+    dot = d1 + d2 + d3 + d4;
+    for (; i < len; i++) {
+      dot += a[i] * b[i];
+    }
+    return dot;
+  }
+
   private getMagnitude(vector: ContextTensor): number {
     let sumSq = 0;
     const len = vector.length;
@@ -38,11 +57,7 @@ export class StigmergyV5 {
     const lenB = b.length;
     const minLen = lenA < lenB ? lenA : lenB;
 
-    let dot = 0;
-    for (let i = 0; i < minLen; i++) {
-      dot += a[i] * b[i];
-    }
-
+    const dot = this.dotProduct(a, b, minLen);
     return dot / (magA * magB);
   }
 
@@ -51,10 +66,7 @@ export class StigmergyV5 {
 
     // Optimization: Use pre-calculated magnitudes if vectors are equal length
     if (magA !== undefined && magB !== undefined && a.length === b.length) {
-      let dot = 0;
-      for (let i = 0; i < minLen; i++) {
-        dot += a[i] * b[i];
-      }
+      const dot = this.dotProduct(a, b, minLen);
       // Avoid division by zero
       if (magA === 0 || magB === 0) return 0;
       return dot / (magA * magB);
@@ -149,11 +161,7 @@ export class StigmergyV5 {
       const tLen = tContext.length;
       const minLen = qLen < tLen ? qLen : tLen;
 
-      let dot = 0;
-      for (let i = 0; i < minLen; i++) {
-        dot += context[i] * tContext[i];
-      }
-
+      const dot = this.dotProduct(context, tContext, minLen);
       const score = dot / (queryMag * traceMag);
 
       if (score > bestScore) {
