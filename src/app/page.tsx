@@ -57,7 +57,7 @@ export default function Home() {
               height={16}
             />
             Read our docs
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none ml-1">
+            <span className="inline-block transition-transform group-hover:translate-x-1 group-focus-visible:translate-x-1 motion-reduce:transform-none ml-1">
               →
             </span>
             <span className="sr-only">(opens in a new tab)</span>
@@ -117,7 +117,7 @@ export default function Home() {
             <span className="group-hover:underline group-hover:underline-offset-4">
               Go to nextjs.org
             </span>
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
+            <span className="inline-block transition-transform group-hover:translate-x-1 group-focus-visible:translate-x-1 motion-reduce:transform-none">
               →
             </span>
           </span>
