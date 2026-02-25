@@ -24,4 +24,26 @@ describe('StigmergyV5 Security & Functionality', () => {
      // UUID format is different, but we check for general randomness/length
      expect(trace.id.length).toBeGreaterThan(10);
   });
+
+  test('getResonance correctly calculates cosine similarity', () => {
+    // Vector A: [1, 0, 0]
+    // Vector B: [0, 1, 0]
+    const vecA = [1, 0, 0];
+    const vecB = [0, 1, 0];
+
+    stigmergy.recordTrace(vecA, mockSynthesis);
+
+    // Query with A (identical) -> should be 1.0
+    const resA = stigmergy.getResonance(vecA);
+    expect(resA.score).toBeCloseTo(1.0, 5);
+
+    // Query with B (orthogonal) -> should be 0 (below default threshold 0.5, so 0)
+    const resB = stigmergy.getResonance(vecB);
+    expect(resB.score).toBe(0);
+
+    // Query with vector similar to A (e.g., scaled A) -> should be 1.0 (cosine ignores magnitude)
+    const vecAScaled = [2, 0, 0];
+    const resAScaled = stigmergy.getResonance(vecAScaled);
+    expect(resAScaled.score).toBeCloseTo(1.0, 5);
+  });
 });

@@ -25,6 +25,32 @@ export class StigmergyV5 {
     return Math.sqrt(sumSq);
   }
 
+  // Optimized dot product with 4x loop unrolling and multiple accumulators
+  private dotProduct(a: ContextTensor, b: ContextTensor): number {
+    const len = a.length < b.length ? a.length : b.length;
+    let sum1 = 0;
+    let sum2 = 0;
+    let sum3 = 0;
+    let sum4 = 0;
+
+    const limit = len - (len % 4);
+
+    for (let i = 0; i < limit; i += 4) {
+      sum1 += a[i] * b[i];
+      sum2 += a[i + 1] * b[i + 1];
+      sum3 += a[i + 2] * b[i + 2];
+      sum4 += a[i + 3] * b[i + 3];
+    }
+
+    let sum = sum1 + sum2 + sum3 + sum4;
+
+    for (let i = limit; i < len; i++) {
+      sum += a[i] * b[i];
+    }
+
+    return sum;
+  }
+
   // Optimized cosine similarity using pre-calculated magnitudes
   private cosineWithMagnitudes(
     a: ContextTensor,
@@ -34,14 +60,7 @@ export class StigmergyV5 {
   ): number {
     if (!magA || !magB) return 0;
 
-    const lenA = a.length;
-    const lenB = b.length;
-    const minLen = lenA < lenB ? lenA : lenB;
-
-    let dot = 0;
-    for (let i = 0; i < minLen; i++) {
-      dot += a[i] * b[i];
-    }
+    const dot = this.dotProduct(a, b);
 
     return dot / (magA * magB);
   }
@@ -132,8 +151,6 @@ export class StigmergyV5 {
     let bestScore = 0;
     let bestTrace: PheromoneTrace | undefined;
 
-    const qLen = context.length;
-
     // Use a standard loop for performance
     const traceCount = this.traces.length;
     for (let t = 0; t < traceCount; t++) {
@@ -145,14 +162,8 @@ export class StigmergyV5 {
 
       if (traceMag === 0) continue;
 
-      // Inline dot product for maximum performance
-      const tLen = tContext.length;
-      const minLen = qLen < tLen ? qLen : tLen;
-
-      let dot = 0;
-      for (let i = 0; i < minLen; i++) {
-        dot += context[i] * tContext[i];
-      }
+      // Use optimized dot product with loop unrolling
+      const dot = this.dotProduct(context, tContext);
 
       const score = dot / (queryMag * traceMag);
 

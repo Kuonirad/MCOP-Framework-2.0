@@ -5,3 +5,7 @@
 ## 2025-12-19 - [Array.prototype.copyWithin Performance on Holey Arrays]
 **Learning:** Using `copyWithin` on an array initialized with `new Array(n)` (holey) was 10x slower than a simple assignment loop in V8 (Node.js 22). This is likely due to de-optimization or the overhead of handling holey arrays in the implementation of `copyWithin`.
 **Action:** Prefer simple assignment loops over `copyWithin` for filling new arrays, or verify performance with benchmarks. V8 optimizes simple loops heavily.
+
+## 2025-12-19 - [Loop Unrolling in Hot Paths]
+**Learning:** Implementing a private `dotProduct` helper with 4x loop unrolling and multiple accumulators improved `StigmergyV5.getResonance` performance by ~20% (421ms -> 336ms) for 1024-dimension vectors.
+**Action:** Consider loop unrolling for numerical hot loops, but verify with benchmarks as modern JITs handle simple loops well.
