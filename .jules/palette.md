@@ -9,6 +9,10 @@
 **Learning:** Simple text arrows in links feel static. Separating the arrow allows for playful interaction without breaking text decoration.
 **Action:** For links with arrows (→), wrap text in `group-hover:underline` and arrow in `group-hover:translate-x-1`. Use `motion-reduce` to disable animation.
 
+## 2025-03-01 - Keyboard Accessible Directional Micro-interactions
+**Learning:** Relying solely on `group-hover` for directional micro-interactions (like animating arrows) excludes keyboard users, who miss out on the same affordance when tabbing through focusable elements.
+**Action:** Always pair `group-hover:*` animation utilities with equivalent `group-focus-visible:*` utilities (e.g., `group-hover:translate-x-1 group-focus-visible:translate-x-1`) to ensure equitable interaction feedback for all input modalities.
+
 ## 2025-02-20 - Fluid Button Sizing
 **Learning:** Fixed width buttons (e.g., `md:w-[158px]`) break layout when content changes (translations, dynamic text) or user settings (font scaling) vary.
 **Action:** Avoid fixed width constraints on buttons. Use `w-auto` and padding to let content dictate size, ensuring flexibility and accessibility.
