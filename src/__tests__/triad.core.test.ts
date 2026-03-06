@@ -16,6 +16,13 @@ describe('Triad seeds', () => {
     expect(entropy).toBeGreaterThanOrEqual(0.05);
   });
 
+  it('NOVA-NEO limits input length to prevent DoS', () => {
+    const encoder = new NovaNeoEncoder({ dimensions: 8, maxInputLength: 10 });
+    expect(() => encoder.encode('this string is longer than 10 characters')).toThrow(
+      'Input length 40 exceeds maximum allowed length of 10'
+    );
+  });
+
   it('Stigmergy v5 records traces and returns resonance above threshold', () => {
     const encoder = new NovaNeoEncoder({ dimensions: 8 });
     const stigmergy = new StigmergyV5({ resonanceThreshold: 0.2 });
