@@ -7,3 +7,8 @@
 **Vulnerability:** The `Dockerfile` defined a `HEALTHCHECK` against a non-existent endpoint `/api/health`, ensuring production containers would fail health checks and be restarted (DoS).
 **Learning:** Operational configuration files (Dockerfile, k8s manifests) are part of the security surface. Availability is a key security pillar.
 **Prevention:** Ensure all endpoints referenced in infrastructure-as-code actually exist in the application.
+
+## 2025-12-19 - Unbounded Synchronous Hashing DoS Risk
+**Vulnerability:** The `NovaNeoEncoder` performed synchronous hashing (`crypto.createHash`) on strings of unbounded length.
+**Learning:** Synchronous hashing operations on unbounded inputs in Node.js block the event loop and can cause memory exhaustion DoS attacks.
+**Prevention:** It is a security best practice to enforce a `maxInputLength` limit on data before performing expensive synchronous operations.
