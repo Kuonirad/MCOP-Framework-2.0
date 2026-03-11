@@ -94,6 +94,34 @@ describe('Home Page Component', () => {
 
 describe('Accessibility Tests', () => {
   /**
+   * Test Case: Directional Link Micro-interactions
+   * Ground Truth: Directional arrows and associated text should have focus-visible styles paired with hover styles
+   * Failure Witness: Missing group-focus-visible classes on directional elements
+   */
+  it('directional links pair hover states with focus-visible states', () => {
+    render(<Home />);
+
+    // Test the "Read our docs" arrow span
+    const docsArrowSpan = screen.getAllByText((content, element) => {
+      return element?.tagName.toLowerCase() === 'span' && content === '→';
+    })[0];
+
+    expect(docsArrowSpan).toHaveClass('group-hover:translate-x-1');
+    expect(docsArrowSpan).toHaveClass('group-focus-visible:translate-x-1');
+
+    // Test the "Go to nextjs.org" text and arrow span
+    const nextjsTextSpan = screen.getByText('Go to nextjs.org');
+    expect(nextjsTextSpan).toHaveClass('group-hover:underline');
+    expect(nextjsTextSpan).toHaveClass('group-focus-visible:underline');
+
+    const nextjsArrowSpan = screen.getAllByText((content, element) => {
+      return element?.tagName.toLowerCase() === 'span' && content === '→';
+    })[1];
+    expect(nextjsArrowSpan).toHaveClass('group-hover:translate-x-1');
+    expect(nextjsArrowSpan).toHaveClass('group-focus-visible:translate-x-1');
+  });
+
+  /**
    * Test Case: Images have alt text
    * Ground Truth: All images should have alt attributes
    * Failure Witness: Image found without alt attribute
