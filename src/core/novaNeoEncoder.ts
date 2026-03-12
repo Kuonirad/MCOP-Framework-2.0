@@ -6,6 +6,7 @@ export class NovaNeoEncoder {
   private readonly dimensions: number;
   private readonly normalize: boolean;
   private readonly entropyFloor: number;
+  private readonly maxInputLength: number;
 
   constructor(config: NovaNeoConfig) {
     if (config.dimensions <= 0) {
@@ -14,9 +15,16 @@ export class NovaNeoEncoder {
     this.dimensions = config.dimensions;
     this.normalize = config.normalize ?? false;
     this.entropyFloor = config.entropyFloor ?? 0.0;
+    this.maxInputLength = config.maxInputLength ?? 8192;
   }
 
   encode(text: string): ContextTensor {
+    // Security: Enforce a maximum input length to prevent event-loop blocking DoS vulnerabilities
+    // from unbounded string inputs during synchronous hashing operations.
+    if (text.length > this.maxInputLength) {
+      throw new Error(`Input exceeds maximum allowed length of ${this.maxInputLength} characters`);
+    }
+
     const hash = crypto.createHash('sha256').update(text).digest();
 
     // Optimization 1: Pre-calculate signed hash values
