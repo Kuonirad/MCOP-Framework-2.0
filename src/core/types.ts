@@ -4,6 +4,7 @@ export interface NovaNeoConfig {
   dimensions: number;
   normalize?: boolean;
   entropyFloor?: number;
+  maxInputLength?: number;
 }
 
 export interface PheromoneTrace {

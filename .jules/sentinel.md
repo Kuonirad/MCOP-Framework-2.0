@@ -7,3 +7,8 @@
 **Vulnerability:** The `Dockerfile` defined a `HEALTHCHECK` against a non-existent endpoint `/api/health`, ensuring production containers would fail health checks and be restarted (DoS).
 **Learning:** Operational configuration files (Dockerfile, k8s manifests) are part of the security surface. Availability is a key security pillar.
 **Prevention:** Ensure all endpoints referenced in infrastructure-as-code actually exist in the application.
+
+## 2025-03-13 - [DoS Risk via Unbounded Synchronous Hashing]
+**Vulnerability:** The `NovaNeoEncoder.encode()` method in `src/core/novaNeoEncoder.ts` accepted unbounded string lengths which were passed synchronously to Node's `crypto.createHash('sha256').update(text)`.
+**Learning:** In Node.js (V8), synchronous cryptographic operations block the event loop. If an attacker inputs an extremely large payload, the thread becomes frozen while processing, allowing for a Denial of Service (DoS) attack, eventually exhausting memory or crashing the application.
+**Prevention:** We introduced an optional `maxInputLength` configuration property to `NovaNeoConfig` (defaulting to 8192) and implemented validation inside `encode()` to immediately throw an error when the limit is exceeded.
