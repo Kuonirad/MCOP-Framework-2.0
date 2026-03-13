@@ -15,3 +15,7 @@
 ## 2025-12-22 - Fluid Button Containers
 **Learning:** Fixed width constraints on buttons break layout when adding micro-UX elements like icons and animated arrows.
 **Action:** When enhancing button content, remove fixed width constraints (e.g., `w-[158px]`) and rely on flexbox/padding to allow the container to adapt naturally.
+
+## 2025-02-28 - Focus-Visible Counterparts for Hover States
+**Learning:** Micro-interactions relying solely on hover states (like `group-hover:translate-x-1` and `group-hover:underline`) exclude keyboard users, creating an inequitable and less accessible experience.
+**Action:** Always ensure hover states have focus-visible equivalents (e.g., `group-focus-visible:translate-x-1`, `group-focus-visible:underline`) so keyboard users experience the same affordances and micro-interactions.
