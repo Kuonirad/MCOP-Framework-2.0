@@ -15,3 +15,7 @@
 ## 2025-12-22 - Fluid Button Containers
 **Learning:** Fixed width constraints on buttons break layout when adding micro-UX elements like icons and animated arrows.
 **Action:** When enhancing button content, remove fixed width constraints (e.g., `w-[158px]`) and rely on flexbox/padding to allow the container to adapt naturally.
+
+## 2026-03-14 - Redundant Screen Reader Announcements
+**Learning:** Decorative icons inside buttons with descriptive text (like 'Deploy now') cause redundant and noisy screen reader announcements if they have alt text.
+**Action:** Always add `aria-hidden` to decorative `Image` or icon components when the parent button already contains descriptive text.
