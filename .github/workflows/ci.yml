@@ -9,6 +9,9 @@ on:
 permissions:
   contents: read
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
@@ -48,13 +51,13 @@ jobs:
           node-version: ${{ matrix.node-version }}
 
       - name: Run linter
-        run: npm run lint
+        run: pnpm run lint
 
       - name: Build application
-        run: npm run build
+        run: pnpm run build
 
       - name: Run tests
-        run: npm test -- --coverage
+        run: pnpm test -- --coverage
         continue-on-error: true
 
       - name: Upload coverage artifacts
@@ -94,7 +97,7 @@ jobs:
         uses: ./.github/actions/setup-project
 
       - name: Build project
-        run: npm run build
+        run: pnpm run build
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
@@ -127,8 +130,8 @@ jobs:
         uses: ./.github/actions/setup-project
 
       - name: Run security audit
-        run: npm audit --audit-level=moderate
+        run: pnpm audit --audit-level=moderate
         continue-on-error: true
 
       - name: Run lint security checks
-        run: npm run lint
+        run: pnpm run lint
