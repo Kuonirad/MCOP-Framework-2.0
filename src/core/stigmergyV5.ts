@@ -16,6 +16,28 @@ export class StigmergyV5 {
     this.maxTraces = config.maxTraces ?? 2048;
   }
 
+  // Optimization: Loop unrolling for dot product calculations
+  private dotProduct(a: ContextTensor | number[], b: ContextTensor | number[], minLen: number): number {
+    let dot = 0;
+    let i = 0;
+    const limit = minLen - 3;
+
+    // Process in chunks of 4 to reduce loop overhead
+    for (; i < limit; i += 4) {
+      dot += a[i] * b[i] +
+             a[i+1] * b[i+1] +
+             a[i+2] * b[i+2] +
+             a[i+3] * b[i+3];
+    }
+
+    // Handle remaining elements
+    for (; i < minLen; i++) {
+      dot += a[i] * b[i];
+    }
+
+    return dot;
+  }
+
   private getMagnitude(vector: ContextTensor): number {
     let sumSq = 0;
     const len = vector.length;
@@ -38,10 +60,7 @@ export class StigmergyV5 {
     const lenB = b.length;
     const minLen = lenA < lenB ? lenA : lenB;
 
-    let dot = 0;
-    for (let i = 0; i < minLen; i++) {
-      dot += a[i] * b[i];
-    }
+    const dot = this.dotProduct(a, b, minLen);
 
     return dot / (magA * magB);
   }
@@ -51,10 +70,7 @@ export class StigmergyV5 {
 
     // Optimization: Use pre-calculated magnitudes if vectors are equal length
     if (magA !== undefined && magB !== undefined && a.length === b.length) {
-      let dot = 0;
-      for (let i = 0; i < minLen; i++) {
-        dot += a[i] * b[i];
-      }
+      const dot = this.dotProduct(a, b, minLen);
       // Avoid division by zero
       if (magA === 0 || magB === 0) return 0;
       return dot / (magA * magB);
@@ -62,10 +78,7 @@ export class StigmergyV5 {
 
     // Standard path (lengths differ or no pre-calc)
     if (magA !== undefined && magB !== undefined) {
-      let dot = 0;
-      for (let i = 0; i < minLen; i++) {
-        dot += a[i] * b[i];
-      }
+      const dot = this.dotProduct(a, b, minLen);
       if (!magA || !magB) return 0;
       return dot / (magA * magB);
     }
@@ -149,10 +162,7 @@ export class StigmergyV5 {
       const tLen = tContext.length;
       const minLen = qLen < tLen ? qLen : tLen;
 
-      let dot = 0;
-      for (let i = 0; i < minLen; i++) {
-        dot += context[i] * tContext[i];
-      }
+      const dot = this.dotProduct(context, tContext, minLen);
 
       const score = dot / (queryMag * traceMag);
 
