@@ -1,32 +1,34 @@
 name: 'Setup Project Environment'
-description: 'Checkout code, setup Node.js with optional caching, and optionally install dependencies'
+description: 'Setup Node.js and pnpm with caching, and optionally install dependencies'
 inputs:
   node-version:
     description: 'Node.js version to use'
     required: false
     default: '20.x'
   enable-cache:
-    description: 'Enable npm dependency caching'
+    description: 'Enable pnpm dependency caching'
     required: false
     default: 'true'
   install-deps:
-    description: 'Run npm ci to install dependencies'
+    description: 'Run pnpm install to install dependencies'
     required: false
     default: 'true'
 
 runs:
   using: 'composite'
   steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v3
+      with:
+        version: 9
 
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: ${{ inputs.node-version }}
-        cache: ${{ inputs.enable-cache == 'true' && 'npm' || '' }}
+        cache: ${{ inputs.enable-cache == 'true' && 'pnpm' || '' }}
 
     - name: Install dependencies
       if: ${{ inputs.install-deps == 'true' }}
-      run: npm ci
+      run: pnpm install --frozen-lockfile
       shell: bash
