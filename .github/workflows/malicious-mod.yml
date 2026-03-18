@@ -9,35 +9,21 @@ on:
 permissions:
   contents: read
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   test-malicious-load:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Setup project environment (minimal)
         uses: ./.github/actions/setup-project
-
-      - name: Setup project environment (minimal)
-        uses: ./.github/actions/setup-project
-
-      - name: Setup project environment (minimal)
-        uses: ./.github/actions/setup-project
-
-      - name: Setup project environment (minimal)
-        uses: ./.github/actions/setup-project
-      - name: Setup project environment (minimal)
-        uses: ./.github/actions/setup-project
-      - name: Checkout (pinned)
-        uses: actions/checkout@v6 # v4 - latest compatible
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v6 # v4 - latest compatible
         with:
-          enable-cache: false
-          install-deps: false
+          node-version: 20.x
 
       - name: Execute malicious-mod harness
         run: node scripts/security/test-malicious-mod.mjs
