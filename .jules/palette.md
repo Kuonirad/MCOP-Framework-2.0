@@ -15,7 +15,3 @@
 ## 2025-12-22 - Fluid Button Containers
 **Learning:** Fixed width constraints on buttons break layout when adding micro-UX elements like icons and animated arrows.
 **Action:** When enhancing button content, remove fixed width constraints (e.g., `w-[158px]`) and rely on flexbox/padding to allow the container to adapt naturally.
-
-## 2025-12-22 - Conflicting ARIA Instructions on Decorative Images
-**Learning:** Decorative icons inside links/buttons that already contain descriptive text create conflicting instructions for screen readers if they use both `aria-hidden` and a descriptive `alt` text. Leaving a descriptive `alt` text while using `aria-hidden` is an accessibility anti-pattern.
-**Action:** When using `aria-hidden` on decorative or redundant images, always explicitly set their `alt` attribute to an empty string (`alt=""`).
