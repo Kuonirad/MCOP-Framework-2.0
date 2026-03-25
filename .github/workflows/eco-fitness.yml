@@ -24,14 +24,10 @@ jobs:
         with:
           fetch-depth: 0  # Full history for accurate metrics
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup project environment
+        uses: ./.github/actions/setup-project
         with:
           node-version: '18'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
 
       - name: Run Eco-Fitness Audit
         id: audit
