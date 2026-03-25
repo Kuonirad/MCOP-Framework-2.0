@@ -9,13 +9,16 @@ on:
 permissions:
   contents: read
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   trojan-source-scan:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - name: Checkout (pinned)
-        uses: actions/checkout@v6 # v4 - latest compatible
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Scan repository for bidi / hidden Unicode controls
         shell: bash
