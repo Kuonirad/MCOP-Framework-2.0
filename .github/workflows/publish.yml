@@ -9,6 +9,10 @@ on:
 env:
   REGISTRY: ghcr.io
 
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   build-and-push:
     environment: production
@@ -24,8 +28,8 @@ jobs:
           echo "IMAGE_NAME_LOWER=$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
 
       - name: Checkout repository
-        uses: actions/checkout@v6
-        uses: actions/checkout@v6 # v4 - latest compatible
+        uses: actions/checkout@v4
+        uses: actions/checkout@v4
 
       - name: Log in to the Container registry
         uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
