@@ -15,3 +15,6 @@
 ## 2025-12-22 - Fluid Button Containers
 **Learning:** Fixed width constraints on buttons break layout when adding micro-UX elements like icons and animated arrows.
 **Action:** When enhancing button content, remove fixed width constraints (e.g., `w-[158px]`) and rely on flexbox/padding to allow the container to adapt naturally.
+## 2025-03-27 - Resolving Conflicting Screen Reader Instructions for Decorative Icons
+**Learning:** Adding `aria-hidden` to decorative icons (like `next/image` in Next.js) while simultaneously retaining descriptive `alt` text creates conflicting instructions for screen readers, which can result in redundant or confused announcements. The `aria-hidden` attribute tells screen readers to ignore the element, while the `alt` text provides a description to be read.
+**Action:** When using `aria-hidden` on decorative images inside interactive elements that already contain sufficient text content, always explicitly set the `alt` attribute to an empty string (`alt=""`). This ensures screen readers correctly bypass the image without any conflicting commands.
