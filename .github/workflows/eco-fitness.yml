@@ -21,8 +21,10 @@ jobs:
           fetch-depth: 0  # Full history for accurate metrics
 
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+      - name: Setup project environment
+        uses: ./.github/actions/setup-project
+        with:
+          install-deps: true
 
       - name: Run Eco-Fitness Audit
         id: audit
