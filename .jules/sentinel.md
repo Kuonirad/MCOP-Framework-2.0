@@ -7,3 +7,8 @@
 **Vulnerability:** The `Dockerfile` defined a `HEALTHCHECK` against a non-existent endpoint `/api/health`, ensuring production containers would fail health checks and be restarted (DoS).
 **Learning:** Operational configuration files (Dockerfile, k8s manifests) are part of the security surface. Availability is a key security pillar.
 **Prevention:** Ensure all endpoints referenced in infrastructure-as-code actually exist in the application.
+
+## 2025-12-19 - Pino Logger Redact Configuration
+**Vulnerability:** Sensitive information could be inadvertently logged by the application.
+**Learning:** The `pino` logger requires explicit `redact` configuration to filter out sensitive keys like passwords, tokens, and API keys.
+**Prevention:** Always configure logging libraries with a comprehensive redact list for known sensitive fields.
