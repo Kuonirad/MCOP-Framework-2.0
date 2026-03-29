@@ -14,8 +14,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - name: Checkout (pinned)
-        uses: actions/checkout@v6 # v4 - latest compatible
 
       - name: Scan repository for bidi / hidden Unicode controls
         shell: bash
