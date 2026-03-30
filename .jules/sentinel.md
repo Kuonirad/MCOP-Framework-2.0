@@ -7,3 +7,8 @@
 **Vulnerability:** The `Dockerfile` defined a `HEALTHCHECK` against a non-existent endpoint `/api/health`, ensuring production containers would fail health checks and be restarted (DoS).
 **Learning:** Operational configuration files (Dockerfile, k8s manifests) are part of the security surface. Availability is a key security pillar.
 **Prevention:** Ensure all endpoints referenced in infrastructure-as-code actually exist in the application.
+
+## 2025-12-19 - Sensitive Data Redaction in Logs
+**Vulnerability:** Sensitive information exposure in application logs due to unredacted `pino` logger configuration.
+**Learning:** The `pino` logger in Next.js/Node environments requires an explicit `redact` array to prevent common sensitive fields from leaking into application logs.
+**Prevention:** Always configure `redact: ['password', 'token', 'authorization', 'apiKey', 'secret', 'cookie']` when initializing structured loggers.
