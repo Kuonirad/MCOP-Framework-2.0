@@ -9,3 +9,7 @@
 ## 2025-12-19 - [Math.abs vs Manual Ternary Optimization in V8]
 **Learning:** In modern V8 environments (like Node.js 22+), attempting to optimize `Math.abs(val)` by replacing it with a manual ternary check (`val < 0 ? -val : val`) actually resulted in a massive performance regression (~3x slower). V8 heavily optimizes built-ins like `Math.abs`, and manual reimplementations can defeat these optimizations or cause deoptimizations in tight loops.
 **Action:** Trust V8's optimization of standard `Math` functions like `Math.abs` instead of trying to micro-optimize them with manual logic. Always benchmark micro-optimizations in the target runtime environment before committing them.
+
+## 2025-12-19 - [CI Pipeline Node.js Deprecation and Actions Setup]
+**Learning:** Legacy versions of actions like `@v6` for checkout or actions/setup-node can break workflows or raise deprecation warnings on newer Node.js runners. Furthermore, attempting to use `cache: 'pnpm'` with `actions/setup-node` before explicitly installing pnpm via `pnpm/action-setup` causes "Unable to locate executable file" failures.
+**Action:** Always verify action version compatibility with trace outputs. Ensure `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24` is used when needed for deprecation suppression. Always configure `pnpm/action-setup@v3` before `actions/setup-node` to avoid caching conflicts in pnpm repositories.
