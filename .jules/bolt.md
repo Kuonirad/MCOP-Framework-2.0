@@ -5,3 +5,7 @@
 ## 2025-12-19 - [Array.prototype.copyWithin Performance on Holey Arrays]
 **Learning:** Using `copyWithin` on an array initialized with `new Array(n)` (holey) was 10x slower than a simple assignment loop in V8 (Node.js 22). This is likely due to de-optimization or the overhead of handling holey arrays in the implementation of `copyWithin`.
 **Action:** Prefer simple assignment loops over `copyWithin` for filling new arrays, or verify performance with benchmarks. V8 optimizes simple loops heavily.
+
+## 2026-04-01 - [Array.prototype.reduce vs For Loop Performance in V8]
+**Learning:** In tight mathematical loops, using native `for` loops and direct multiplication (e.g., `val * val`) instead of `Array.prototype.reduce()` and `Math.pow()` yields significant execution speedups in V8 by eliminating callback allocation and function invocation overhead.
+**Action:** Prefer native `for` loops and direct arithmetic operations for performance-critical tensor processing paths.
