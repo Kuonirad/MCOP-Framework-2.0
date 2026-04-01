@@ -33,9 +33,10 @@ export default function Home() {
             rel="noopener noreferrer"
           >
             <Image
+              aria-hidden
               className="dark:invert"
               src="/vercel.svg"
-              alt="Vercel logomark"
+              alt=""
               width={20}
               height={20}
             />
@@ -52,7 +53,7 @@ export default function Home() {
               aria-hidden
               className="mr-2 dark:invert"
               src="/file.svg"
-              alt="File icon"
+              alt=""
               width={16}
               height={16}
             />
@@ -75,7 +76,7 @@ export default function Home() {
             aria-hidden
             className="dark:invert"
             src="/file.svg"
-            alt="File icon"
+            alt=""
             width={16}
             height={16}
           />
@@ -92,7 +93,7 @@ export default function Home() {
             aria-hidden
             className="dark:invert"
             src="/window.svg"
-            alt="Window icon"
+            alt=""
             width={16}
             height={16}
           />
@@ -109,7 +110,7 @@ export default function Home() {
             aria-hidden
             className="dark:invert"
             src="/globe.svg"
-            alt="Globe icon"
+            alt=""
             width={16}
             height={16}
           />
