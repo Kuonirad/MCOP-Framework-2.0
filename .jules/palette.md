@@ -15,3 +15,6 @@
 ## 2025-12-22 - Fluid Button Containers
 **Learning:** Fixed width constraints on buttons break layout when adding micro-UX elements like icons and animated arrows.
 **Action:** When enhancing button content, remove fixed width constraints (e.g., `w-[158px]`) and rely on flexbox/padding to allow the container to adapt naturally.
+## 2026-04-02 - Decorative Image Accessibility with ARIA and Alt Text
+**Learning:** When using Next.js `<Image>` components for decorative icons within actionable elements (like links or buttons), adding `aria-hidden={true}` is insufficient if a meaningful `alt` text is present. Linting rules and screen readers interpret meaningful `alt` text as contradicting the `aria-hidden` directive, causing accessibility errors and CI failures. Decorative images must have both `aria-hidden` and explicitly empty `alt=""` to be properly ignored by assistive technologies without triggering violations.
+**Action:** When hiding redundant or decorative icons from screen readers, always ensure the `alt` attribute is set to an empty string in conjunction with `aria-hidden`.
