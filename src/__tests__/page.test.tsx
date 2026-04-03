@@ -108,6 +108,17 @@ describe('Accessibility Tests', () => {
   });
 
   /**
+   * Test Case: Decorative Icons Accessibility
+   * Ground Truth: Icons next to text in interactive elements should be hidden from screen readers
+   * Failure Witness: Decorative icon missing aria-hidden attribute
+   */
+  it('decorative icons inside links are hidden from screen readers', () => {
+    render(<Home />);
+    const vercelIcon = screen.getByAltText('Vercel logomark');
+    expect(vercelIcon).toHaveAttribute('aria-hidden', 'true');
+  });
+
+  /**
    * Test Case: Ordered list semantics
    * Ground Truth: Instructions should use semantic list elements
    * Failure Witness: Instructions not in ordered list
