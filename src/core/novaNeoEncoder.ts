@@ -88,11 +88,25 @@ export class NovaNeoEncoder {
 
   estimateEntropy(tensor: ContextTensor): number {
     // Simple entropy-like measure: variance of absolute values
-    if (!tensor.length) return 0;
-    const mean = tensor.reduce((acc, v) => acc + Math.abs(v), 0) / tensor.length;
-    const variance =
-      tensor.reduce((acc, v) => acc + Math.pow(Math.abs(v) - mean, 2), 0) /
-      tensor.length;
+    const len = tensor.length;
+    if (!len) return 0;
+
+    // Optimization: Explicit loops instead of Array.prototype.reduce
+    // Math.abs is utilized directly due to better V8 optimizations
+    let sumAbs = 0;
+    for (let i = 0; i < len; i++) {
+      sumAbs += Math.abs(tensor[i]);
+    }
+    const mean = sumAbs / len;
+
+    // Optimization: diff * diff instead of Math.pow(diff, 2)
+    let sumDiffSq = 0;
+    for (let i = 0; i < len; i++) {
+      const diff = Math.abs(tensor[i]) - mean;
+      sumDiffSq += diff * diff;
+    }
+
+    const variance = sumDiffSq / len;
     const entropy = Math.min(1, variance);
     return Math.max(entropy, this.entropyFloor);
   }
