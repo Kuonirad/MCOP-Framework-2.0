@@ -20,10 +20,6 @@ runs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Set FORCE_JAVASCRIPT_ACTIONS_TO_NODE24
-      run: echo "FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true" >> $GITHUB_ENV
-      shell: bash
-
     - name: Setup pnpm
       uses: pnpm/action-setup@v3
       with:
@@ -38,5 +34,5 @@ runs:
 
     - name: Install dependencies
       if: ${{ inputs.install-deps == 'true' }}
-      run: pnpm install --frozen-lockfile
+      run: pnpm install --no-frozen-lockfile
       shell: bash
