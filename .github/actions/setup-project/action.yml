@@ -20,13 +20,16 @@ runs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
+    - name: Install pnpm
+      uses: pnpm/action-setup@v4
+
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: ${{ inputs.node-version }}
-        cache: ${{ inputs.enable-cache == 'true' && 'npm' || '' }}
+        cache: ${{ inputs.enable-cache == 'true' && 'pnpm' || '' }}
 
     - name: Install dependencies
       if: ${{ inputs.install-deps == 'true' }}
-      run: npm ci
+      run: pnpm install --frozen-lockfile
       shell: bash
