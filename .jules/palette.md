@@ -15,3 +15,7 @@
 ## 2025-12-22 - Fluid Button Containers
 **Learning:** Fixed width constraints on buttons break layout when adding micro-UX elements like icons and animated arrows.
 **Action:** When enhancing button content, remove fixed width constraints (e.g., `w-[158px]`) and rely on flexbox/padding to allow the container to adapt naturally.
+
+## 2024-04-05 - Contextual Accessibility in Call-to-Action Links
+**Learning:** Decorative icons in call-to-action buttons (like the Vercel logomark in "Deploy now") can cause screen readers to announce disjointed text (e.g., "Vercel logomark Deploy now"). Furthermore, "Deploy now" by itself lacks explicit destination context for screen reader users.
+**Action:** Add `aria-hidden` to decorative icons within links to prevent redundant announcements. Simultaneously, append a visually hidden `span` with `className="sr-only"` (e.g., `<span className="sr-only"> to Vercel</span>`) so screen readers receive equivalent context of the action's destination.
