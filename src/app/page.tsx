@@ -33,6 +33,7 @@ export default function Home() {
             rel="noopener noreferrer"
           >
             <Image
+              aria-hidden
               className="dark:invert"
               src="/vercel.svg"
               alt="Vercel logomark"
@@ -40,7 +41,7 @@ export default function Home() {
               height={20}
             />
             Deploy now
-            <span className="sr-only">(opens in a new tab)</span>
+            <span className="sr-only"> to Vercel (opens in a new tab)</span>
           </a>
           <a
             className="group rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-95 focus:outline-none"
