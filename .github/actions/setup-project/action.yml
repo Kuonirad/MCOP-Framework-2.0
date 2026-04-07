@@ -6,11 +6,11 @@ inputs:
     required: false
     default: '20.x'
   enable-cache:
-    description: 'Enable npm dependency caching'
+    description: 'Enable pnpm dependency caching'
     required: false
     default: 'true'
   install-deps:
-    description: 'Run npm ci to install dependencies'
+    description: 'Run pnpm install to install dependencies'
     required: false
     default: 'true'
 
@@ -20,13 +20,19 @@ runs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v4
+      with:
+        version: 10.30.3
+        run_install: false
+
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: ${{ inputs.node-version }}
-        cache: ${{ inputs.enable-cache == 'true' && 'npm' || '' }}
+        cache: ${{ inputs.enable-cache == 'true' && 'pnpm' || '' }}
 
     - name: Install dependencies
       if: ${{ inputs.install-deps == 'true' }}
-      run: npm ci
+      run: pnpm install --frozen-lockfile
       shell: bash
