@@ -5,6 +5,7 @@
   "publishConfig": {
     "registry": "https://npm.pkg.github.com"
   },
+  "packageManager": "pnpm@9.15.9",
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
