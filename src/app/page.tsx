@@ -33,6 +33,7 @@ export default function Home() {
             rel="noopener noreferrer"
           >
             <Image
+              aria-hidden
               className="dark:invert"
               src="/vercel.svg"
               alt="Vercel logomark"
@@ -40,6 +41,7 @@ export default function Home() {
               height={20}
             />
             Deploy now
+            <span className="sr-only"> to Vercel</span>
             <span className="sr-only">(opens in a new tab)</span>
           </a>
           <a
