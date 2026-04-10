@@ -1,6 +1,7 @@
 {
   "name": "@kuonirad/mcop-framework",
   "version": "0.1.0",
+  "packageManager": "pnpm@9.15.9",
   "private": true,
   "publishConfig": {
     "registry": "https://npm.pkg.github.com"
@@ -13,9 +14,9 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "deps:check": "npm outdated && npm audit",
-    "deps:audit": "npm audit",
-    "deps:update-check": "npm outdated",
+    "deps:check": "pnpm outdated && pnpm audit",
+    "deps:audit": "pnpm audit",
+    "deps:update-check": "pnpm outdated",
     "eco:audit": "bash scripts/eco-fitness-audit.sh"
   },
   "dependencies": {
