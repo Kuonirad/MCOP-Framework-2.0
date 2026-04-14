@@ -31,6 +31,8 @@ jobs:
 
       - name: Setup project environment
         uses: ./.github/actions/setup-project
+        with:
+          node-version: ${{ matrix.node-version }}
 
       - name: Run linter
         run: pnpm run lint
