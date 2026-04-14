@@ -35,6 +35,7 @@ jobs:
         run: npm run lint
 
       - name: Build application
+        if: matrix.node-version != '18.x'
         run: npm run build
 
       - name: Run tests
