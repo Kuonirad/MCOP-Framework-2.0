@@ -50,6 +50,7 @@ jobs:
         continue-on-error: true
 
       - name: Upload coverage artifacts
+        uses: actions/upload-artifact@v4
         uses: actions/upload-artifact@v4 # v4.4.0
         uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
         with:
@@ -85,6 +86,7 @@ jobs:
         run: pnpm run build
 
       - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
         uses: actions/upload-artifact@v4 # v4.4.0
         uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
         with:
@@ -109,9 +111,6 @@ jobs:
         with:
           node-version: 20.x
           cache: npm
-
-      - name: Setup project environment
-        uses: ./.github/actions/setup-project
 
       - name: Run security audit
         run: pnpm audit --audit-level=moderate
