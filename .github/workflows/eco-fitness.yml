@@ -39,6 +39,7 @@ jobs:
         run: |
           # Calculate metrics
           node scripts/eco-audit.mjs > output.log 2>&1
+          node scripts/eco-fitness-audit.mjs > output.log 2>&1
           cat output.log
 
           # Since the mjs script writes to stdout but doesn't set github outputs directly, we parse it
