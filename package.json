@@ -16,7 +16,7 @@
     "deps:check": "npm outdated && npm audit",
     "deps:audit": "npm audit",
     "deps:update-check": "npm outdated",
-    "eco:audit": "bash scripts/eco-fitness-audit.sh"
+    "eco:audit": "node scripts/eco-audit.mjs"
   },
   "dependencies": {
     "next": "16.1.1",

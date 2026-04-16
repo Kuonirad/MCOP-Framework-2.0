@@ -1,4 +1,3 @@
-
 import nextConfig from '../../next.config';
 
 describe('next.config.ts', () => {
@@ -8,11 +7,11 @@ describe('next.config.ts', () => {
 
   it('should have security headers configured', async () => {
     const headers = nextConfig.headers ? await nextConfig.headers() : [];
-    const globalHeaders = headers.find(h => h.source === '/:path*');
+    const globalHeaders = headers.find((h: { source: string; headers: { key: string; value: string }[] }) => h.source === '/:path*');
 
     expect(globalHeaders).toBeDefined();
 
-    const headerMap = new Map(globalHeaders?.headers.map(h => [h.key, h.value]));
+    const headerMap = new Map(globalHeaders?.headers.map((h: { key: string; value: string }) => [h.key, h.value]));
 
     expect(headerMap.get('X-DNS-Prefetch-Control')).toBe('on');
     expect(headerMap.get('Strict-Transport-Security')).toBe('max-age=63072000; includeSubDomains; preload');

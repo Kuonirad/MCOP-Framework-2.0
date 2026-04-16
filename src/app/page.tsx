@@ -33,7 +33,7 @@ export default function Home() {
             rel="noopener noreferrer"
           >
             <Image
-              aria-hidden
+              aria-hidden="true"
               className="dark:invert"
               src="/vercel.svg"
               alt=""
