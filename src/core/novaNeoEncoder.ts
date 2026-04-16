@@ -71,7 +71,7 @@ export class NovaNeoEncoder {
 
     // Observability: Log provenance data for auditability
     // Optimization: Only compute expensive provenance data if debug logging is enabled
-    if (logger.isLevelEnabled('debug')) {
+    if (typeof logger.isLevelEnabled === 'function' && logger.isLevelEnabled('debug')) {
       logger.debug({
         msg: 'NOVA-NEO Encoding complete',
         provenance: {
