@@ -1,4 +1,4 @@
-import crypto from 'crypto';
+import { randomUUID, createHash } from 'node:crypto';
 import { ContextTensor, PheromoneTrace, ResonanceResult } from './types';
 
 export interface StigmergyConfig {
@@ -48,13 +48,13 @@ export class StigmergyV5 {
 
   private merkleHash(payload: unknown, parentHash?: string): string {
     const raw = JSON.stringify({ payload, parentHash });
-    return crypto.createHash('sha256').update(raw).digest('hex');
+    return createHash('sha256').update(raw).digest('hex');
   }
 
   recordTrace(context: ContextTensor, synthesisVector: number[], metadata?: Record<string, unknown>): PheromoneTrace {
     const parentHash = this.traces.at(-1)?.hash;
-    // Security: Use crypto.randomUUID() instead of Math.random() for cryptographically strong IDs
-    const id = crypto.randomUUID();
+    // Security: Use randomUUID() for cryptographically strong IDs
+    const id = randomUUID();
 
     // Calculate magnitudes once
     const contextMag = this.getMagnitude(context);
