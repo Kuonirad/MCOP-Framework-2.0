@@ -20,8 +20,8 @@ describe('StigmergyV5 Security & Functionality', () => {
 
   test('trace IDs should be sufficiently long and random', () => {
      const trace = stigmergy.recordTrace(mockContext, mockSynthesis);
-     // Current format: Date.now()-hexString
-     // UUID format is different, but we check for general randomness/length
+     // Current format uses crypto.randomUUID()
+     // We check for general randomness/length
      expect(trace.id.length).toBeGreaterThan(10);
   });
 });
