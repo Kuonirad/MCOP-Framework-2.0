@@ -38,6 +38,7 @@ jobs:
         id: audit
         run: |
           # Calculate metrics
+          node scripts/eco-audit.mjs > output.log 2>&1
           node scripts/eco-fitness-audit.mjs > output.log 2>&1
           cat output.log
 
