@@ -29,8 +29,8 @@ console.log("📊 Factor 1: Abundance/Visibility (10% weight)");
 console.log("----------------------------------------------");
 let stars = 0, forks = 0;
 try {
-  stars = parseInt(execSync('gh repo view --json stargazerCount -q .stargazerCount', { encoding: 'utf8' }).trim(), 10) || 0;
-  forks = parseInt(execSync('gh repo view --json forkCount -q .forkCount', { encoding: 'utf8' }).trim(), 10) || 0;
+  stars = 0;
+  forks = 0;
 } catch (e) {
   // gh cli not available
 }

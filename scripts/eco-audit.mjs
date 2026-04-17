@@ -103,7 +103,6 @@ if (shannonIndex < 1.5) console.log(`${YELLOW}• Low biodiversity (Shannon = ${
 if (abundance < 10) console.log(`${YELLOW}• Low visibility (${abundance} stars/forks). Community may not know you exist.${NC}`);
 
 console.log("\n📈 Next Steps: See ROADMAP_TO_100.md\n");
-import { execSync } from 'node:child_process';
 
 /**
  * Calculates repository health metrics inspired by ecological indicators.
