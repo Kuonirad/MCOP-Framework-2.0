@@ -218,8 +218,9 @@ class TestHelpers(unittest.TestCase):
         # Custom suffix
         self.assertEqual(truncate_text(text, 20, "!!!"), "this is a very lo!!!")
 
-        # Edge case: max_length < suffix length
-        self.assertEqual(truncate_text("long text", 2), "long tex...")
+        # Edge cases: max_length < suffix length
+        self.assertEqual(truncate_text("long text", 2), "..")
+        self.assertEqual(truncate_text("long text", 3), "...")
 
 
 def run_tests():
