@@ -67,7 +67,7 @@ export default function Home() {
       </main>
       <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
         <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4 rounded-sm focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-2 focus-visible:ring-offset-background focus:outline-none active:scale-95 transition-transform"
+          className="group flex items-center gap-2 rounded-sm focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-2 focus-visible:ring-offset-background focus:outline-none active:scale-95 transition-transform"
           href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
           target="_blank"
           rel="noopener noreferrer"
@@ -80,11 +80,18 @@ export default function Home() {
             width={16}
             height={16}
           />
-          Learn
+          <span className="flex items-center gap-1">
+            <span className="group-hover:underline group-hover:underline-offset-4">
+              Learn
+            </span>
+            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
+              →
+            </span>
+          </span>
           <span className="sr-only">(opens in a new tab)</span>
         </a>
         <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4 rounded-sm focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-2 focus-visible:ring-offset-background focus:outline-none active:scale-95 transition-transform"
+          className="group flex items-center gap-2 rounded-sm focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-2 focus-visible:ring-offset-background focus:outline-none active:scale-95 transition-transform"
           href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
           target="_blank"
           rel="noopener noreferrer"
@@ -97,7 +104,14 @@ export default function Home() {
             width={16}
             height={16}
           />
-          Examples
+          <span className="flex items-center gap-1">
+            <span className="group-hover:underline group-hover:underline-offset-4">
+              Examples
+            </span>
+            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
+              →
+            </span>
+          </span>
           <span className="sr-only">(opens in a new tab)</span>
         </a>
         <a

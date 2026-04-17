@@ -15,3 +15,7 @@
 ## 2025-12-22 - Fluid Button Containers
 **Learning:** Fixed width constraints on buttons break layout when adding micro-UX elements like icons and animated arrows.
 **Action:** When enhancing button content, remove fixed width constraints (e.g., `w-[158px]`) and rely on flexbox/padding to allow the container to adapt naturally.
+
+## 2026-04-17 - Standardizing Hover States in Footer
+**Learning:** Inconsistent hover behaviors within groups of related links (like a footer) disrupt the user experience. By replacing simple class-based hover styles with nested component structures (e.g., applying `group` to the container and separating text and icons into individual spans), developers can create more refined, standardized animations without breaking existing accessible patterns.
+**Action:** When implementing micro-interactions across similar elements, ensure the structural approach is applied uniformly to all targets to avoid visual fragmentation.
