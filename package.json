@@ -16,7 +16,6 @@
     "deps:check": "npm outdated && npm audit",
     "deps:audit": "npm audit",
     "deps:update-check": "npm outdated",
-    "eco:audit": "node scripts/eco-fitness-audit.mjs"
     "eco:audit": "node scripts/eco-audit.mjs"
   },
   "dependencies": {

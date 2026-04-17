@@ -47,6 +47,7 @@ export class HolographicEtch {
   }
 
   recent(limit = 5): EtchRecord[] {
+    if (limit === 0) return [];
     return this.etches.slice(-limit).reverse();
   }
 }
