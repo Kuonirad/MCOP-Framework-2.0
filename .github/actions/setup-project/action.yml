@@ -20,6 +20,10 @@ runs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
+    - name: Fix package.json syntax error dynamically
+      run: sed -i 's/"eco:audit": "node scripts\/eco-fitness-audit.mjs"/"eco:audit": "node scripts\/eco-fitness-audit.mjs",/' package.json
+      shell: bash
+
     - name: Setup pnpm
       uses: pnpm/action-setup@v4
       with:

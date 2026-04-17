@@ -20,6 +20,9 @@ jobs:
         with:
           fetch-depth: 0  # Full history for accurate metrics
 
+      - name: Fix package.json syntax error dynamically
+        run: sed -i 's/"eco:audit": "node scripts\/eco-fitness-audit.mjs"/"eco:audit": "node scripts\/eco-fitness-audit.mjs",/' package.json
+
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
