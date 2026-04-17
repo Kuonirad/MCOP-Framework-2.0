@@ -26,6 +26,20 @@ from mcop.index import (
 from mcop.general import GeneralDomainAdapter
 from mcop.medical import MedicalDomainAdapter, PatientPresentation
 from mcop.scientific import ScientificDomainAdapter
+from mcop.helpers import format_confidence
+
+
+class TestHelpers(unittest.TestCase):
+    """Test helper functions."""
+
+    def test_format_confidence(self):
+        """Test formatting confidence as a percentage."""
+        self.assertEqual(format_confidence(0.0), "0.0%")
+        self.assertEqual(format_confidence(1.0), "100.0%")
+        self.assertEqual(format_confidence(0.5), "50.0%")
+        self.assertEqual(format_confidence(0.123), "12.3%")
+        self.assertEqual(format_confidence(0.999), "99.9%")
+        self.assertEqual(format_confidence(0.505), "50.5%")
 
 
 class TestCoreTypes(unittest.TestCase):
@@ -207,6 +221,7 @@ def run_tests():
     suite.addTests(loader.loadTestsFromTestCase(TestReasoningModes))
     suite.addTests(loader.loadTestsFromTestCase(TestMCOPEngine))
     suite.addTests(loader.loadTestsFromTestCase(TestConvenienceFunction))
+    suite.addTests(loader.loadTestsFromTestCase(TestHelpers))
 
     # Run tests
     runner = unittest.TextTestRunner(verbosity=2)
