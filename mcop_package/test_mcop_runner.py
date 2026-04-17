@@ -26,6 +26,7 @@ from mcop.index import (
 from mcop.general import GeneralDomainAdapter
 from mcop.medical import MedicalDomainAdapter, PatientPresentation
 from mcop.scientific import ScientificDomainAdapter
+from mcop.helpers import format_grounding
 
 
 class TestCoreTypes(unittest.TestCase):
@@ -197,6 +198,28 @@ class TestConvenienceFunction(unittest.TestCase):
         self.assertIsNotNone(solution.content)
 
 
+class TestHelpers(unittest.TestCase):
+    """Test helper functions."""
+
+    def test_format_grounding(self):
+        """Test format_grounding function with various inputs."""
+        # >= 0.9 -> Very High
+        self.assertEqual(format_grounding(0.95), "0.95 (Very High)")
+        # >= 0.7 -> High
+        self.assertEqual(format_grounding(0.75), "0.75 (High)")
+        # >= 0.5 -> Moderate
+        self.assertEqual(format_grounding(0.55), "0.55 (Moderate)")
+        # >= 0.3 -> Low
+        self.assertEqual(format_grounding(0.35), "0.35 (Low)")
+        # < 0.3 -> Very Low
+        self.assertEqual(format_grounding(0.15), "0.15 (Very Low)")
+        # Edge cases
+        self.assertEqual(format_grounding(0.90), "0.90 (Very High)")
+        self.assertEqual(format_grounding(0.70), "0.70 (High)")
+        self.assertEqual(format_grounding(0.50), "0.50 (Moderate)")
+        self.assertEqual(format_grounding(0.30), "0.30 (Low)")
+
+
 def run_tests():
     """Run all tests."""
     loader = unittest.TestLoader()
@@ -207,6 +230,7 @@ def run_tests():
     suite.addTests(loader.loadTestsFromTestCase(TestReasoningModes))
     suite.addTests(loader.loadTestsFromTestCase(TestMCOPEngine))
     suite.addTests(loader.loadTestsFromTestCase(TestConvenienceFunction))
+    suite.addTests(loader.loadTestsFromTestCase(TestHelpers))
 
     # Run tests
     runner = unittest.TextTestRunner(verbosity=2)
