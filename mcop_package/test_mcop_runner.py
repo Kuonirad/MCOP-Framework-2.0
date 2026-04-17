@@ -26,6 +26,7 @@ from mcop.index import (
 from mcop.general import GeneralDomainAdapter
 from mcop.medical import MedicalDomainAdapter, PatientPresentation
 from mcop.scientific import ScientificDomainAdapter
+from mcop.helpers import truncate_text
 
 
 class TestCoreTypes(unittest.TestCase):
@@ -197,6 +198,30 @@ class TestConvenienceFunction(unittest.TestCase):
         self.assertIsNotNone(solution.content)
 
 
+class TestHelpers(unittest.TestCase):
+    """Test helper functions."""
+
+    def test_truncate_text(self):
+        """Test text truncation."""
+        # Shorter than max_length
+        text = "short text"
+        self.assertEqual(truncate_text(text, 20), text)
+
+        # Exactly max_length
+        text = "exactly ten!"
+        self.assertEqual(truncate_text(text, 12), text)
+
+        # Longer than max_length
+        text = "this is a very long text that needs truncation"
+        self.assertEqual(truncate_text(text, 20), "this is a very lo...")
+
+        # Custom suffix
+        self.assertEqual(truncate_text(text, 20, "!!!"), "this is a very lo!!!")
+
+        # Edge case: max_length < suffix length
+        self.assertEqual(truncate_text("long text", 2), "long tex...")
+
+
 def run_tests():
     """Run all tests."""
     loader = unittest.TestLoader()
@@ -207,6 +232,7 @@ def run_tests():
     suite.addTests(loader.loadTestsFromTestCase(TestReasoningModes))
     suite.addTests(loader.loadTestsFromTestCase(TestMCOPEngine))
     suite.addTests(loader.loadTestsFromTestCase(TestConvenienceFunction))
+    suite.addTests(loader.loadTestsFromTestCase(TestHelpers))
 
     # Run tests
     runner = unittest.TextTestRunner(verbosity=2)
