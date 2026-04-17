@@ -24,6 +24,7 @@ runs:
       uses: pnpm/action-setup@v4
       with:
         version: "9.x"
+        package_json_file: ""
 
     - name: Setup Node.js
       uses: actions/setup-node@v4
