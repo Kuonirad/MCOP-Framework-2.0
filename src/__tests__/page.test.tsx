@@ -2,6 +2,7 @@
  * @fileoverview Unit tests for MCOP Framework 2.0 Home Page
  * @description Tests ensure correct rendering and security properties
  * 
+ * Bug ID: upstream/security-hardening-001
  * Test Strategy: Verify component renders correctly and contains expected content
  */
 
@@ -59,6 +60,7 @@ describe('Home Page Component', () => {
       expect(link).toHaveAttribute('href');
       expect(link.getAttribute('target')).toBe('_blank');
       expect(link.getAttribute('rel')).toContain('noopener');
+      expect(link.getAttribute('rel')).toContain('noreferrer');
     });
   });
 
@@ -87,6 +89,7 @@ describe('Home Page Component', () => {
     externalLinks.forEach(link => {
       const rel = link.getAttribute('rel');
       expect(rel).toContain('noopener');
+      expect(rel).toContain('noreferrer');
     });
   });
 });
