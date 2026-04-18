@@ -9,3 +9,7 @@
 ## 2025-12-19 - [Array.prototype.reduce Overhead in Tight Loops]
 **Learning:** Using `Array.prototype.reduce` for simple numerical calculations (like mean and variance) introduces significant overhead compared to native `for` loops (e.g., 511ms vs 49ms in micro-benchmarks). This is due to the function call overhead for every element.
 **Action:** When performing calculations on large arrays or tensors, especially in hot paths, prefer native `for` loops and inline calculations (like `diff * diff` instead of `Math.pow`) to maximize JS engine optimization.
+
+## 2025-12-19 - [Single-Pass Variance Calculation]
+**Learning:** Calculating variance in a two-pass loop (one for mean, one for variance) requires iterating the tensor twice. Using a single-pass loop that tracks `sum` and `sumSq` simultaneously allows calculating the variance as `(sumSq / n) - (mean * mean)`, roughly doubling performance for large tensors.
+**Action:** Use single-pass variance calculation formulas for statistical measures over large arrays. When doing so with floats, always wrap the final variance calculation in `Math.max(0, variance)` to avoid negative numbers due to floating-point precision issues.
