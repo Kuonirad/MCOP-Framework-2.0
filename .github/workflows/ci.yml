@@ -6,9 +6,6 @@ on:
   pull_request:
     branches: [main]
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 permissions:
   contents: read
 
@@ -17,10 +14,11 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  NEXT_TELEMETRY_DISABLED: 1
 
 jobs:
   test:
+    name: Lint & Test
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
@@ -29,61 +27,20 @@ jobs:
         node-version: [20.x]
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
       - name: Setup project environment
         uses: ./.github/actions/setup-project
-
-      - name: Run linter
-        run: pnpm lint
-
-      - name: Build application
-        run: pnpm build
-      - name: Setup project environment
-        uses: ./.github/actions/setup-project
-
-      - name: Setup project environment
-        uses: ./.github/actions/setup-project
-
-      - name: Setup project environment
-        uses: ./.github/actions/setup-project
-      - name: Setup project environment
-        uses: ./.github/actions/setup-project
-      - name: Checkout (pinned)
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-          enable-cache: true
-          install-deps: true
 
       - name: Run linter
         run: pnpm lint
 
-      - name: Build application
-        run: pnpm build
-        run: pnpm run lint
-
-      - name: Build application
-        if: matrix.node-version != '18.x'
-        run: pnpm run build
-
-      - name: Run tests
+      - name: Run tests (with coverage)
         run: pnpm test -- --coverage
         continue-on-error: true
 
       - name: Upload coverage artifacts
-        uses: actions/upload-artifact@v4 # v4.4.0
         uses: actions/upload-artifact@v4
-        uses: actions/upload-artifact@v4 # v4.4.0
-        uses: actions/upload-artifact@v4
-        uses: actions/upload-artifact@v4 # v4.4.0
-        uses: actions/upload-artifact@v4
-        uses: actions/upload-artifact@v4 # v4.4.0
-        uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
         with:
           name: coverage-${{ matrix.node-version }}
           path: coverage/
@@ -97,55 +54,22 @@ jobs:
           fail_ci_if_error: false
 
   build:
+    name: Build
     runs-on: ubuntu-latest
     timeout-minutes: 30
     needs: test
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
-
       - name: Setup project environment
         uses: ./.github/actions/setup-project
         with:
           node-version: 20.x
-
-      - name: Build project
-        run: pnpm build
-
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4 # v4.4.0
-        with:
-          node-version: 20.x
-          enable-cache: true
-          install-deps: true
-        uses: actions/checkout@v4
-      - name: Setup project environment
-        uses: ./.github/actions/setup-project
-      - name: Build project
-        run: pnpm build
-
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
-      - name: Checkout (pinned)
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20.x
-          cache: pnpm
 
       - name: Build project
         run: pnpm run build
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v4 # v4.4.0
         uses: actions/upload-artifact@v4
-        uses: actions/upload-artifact@v4 # v4.4.0
-        uses: actions/upload-artifact@v4
-        uses: actions/upload-artifact@v4 # v4.4.0
-        uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
         with:
           name: build
           path: .next/
@@ -153,44 +77,20 @@ jobs:
           retention-days: 7
 
   security:
+    name: Security Audit
     runs-on: ubuntu-latest
     timeout-minutes: 30
     needs: build
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+      - name: Setup project environment
+        uses: ./.github/actions/setup-project
+        with:
+          node-version: 20.x
 
-      - name: Setup project environment
-        uses: ./.github/actions/setup-project
-        with:
-          node-version: 20.x
-      - name: Setup project environment
-        uses: ./.github/actions/setup-project
-        with:
-          node-version: 20.x
-      - name: Setup project environment
-        uses: ./.github/actions/setup-project
-        with:
-          node-version: 20.x
-          enable-cache: true
-          install-deps: true
-        uses: actions/checkout@v4
-      - name: Setup project environment
-        uses: ./.github/actions/setup-project
-      - name: Checkout (pinned)
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20.x
-          cache: pnpm
-
-      - name: Run security audit
+      - name: Run dependency security audit
         run: pnpm audit --audit-level=moderate
         continue-on-error: true
 
       - name: Run lint security checks
         run: pnpm lint
-        run: pnpm run lint
