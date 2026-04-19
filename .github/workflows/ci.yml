@@ -169,6 +169,10 @@ jobs:
         uses: ./.github/actions/setup-project
         with:
           node-version: 20.x
+      - name: Setup project environment
+        uses: ./.github/actions/setup-project
+        with:
+          node-version: 20.x
           enable-cache: true
           install-deps: true
         uses: actions/checkout@v4
