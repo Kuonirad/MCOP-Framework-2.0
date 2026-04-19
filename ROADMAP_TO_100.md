@@ -193,7 +193,7 @@ Week 12: 100.00 (Climax Ecosystem)
 ### Automated Tools:
 ```bash
 # Run eco-fitness audit
-npm run eco:audit  # TODO: Create this script
+npm run eco:audit
 
 # Expected output:
 # Bus Factor: 2.8 ⚠️ (target: 3.0)
