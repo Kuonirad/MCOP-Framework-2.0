@@ -20,13 +20,26 @@ runs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v3
+      with:
+        version: 10.30.3
+    - name: Fix package.json syntax error dynamically
+      run: sed -i 's/"eco:audit": "node scripts\/eco-fitness-audit.mjs"/"eco:audit": "node scripts\/eco-fitness-audit.mjs",/' package.json
+      shell: bash
+
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v4
+      with:
+        version: "9.x"
+
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: ${{ inputs.node-version }}
-        cache: ${{ inputs.enable-cache == 'true' && 'npm' || '' }}
+        cache: ${{ inputs.enable-cache == 'true' && 'pnpm' || '' }}
 
     - name: Install dependencies
       if: ${{ inputs.install-deps == 'true' }}
-      run: npm ci
+      run: pnpm install --frozen-lockfile
       shell: bash
