@@ -1,4 +1,4 @@
-import crypto from 'crypto';
+import { randomUUID, createHash } from 'node:crypto';
 import { ContextTensor, PheromoneTrace, ResonanceResult } from './types';
 
 export interface StigmergyConfig {
@@ -46,52 +46,15 @@ export class StigmergyV5 {
     return dot / (magA * magB);
   }
 
-  private cosine(a: ContextTensor, b: ContextTensor, magA?: number, magB?: number): number {
-    const minLen = Math.min(a.length, b.length);
-
-    // Optimization: Use pre-calculated magnitudes if vectors are equal length
-    if (magA !== undefined && magB !== undefined && a.length === b.length) {
-      let dot = 0;
-      for (let i = 0; i < minLen; i++) {
-        dot += a[i] * b[i];
-      }
-      // Avoid division by zero
-      if (magA === 0 || magB === 0) return 0;
-      return dot / (magA * magB);
-    }
-
-    // Standard path (lengths differ or no pre-calc)
-    if (magA !== undefined && magB !== undefined) {
-      let dot = 0;
-      for (let i = 0; i < minLen; i++) {
-        dot += a[i] * b[i];
-      }
-      if (!magA || !magB) return 0;
-      return dot / (magA * magB);
-    }
-
-    // Fallback to original calculation if magnitudes are missing
-    let dot = 0;
-    let sumSqA = 0;
-    let sumSqB = 0;
-    for (let i = 0; i < minLen; i++) {
-      dot += a[i] * b[i];
-      sumSqA += a[i] * a[i];
-      sumSqB += b[i] * b[i];
-    }
-    if (sumSqA === 0 || sumSqB === 0) return 0;
-    return dot / (Math.sqrt(sumSqA) * Math.sqrt(sumSqB));
-  }
-
   private merkleHash(payload: unknown, parentHash?: string): string {
     const raw = JSON.stringify({ payload, parentHash });
-    return crypto.createHash('sha256').update(raw).digest('hex');
+    return createHash('sha256').update(raw).digest('hex');
   }
 
   recordTrace(context: ContextTensor, synthesisVector: number[], metadata?: Record<string, unknown>): PheromoneTrace {
     const parentHash = this.traces.at(-1)?.hash;
-    // Security: Use crypto.randomUUID() instead of Math.random() for cryptographically strong IDs
-    const id = crypto.randomUUID();
+    // Security: Use randomUUID() for cryptographically strong IDs
+    const id = randomUUID();
 
     // Calculate magnitudes once
     const contextMag = this.getMagnitude(context);
