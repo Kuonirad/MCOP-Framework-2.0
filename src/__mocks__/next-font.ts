@@ -1,7 +1,7 @@
-export const Geist = (_options?: { subsets?: string[] }) => ({
+export const Geist = () => ({
   variable: '--font-geist-sans',
 });
 
-export const Geist_Mono = (_options?: { subsets?: string[] }) => ({
+export const Geist_Mono = () => ({
   variable: '--font-geist-mono',
 });

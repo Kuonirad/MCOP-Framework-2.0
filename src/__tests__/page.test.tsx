@@ -2,6 +2,7 @@
  * @fileoverview Unit tests for MCOP Framework 2.0 Home Page
  * @description Tests ensure correct rendering and security properties
  * 
+ * Bug ID: upstream/security-hardening-001
  * Test Strategy: Verify component renders correctly and contains expected content
  */
 

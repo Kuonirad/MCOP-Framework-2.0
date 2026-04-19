@@ -24,7 +24,7 @@ export class HolographicEtch {
     }
 
     const normalizedDelta = deltaWeight / (minLen || 1);
-    if (normalizedDelta < this.confidenceFloor) {
+    if (normalizedDelta < this.confidenceFloor && !this.auditLog) {
       return {
         hash: '',
         deltaWeight: 0,

@@ -2,6 +2,7 @@
  * @fileoverview Security Integration Tests for MCOP Framework 2.0
  * @description Tests validate security properties and defense mechanisms
  * 
+ * Bug ID: upstream/security-hardening-001
  * Test Strategy: Verify security configurations and patterns
  */
 
@@ -35,12 +36,12 @@ describe('Security Configuration Tests', () => {
   });
 
   /**
-   * Test Case: pnpm-lock.yaml Exists
+   * Test Case: Package-lock.json Exists
    * Ground Truth: Lockfile required for reproducible builds
-   * Failure Witness: pnpm-lock.yaml not found
+   * Failure Witness: package-lock.json not found
    */
-  it('has pnpm-lock.yaml for reproducible builds', () => {
-    const lockPath = path.join(projectRoot, 'pnpm-lock.yaml');
+  it('has package-lock.json for reproducible builds', () => {
+    const lockPath = path.join(projectRoot, 'package-lock.json');
     expect(fs.existsSync(lockPath)).toBe(true);
   });
 

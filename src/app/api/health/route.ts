@@ -5,4 +5,5 @@ export async function GET() {
     { status: 'ok', timestamp: new Date().toISOString() },
     { status: 200 }
   );
+  return NextResponse.json({ status: 'ok' }, { status: 200 });
 }

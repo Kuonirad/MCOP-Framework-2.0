@@ -17,21 +17,11 @@ inputs:
 runs:
   using: 'composite'
   steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-
     - name: Setup pnpm
       uses: pnpm/action-setup@v3
       with:
         version: 10.30.3
-    - name: Fix package.json syntax error dynamically
-      run: sed -i 's/"eco:audit": "node scripts\/eco-fitness-audit.mjs"/"eco:audit": "node scripts\/eco-fitness-audit.mjs",/' package.json
-      shell: bash
-
-    - name: Setup pnpm
-      uses: pnpm/action-setup@v4
-      with:
-        version: "9.x"
+        run_install: false
 
     - name: Setup Node.js
       uses: actions/setup-node@v4

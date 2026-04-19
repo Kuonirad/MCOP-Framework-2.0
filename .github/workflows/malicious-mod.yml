@@ -9,16 +9,13 @@ on:
 permissions:
   contents: read
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
   test-malicious-load:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup project environment (minimal)
         uses: ./.github/actions/setup-project
@@ -34,10 +31,10 @@ jobs:
       - name: Setup project environment (minimal)
         uses: ./.github/actions/setup-project
       - name: Checkout (pinned)
-        uses: actions/checkout@v4 # v4 - latest compatible
+        uses: actions/checkout@v6 # v4 - latest compatible
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4 # v4 - latest compatible
+        uses: actions/setup-node@v6 # v4 - latest compatible
         with:
           enable-cache: false
           install-deps: false

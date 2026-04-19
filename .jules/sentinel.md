@@ -7,8 +7,3 @@
 **Vulnerability:** The `Dockerfile` defined a `HEALTHCHECK` against a non-existent endpoint `/api/health`, ensuring production containers would fail health checks and be restarted (DoS).
 **Learning:** Operational configuration files (Dockerfile, k8s manifests) are part of the security surface. Availability is a key security pillar.
 **Prevention:** Ensure all endpoints referenced in infrastructure-as-code actually exist in the application.
-
-## 2025-12-19 - Cryptographically Strong Trace Identifiers
-**Vulnerability:** Use of potentially weak or non-standard ID generation patterns in core stigmergy logic.
-**Learning:** Transitioning to `node:crypto`'s `randomUUID()` ensures collision-resistant and cryptographically strong identifiers, which are critical for trace integrity and auditability in the MCOP Framework.
-**Prevention:** Avoid custom ID schemes (like `Date.now()` based) or `Math.random()` for security-critical identifiers. Always favor standard, cryptographically secure native implementations.
