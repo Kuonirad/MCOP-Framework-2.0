@@ -111,6 +111,23 @@ export class NovaNeoEncoder {
     // Optimization: Replaced reduce() and Math.pow() with native for-loops for significant execution speedup (~5.5x faster).
     if (!tensor.length) return 0;
 
+    // Optimization: Replaced Array.prototype.reduce() and Math.pow() with native
+    // for loops and direct multiplication to eliminate callback allocation and
+    // function invocation overhead in the V8 engine during tensor processing.
+    // Expected impact: Drastic reduction in execution time for estimateEntropy.
+    let sum = 0;
+    for (let i = 0; i < tensor.length; i++) {
+      sum += Math.abs(tensor[i]);
+    }
+    const mean = sum / tensor.length;
+
+    let varianceSum = 0;
+    for (let i = 0; i < tensor.length; i++) {
+      const diff = Math.abs(tensor[i]) - mean;
+      varianceSum += diff * diff;
+    }
+    const variance = varianceSum / tensor.length;
+
     const len = tensor.length;
     let sum = 0;
 
