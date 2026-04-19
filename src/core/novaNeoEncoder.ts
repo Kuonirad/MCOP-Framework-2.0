@@ -111,6 +111,10 @@ export class NovaNeoEncoder {
     // Optimization: Replaced reduce() and Math.pow() with native for-loops for significant execution speedup (~5.5x faster).
     if (!tensor.length) return 0;
 
+    const len = tensor.length;
+    let sum = 0;
+
+    // Pass 1: compute mean of absolute values
     // Optimization: Using simple loops and `val * val` instead of `.reduce` and `Math.pow(..., 2)`.
     // This reduces computation time by ~75% (measured ~4x speedup).
     const len = tensor.length;
@@ -124,6 +128,14 @@ export class NovaNeoEncoder {
       sum += Math.abs(tensor[i]);
     }
     const mean = sum / len;
+
+    // Pass 2: compute variance
+    let sumSquaredDiff = 0;
+    for (let i = 0; i < len; i++) {
+      const diff = Math.abs(tensor[i]) - mean;
+      sumSquaredDiff += diff * diff;
+    }
+    const variance = sumSquaredDiff / len;
 
     let sumSqDiff = 0;
     for (let i = 0; i < len; i++) {

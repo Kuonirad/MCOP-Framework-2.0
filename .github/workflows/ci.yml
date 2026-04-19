@@ -61,6 +61,10 @@ jobs:
           install-deps: true
 
       - name: Run linter
+        run: pnpm lint
+
+      - name: Build application
+        run: pnpm build
         run: pnpm run lint
 
       - name: Build application
@@ -72,6 +76,7 @@ jobs:
         continue-on-error: true
 
       - name: Upload coverage artifacts
+        uses: actions/upload-artifact@v4 # v4.4.0
         uses: actions/upload-artifact@v4
         uses: actions/upload-artifact@v4 # v4.4.0
         uses: actions/upload-artifact@v4
@@ -102,6 +107,14 @@ jobs:
 
       - name: Setup project environment
         uses: ./.github/actions/setup-project
+        with:
+          node-version: 20.x
+
+      - name: Build project
+        run: pnpm build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4 # v4.4.0
         with:
           node-version: 20.x
           enable-cache: true
@@ -148,6 +161,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
 
+      - name: Setup project environment
+        uses: ./.github/actions/setup-project
+        with:
+          node-version: 20.x
       - name: Setup project environment
         uses: ./.github/actions/setup-project
         with:

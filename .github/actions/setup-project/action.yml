@@ -6,11 +6,11 @@ inputs:
     required: false
     default: '20.x'
   enable-cache:
-    description: 'Enable npm dependency caching'
+    description: 'Enable pnpm dependency caching'
     required: false
     default: 'true'
   install-deps:
-    description: 'Run npm ci to install dependencies'
+    description: 'Run pnpm install to install dependencies'
     required: false
     default: 'true'
 
@@ -23,6 +23,7 @@ runs:
     - name: Setup pnpm
       uses: pnpm/action-setup@v3
       with:
+        run_install: false
         version: 10.30.3
     - name: Fix package.json syntax error dynamically
       run: sed -i 's/"eco:audit": "node scripts\/eco-fitness-audit.mjs"/"eco:audit": "node scripts\/eco-fitness-audit.mjs",/' package.json
@@ -42,4 +43,5 @@ runs:
     - name: Install dependencies
       if: ${{ inputs.install-deps == 'true' }}
       run: pnpm install --frozen-lockfile
+      shell: bash
       shell: bash
