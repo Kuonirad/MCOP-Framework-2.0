@@ -2,11 +2,11 @@ name: CodeQL Analysis
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
   schedule:
-    - cron: '30 5 * * 1'  # Weekly on Monday
+    - cron: '30 5 * * 1'
 
 permissions:
   contents: read
