@@ -1,0 +1,33 @@
+name: Delete merged branches
+
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  contents: write
+
+jobs:
+  delete-branch:
+    if: github.event.pull_request.merged == true && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete the merged branch
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const ref = context.payload.pull_request.head.ref;
+            if (ref === context.payload.repository.default_branch) {
+              core.info("Refusing to delete the default branch.");
+              return;
+            }
+            try {
+              await github.rest.git.deleteRef({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: `heads/${ref}`,
+              });
+              core.notice(`Deleted branch ${ref}.`);
+            } catch (e) {
+              core.info(`Branch ${ref} could not be deleted: ${e.message}`);
+            }

@@ -1,8 +1,12 @@
+> **Historical document.** The ecological-metaphor scoring framing below is a
+> legacy internal model and is no longer the operative roadmap for the project.
+> See [GOVERNANCE.md](GOVERNANCE.md) and the latest entries in
+> [CHANGELOG.md](CHANGELOG.md) for current maintainer priorities and release
+> cadence. This file is preserved for historical context only.
+
 # 🎯 Roadmap to 100/100 Eco-Fitness Score
 ## From Pioneer Kelp Forest → Resilient Coral Reef
 
-**Current Score:** 72.75/100 (Thriving Pioneer with Critical Vulnerabilities)
-**Target Score:** 100/100 (Antifragile Climax Ecosystem)
 **Timeline:** 90 days (3 phases)
 
 ---
@@ -17,7 +21,7 @@
 | **Biodiversity** | **45/100** | **90/100** | **+45** | **CRITICAL** |
 | Succession Stage | 70/100 | 95/100 | +25 | High |
 
-**Critical Vulnerability:** Bus Factor = 1.5 (ecosystem collapses if primary maintainer leaves)
+**Note:** Maintainer-distribution work is tracked in [GOVERNANCE.md](GOVERNANCE.md) under the active maintainer roster.
 
 ---
 
