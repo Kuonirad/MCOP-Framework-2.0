@@ -1,5 +1,5 @@
 name: 'Setup Project Environment'
-description: 'Checkout code, setup Node.js with optional caching, and optionally install dependencies'
+description: 'Setup pnpm + Node.js (with optional caching and dependency install). Expects the caller to have already checked out the code.'
 inputs:
   node-version:
     description: 'Node.js version to use'
@@ -17,22 +17,11 @@ inputs:
 runs:
   using: 'composite'
   steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-
-    - name: Setup pnpm
-      uses: pnpm/action-setup@v3
-      with:
-        run_install: false
-        version: 10.30.3
-    - name: Fix package.json syntax error dynamically
-      run: sed -i 's/"eco:audit": "node scripts\/eco-fitness-audit.mjs"/"eco:audit": "node scripts\/eco-fitness-audit.mjs",/' package.json
-      shell: bash
-
     - name: Setup pnpm
       uses: pnpm/action-setup@v4
       with:
-        version: "9.x"
+        version: '9.15.0'
+        run_install: false
 
     - name: Setup Node.js
       uses: actions/setup-node@v4
@@ -42,6 +31,5 @@ runs:
 
     - name: Install dependencies
       if: ${{ inputs.install-deps == 'true' }}
+      shell: bash
       run: pnpm install --frozen-lockfile
-      shell: bash
-      shell: bash
