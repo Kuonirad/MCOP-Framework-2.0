@@ -9,11 +9,39 @@
   "commitConvention": "angular",
   "contributors": [
     {
+      "login": "Kuonirad",
+      "name": "Kevin Kull (KVN-AI)",
+      "avatar_url": "https://avatars.githubusercontent.com/u/32809529?v=4",
+      "profile": "https://github.com/Kuonirad",
+      "contributions": ["code", "doc", "ideas", "infra", "maintenance", "projectManagement", "research", "review"]
+    },
+    {
       "login": "KullAILABS",
       "name": "KullAI Labs",
       "avatar_url": "https://avatars.githubusercontent.com/u/12345678?v=4",
       "profile": "https://github.com/KullAILABS",
-      "contributions": ["code", "doc", "ideas", "infra", "maintenance", "projectManagement", "research"]
+      "contributions": ["ideas", "projectManagement", "research"]
+    },
+    {
+      "login": "google-labs-jules",
+      "name": "Jules (Google Labs)",
+      "avatar_url": "https://avatars.githubusercontent.com/in/161369871?v=4",
+      "profile": "https://github.com/apps/google-labs-jules",
+      "contributions": ["code", "bug", "maintenance"]
+    },
+    {
+      "login": "dependabot",
+      "name": "Dependabot",
+      "avatar_url": "https://avatars.githubusercontent.com/in/29110?v=4",
+      "profile": "https://github.com/dependabot",
+      "contributions": ["maintenance", "security"]
+    },
+    {
+      "login": "claude",
+      "name": "Claude (Anthropic)",
+      "avatar_url": "https://avatars.githubusercontent.com/u/178897196?v=4",
+      "profile": "https://github.com/anthropics",
+      "contributions": ["code", "doc", "review"]
     }
   ],
   "contributorsPerLine": 7,

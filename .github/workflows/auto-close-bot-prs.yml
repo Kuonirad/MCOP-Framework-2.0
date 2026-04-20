@@ -1,0 +1,76 @@
+name: Auto-close duplicate bot PRs
+
+on:
+  schedule:
+    - cron: "30 2 * * *"
+  workflow_dispatch:
+
+permissions:
+  pull-requests: write
+  contents: write
+
+jobs:
+  close-bot-prs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Close bot-pattern PRs and delete their branches
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const botPattern = /^(bolt|palette|jules)\//i;
+            const botTitlePattern = /^\s*(⚡\s*)?(Bolt|Palette|Jules):/i;
+            const comment = [
+              "Closed as part of automated-PR consolidation.",
+              "",
+              "This PR matched a known duplicate-bot pattern and was superseded by",
+              "merged work or by a sibling PR. Please reopen (or file a fresh PR",
+              "against `main`) if it contains substantive work that is not already",
+              "merged."
+            ].join("\n");
+
+            const prs = await github.paginate(
+              github.rest.pulls.list,
+              { owner: context.repo.owner, repo: context.repo.repo, state: "open", per_page: 100 }
+            );
+
+            let closed = 0;
+            for (const pr of prs) {
+              const headRef = pr.head && pr.head.ref ? pr.head.ref : "";
+              const isBotBranch = botPattern.test(headRef);
+              const isBotTitle = botTitlePattern.test(pr.title || "");
+              const isBotUser = pr.user && pr.user.type === "Bot";
+              if (!isBotBranch && !isBotTitle && !isBotUser) continue;
+
+              try {
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: pr.number,
+                  body: comment,
+                });
+                await github.rest.pulls.update({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  pull_number: pr.number,
+                  state: "closed",
+                });
+                if (pr.head && pr.head.repo && pr.head.repo.full_name ===
+                    `${context.repo.owner}/${context.repo.repo}`) {
+                  try {
+                    await github.rest.git.deleteRef({
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      ref: `heads/${headRef}`,
+                    });
+                  } catch (e) {
+                    core.info(`Could not delete branch ${headRef}: ${e.message}`);
+                  }
+                }
+                closed++;
+                await new Promise(r => setTimeout(r, 750));
+              } catch (e) {
+                core.warning(`Failed to close PR #${pr.number}: ${e.message}`);
+              }
+            }
+
+            core.notice(`Closed ${closed} duplicate bot PR(s).`);
