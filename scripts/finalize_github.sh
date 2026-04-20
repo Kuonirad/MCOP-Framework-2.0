@@ -80,5 +80,5 @@ STATS=$(gh api "repos/$REPO" \
   --jq '"stars=\(.stargazers_count) forks=\(.forks_count) watchers=\(.subscribers_count)"')
 echo "==> Complete. $STATS"
 echo "==> Projected score 92–95 (100 after ≥20 stars, ≥3 forks)"
-echo "==> Post the Show HN / r/MachineLearning / Bluesky draft from"
+echo "==> Post the Show HN / r/MachineLearning / X.com draft from"
 echo "    /tmp/FINAL_ACTION_CHECKLIST.md §6 to 3 platforms within 24h."
