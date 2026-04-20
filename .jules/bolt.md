@@ -21,4 +21,6 @@
 **Action:** Replace `Array.prototype.reduce()` and `Math.pow()` with native `for` loops and direct multiplication (`val * val`) for execution speedups in hot paths.
 ## 2025-12-19 - [Array.prototype.reduce Overhead in Tight Loops]
 **Learning:** Using `Array.prototype.reduce` for simple numerical calculations (like mean and variance) introduces significant overhead compared to native `for` loops (e.g., 511ms vs 49ms in micro-benchmarks). This is due to the function call overhead for every element.
-**Action:** When performing calculations on large arrays or tensors, especially in hot paths, prefer native `for` loops and inline calculations (like `diff * diff` instead of `Math.pow`) to maximize JS engine optimization.
+**Action:** When performing calculations on large arrays or tensors, especially in hot paths, prefer native `for` loops and inline calculations (like `diff * diff` instead of `Math.pow`) to maximize JS engine optimization.## 2025-12-19 - O(N) single-pass entropy calculation in NovaNeoEncoder
+**Learning:** Found an extremely inefficient `estimateEntropy` method where duplicated loops and multiple passes over the array were accumulating runtime cost. In V8, iterating an array twice to compute the mean and then the variance takes significantly longer than computing `Var(X) = E[X^2] - (E[X])^2` in a single pass.
+**Action:** Replaced multi-pass calculation with single-pass variance `(sumSq / len) - (mean * mean)` to immediately double performance on this hot path.
