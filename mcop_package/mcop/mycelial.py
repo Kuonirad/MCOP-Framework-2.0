@@ -305,6 +305,12 @@ class MycelialChainBuilder:
         """Create cross-chain connections between similar hypotheses."""
         nodes = list(network.nodes.values())
 
+        # Pre-compute word sets to optimize similarity computation
+        precomputed_words = {
+            node.hypothesis.id: set(node.hypothesis.content.lower().split())
+            for node in nodes
+        }
+
         for i, node1 in enumerate(nodes):
             for node2 in nodes[i+1:]:
                 # Don't connect parent-child
@@ -314,13 +320,15 @@ class MycelialChainBuilder:
                 # Check similarity
                 similarity = self._compute_similarity(
                     node1.hypothesis,
-                    node2.hypothesis
+                    node2.hypothesis,
+                    precomputed_words.get(node1.hypothesis.id),
+                    precomputed_words.get(node2.hypothesis.id)
                 )
 
                 if similarity >= self.similarity_threshold:
                     network.connect(node1.hypothesis.id, node2.hypothesis.id)
 
-    def _compute_similarity(self, h1: Hypothesis, h2: Hypothesis) -> float:
+    def _compute_similarity(self, h1: Hypothesis, h2: Hypothesis, words1: Optional[Set[str]] = None, words2: Optional[Set[str]] = None) -> float:
         """Compute similarity between two hypotheses."""
         if self.similarity_callback:
             return self.similarity_callback(h1, h2)
@@ -329,8 +337,10 @@ class MycelialChainBuilder:
         mode_match = 0.3 if h1.mode == h2.mode else 0.0
 
         # Simple word overlap
-        words1 = set(h1.content.lower().split())
-        words2 = set(h2.content.lower().split())
+        if words1 is None:
+            words1 = set(h1.content.lower().split())
+        if words2 is None:
+            words2 = set(h2.content.lower().split())
 
         if not words1 or not words2:
             return mode_match
