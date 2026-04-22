@@ -55,7 +55,8 @@ export class NovaNeoEncoder {
       for (let i = 0; i < this.dimensions; i++) {
         values[i] = signedHash[i & 31];
       }
-    } else {
+    } /* istanbul ignore next -- defensive: SHA-256 always emits 32 bytes;
+         branch retained for future hash-algorithm swaps */ else {
       for (let i = 0; i < this.dimensions; i++) {
         values[i] = signedHash[i % hashLen];
       }

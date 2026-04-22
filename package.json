@@ -9,13 +9,13 @@
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
     "start": "next start",
-    "lint": "eslint",
+    "lint": "eslint --max-warnings 0",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "deps:check": "npm outdated && npm audit",
-    "deps:audit": "npm audit",
-    "deps:update-check": "npm outdated",
+    "deps:check": "pnpm outdated && pnpm audit --audit-level=moderate",
+    "deps:audit": "pnpm audit --audit-level=moderate",
+    "deps:update-check": "pnpm outdated",
     "eco:audit": "node scripts/eco-audit.mjs"
   },
   "engines": {
