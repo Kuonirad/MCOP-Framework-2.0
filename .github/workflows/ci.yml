@@ -142,3 +142,47 @@ jobs:
       - name: Build wheel and sdist
         working-directory: mcop_package
         run: python -m build
+
+  core-package:
+    name: npm package (@kullailabs/mcop-core)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+
+      - name: Install core package dependencies
+        working-directory: packages/core
+        run: npm install --no-package-lock
+
+      - name: Typecheck core package
+        working-directory: packages/core
+        run: npm run typecheck
+
+      - name: Build core package (ESM + CJS + d.ts)
+        working-directory: packages/core
+        run: npm run build
+
+      - name: Verify build artifacts
+        working-directory: packages/core
+        run: |
+          test -f dist/index.js
+          test -f dist/index.cjs
+          test -f dist/index.d.ts
+          test -f dist/index.d.cts
+
+      - name: Smoke test ESM + CJS entries
+        working-directory: packages/core
+        run: |
+          node --input-type=module -e "import('./dist/index.js').then(m => { if (typeof m.NovaNeoEncoder !== 'function') process.exit(1); console.log('ESM ok'); });"
+          node -e "const m = require('./dist/index.cjs'); if (typeof m.NovaNeoEncoder !== 'function') process.exit(1); console.log('CJS ok');"
+
+      - name: Pack tarball (dry-run publish)
+        working-directory: packages/core
+        run: npm publish --dry-run --access public

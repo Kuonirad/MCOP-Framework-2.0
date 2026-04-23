@@ -1,0 +1,113 @@
+name: Publish npm package
+
+# Builds and publishes @kullailabs/mcop-core to the public npm registry
+# using npm **Trusted Publishing** (OIDC). No NPM_TOKEN is stored or used.
+# Provenance attestations (Sigstore transparency log) are generated
+# automatically by npm when publishing via a trusted publisher.
+#
+# Required one-time setup on npmjs.com:
+#   https://www.npmjs.com/package/@kullailabs/mcop-core → Settings →
+#   Trusted Publisher → GitHub Actions, with:
+#     Organization or user : Kuonirad
+#     Repository           : KullAILABS-MCOP-Framework-2.0
+#     Workflow filename    : publish-npm.yml
+#     Environment          : npm
+#
+# Triggers:
+#   • GitHub Release tagged `npm-v*` (e.g. `npm-v0.1.0`) → real publish
+#   • Manual dispatch with `dry_run: true` (default) → validation only
+#
+# Requirements enforced in-workflow:
+#   • npm CLI ≥ 11.5.1  (trusted publishing prerequisite)
+#   • Node.js 22.x      (trusted publishing prerequisite)
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Run `npm publish --dry-run` only (no upload)'
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-npm-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Publish @kullailabs/mcop-core
+    runs-on: ubuntu-latest
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'release' && startsWith(github.event.release.tag_name, 'npm-v'))
+    timeout-minutes: 15
+    environment:
+      name: npm
+      url: https://www.npmjs.com/package/@kullailabs/mcop-core
+    permissions:
+      contents: read
+      id-token: write   # OIDC — required for Trusted Publishing + provenance
+    defaults:
+      run:
+        working-directory: packages/core
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Upgrade npm to latest (>= 11.5.1 for trusted publishing)
+        run: npm install -g npm@latest
+
+      - name: Show tool versions
+        run: |
+          node --version
+          npm --version
+
+      - name: Install core package dependencies
+        run: npm install --no-package-lock --ignore-scripts=false
+
+      - name: Verify package version matches release tag
+        if: github.event_name == 'release'
+        run: |
+          tag="${GITHUB_REF_NAME#npm-v}"
+          pkg_version=$(node -p "require('./package.json').version")
+          echo "tag version : $tag"
+          echo "pkg version : $pkg_version"
+          if [ "$tag" != "$pkg_version" ]; then
+            echo "::error::Release tag npm-v$tag does not match package.json version $pkg_version"
+            exit 1
+          fi
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
+
+      - name: Publish (dry run)
+        if: >-
+          github.event_name == 'workflow_dispatch' && inputs.dry_run == true
+        run: npm publish --access public --dry-run
+
+      # Trusted publishing is auto-detected by the npm CLI when `id-token: write`
+      # is set. Provenance is generated automatically — no `--provenance` flag
+      # needed and no NPM_TOKEN required.
+      - name: Publish to npm (trusted publishing + automatic provenance)
+        if: >-
+          github.event_name == 'release' ||
+          (github.event_name == 'workflow_dispatch' && inputs.dry_run == false)
+        run: npm publish --access public

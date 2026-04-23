@@ -9,3 +9,5 @@ src/                    @Kuonirad
 mcop_package/           @Kuonirad
 Dockerfile              @Kuonirad
 docker-compose*.yml     @Kuonirad
+packages/               @Kuonirad
+packages/core/          @Kuonirad

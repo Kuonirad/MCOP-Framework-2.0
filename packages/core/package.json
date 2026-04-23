@@ -1,0 +1,66 @@
+{
+  "name": "@kullailabs/mcop-core",
+  "version": "0.1.0",
+  "description": "MCOP (Meta-Cognitive Operating Protocol) core primitives — deterministic, auditable, provenance-tracked reasoning: NOVA-NEO encoder, Stigmergy v5, Holographic Etch.",
+  "keywords": [
+    "mcop",
+    "agent-memory",
+    "provenance",
+    "audit-log",
+    "merkle",
+    "cosine-similarity",
+    "deterministic",
+    "sha256",
+    "ai",
+    "llm"
+  ],
+  "author": "Kevin John Kull (Kuonirad)",
+  "license": "MIT",
+  "homepage": "https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0#readme",
+  "bugs": {
+    "url": "https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0.git",
+    "directory": "packages/core"
+  },
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "build": "tsup",
+    "clean": "rimraf dist",
+    "prepack": "pnpm clean && pnpm build",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "rimraf": "^6.0.1",
+    "tsup": "^8.3.5",
+    "typescript": "^5.6.3"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true,
+    "registry": "https://registry.npmjs.org/"
+  }
+}
