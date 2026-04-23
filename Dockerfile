@@ -1,5 +1,5 @@
 # MCOP Framework 2.0 - Production Dockerfile
-# 
+#
 # Build: docker build -t mcop-framework .
 # Run:   docker run -p 3000:3000 mcop-framework
 #
@@ -7,85 +7,74 @@
 # - Uses non-root user for runtime
 # - Multi-stage build to minimize attack surface
 # - Production dependencies only in final image
+# - pnpm (via Corepack) is the canonical package manager for this repo
 
 # Base image is pinned by digest for reproducibility; update NODE_IMAGE intentionally.
 ARG NODE_IMAGE=node:20-bookworm-slim@sha256:1b38aaddff63cd0d3a9b5b03863a71fd33ee62047dd2e915f494d96b4b9c18cc
 
 # =============================================================================
-# Stage 0: Base
+# Stage 0: Base — activates the pnpm version declared in package.json#packageManager
 # =============================================================================
 FROM ${NODE_IMAGE} AS base
 
-# =============================================================================
-# Stage 1: Dependencies
-# =============================================================================
-FROM base AS deps
+ENV PNPM_HOME=/pnpm
+ENV PATH=$PNPM_HOME:$PATH
 
-WORKDIR /app
-
-# Copy package files for dependency installation
-COPY package.json package-lock.json ./
-
-# Install dependencies with exact versions from lockfile
-RUN npm ci --only=production && npm cache clean --force
+# Corepack ships with Node 20 and honours packageManager in package.json.
+RUN corepack enable
 
 # =============================================================================
-# Stage 2: Builder
+# Stage 1: Builder — installs all deps and produces the Next standalone output
 # =============================================================================
 FROM base AS builder
 
 WORKDIR /app
 
-# Copy package files
-COPY package.json package-lock.json ./
+# Copy manifests first so the install layer caches independently of source churn.
+COPY package.json pnpm-lock.yaml .npmrc ./
 
-# Install ALL dependencies (including devDependencies for build)
-RUN npm ci
+# Install the exact toolchain version requested by package.json#packageManager.
+RUN corepack prepare --activate
 
-# Copy source code
+# Full install (dev deps needed for `next build`).
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
+    pnpm install --frozen-lockfile
+
+# Copy the rest of the source and build.
 COPY . .
 
-# Set environment variables for build
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# Build the application
-RUN npm run build
+RUN pnpm run build
 
 # =============================================================================
-# Stage 3: Runner (Production)
+# Stage 2: Runner — minimal production image using Next standalone output
 # =============================================================================
 FROM base AS runner
 
 WORKDIR /app
 
-# Set environment variables
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-# Create non-root user for security
+# Create non-root user for security.
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
 
-# Copy built application
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
+# Next.js standalone output bundles the minimal set of production deps already,
+# so we do not need a separate `pnpm install --prod` stage here.
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Set ownership to non-root user
-RUN chown -R nextjs:nodejs /app
-
-# Switch to non-root user
 USER nextjs
 
-# Expose port
 EXPOSE 3000
 
-# Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD node -e "require('http').get('http://localhost:3000/api/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))"
 
-# Start the application
 CMD ["node", "server.js"]

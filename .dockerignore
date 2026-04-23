@@ -3,7 +3,8 @@
 
 # Allow specific files for build context
 !package.json
-!package-lock.json
+!pnpm-lock.yaml
+!.npmrc
 !next.config.ts
 !tsconfig.json
 !postcss.config.mjs
