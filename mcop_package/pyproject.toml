@@ -5,16 +5,32 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "mcop"
 version = "3.1.0"
-description = "Meta-Cognitive Operating Protocol — A Universal Reasoning Framework"
+description = "Meta-Cognitive Operating Protocol - A universal reasoning framework for multi-modal hypothesis generation, recursive refinement, and evidence-grounded synthesis."
 readme = "README.md"
 requires-python = ">=3.8"
-authors = [{ name = "M-COP Development Team" }]
-license = { text = "MIT" }
+authors = [
+  { name = "Kevin John Kull", email = "kevin@kullailabs.com" },
+  { name = "M-COP Development Team" },
+]
+maintainers = [
+  { name = "Kevin John Kull (Kuonirad)", email = "kevin@kullailabs.com" },
+]
+license = "MIT"
+keywords = [
+  "mcop",
+  "meta-cognitive",
+  "reasoning",
+  "hypothesis-generation",
+  "evidence-grounding",
+  "decision-support",
+  "knowledge-synthesis",
+  "multi-modal-reasoning",
+]
 classifiers = [
   "Development Status :: 4 - Beta",
   "Intended Audience :: Developers",
+  "Intended Audience :: Education",
   "Intended Audience :: Science/Research",
-  "License :: OSI Approved :: MIT License",
   "Operating System :: OS Independent",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.8",
@@ -22,13 +38,22 @@ classifiers = [
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3 :: Only",
   "Topic :: Scientific/Engineering :: Artificial Intelligence",
+  "Topic :: Text Processing :: General",
 ]
 dependencies = []
 
 [project.optional-dependencies]
 dev = ["pytest>=7", "pytest-cov>=4"]
 llm = ["openai>=1.0"]
+
+[project.urls]
+Homepage = "https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0"
+Documentation = "https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/blob/main/mcop_package/README.md"
+Repository = "https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0"
+Issues = "https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/issues"
+Changelog = "https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/blob/main/CHANGELOG.md"
 
 [project.scripts]
 mcop = "mcop.cli:main"
@@ -37,3 +62,8 @@ mcop = "mcop.cli:main"
 where = ["."]
 include = ["mcop*"]
 exclude = ["tests*", "mcop.egg-info*"]
+
+[tool.pytest.ini_options]
+testpaths = ["test_*.py"]
+python_files = ["test_*.py"]
+python_functions = ["test_*"]
