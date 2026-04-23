@@ -149,4 +149,4 @@ aligned before retrying.
 - PyPI troubleshooting:
   <https://docs.pypi.org/trusted-publishers/troubleshooting/>
 - GitHub OIDC for PyPI:
-  <https://docs.github.com/en/actions/how-tos/secure-your-work/security-hardendeployments/oidc-in-pypi>
+  <https://docs.github.com/en/actions/how-tos/secure-your-work/security-harden-deployments/oidc-in-pypi>
