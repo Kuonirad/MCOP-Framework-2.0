@@ -1,6 +1,11 @@
 # Require owner review for critical paths
-*                   @Kuonirad
-.github/workflows/  @Kuonirad
-package.json        @Kuonirad
-next.config.*       @Kuonirad
-src/                @Kuonirad
+*                       @Kuonirad
+.github/workflows/      @Kuonirad
+.github/actions/        @Kuonirad
+package.json            @Kuonirad
+pnpm-lock.yaml          @Kuonirad
+next.config.*           @Kuonirad
+src/                    @Kuonirad
+mcop_package/           @Kuonirad
+Dockerfile              @Kuonirad
+docker-compose*.yml     @Kuonirad
