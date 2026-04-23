@@ -37,9 +37,7 @@ def get_adapter(domain: str):
 
     adapter_class = adapters.get(domain.lower())
     if adapter_class is None:
-        valid_domains = ", ".join(sorted(adapters))
-        print(f"Unknown domain: {domain}")
-        print(f"Available domains: {valid_domains}")
+        print("Unknown domain. Available domains: general, medical, scientific")
         raise SystemExit(1)
 
     return adapter_class()
