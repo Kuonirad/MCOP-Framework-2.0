@@ -311,10 +311,16 @@ class MycelialChainBuilder:
             for node in nodes
         }
 
+        # Pre-compute ancestor IDs to avoid O(N^2 * depth) list allocations
+        ancestors_map = {
+            node.hypothesis.id: {a.hypothesis.id for a in node.get_ancestors()}
+            for node in nodes
+        }
+
         for i, node1 in enumerate(nodes):
             for node2 in nodes[i+1:]:
                 # Don't connect parent-child
-                if node2 in node1.get_ancestors() or node1 in node2.get_ancestors():
+                if node2.hypothesis.id in ancestors_map[node1.hypothesis.id] or node1.hypothesis.id in ancestors_map[node2.hypothesis.id]:
                     continue
 
                 # Check similarity
