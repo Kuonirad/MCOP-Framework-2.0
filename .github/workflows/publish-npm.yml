@@ -19,7 +19,9 @@ name: Publish npm package
 #
 # Requirements enforced in-workflow:
 #   • npm CLI ≥ 11.5.1  (trusted publishing prerequisite)
-#   • Node.js 22.x      (trusted publishing prerequisite)
+#   • Node.js ≥ 22.14   (trusted publishing prerequisite — we use Node 24
+#     because it ships with npm 11 already, avoiding a self-upgrade step
+#     that is fragile on top of Node 22's bundled npm 10.x).
 
 on:
   release:
@@ -63,19 +65,25 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Setup Node.js 22
+      - name: Setup Node.js 24 (ships with npm 11, required for trusted publishing)
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          node-version: '22'
+          node-version: '24'
           registry-url: 'https://registry.npmjs.org'
 
-      - name: Upgrade npm to latest (>= 11.5.1 for trusted publishing)
-        run: npm install -g npm@latest
-
-      - name: Show tool versions
+      - name: Verify npm version is >= 11.5.1 (trusted publishing prerequisite)
         run: |
           node --version
           npm --version
+          node -e "
+            const v = require('child_process').execSync('npm --version').toString().trim();
+            const [maj, min, patch] = v.split('.').map(Number);
+            if (maj < 11 || (maj === 11 && (min < 5 || (min === 5 && patch < 1)))) {
+              console.error('npm ' + v + ' is below the required 11.5.1');
+              process.exit(1);
+            }
+            console.log('npm ' + v + ' satisfies >= 11.5.1');
+          "
 
       - name: Install core package dependencies
         run: npm install --no-package-lock --ignore-scripts=false
