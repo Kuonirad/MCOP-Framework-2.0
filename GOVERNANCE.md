@@ -9,7 +9,7 @@ project, who the current maintainers are, and how releases ship.
 | --- | --- | --- |
 | Lead maintainer | [@Kuonirad](https://github.com/Kuonirad) | Architecture, releases, security escalation |
 
-The maintainer roster is tracked here and in [`CODEOWNERS`](./CODEOWNERS). The
+The maintainer roster is tracked here and in [`CODEOWNERS`](./.github/CODEOWNERS). The
 project is actively onboarding additional maintainers; see the "Becoming a
 maintainer" section below.
 
