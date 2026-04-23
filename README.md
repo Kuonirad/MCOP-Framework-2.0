@@ -39,20 +39,23 @@ graph TD
 ## 🏁 Getting Started
 
 ### Prerequisites
-- Node.js 18+
-- npm 9+
+- Node.js 20+ (see `.nvmrc`)
+- pnpm 9+ (pinned via `package.json` → `packageManager`; Corepack recommended)
 
 ### Installation
 ```bash
 git clone https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0.git
 cd KullAILABS-MCOP-Framework-2.0
-npm install
+corepack enable                           # first-time only
+pnpm install --frozen-lockfile
 ```
 
 ### Development
 ```bash
-npm run dev   # Next.js dev server with triad modules available under src/core
-npm test      # Jest suite (security + triad seeds)
+pnpm dev          # Next.js dev server with triad modules available under src/core
+pnpm test         # Jest suite (security + triad seeds)
+pnpm typecheck    # strict TypeScript check, no emit
+pnpm lint         # ESLint, zero-warning budget
 ```
 Visit `http://localhost:3000` after starting the dev server.
 
