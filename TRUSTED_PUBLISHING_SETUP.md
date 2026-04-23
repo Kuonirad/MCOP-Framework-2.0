@@ -121,6 +121,67 @@ pip install --force-reinstall dist/mcop-3.1.0-py3-none-any.whl
 mcop info
 ```
 
+## npm Trusted Publishing
+
+The repository also contains an npm publish workflow for the package:
+
+- Package: `@kullailabs/mcop-core`
+- Package directory: `packages/core`
+- Workflow file: `.github/workflows/publish-npm.yml`
+- GitHub environment: `npm`
+
+### Important first-publish limitation
+
+npm trusted publishing is configured per package, and npm requires the package
+to already exist before you can add a trusted publisher.
+
+That means the first npm release cannot start with the trusted publisher UI.
+You must create the package first, then attach GitHub Actions as the trusted
+publisher.
+
+### First npm publish
+
+From `packages/core` on a machine where you are logged into npm with publish
+rights to the `@kullailabs` scope:
+
+```bash
+npm login
+npm publish --access public
+```
+
+Notes:
+
+- The package is scoped (`@kullailabs/mcop-core`), so public visibility requires
+  `--access public` on the first publish.
+- The package already sets `publishConfig.registry` to `https://registry.npmjs.org/`
+  and `publishConfig.provenance` to `true`.
+- You must be an owner or publisher for the `kullailabs` npm organization.
+
+### Add the npm trusted publisher after the first publish
+
+Once the package exists on npm, open:
+
+- <https://www.npmjs.com/package/@kullailabs/mcop-core>
+- `Settings -> Trusted publishing`
+- Select `GitHub Actions`
+
+Use these exact values:
+
+- Organization or user: `Kuonirad`
+- Repository: `KullAILABS-MCOP-Framework-2.0`
+- Workflow filename: `publish-npm.yml`
+- Environment name: `npm`
+
+### Recommended hardening after npm trusted publishing works
+
+At package settings:
+
+- `Settings -> Publishing access`
+- Choose `Require two-factor authentication and disallow tokens`
+
+This blocks long-lived token publishing while still allowing OIDC trusted
+publishing from GitHub Actions.
+
 ## Troubleshooting
 
 ### `invalid-publisher`
