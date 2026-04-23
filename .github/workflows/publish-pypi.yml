@@ -1,0 +1,150 @@
+name: Publish Python to PyPI
+
+# Builds and publishes the `mcop` Python distribution on every GitHub Release
+# whose tag starts with `py-v` (e.g. `py-v0.1.0`). Uses PyPI Trusted Publishing
+# via OIDC — no long-lived API tokens. Configure the trusted publisher at
+# https://pypi.org/manage/account/publishing/ (or pending-publisher for the
+# very first release) with:
+#   PyPI Project Name: mcop
+#   Owner:             Kuonirad
+#   Repository:        KullAILABS-MCOP-Framework-2.0
+#   Workflow:          publish-pypi.yml
+#   Environment:       pypi
+# The `pypi` environment also gates the release behind branch protection and
+# reviewer rules you can set under repo Settings → Environments.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Which registry to publish to'
+        required: true
+        default: 'testpypi'
+        type: choice
+        options:
+          - testpypi
+          - pypi
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-pypi-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  # ------------------------------------------------------------------
+  # 1. Build sdist + wheel on a matrix-free builder and upload as a
+  #    versioned artifact. Keeping build and publish in separate jobs
+  #    is the pattern PyPA recommends so the publish job never touches
+  #    the source tree.
+  # ------------------------------------------------------------------
+  build:
+    name: Build distributions
+    runs-on: ubuntu-latest
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'release' && startsWith(github.event.release.tag_name, 'py-v'))
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Setup Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: '3.12'
+
+      - name: Install build backend
+        run: python -m pip install --upgrade pip build
+
+      - name: Verify package version matches release tag
+        if: github.event_name == 'release'
+        working-directory: mcop_package
+        run: |
+          tag="${GITHUB_REF_NAME#py-v}"
+          pkg_version=$(python -c "import tomllib,pathlib; print(tomllib.loads(pathlib.Path('pyproject.toml').read_text())['project']['version'])")
+          echo "tag version : $tag"
+          echo "pkg version : $pkg_version"
+          if [ "$tag" != "$pkg_version" ]; then
+            echo "::error::Release tag py-v$tag does not match pyproject.toml version $pkg_version"
+            exit 1
+          fi
+
+      - name: Build sdist and wheel
+        working-directory: mcop_package
+        run: python -m build
+
+      - name: Upload distribution artifacts
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        with:
+          name: python-package-distributions
+          path: mcop_package/dist/
+          if-no-files-found: error
+          retention-days: 7
+
+  # ------------------------------------------------------------------
+  # 2. Publish to TestPyPI (default for workflow_dispatch unless
+  #    explicitly targeting `pypi`).
+  # ------------------------------------------------------------------
+  publish-testpypi:
+    name: Publish to TestPyPI
+    needs: build
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      inputs.target == 'testpypi'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: testpypi
+      url: https://test.pypi.org/p/mcop
+    permissions:
+      id-token: write   # OIDC — required for trusted publishing
+    steps:
+      - name: Download distribution artifacts
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        with:
+          name: python-package-distributions
+          path: dist/
+
+      - name: Publish to TestPyPI
+        uses: pypa/gh-action-pypi-publish@67339c736fd9354cd4f8cb0b744f2b82a74b5c70 # v1.12.3
+        with:
+          repository-url: https://test.pypi.org/legacy/
+          skip-existing: true
+          print-hash: true
+
+  # ------------------------------------------------------------------
+  # 3. Publish to real PyPI. Gated by the `pypi` environment which
+  #    you can configure with required reviewers in repo settings.
+  # ------------------------------------------------------------------
+  publish-pypi:
+    name: Publish to PyPI
+    needs: build
+    if: >-
+      (github.event_name == 'release' && startsWith(github.event.release.tag_name, 'py-v')) ||
+      (github.event_name == 'workflow_dispatch' && inputs.target == 'pypi')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: pypi
+      url: https://pypi.org/p/mcop
+    permissions:
+      id-token: write   # OIDC — required for trusted publishing
+    steps:
+      - name: Download distribution artifacts
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        with:
+          name: python-package-distributions
+          path: dist/
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@67339c736fd9354cd4f8cb0b744f2b82a74b5c70 # v1.12.3
+        with:
+          print-hash: true
