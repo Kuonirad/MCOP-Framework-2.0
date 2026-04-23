@@ -222,8 +222,8 @@ if __name__ == '__main__':
     result = run_tests()
     print("\n" + "="*70)
     if result.wasSuccessful():
-        print("✓ ALL TESTS PASSED")
+        print("ALL TESTS PASSED")
     else:
-        print(f"✗ {len(result.failures)} FAILED, {len(result.errors)} ERRORS")
+        print(f"{len(result.failures)} FAILED, {len(result.errors)} ERRORS")
     print("="*70)
     sys.exit(0 if result.wasSuccessful() else 1)
