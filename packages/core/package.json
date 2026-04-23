@@ -50,7 +50,7 @@
   "scripts": {
     "build": "tsup",
     "clean": "rimraf dist",
-    "prepack": "pnpm clean && pnpm build",
+    "prepack": "npm run clean && npm run build",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
