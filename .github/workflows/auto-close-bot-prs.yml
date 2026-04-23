@@ -17,8 +17,21 @@ jobs:
         uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
         with:
           script: |
+            // Branches / titles belonging to experimental code-generation bots
+            // whose PRs should be consolidated down to one review at a time.
             const botPattern = /^(bolt|palette|jules)\//i;
             const botTitlePattern = /^\s*(⚡\s*)?(Bolt|Palette|Jules):/i;
+
+            // Bot accounts we never want to auto-close — dependency and security
+            // updates must be triaged by humans, not garbage-collected.
+            const allowlistedBots = new Set([
+              "dependabot[bot]",
+              "renovate[bot]",
+              "github-actions[bot]",
+              "pre-commit-ci[bot]",
+              "snyk-bot",
+            ]);
+
             const comment = [
               "Closed as part of automated-PR consolidation.",
               "",
@@ -36,10 +49,17 @@ jobs:
             let closed = 0;
             for (const pr of prs) {
               const headRef = pr.head && pr.head.ref ? pr.head.ref : "";
+              const login = (pr.user && pr.user.login) || "";
+
+              // Never touch allowlisted bots (Dependabot, Renovate, etc.).
+              if (allowlistedBots.has(login)) continue;
+
               const isBotBranch = botPattern.test(headRef);
               const isBotTitle = botTitlePattern.test(pr.title || "");
-              const isBotUser = pr.user && pr.user.type === "Bot";
-              if (!isBotBranch && !isBotTitle && !isBotUser) continue;
+              // Only fall back to the generic "is a bot" heuristic when the
+              // branch / title patterns already suggest a duplicate-bot PR;
+              // otherwise Dependabot, Renovate, etc. would be caught here.
+              if (!isBotBranch && !isBotTitle) continue;
 
               try {
                 await github.rest.issues.createComment({

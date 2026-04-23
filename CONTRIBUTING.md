@@ -22,7 +22,7 @@ Participation implies agreement with our Code of Conduct. Report unacceptable be
 ### Pull Requests
 1. Fork and branch from `main` (`feature/...`, `bugfix/...`, `docs/...`).
 2. Add or update tests for any behavior changes.
-3. Run `npm test` locally; ensure linting and type checks pass.
+3. Run `pnpm test` locally; ensure `pnpm lint` and `pnpm typecheck` also pass.
 4. Include a short changelog in the PR description (context → change → validation).
 5. Request review; respond to feedback and keep commits cohesive.
 
@@ -30,10 +30,12 @@ Participation implies agreement with our Code of Conduct. Report unacceptable be
 ```bash
 git clone https://github.com/YOUR_USERNAME/KullAILABS-MCOP-Framework-2.0.git
 cd KullAILABS-MCOP-Framework-2.0
-npm install
-npm run dev
-npm test
-npm run build
+corepack enable                    # first-time only; activates pnpm@9.15.0
+pnpm install --frozen-lockfile
+pnpm dev                           # dev server
+pnpm test                          # unit + coverage
+pnpm typecheck                     # strict TS check
+pnpm build                         # next build (standalone output)
 ```
 
 ## 📋 Guidelines
