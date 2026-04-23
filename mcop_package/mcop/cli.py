@@ -1,63 +1,55 @@
 #!/usr/bin/env python3
 """
-M-COP v3.1 Command Line Interface
+M-COP v3.1 command line interface.
 
-Provides a command-line interface for the M-COP reasoning system.
-
-Usage:
+Usage examples:
     python -m mcop.cli solve "Your problem description"
     python -m mcop.cli solve --domain medical "Patient presents with..."
     python -m mcop.cli interactive
 """
 
 import argparse
-import os
-import sys
 import json
 import logging
 import os
-from typing import Optional
+import sys
 
-from . import MCOPEngine, MCOPConfig, Problem, Solution, __version__
+from . import MCOPConfig, MCOPEngine, Problem, Solution, __version__
 from .domains import GeneralDomainAdapter, MedicalDomainAdapter, ScientificDomainAdapter
 
 
-def setup_logging(verbose: bool = False):
+def setup_logging(verbose: bool = False) -> None:
     """Configure logging based on verbosity."""
     level = logging.DEBUG if verbose else logging.INFO
     logging.basicConfig(
         level=level,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     )
 
 
 def get_adapter(domain: str):
-    """Get the appropriate domain adapter."""
+    """Return the adapter for a supported domain."""
     adapters = {
-        'general': GeneralDomainAdapter,
-        'medical': MedicalDomainAdapter,
-        'scientific': ScientificDomainAdapter
+        "general": GeneralDomainAdapter,
+        "medical": MedicalDomainAdapter,
+        "scientific": ScientificDomainAdapter,
     }
 
     adapter_class = adapters.get(domain.lower())
-    if not adapter_class:
-        # Security: Use a static list for the error message to avoid
-        # potentially exposing internal dictionary keys if the implementation changes,
-        # and to satisfy static analysis tools (CWE-532).
-        valid_domains = ['general', 'medical', 'scientific']
+    if adapter_class is None:
+        valid_domains = ", ".join(sorted(adapters))
         print(f"Unknown domain: {domain}")
-        print(f"Available domains: {', '.join(valid_domains)}")
-        sys.exit(1)
+        print(f"Available domains: {valid_domains}")
+        raise SystemExit(1)
 
     return adapter_class()
 
 
-def format_solution_output(solution: Solution, format_type: str = 'text') -> str:
-    """Format solution for output."""
-    if format_type == 'json':
+def format_solution_output(solution: Solution, format_type: str = "text") -> str:
+    """Format solution output for display or serialization."""
+    if format_type == "json":
         return json.dumps(solution.to_dict(), indent=2)
 
-    # Text format
     lines = [
         "",
         "=" * 70,
@@ -70,121 +62,85 @@ def format_solution_output(solution: Solution, format_type: str = 'text') -> str
         "",
         f"Confidence: {solution.confidence * 100:.1f}%",
         f"Grounding Index: {solution.grounding_index:.2f}",
-        ""
+        "",
     ]
 
     if solution.evidence_chain:
-        lines.extend([
-            "EVIDENCE CHAIN:",
-            "-" * 70
-        ])
-        for i, evidence in enumerate(solution.evidence_chain[:5], 1):
-            lines.append(f"  {i}. {evidence.content}")
+        lines.extend(["EVIDENCE CHAIN:", "-" * 70])
+        for index, evidence in enumerate(solution.evidence_chain[:5], 1):
+            lines.append(f"  {index}. {evidence.content}")
             lines.append(f"     Source: {evidence.source}, Weight: {evidence.weight:.2f}")
         lines.append("")
 
     if solution.alternative_solutions:
-        lines.extend([
-            "ALTERNATIVE SOLUTIONS:",
-            "-" * 70
-        ])
-        for i, alt in enumerate(solution.alternative_solutions, 1):
-            content_preview = alt.content.split('\n')[0][:60]
-            lines.append(f"  {i}. {content_preview}...")
-            lines.append(f"     Confidence: {alt.confidence * 100:.1f}%")
+        lines.extend(["ALTERNATIVE SOLUTIONS:", "-" * 70])
+        for index, alternative in enumerate(solution.alternative_solutions, 1):
+            preview = alternative.content.splitlines()[0][:60]
+            lines.append(f"  {index}. {preview}...")
+            lines.append(f"     Confidence: {alternative.confidence * 100:.1f}%")
         lines.append("")
 
     if solution.key_uncertainties:
-        lines.extend([
-            "KEY UNCERTAINTIES:",
-            "-" * 70
-        ])
+        lines.extend(["KEY UNCERTAINTIES:", "-" * 70])
         for uncertainty in solution.key_uncertainties:
-            lines.append(f"  • {uncertainty}")
+            lines.append(f"  - {uncertainty}")
         lines.append("")
 
-    lines.extend([
-        "=" * 70,
-        ""
-    ])
-
-    return '\n'.join(lines)
+    lines.extend(["=" * 70, ""])
+    return "\n".join(lines)
 
 
-def cmd_solve(args):
+def write_output_file(path: str, content: str, force: bool) -> None:
+    """Write formatted output to disk, respecting overwrite rules."""
+    absolute_path = os.path.abspath(path)
+    mode = "w" if force else "x"
+
+    try:
+        with open(absolute_path, mode, encoding="utf-8") as handle:
+            handle.write(content)
+    except FileExistsError:
+        print(f"Error: File '{path}' already exists. Use --force to overwrite.")
+        raise SystemExit(1)
+    except IsADirectoryError:
+        print(f"Error: '{path}' is a directory.")
+        raise SystemExit(1)
+    except OSError as exc:
+        print(f"Error saving to file: {exc}")
+        raise SystemExit(1)
+
+    print(f"Solution saved to: {path}")
+
+
+def cmd_solve(args) -> None:
     """Handle the solve command."""
     setup_logging(args.verbose)
-
-    # Get adapter
     adapter = get_adapter(args.domain)
 
-    # Create problem
-    problem = Problem(
-        description=args.problem,
-        domain=args.domain
-    )
-
-    # Add constraints if provided
+    problem = Problem(description=args.problem, domain=args.domain)
     if args.constraints:
-        problem.constraints = args.constraints.split(',')
+        problem.constraints = [item.strip() for item in args.constraints.split(",") if item.strip()]
 
     print(f"\nSolving with M-COP v{__version__} ({args.domain} domain)...")
     print("-" * 70)
 
-    # Solve
     solution = adapter.solve(problem)
-
-    # Output
     output = format_solution_output(solution, args.format)
     print(output)
 
-    # Save to file if requested
     if args.output:
-        mode = 'w' if args.force else 'x'
-        try:
-        try:
-            mode = 'w' if args.force else 'x'
-            with open(args.output, mode) as f:
-                f.write(output)
-            print(f"Solution saved to: {args.output}")
-        except FileExistsError:
-            print(f"Error: File '{args.output}' already exists. Use --force to overwrite.")
-            sys.exit(1)
-            print(f"Error: Output file '{args.output}' already exists.")
-            print("Use --force to overwrite.")
-            sys.exit(1)
-        except IsADirectoryError:
-            print(f"Error: '{args.output}' is a directory.")
-            sys.exit(1)
-        except OSError as e:
-            print(f"Error saving to file: {e}")
-            sys.exit(1)
-            abs_output = os.path.abspath(args.output)
-
-            # Security Check: Prevent accidental overwrite without force
-            if os.path.exists(abs_output) and not args.force:
-                print(f"Error: File exists: {args.output}")
-                print("Use --force to overwrite.")
-                sys.exit(1)
-
-            with open(abs_output, 'w') as f:
-                f.write(output)
-            print(f"Solution saved to: {args.output}")
-
-        except Exception as e:
-             print(f"Error saving file: {e}")
-             sys.exit(1)
+        write_output_file(args.output, output, args.force)
 
 
-def cmd_interactive(args):
-    """Handle the interactive command."""
+def cmd_interactive(args) -> None:
+    """Handle interactive mode."""
     setup_logging(args.verbose)
 
-    print(f"""
-╔══════════════════════════════════════════════════════════════════════╗
-║                     M-COP v{__version__} Interactive Mode                     ║
-║                  Meta-Cognitive Operating Protocol                   ║
-╚══════════════════════════════════════════════════════════════════════╝
+    print(
+        f"""
+{'=' * 70}
+M-COP v{__version__} Interactive Mode
+Meta-Cognitive Operating Protocol
+{'=' * 70}
 
 Commands:
   solve <problem>  - Solve a problem
@@ -194,7 +150,8 @@ Commands:
   quit             - Exit
 
 Current domain: {args.domain}
-""")
+"""
+    )
 
     current_domain = args.domain
     adapter = get_adapter(current_domain)
@@ -202,26 +159,26 @@ Current domain: {args.domain}
     while True:
         try:
             user_input = input(f"\n[M-COP:{current_domain}] > ").strip()
-
             if not user_input:
                 continue
 
-            if user_input.lower() in ['quit', 'exit', 'q']:
+            if user_input.lower() in {"quit", "exit", "q"}:
                 print("Goodbye!")
                 break
 
-            if user_input.lower() == 'help':
-                print("""
+            if user_input.lower() == "help":
+                print(
+                    """
 Commands:
   solve <problem>  - Solve a problem using M-COP
   domain <name>    - Switch domain (general, medical, scientific)
   config           - Show current configuration
-  verbose          - Toggle verbose mode
   quit             - Exit
-                """)
+"""
+                )
                 continue
 
-            if user_input.lower().startswith('domain '):
+            if user_input.lower().startswith("domain "):
                 new_domain = user_input[7:].strip()
                 try:
                     adapter = get_adapter(new_domain)
@@ -231,77 +188,73 @@ Commands:
                     pass
                 continue
 
-            if user_input.lower() == 'config':
-                print(f"""
+            if user_input.lower() == "config":
+                config = adapter.engine.config
+                print(
+                    f"""
 Current Configuration:
   Domain: {current_domain}
-  Max Iterations: {adapter.engine.config.max_iterations}
-  Confidence Threshold: {adapter.engine.config.confidence_threshold}
-  Grounding Threshold: {adapter.engine.config.grounding_threshold}
-  Diversity Threshold: {adapter.engine.config.diversity_threshold}
-                """)
+  Max Iterations: {config.max_iterations}
+  Confidence Threshold: {config.confidence_threshold}
+  Grounding Threshold: {config.grounding_threshold}
+  Diversity Threshold: {config.diversity_threshold}
+"""
+                )
                 continue
 
-            if user_input.lower().startswith('solve '):
+            if user_input.lower().startswith("solve "):
                 problem_text = user_input[6:].strip()
-                if not problem_text:
-                    print("Please provide a problem description")
-                    continue
+            else:
+                problem_text = user_input
 
-                problem = Problem(description=problem_text, domain=current_domain)
-                print("\nProcessing...")
-
-                solution = adapter.solve(problem)
-                output = format_solution_output(solution, 'text')
-                print(output)
+            if not problem_text:
+                print("Please provide a problem description")
                 continue
 
-            # Default: treat as problem to solve
-            problem = Problem(description=user_input, domain=current_domain)
+            problem = Problem(description=problem_text, domain=current_domain)
             print("\nProcessing...")
-
             solution = adapter.solve(problem)
-            output = format_solution_output(solution, 'text')
-            print(output)
+            print(format_solution_output(solution, "text"))
 
         except KeyboardInterrupt:
             print("\n\nInterrupted. Type 'quit' to exit.")
-        except Exception as e:
-            print(f"Error: {e}")
+        except Exception as exc:
+            print(f"Error: {exc}")
             if args.verbose:
                 import traceback
+
                 traceback.print_exc()
 
 
-def cmd_info(args):
+def cmd_info(args) -> None:
     """Handle the info command."""
-    print(f"""
+    print(
+        f"""
 M-COP v{__version__} - Meta-Cognitive Operating Protocol
 
 A universal reasoning framework implementing:
-  • Multi-modal reasoning (Causal, Structural, Selective, Compositional)
-  • Mycelial chaining (recursive hypothesis refinement)
-  • Grounding index (evidence quality tracking)
-  • Domain-agnostic architecture
+  - Multi-modal reasoning (causal, structural, selective, compositional)
+  - Mycelial chaining (recursive hypothesis refinement)
+  - Grounding index (evidence quality tracking)
+  - Domain-aware adapters
 
 Available Domains:
-  • general    - General purpose reasoning
-  • medical    - Medical diagnosis and treatment planning
-  • scientific - Scientific hypothesis and experimental design
+  - general
+  - medical
+  - scientific
 
 Usage Examples:
   mcop solve "What causes climate change?"
   mcop solve --domain medical "Patient with fever and cough"
   mcop interactive
+"""
+    )
 
-For more information, see the documentation.
-    """)
 
-
-def main():
-    """Main entry point for CLI."""
+def build_parser() -> argparse.ArgumentParser:
+    """Construct the CLI argument parser."""
     parser = argparse.ArgumentParser(
-        description='M-COP v3.1 - Meta-Cognitive Operating Protocol',
+        description="M-COP v3.1 - Meta-Cognitive Operating Protocol",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -309,82 +262,84 @@ Examples:
   %(prog)s solve --domain medical "Patient presents with chest pain"
   %(prog)s solve --domain scientific "Why do anti-amyloid drugs fail?"
   %(prog)s interactive
-        """
+""",
     )
 
     parser.add_argument(
-        '--version', '-V',
-        action='version',
-        version=f'M-COP v{__version__}'
+        "--version",
+        "-V",
+        action="version",
+        version=f"M-COP v{__version__}",
     )
 
-    subparsers = parser.add_subparsers(dest='command', help='Commands')
+    subparsers = parser.add_subparsers(dest="command", help="Commands")
 
-    # Solve command
-    solve_parser = subparsers.add_parser('solve', help='Solve a problem')
-    solve_parser.add_argument('problem', help='Problem description')
+    solve_parser = subparsers.add_parser("solve", help="Solve a problem")
+    solve_parser.add_argument("problem", help="Problem description")
     solve_parser.add_argument(
-        '--domain', '-d',
-        default='general',
-        help='Domain (general, medical, scientific)'
+        "--domain",
+        "-d",
+        default="general",
+        help="Domain (general, medical, scientific)",
     )
     solve_parser.add_argument(
-        '--format', '-f',
-        choices=['text', 'json'],
-        default='text',
-        help='Output format'
+        "--format",
+        "-f",
+        choices=["text", "json"],
+        default="text",
+        help="Output format",
+    )
+    solve_parser.add_argument("--output", "-o", help="Output file path")
+    solve_parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Overwrite output file if it exists",
     )
     solve_parser.add_argument(
-        '--output', '-o',
-        help='Output file path'
+        "--constraints",
+        "-c",
+        help="Comma-separated constraints",
     )
     solve_parser.add_argument(
-        '--force',
-        action='store_true',
-        help='Overwrite output file if it exists'
-    )
-    solve_parser.add_argument(
-        '--constraints', '-c',
-        help='Comma-separated constraints'
-    )
-    solve_parser.add_argument(
-        '--verbose', '-v',
-        action='store_true',
-        help='Verbose output'
-    )
-    solve_parser.add_argument(
-        '--force',
-        action='store_true',
-        help='Force overwrite of existing files'
+        "--verbose",
+        "-v",
+        action="store_true",
+        help="Verbose output",
     )
     solve_parser.set_defaults(func=cmd_solve)
 
-    # Interactive command
-    interactive_parser = subparsers.add_parser('interactive', help='Interactive mode')
+    interactive_parser = subparsers.add_parser("interactive", help="Interactive mode")
     interactive_parser.add_argument(
-        '--domain', '-d',
-        default='general',
-        help='Initial domain'
+        "--domain",
+        "-d",
+        default="general",
+        help="Initial domain",
     )
     interactive_parser.add_argument(
-        '--verbose', '-v',
-        action='store_true',
-        help='Verbose output'
+        "--verbose",
+        "-v",
+        action="store_true",
+        help="Verbose output",
     )
     interactive_parser.set_defaults(func=cmd_interactive)
 
-    # Info command
-    info_parser = subparsers.add_parser('info', help='Show information')
+    info_parser = subparsers.add_parser("info", help="Show information")
     info_parser.set_defaults(func=cmd_info)
 
+    return parser
+
+
+def main() -> None:
+    """CLI entry point."""
+    parser = build_parser()
     args = parser.parse_args()
 
     if args.command is None:
         parser.print_help()
-        sys.exit(0)
+        raise SystemExit(0)
 
     args.func(args)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
