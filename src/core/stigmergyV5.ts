@@ -1,5 +1,7 @@
 import { randomUUID, createHash } from 'node:crypto';
 import { ContextTensor, PheromoneTrace, ResonanceResult } from './types';
+import { cosineWithMagnitudes, magnitude } from './vectorMath';
+import { CircularBuffer } from './circularBuffer';
 
 export interface StigmergyConfig {
   resonanceThreshold?: number;
@@ -8,42 +10,11 @@ export interface StigmergyConfig {
 
 export class StigmergyV5 {
   private readonly resonanceThreshold: number;
-  private readonly maxTraces: number;
-  private traces: PheromoneTrace[] = [];
+  private readonly traces: CircularBuffer<PheromoneTrace>;
 
   constructor(config: StigmergyConfig = {}) {
     this.resonanceThreshold = config.resonanceThreshold ?? 0.5;
-    this.maxTraces = config.maxTraces ?? 2048;
-  }
-
-  private getMagnitude(vector: ContextTensor): number {
-    let sumSq = 0;
-    const len = vector.length;
-    for (let i = 0; i < len; i++) {
-      sumSq += vector[i] * vector[i];
-    }
-    return Math.sqrt(sumSq);
-  }
-
-  // Optimized cosine similarity using pre-calculated magnitudes
-  private cosineWithMagnitudes(
-    a: ContextTensor,
-    b: ContextTensor,
-    magA: number,
-    magB: number
-  ): number {
-    if (!magA || !magB) return 0;
-
-    const lenA = a.length;
-    const lenB = b.length;
-    const minLen = lenA < lenB ? lenA : lenB;
-
-    let dot = 0;
-    for (let i = 0; i < minLen; i++) {
-      dot += a[i] * b[i];
-    }
-
-    return dot / (magA * magB);
+    this.traces = new CircularBuffer<PheromoneTrace>(config.maxTraces ?? 2048);
   }
 
   private merkleHash(payload: unknown, parentHash?: string): string {
@@ -51,16 +22,17 @@ export class StigmergyV5 {
     return createHash('sha256').update(raw).digest('hex');
   }
 
-  recordTrace(context: ContextTensor, synthesisVector: number[], metadata?: Record<string, unknown>): PheromoneTrace {
-    const parentHash = this.traces.at(-1)?.hash;
-    // Security: Use randomUUID() for cryptographically strong IDs
+  recordTrace(
+    context: ContextTensor,
+    synthesisVector: number[],
+    metadata?: Record<string, unknown>,
+  ): PheromoneTrace {
+    const parentHash = this.traces.last()?.hash;
     const id = randomUUID();
 
-    // Calculate magnitudes once
-    const contextMag = this.getMagnitude(context);
-    const synthesisMag = this.getMagnitude(synthesisVector);
-
-    const weight = this.cosineWithMagnitudes(context, synthesisVector, contextMag, synthesisMag);
+    const contextMag = magnitude(context);
+    const synthesisMag = magnitude(synthesisVector);
+    const weight = cosineWithMagnitudes(context, synthesisVector, contextMag, synthesisMag);
 
     const payload = { id, context, synthesisVector, metadata, weight };
     const hash = this.merkleHash(payload, parentHash);
@@ -70,55 +42,31 @@ export class StigmergyV5 {
       hash,
       parentHash,
       context,
-      magnitude: contextMag, // Cache the magnitude
+      magnitude: contextMag,
       synthesisVector,
       weight,
       metadata,
       timestamp: new Date().toISOString(),
     };
 
+    // O(1): CircularBuffer replaces the previous O(n) Array.shift() pattern.
     this.traces.push(trace);
-    if (this.traces.length > this.maxTraces) {
-      this.traces.shift();
-    }
 
     return trace;
   }
 
   getResonance(context: ContextTensor): ResonanceResult {
-    // Calculate query magnitude once
-    const queryMag = this.getMagnitude(context);
-
-    // Optimization: Skip if query vector is zero
+    const queryMag = magnitude(context);
     if (queryMag === 0) return { score: 0 };
 
     let bestScore = 0;
     let bestTrace: PheromoneTrace | undefined;
 
-    const qLen = context.length;
-
-    // Use a standard loop for performance
-    const traceCount = this.traces.length;
-    for (let t = 0; t < traceCount; t++) {
-      const trace = this.traces[t];
-      const tContext = trace.context;
-
-      // Use cached magnitude if available, otherwise calculate it
-      const traceMag = trace.magnitude ?? this.getMagnitude(tContext);
-
+    for (const trace of this.traces.values()) {
+      const traceMag = trace.magnitude ?? magnitude(trace.context);
       if (traceMag === 0) continue;
 
-      // Inline dot product for maximum performance
-      const tLen = tContext.length;
-      const minLen = qLen < tLen ? qLen : tLen;
-
-      let dot = 0;
-      for (let i = 0; i < minLen; i++) {
-        dot += context[i] * tContext[i];
-      }
-
-      const score = dot / (queryMag * traceMag);
-
+      const score = cosineWithMagnitudes(context, trace.context, queryMag, traceMag);
       if (score > bestScore) {
         bestScore = score;
         bestTrace = trace;
@@ -133,10 +81,19 @@ export class StigmergyV5 {
   }
 
   getMerkleRoot(): string | undefined {
-    return this.traces.at(-1)?.hash;
+    return this.traces.last()?.hash;
   }
 
   getRecent(limit = 5): PheromoneTrace[] {
-    return this.traces.slice(-limit).reverse();
+    return this.traces.recent(limit);
+  }
+
+  /** Observability: expose buffer fill statistics for dashboards. */
+  getBufferStats(): { size: number; capacity: number; lifetimePushes: number } {
+    return {
+      size: this.traces.size,
+      capacity: this.traces.capacity,
+      lifetimePushes: this.traces.lifetimePushes,
+    };
   }
 }

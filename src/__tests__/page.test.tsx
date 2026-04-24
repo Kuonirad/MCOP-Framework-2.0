@@ -1,8 +1,8 @@
 /**
- * @fileoverview Unit tests for MCOP Framework 2.0 Home Page
- * @description Tests ensure correct rendering and security properties
- * 
- * Test Strategy: Verify component renders correctly and contains expected content
+ * @fileoverview Unit tests for the MCOP Framework 2.0 landing page.
+ * @description Validates the replacement of the Create Next App starter
+ * with the MCOP Framework Visualizer: semantic structure, accessibility,
+ * link hardening, and CSP-safe markup.
  */
 
 import React from 'react';
@@ -10,126 +10,55 @@ import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import Home from '../app/page';
 
-describe('Home Page Component', () => {
-  /**
-   * Test Case: Basic Rendering
-   * Ground Truth: Component should render without throwing errors
-   * Failure Witness: Component throws on render
-   */
+describe('MCOP Framework Visualizer (Home)', () => {
   it('renders without crashing', () => {
     expect(() => render(<Home />)).not.toThrow();
   });
 
-  /**
-   * Test Case: Main Content Presence
-   * Ground Truth: Page should contain main content area
-   * Failure Witness: Main element not found
-   */
-  it('renders main content area', () => {
-    render(<Home />);
-    const mainElement = document.querySelector('main');
-    expect(mainElement).toBeInTheDocument();
-  });
-
-  /**
-   * Test Case: Next.js Logo Presence
-   * Ground Truth: Logo should be present with correct alt text
-   * Failure Witness: Image with alt "Next.js logo" not found
-   */
-  it('renders Next.js logo with accessible alt text', () => {
-    render(<Home />);
-    const logo = screen.getByAltText('Next.js logo');
-    expect(logo).toBeInTheDocument();
-  });
-
-  /**
-   * Test Case: Footer Links Accessibility
-   * Ground Truth: Footer links should have accessible text
-   * Failure Witness: Links missing href or accessible content
-   */
-  it('renders footer with accessible links', () => {
-    render(<Home />);
-    const footer = document.querySelector('footer');
-    expect(footer).toBeInTheDocument();
-    
-    const links = footer?.querySelectorAll('a');
-    expect(links?.length).toBeGreaterThan(0);
-    
-    links?.forEach(link => {
-      expect(link).toHaveAttribute('href');
-      expect(link.getAttribute('target')).toBe('_blank');
-      expect(link.getAttribute('rel')).toContain('noopener');
-    });
-  });
-
-  /**
-   * Test Case: Security - No Script Injection
-   * Ground Truth: User-facing content should not contain script tags
-   * Failure Witness: Script tag found in rendered content
-   */
-  it('does not render any script tags in content', () => {
-    render(<Home />);
-    // Only Next.js internal scripts should exist, not in the component content
-    const mainContent = document.querySelector('main');
-    const scriptsInMain = mainContent?.querySelectorAll('script');
-    expect(scriptsInMain?.length || 0).toBe(0);
-  });
-
-  /**
-   * Test Case: External Links Security
-   * Ground Truth: All external links should have rel="noopener noreferrer"
-   * Failure Witness: External link missing security attributes
-   */
-  it('external links have proper security attributes', () => {
-    render(<Home />);
-    const externalLinks = document.querySelectorAll('a[target="_blank"]');
-    
-    externalLinks.forEach(link => {
-      const rel = link.getAttribute('rel');
-      expect(rel).toContain('noopener');
-    });
-  });
-});
-
-describe('Accessibility Tests', () => {
-  /**
-   * Test Case: Images have alt text
-   * Ground Truth: All images should have alt attributes
-   * Failure Witness: Image found without alt attribute
-   */
-  it('all images have alt attributes', () => {
-    render(<Home />);
-    const images = document.querySelectorAll('img');
-    
-    images.forEach(img => {
-      expect(img).toHaveAttribute('alt');
-    });
-  });
-
-  /**
-   * Test Case: Ordered list semantics
-   * Ground Truth: Instructions should use semantic list elements
-   * Failure Witness: Instructions not in ordered list
-   */
-  it('uses semantic ordered list for instructions', () => {
-    render(<Home />);
-    const orderedList = document.querySelector('ol');
-    expect(orderedList).toBeInTheDocument();
-    
-    const listItems = orderedList?.querySelectorAll('li');
-    expect(listItems?.length).toBeGreaterThan(0);
-  });
-
-  /**
-   * Test Case: Screen reader heading
-   * Ground Truth: Main content area should have a level 1 heading
-   * Failure Witness: h1 element not found inside main
-   */
-  it('maintains a level 1 heading for screen readers', () => {
+  it('renders a visible level-1 heading for the framework', () => {
     render(<Home />);
     const heading = screen.getByRole('heading', { level: 1 });
     expect(heading).toBeInTheDocument();
-    expect(heading).toHaveClass('sr-only');
-    expect(heading).toHaveTextContent('MCOP Framework 2.0');
+    expect(heading.textContent).toMatch(/MCOP Framework/i);
+  });
+
+  it('renders a main content area and primary navigation', () => {
+    render(<Home />);
+    expect(document.querySelector('main#main-content')).toBeInTheDocument();
+    expect(screen.getByRole('navigation', { name: /primary/i })).toBeInTheDocument();
+  });
+
+  it('renders all three kernel cards', () => {
+    render(<Home />);
+    expect(screen.getByRole('heading', { name: /NOVA-NEO Encoder/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Stigmergy v5/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Holographic Etch/i })).toBeInTheDocument();
+  });
+
+  it('renders an accessible triad visualization', () => {
+    render(<Home />);
+    expect(screen.getByRole('img', { name: /triad/i })).toBeInTheDocument();
+  });
+
+  it('all external links open in a new tab with noopener', () => {
+    render(<Home />);
+    const externalLinks = document.querySelectorAll('a[target="_blank"]');
+    expect(externalLinks.length).toBeGreaterThan(0);
+    externalLinks.forEach((link) => {
+      expect(link).toHaveAttribute('href');
+      expect(link.getAttribute('rel') ?? '').toContain('noopener');
+    });
+  });
+
+  it('exposes an internal link to the health endpoint', () => {
+    render(<Home />);
+    const health = screen.getByRole('link', { name: /health endpoint/i });
+    expect(health).toHaveAttribute('href', '/api/health');
+  });
+
+  it('does not inject any script tags into the main content area', () => {
+    render(<Home />);
+    const scripts = document.querySelector('main')?.querySelectorAll('script') ?? [];
+    expect(scripts.length).toBe(0);
   });
 });
