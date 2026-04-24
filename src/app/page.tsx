@@ -33,7 +33,7 @@ export default function Home() {
   ];
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-950 via-black to-slate-950 text-slate-100">
+    <div className="min-h-screen bg-slate-950 bg-[radial-gradient(ellipse_at_top,#0b1220_0%,#000000_55%,#020617_100%)] text-slate-100">
       <main
         id="main-content"
         tabIndex={-1}
