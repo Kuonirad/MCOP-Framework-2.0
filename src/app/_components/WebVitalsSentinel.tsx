@@ -1,28 +1,30 @@
 "use client";
 
 import { useEffect } from "react";
+import { subscribeVitals, type VitalSample } from "./vitalsBus";
 
 /**
  * Core Web Vitals Sentinel — real-user monitoring that streams LCP, CLS, INP,
  * FCP, and TTFB events to `/api/vitals` using `navigator.sendBeacon` so the
- * report survives page unload. Uses the browser-native `PerformanceObserver`
- * to avoid pulling in a third-party runtime dependency.
+ * report survives page unload.  Subscribes to the shared `vitalsBus` so the
+ * sentinel and the live HUD share a single `PerformanceObserver` set —
+ * adding the HUD costs nothing on the observation path.
  */
 export default function WebVitalsSentinel() {
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if (!("PerformanceObserver" in window)) return;
 
     const device =
       (navigator as Navigator & { connection?: { effectiveType?: string } })
         .connection?.effectiveType ?? "unknown";
 
-    const report = (metric: { name: string; value: number; id?: string }) => {
+    const report = (sample: VitalSample) => {
       const body = JSON.stringify({
-        ...metric,
+        name: sample.name,
+        value: sample.value,
         device,
         url: location.pathname,
-        ts: Date.now(),
+        ts: sample.ts,
       });
       try {
         if (navigator.sendBeacon) {
@@ -42,61 +44,7 @@ export default function WebVitalsSentinel() {
       }
     };
 
-    const observers: PerformanceObserver[] = [];
-
-    const observe = (type: string, handler: (entry: PerformanceEntry) => void) => {
-      try {
-        const po = new PerformanceObserver((list) => {
-          for (const entry of list.getEntries()) handler(entry);
-        });
-        po.observe({ type, buffered: true } as PerformanceObserverInit);
-        observers.push(po);
-      } catch {
-        /* unsupported entry type in this browser */
-      }
-    };
-
-    observe("largest-contentful-paint", (entry) => {
-      report({ name: "LCP", value: entry.startTime });
-    });
-
-    observe("paint", (entry) => {
-      if (entry.name === "first-contentful-paint") {
-        report({ name: "FCP", value: entry.startTime });
-      }
-    });
-
-    let clsValue = 0;
-    observe("layout-shift", (entry) => {
-      const layoutShift = entry as PerformanceEntry & {
-        value: number;
-        hadRecentInput: boolean;
-      };
-      if (!layoutShift.hadRecentInput) {
-        clsValue += layoutShift.value;
-        report({ name: "CLS", value: clsValue });
-      }
-    });
-
-    observe("event", (entry) => {
-      const eventEntry = entry as PerformanceEntry & {
-        interactionId?: number;
-        duration: number;
-      };
-      if (eventEntry.interactionId) {
-        report({ name: "INP", value: eventEntry.duration });
-      }
-    });
-
-    const navEntries = performance.getEntriesByType("navigation");
-    const nav = navEntries[0] as PerformanceNavigationTiming | undefined;
-    if (nav) {
-      report({ name: "TTFB", value: nav.responseStart });
-    }
-
-    return () => {
-      for (const po of observers) po.disconnect();
-    };
+    return subscribeVitals(report);
   }, []);
 
   return null;

@@ -1,3 +1,4 @@
+import PerformanceHUD from "@/components/PerformanceHUD";
 import TriadVisualizer from "./_components/TriadVisualizer";
 
 /**
@@ -157,6 +158,7 @@ export default function Home() {
           </div>
         </footer>
       </main>
+      <PerformanceHUD />
     </div>
   );
 }
