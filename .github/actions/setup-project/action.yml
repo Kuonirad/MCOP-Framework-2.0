@@ -33,7 +33,10 @@ runs:
       uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
       with:
         node-version: ${{ inputs.node-version }}
-        cache: ${{ inputs.enable-cache == 'true' && 'pnpm' || '' }}
+        # Only enable the pnpm cache when we are actually going to install
+        # dependencies — otherwise the post-job cache save fails with
+        # "Path Validation Error" because the pnpm store was never populated.
+        cache: ${{ (inputs.enable-cache == 'true' && inputs.install-deps == 'true') && 'pnpm' || '' }}
 
     - name: Install dependencies
       if: ${{ inputs.install-deps == 'true' }}
