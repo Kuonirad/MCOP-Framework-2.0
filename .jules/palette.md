@@ -15,3 +15,7 @@
 ## 2025-12-22 - Fluid Button Containers
 **Learning:** Fixed width constraints on buttons break layout when adding micro-UX elements like icons and animated arrows.
 **Action:** When enhancing button content, remove fixed width constraints (e.g., `w-[158px]`) and rely on flexbox/padding to allow the container to adapt naturally.
+
+## 2024-04-24 - Screen Reader Page Headings
+**Learning:** Next.js landing pages often omit an `<h1>` heading if the logo is visual-only, causing screen readers to lack page-level context.
+**Action:** Always include an `<h1 className="sr-only">Page Title</h1>` as the first child of `<main>` when the visual design uses a logo image instead of a text heading.

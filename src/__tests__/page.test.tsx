@@ -119,4 +119,17 @@ describe('Accessibility Tests', () => {
     const listItems = orderedList?.querySelectorAll('li');
     expect(listItems?.length).toBeGreaterThan(0);
   });
+
+  /**
+   * Test Case: Screen reader heading
+   * Ground Truth: Main content area should have a level 1 heading
+   * Failure Witness: h1 element not found inside main
+   */
+  it('maintains a level 1 heading for screen readers', () => {
+    render(<Home />);
+    const heading = screen.getByRole('heading', { level: 1 });
+    expect(heading).toBeInTheDocument();
+    expect(heading).toHaveClass('sr-only');
+    expect(heading).toHaveTextContent('MCOP Framework 2.0');
+  });
 });
