@@ -18,6 +18,9 @@ const config = {
     '!src/**/*.d.ts',
     '!src/**/layout.tsx',
     '!src/__mocks__/**',
+    // Client-only telemetry component: relies on PerformanceObserver APIs
+    // that are not polyfilled in jsdom. Exercised in e2e / browser suites.
+    '!src/app/_components/WebVitalsSentinel.tsx',
   ],
   coverageThreshold: {
     global: {

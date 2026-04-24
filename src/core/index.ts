@@ -4,3 +4,7 @@ export * from './stigmergyV5';
 export * from './holographicEtch';
 export * from './pGoT_types';
 export * from './pGoT_algorithms';
+export * from './vectorMath';
+export * from './tensorGuard';
+export * from './circularBuffer';
+export * from './provenanceTracer';

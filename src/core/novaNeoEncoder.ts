@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import { ContextTensor, NovaNeoConfig } from './types';
 import logger from '../utils/logger';
+import { variance as vecVariance } from './vectorMath';
 
 export class NovaNeoEncoder {
   private readonly dimensions: number;
@@ -89,26 +90,9 @@ export class NovaNeoEncoder {
   }
 
   estimateEntropy(tensor: ContextTensor): number {
-    const len = tensor.length;
-    if (!len) return 0;
-
-    // Optimization: Single-pass variance calculation using Var(X) = E[X^2] - (E[X])^2
-    // Reduces array iterations from 2 to 1, providing ~70% speedup in benchmarks
-    let sum = 0;
-    let sumSq = 0;
-    for (let i = 0; i < len; i++) {
-      const val = Math.abs(tensor[i]);
-      sum += val;
-      sumSq += val * val;
-    }
-
-    const mean = sum / len;
-    let variance = (sumSq / len) - (mean * mean);
-
-    // Mitigate potential floating-point precision issues that could result in tiny negative variance
-    if (variance < 0) variance = 0;
-
-    const entropy = Math.min(1, variance);
+    if (!tensor.length) return 0;
+    // Delegates to VectorMath.variance for zero-duplication math.
+    const entropy = Math.min(1, vecVariance(tensor));
     return Math.max(entropy, this.entropyFloor);
   }
 }

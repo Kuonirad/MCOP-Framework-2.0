@@ -18,7 +18,9 @@
     "deps:check": "pnpm outdated && pnpm audit --audit-level=moderate",
     "deps:audit": "pnpm audit --audit-level=moderate",
     "deps:update-check": "pnpm outdated",
-    "eco:audit": "node scripts/eco-audit.mjs"
+    "eco:audit": "node scripts/eco-audit.mjs",
+    "parity:check": "node scripts/parity-guardian.mjs",
+    "triad:fingerprint": "node scripts/triad-fingerprint.mjs"
   },
   "engines": {
     "node": ">=20.0.0",
