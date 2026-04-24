@@ -240,6 +240,40 @@ Filtering and constraint satisfaction.
 ### CompositionalMode
 Multi-step synthesis and protocol building.
 
+### HiddenConstraintMode (Ξ^∞ extension)
+Opt-in "non-obvious-angle" reasoning mode.  Seeds hypotheses that
+deliberately step outside the obvious search space by negating implicit
+assumptions, flagging phase-transition thresholds, inverting the
+actor/environment frame, and importing structural lenses from unrelated
+donor domains.
+
+Registered under `ReasoningMode.SELECTIVE` as an **auxiliary** mode
+(see `MCOPEngine.auxiliary_modes`), so it runs alongside the built-in
+`SelectiveMode` instead of replacing it.
+
+```python
+from mcop import MCOPEngine, MCOPConfig, Problem
+
+engine = MCOPEngine(MCOPConfig(
+    enable_xi_infinity=True,   # opt-in flag
+    max_iterations=15,
+    min_alternatives=5,
+    diversity_threshold=0.5,
+))
+problem = Problem(
+    description="Design a fair and rapid vaccine distribution system.",
+    context={"hidden_constraint_hints": [
+        "the unit of fairness is the individual, not the community",
+    ]},
+)
+solution = engine.solve(problem)
+```
+
+Each Ξ^∞ hypothesis carries `metadata['xi_infinity_move']` with one of:
+`meta_questioning`, `phase_transition`, `perspective_reversal`,
+`distant_analogy`.  Refinement of auxiliary-mode seeds is routed back
+to the mode via `metadata['source_mode_name']`.
+
 ---
 
 ## Mycelial Chaining (`mcop.mycelial`)
@@ -370,6 +404,28 @@ presentation = PatientPresentation(
 )
 problem = adapter.create_patient_problem(presentation)
 solution = adapter.solve(problem)
+```
+
+### GovernanceDomainAdapter
+Public-policy / institutional-design problems, with Ξ^∞ enabled by
+default.  Installs `GOVERNANCE_HIERARCHY` (peer-reviewed policy
+analysis > news reporting > opinion editorial > anecdote), bumps
+`max_iterations`/`min_alternatives` so divergent policy options
+survive, and injects governance-flavoured hidden-constraint hints
+during `preprocess_problem`.
+
+```python
+from mcop import Problem
+from mcop.governance import GovernanceDomainAdapter
+
+adapter = GovernanceDomainAdapter()
+problem = Problem(
+    description="Design a fair and rapid vaccine distribution system.",
+    constraints=["budget capped at $20M"],
+    success_criteria=["maximise equity across regions"],
+)
+solution = adapter.solve(problem)
+solution.metadata["xi_infinity_alternatives"]  # non-obvious branches
 ```
 
 ### ScientificDomainAdapter

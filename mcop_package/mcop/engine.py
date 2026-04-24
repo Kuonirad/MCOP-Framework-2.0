@@ -32,6 +32,11 @@ class MCOPConfig:
     confidence_threshold: float = 0.6
     min_alternatives: int = 2  # Preserve at least N alternatives
     enable_epistemic_challenge: bool = True
+    # Opt-in Xi^infinity mode: when True, the engine also seeds
+    # "hidden-constraint" hypotheses (assumption negation, phase
+    # transitions, perspective reversal, distant analogies).  See
+    # :mod:`mcop.xi_infinity` for the full rationale.
+    enable_xi_infinity: bool = False
     verbose: bool = False
 
 
@@ -60,6 +65,19 @@ class MCOPEngine:
             ReasoningMode.SELECTIVE: SelectiveMode(),
             ReasoningMode.COMPOSITIONAL: CompositionalMode()
         }
+
+        # Auxiliary modes share a ReasoningMode enum slot with a built-in
+        # mode (e.g. Xi^infinity reuses SELECTIVE) but generate and refine
+        # hypotheses with their own logic.  They are iterated alongside
+        # self.modes during seed generation and dispatched back to during
+        # chain refinement via Hypothesis.metadata['source_mode_name'].
+        self.auxiliary_modes: List[BaseReasoningMode] = []
+
+        if self.config.enable_xi_infinity:
+            # Imported lazily so the base engine has no hard dependency
+            # on the Xi^infinity module.
+            from .xi_infinity import HiddenConstraintMode
+            self.auxiliary_modes.append(HiddenConstraintMode())
 
         # Hooks for LLM integration (optional)
         self.llm_client = None
@@ -125,6 +143,10 @@ class MCOPEngine:
         - Structural: What patterns are present?
         - Selective: What constraints must be satisfied?
         - Compositional: What steps would solve this?
+
+        Auxiliary modes (e.g. Xi^infinity) run alongside the built-ins
+        and tag their seeds with ``metadata['source_mode_name']`` so the
+        engine can route later refinement back to them.
         """
         all_seeds = []
 
@@ -141,7 +163,37 @@ class MCOPEngine:
             except Exception as e:
                 logger.warning(f"Mode {mode.mode_name} failed: {e}")
 
+        for mode in self.auxiliary_modes:
+            try:
+                seeds = mode.generate_hypotheses(context.problem, context)
+                for seed in seeds:
+                    seed.metadata.setdefault("source_mode_name", mode.mode_name)
+                    context.add_hypothesis(seed)
+                    all_seeds.append(seed)
+
+                if self.config.verbose:
+                    logger.debug(
+                        f"{mode.mode_name} (auxiliary) generated {len(seeds)} seeds"
+                    )
+
+            except Exception as e:
+                logger.warning(f"Auxiliary mode {mode.mode_name} failed: {e}")
+
         return all_seeds
+
+    def _mode_for(self, hypothesis: Hypothesis) -> BaseReasoningMode:
+        """Return the reasoning mode that should handle a hypothesis.
+
+        Auxiliary modes take precedence when the hypothesis carries a
+        matching ``metadata['source_mode_name']``; otherwise fall back
+        to the built-in mode registered for ``hypothesis.mode``.
+        """
+        source_name = hypothesis.metadata.get("source_mode_name")
+        if source_name:
+            for aux in self.auxiliary_modes:
+                if aux.mode_name == source_name:
+                    return aux
+        return self.modes[hypothesis.mode]
 
     def _build_chains(
         self,
@@ -172,7 +224,7 @@ class MCOPEngine:
                 context.current_iteration = iteration
 
                 # Get the appropriate mode for this hypothesis
-                mode = self.modes[current.mode]
+                mode = self._mode_for(current)
 
                 # Generate evidence (in production, this would query external sources)
                 evidence = self._gather_evidence(current, context)
@@ -257,7 +309,7 @@ class MCOPEngine:
         - Continue in the same mode (deepen)
         - Switch modes (broaden)
         """
-        mode = self.modes[parent.mode]
+        mode = self._mode_for(parent)
 
         # Decide whether to switch modes
         if parent.confidence < 0.4 and parent.iteration > 2:
@@ -265,11 +317,17 @@ class MCOPEngine:
             next_mode = self._select_alternative_mode(parent.mode)
             mode = self.modes[next_mode]
 
+        child_metadata = {'parent_mode': parent.mode.name}
+        # Preserve auxiliary-mode provenance through child hypotheses so
+        # _mode_for() continues to route refinement to the same mode.
+        if mode in self.auxiliary_modes:
+            child_metadata['source_mode_name'] = mode.mode_name
+
         child = mode.create_hypothesis(
             content=f"Refined: {parent.content}",
             confidence=parent.confidence,
             parent=parent,
-            metadata={'parent_mode': parent.mode.name}
+            metadata=child_metadata,
         )
 
         parent.children_ids.append(child.id)
