@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { memo, useCallback, useEffect, useState, useTransition } from "react";
 import {
   subscribeVitals,
   type VitalName,
@@ -21,6 +21,16 @@ import {
  *     client paint and only attaches after a `requestIdleCallback`
  *     (falling back to `setTimeout(0)`), so the HUD never occupies the
  *     LCP critical path.
+ *   - **INP-safe state updates**: every `setState` triggered by a vitals
+ *     emission is wrapped in `useTransition` so React can interrupt the
+ *     resulting reconcile if the user starts interacting with the page.
+ *     Combined with `next/dynamic({ ssr: false })` lazy loading, this
+ *     keeps the HUD off the LCP critical path *and* off the long-task
+ *     budget that bounds INP.
+ *   - Minimal re-renders: `MetricRow` is memoised and a sample is only
+ *     committed if it differs in rounded display value, so a noisy
+ *     stream (e.g. CLS accumulating in tiny increments) never causes a
+ *     visible re-paint.
  *   - `prefers-reduced-motion` safe: transitions collapse to a
  *     no-motion fade when the user opts out.
  *   - Server-safe: guarded for `typeof window === "undefined"` so it
@@ -68,7 +78,7 @@ interface MetricRowProps {
   readonly sample: VitalSample | undefined;
 }
 
-function MetricRow({ name, label, sample }: MetricRowProps) {
+const MetricRow = memo(function MetricRow({ name, label, sample }: MetricRowProps) {
   const status: Status = sample ? classify(name, sample.value) : "idle";
   const styles = STATUS_STYLES[status];
   const display = sample ? format(name, sample.value) : "—";
@@ -92,7 +102,7 @@ function MetricRow({ name, label, sample }: MetricRowProps) {
       </span>
     </div>
   );
-}
+});
 
 /**
  * Deferred mount gate: returns `true` only after the browser has had a
@@ -133,27 +143,54 @@ interface PerformanceHUDProps {
   readonly defaultOpen?: boolean;
 }
 
+/**
+ * Returns `true` if the new sample would change what the HUD displays.
+ * Comparing the rounded/formatted output instead of the raw float means
+ * the HUD only re-renders when a *visible* change occurs, eliminating
+ * dozens of speculative reconciles per second on a CLS-heavy page.
+ */
+function isVisibleChange(
+  prev: VitalSample | undefined,
+  next: VitalSample,
+): boolean {
+  if (!prev) return true;
+  if (prev.name !== next.name) return true;
+  if (next.name === "CLS") {
+    return prev.value.toFixed(3) !== next.value.toFixed(3);
+  }
+  return Math.round(prev.value) !== Math.round(next.value);
+}
+
 export default function PerformanceHUD({ defaultOpen = false }: PerformanceHUDProps = {}) {
   const ready = useIdleMount();
   const [open, setOpen] = useState(defaultOpen);
   const [samples, setSamples] = useState<Partial<Record<VitalName, VitalSample>>>({});
+  const [, startTransition] = useTransition();
 
   useEffect(() => {
     if (!ready) return;
     // Subscribe once the page is idle; the bus replays cached samples
-    // so the HUD has values to show immediately.
+    // so the HUD has values to show immediately.  Each emission is
+    // committed via `startTransition` so React can interrupt the
+    // reconcile if the user is interacting with the page — keeping
+    // INP under 200ms even on slow devices.
     return subscribeVitals((sample) => {
-      setSamples((prev) => {
-        const existing = prev[sample.name];
-        if (existing && existing.ts === sample.ts && existing.value === sample.value) {
-          return prev;
-        }
-        return { ...prev, [sample.name]: sample };
+      startTransition(() => {
+        setSamples((prev) => {
+          const existing = prev[sample.name];
+          if (!isVisibleChange(existing, sample)) return prev;
+          return { ...prev, [sample.name]: sample };
+        });
       });
     });
   }, [ready]);
 
-  const toggle = useCallback(() => setOpen((v) => !v), []);
+  const toggle = useCallback(() => {
+    // Toggle is a non-urgent visual transition — wrapping it in
+    // `startTransition` lets React keep the click handler itself
+    // synchronous and short, which is the metric INP actually measures.
+    startTransition(() => setOpen((v) => !v));
+  }, []);
 
   if (!ready) return null;
 
@@ -175,6 +212,10 @@ export default function PerformanceHUD({ defaultOpen = false }: PerformanceHUDPr
             "w-[min(92vw,18rem)] origin-bottom-right rounded-2xl border border-white/10",
             "bg-slate-950/70 p-4 text-slate-100 shadow-2xl shadow-sky-500/10 backdrop-blur-xl",
             "transition duration-200 ease-out motion-reduce:transition-none",
+            // GPU-only transforms keep the panel toggle off the layout/
+            // paint critical path so it never contributes to CLS or
+            // long tasks.
+            "will-change-[transform,opacity]",
             open
               ? "translate-y-0 scale-100 opacity-100"
               : "pointer-events-none translate-y-2 scale-95 opacity-0",
