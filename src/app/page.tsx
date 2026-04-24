@@ -33,6 +33,38 @@ export default function Home() {
     },
   ];
 
+  const adapters: Array<{
+    title: string;
+    body: string;
+    tone: string;
+    badge: string;
+  }> = [
+    {
+      title: "Freepik",
+      badge: "TypeScript · Image / Video / Upscale",
+      body: "Brand-aligned image, video, and upscale generation through Freepik's REST API and MCP server. Continuity tags propagate across calls via stigmergic resonance.",
+      tone: "from-sky-500/20 to-sky-500/5 ring-sky-400/40",
+    },
+    {
+      title: "Higgsfield",
+      badge: "Python · Cinematic Video",
+      body: "Routes between Kling 3.0, Veo 3.1, Sora 2, and Seedance using a resonance-weighted scorer. Etch Merkle root flows into the SDK's audit parameter.",
+      tone: "from-violet-500/20 to-violet-500/5 ring-violet-400/40",
+    },
+    {
+      title: "Utopai",
+      badge: "TypeScript · Long-form Narrative",
+      body: "Multi-segment script composition with a configurable continuity floor that flags low-resonance beats for human review before dispatch.",
+      tone: "from-emerald-500/20 to-emerald-500/5 ring-emerald-400/40",
+    },
+    {
+      title: "Generic Production",
+      badge: "TypeScript · Scaffold",
+      body: "Twenty-line template for any REST / MCP / HTTP pipeline. Drop in a dispatch function and the framework wires encoder, resonance, dialectical refinement, and provenance.",
+      tone: "from-amber-500/20 to-amber-500/5 ring-amber-400/40",
+    },
+  ];
+
   return (
     <div className="min-h-screen bg-slate-950 bg-[radial-gradient(ellipse_at_top,#0b1220_0%,#000000_55%,#020617_100%)] text-slate-100">
       <main
@@ -54,6 +86,20 @@ export default function Home() {
             Deterministic, auditable triad orchestration. Crystalline entropy
             targets, Merkle-tracked pheromones, and rank-1 micro-etches —
             packaged for research, prototyping, and production deployment.
+          </p>
+          <p className="max-w-3xl text-base text-slate-400">
+            Now shipping the{" "}
+            <a
+              className="text-sky-300 underline-offset-2 hover:underline"
+              href="https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/blob/main/docs/adapters/UNIVERSAL_ADAPTER_PROTOCOL.md"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Universal MCOP Adapter Integration Protocol v2.1
+            </a>
+            : a single contract that bridges the cognitive triad to Freepik,
+            Higgsfield, Utopai, and any generic REST / MCP / HTTP pipeline
+            — without touching core.
           </p>
           <nav
             aria-label="Primary"
@@ -105,6 +151,75 @@ export default function Home() {
                 <p className="mt-2 text-sm text-slate-200/80">{k.body}</p>
               </article>
             ))}
+          </div>
+        </section>
+
+        <section aria-labelledby="adapters-heading" className="flex flex-col gap-6">
+          <div className="flex flex-col gap-2">
+            <p className="text-xs uppercase tracking-[0.4em] text-sky-300/80">
+              Adapter Protocol v2.1
+            </p>
+            <h2 id="adapters-heading" className="text-2xl font-semibold">
+              Plug into any creative platform
+            </h2>
+            <p className="max-w-3xl text-sm text-slate-300/80">
+              Each adapter encodes the prompt, queries Stigmergy for prior
+              resonance, runs the dialectical synthesizer for human-in-the-loop
+              refinement, etches a Merkle root for replay, and dispatches to
+              the vendor SDK — all behind a uniform{" "}
+              <code className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-xs">
+                IMCOPAdapter
+              </code>{" "}
+              contract.
+            </p>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {adapters.map((a) => (
+              <article
+                key={a.title}
+                className={`rounded-2xl bg-gradient-to-br ${a.tone} p-6 ring-1 backdrop-blur`}
+              >
+                <p className="text-[0.65rem] uppercase tracking-[0.3em] text-slate-300/70">
+                  {a.badge}
+                </p>
+                <h3 className="mt-2 text-lg font-semibold">{a.title}</h3>
+                <p className="mt-2 text-sm text-slate-200/80">{a.body}</p>
+              </article>
+            ))}
+          </div>
+          <div className="flex flex-wrap gap-3 text-sm font-medium">
+            <a
+              className="rounded-full border border-white/20 px-4 py-1.5 transition hover:border-white/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
+              href="https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/blob/main/docs/adapters/UNIVERSAL_ADAPTER_PROTOCOL.md"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Read the spec
+            </a>
+            <a
+              className="rounded-full border border-white/20 px-4 py-1.5 transition hover:border-white/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
+              href="https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/tree/main/examples"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Browse runnable examples
+            </a>
+            <a
+              className="rounded-full border border-white/20 px-4 py-1.5 transition hover:border-white/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
+              href="https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/tree/main/src/adapters"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              TypeScript adapters
+            </a>
+            <a
+              className="rounded-full border border-white/20 px-4 py-1.5 transition hover:border-white/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
+              href="https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/tree/main/mcop_package/mcop/adapters"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Python adapters
+            </a>
           </div>
         </section>
 

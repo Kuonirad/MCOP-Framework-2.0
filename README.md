@@ -11,6 +11,8 @@ Meta-Cognitive Optimization Protocol for deterministic, auditable triad orchestr
 
 > Crystalline entropy targets, Merkle-tracked pheromones, and rank-1 micro-etches—packaged for real-world deployment.
 
+MCOP also ships the **Universal MCOP Adapter Integration Protocol v2.1**, a SDK-agnostic contract that wires the deterministic triad to external creative-production platforms (Freepik, Higgsfield, Utopai, and any generic REST/MCP/HTTP pipeline) without modifying core. See [docs/adapters/UNIVERSAL_ADAPTER_PROTOCOL.md](docs/adapters/UNIVERSAL_ADAPTER_PROTOCOL.md).
+
 ## 🔭 Vision
 - **Deterministic cognition**: Reproducible context tensors with explicit entropy metrics.
 - **Provenance-first**: Merkle-style lineage for every pheromone trace and etch update.
@@ -29,12 +31,67 @@ graph TD
     H -->|Micro-Etch Weights| D
     D -->|Synthesis| UI[Next.js Experience]
     UI -->|Feedback| S
+    D -->|Refined Prompt| A[Adapter Layer v2.1]
+    A -->|REST / SDK / MCP| P[Freepik · Higgsfield · Utopai · Generic]
+    A -->|Merkle Root| UI
 ```
 
 ## 🧠 Active Kernels
 - **NOVA-NEO Encoder**: Deterministic hashing pipeline to generate fixed-dimension tensors with optional normalization and entropy estimates.
 - **Stigmergy v5**: Vector pheromone store with cosine resonance scoring, configurable thresholds, and Merkle-proof hashes.
 - **Holographic Etch**: Rank-1 micro-etch accumulator that tracks confidence deltas and exposes replayable audit trails.
+
+## 🔌 Universal Adapter Protocol (v2.1)
+MCOP adapters wire the cognitive triad to external creative-production platforms behind a uniform `IMCOPAdapter` contract. Adapters never modify core — they only call `encoder.encode()`, query `stigmergy.getResonance()`, route through the dialectical synthesizer for human-in-the-loop refinement, persist a `holographicEtch.applyEtch()` Merkle root, and dispatch the refined prompt to the vendor SDK.
+
+Shipped adapters:
+
+| Adapter | Language | Domain | Module |
+| --- | --- | --- | --- |
+| **Freepik** | TypeScript | Image / video / upscale (REST + MCP) | [`src/adapters/freepikAdapter.ts`](src/adapters/freepikAdapter.ts) |
+| **Higgsfield** | Python | Cinematic video (Kling 3.0 / Veo 3.1 / Sora 2 / Seedance) | [`mcop_package/mcop/adapters/higgsfield_adapter.py`](mcop_package/mcop/adapters/higgsfield_adapter.py) |
+| **Utopai** | TypeScript | Long-form narrative film engine | [`src/adapters/utopaiAdapter.ts`](src/adapters/utopaiAdapter.ts) |
+| **Generic Production** | TypeScript | 20-line scaffold for any REST / MCP / HTTP pipeline | [`src/adapters/genericProductionAdapter.ts`](src/adapters/genericProductionAdapter.ts) |
+
+Quick start (TypeScript):
+
+```ts
+import {
+  HolographicEtch,
+  NovaNeoEncoder,
+  StigmergyV5,
+} from '@/core';
+import { FreepikMCOPAdapter } from '@/adapters';
+
+const adapter = new FreepikMCOPAdapter({
+  encoder: new NovaNeoEncoder({ dimensions: 64, normalize: true }),
+  stigmergy: new StigmergyV5({ resonanceThreshold: 0.4 }),
+  etch: new HolographicEtch({ confidenceFloor: 0 }),
+  client: freepikClient, // your SDK / MCP wrapper
+});
+
+const { result, merkleRoot, provenance } = await adapter.generateOptimizedImage(
+  'aurora-lit cathedral at dawn, painterly mood',
+  { model: 'mystic', resolution: '4k' },
+);
+```
+
+Quick start (Python — Higgsfield):
+
+```python
+from mcop.adapters import HiggsfieldMCOPAdapter
+
+adapter = HiggsfieldMCOPAdapter(client=higgsfield_sdk)
+response = adapter.optimize_cinematic_video(
+    "wide aerial of a glacier at sunrise",
+    motion_refs=["push-in", "low-angle"],
+)
+print(response.result.model, response.merkle_root)
+```
+
+More: end-to-end runnable scripts under [`examples/`](examples/) (`freepik_production_flow.ts`, `higgsfield_cinematic_pipeline.py`, `multi_platform_orchestrator.ts`).
+
+Every adapter call returns a `ProvenanceMetadata` bundle (tensor hash, Stigmergy trace hash, resonance score, etch Merkle root, refined prompt) that can be persisted for compliance and replay. Human overrides flow through `HumanFeedback` — including a hard `veto` that raises `HumanVetoError` and refuses dispatch.
 
 ## 🏁 Getting Started
 
@@ -91,6 +148,8 @@ const trace = stigmergy.recordTrace(context, context, { note: 'bootstrap' });
 const resonance = stigmergy.getResonance(context);
 const etchRecord = etch.applyEtch(context, trace.synthesisVector, 'unit test');
 ```
+
+For a higher-level surface that bundles encode → resonance → dialectical refinement → etch into a single call (and dispatches to a platform SDK), see the [Universal Adapter Protocol](#-universal-adapter-protocol-v21) above.
 
 Configuration knobs live in [`config/examples/mcop.config.example.json`](config/examples/mcop.config.example.json) and map directly to constructor parameters.
 
