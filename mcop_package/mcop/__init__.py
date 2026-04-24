@@ -31,6 +31,14 @@ from .base import (
     CompositionalMode
 )
 
+# Xi^infinity ("non-obvious-angle") extension.  Opt-in via
+# MCOPConfig(enable_xi_infinity=True) or register manually on the engine.
+try:
+    from .xi_infinity import HiddenConstraintMode, extract_assumptions
+except ImportError:
+    HiddenConstraintMode = None
+    extract_assumptions = None
+
 # Mycelial chaining
 try:
     from .mycelial import (
@@ -79,6 +87,13 @@ except ImportError as e:
     PatientPresentation = None
     ScientificDomainAdapter = None
     ResearchQuestion = None
+
+# Governance adapter ships the Xi^infinity integration as a worked example.
+try:
+    from .governance import GovernanceDomainAdapter, GOVERNANCE_HIERARCHY
+except ImportError:
+    GovernanceDomainAdapter = None
+    GOVERNANCE_HIERARCHY = None
 
 
 def solve(description: str, domain: str = "general", **kwargs) -> Solution:
@@ -138,6 +153,10 @@ __all__ = [
     'SelectiveMode',
     'CompositionalMode',
 
+    # Xi^infinity extension
+    'HiddenConstraintMode',
+    'extract_assumptions',
+
     # Mycelial chaining
     'MycelialChainBuilder',
     'MycelialNetwork',
@@ -158,6 +177,8 @@ __all__ = [
     'PatientPresentation',
     'ScientificDomainAdapter',
     'ResearchQuestion',
+    'GovernanceDomainAdapter',
+    'GOVERNANCE_HIERARCHY',
 
     # Convenience function
     'solve',
