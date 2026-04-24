@@ -79,7 +79,8 @@ export class NovaNeoEncoder {
           inputLength: text.length,
           dimensions: this.dimensions,
           entropy: this.estimateEntropy(values),
-          tensorHash: crypto.createHash('sha256').update(JSON.stringify(values)).digest('hex').substring(0, 8)
+          // Optimization: Use Float64Array for hashing to avoid slow JSON.stringify overhead on large arrays
+          tensorHash: crypto.createHash('sha256').update(new Float64Array(values)).digest('hex').substring(0, 8)
         }
       });
     }
