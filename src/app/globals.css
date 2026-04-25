@@ -1,8 +1,15 @@
 @import "tailwindcss";
 
+/*
+ * The MCOP Visualizer renders an unconditionally dark radial gradient on
+ * every route, so the page background is locked to slate-950. Defaulting
+ * to white here used to cause a measurable light-mode FOUC before the
+ * Tailwind gradient repainted — bumping the default to the gradient base
+ * eliminates that single-frame flash without touching component markup.
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #020617; /* slate-950 — matches the page gradient base */
+  --foreground: #ededed;
 }
 
 @theme inline {
@@ -12,15 +19,26 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  /*
+   * Geist is preloaded by next/font in layout.tsx and exposed as
+   * --font-geist-sans. The previous Arial fallback here was *higher*
+   * specificity than Tailwind's font-sans utility and silently masked
+   * the loaded font on every text node — a real LCP/font-swap waste.
+   * Honouring --font-geist-sans here lets the preload pay off.
+   */
+  font-family: var(--font-geist-sans), system-ui, -apple-system,
+    "Segoe UI", Roboto, sans-serif;
+}
+
+/*
+ * Performance HUD container — paint + layout containment so any
+ * animation, predictor sparkline, or coach update stays in its own
+ * compositor layer and never invalidates the document layout. This
+ * is the CSS half of the zero-CLS contract enforced in JS.
+ */
+[data-testid="performance-hud"] {
+  contain: layout paint style;
 }
