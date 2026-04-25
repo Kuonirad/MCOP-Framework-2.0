@@ -42,3 +42,29 @@ body {
 [data-testid="performance-hud"] {
   contain: layout paint style;
 }
+
+/*
+ * WCAG 2.3.3 (Animation from Interactions, AAA) + 2.2.2 (Pause, Stop,
+ * Hide, A): when a user has expressed a vestibular-safety preference
+ * via `prefers-reduced-motion: reduce`, neutralise every animation,
+ * transition, and smooth-scroll behaviour the page might otherwise
+ * trigger.  Tailwind utilities like `transition`, `animate-*`, and
+ * `motion-safe:*` already respect this preference, but third-party
+ * markup or future hand-rolled CSS can still leak motion through —
+ * the universal selector below is the safety net.
+ *
+ * We use `!important` deliberately so component-level styles (e.g.
+ * the HUD's transform-based open/close) cannot accidentally override
+ * the user preference. The visual outcome is a hard cut instead of a
+ * smooth fade, which is the documented WCAG fallback.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

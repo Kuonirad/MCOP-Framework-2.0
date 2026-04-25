@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630" role="img" aria-labelledby="og-title og-desc">
+  <title id="og-title">MCOP Framework 2.0 — Universal Adapter Protocol v2.1</title>
+  <desc id="og-desc">Deterministic, auditable triad orchestration. Crystalline entropy, Merkle-tracked pheromones, and rank-1 holographic etches.</desc>
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="0%" r="80%">
+      <stop offset="0%" stop-color="#0b1220"/>
+      <stop offset="55%" stop-color="#000000"/>
+      <stop offset="100%" stop-color="#020617"/>
+    </radialGradient>
+    <linearGradient id="title" x1="0" x2="1" y1="0" y2="0">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="50%" stop-color="#a78bfa"/>
+      <stop offset="100%" stop-color="#34d399"/>
+    </linearGradient>
+    <linearGradient id="encoder" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#0ea5e9" stop-opacity="0.4"/>
+    </linearGradient>
+    <linearGradient id="stig" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#a78bfa" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#7c3aed" stop-opacity="0.4"/>
+    </linearGradient>
+    <linearGradient id="etch" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#34d399" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#10b981" stop-opacity="0.4"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <g transform="translate(80, 110)" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">
+    <text x="0" y="0" fill="#7dd3fc" font-size="22" font-weight="500" letter-spacing="6">META-COGNITIVE OPTIMIZATION PROTOCOL</text>
+    <text x="0" y="120" fill="#f8fafc" font-size="100" font-weight="700" letter-spacing="-2">MCOP Framework</text>
+    <text x="0" y="220" fill="url(#title)" font-size="100" font-weight="700" letter-spacing="-2">2.0</text>
+    <text x="0" y="280" fill="#cbd5e1" font-size="28" font-weight="400">Deterministic · Auditable · Triad Orchestration</text>
+    <text x="0" y="320" fill="#94a3b8" font-size="22" font-weight="400">Universal Adapter Protocol v2.1 — Freepik · Higgsfield · Utopai · Generic</text>
+  </g>
+  <g transform="translate(820, 360)">
+    <circle cx="0" cy="0" r="55" fill="url(#encoder)" stroke="#7dd3fc" stroke-opacity="0.6"/>
+    <circle cx="120" cy="80" r="55" fill="url(#stig)" stroke="#c4b5fd" stroke-opacity="0.6"/>
+    <circle cx="-120" cy="80" r="55" fill="url(#etch)" stroke="#6ee7b7" stroke-opacity="0.6"/>
+    <text x="0" y="5" fill="#f8fafc" font-size="14" font-family="ui-monospace, monospace" text-anchor="middle">NOVA</text>
+    <text x="120" y="85" fill="#f8fafc" font-size="14" font-family="ui-monospace, monospace" text-anchor="middle">STIG</text>
+    <text x="-120" y="85" fill="#f8fafc" font-size="14" font-family="ui-monospace, monospace" text-anchor="middle">ETCH</text>
+  </g>
+  <text x="80" y="580" fill="#64748b" font-size="20" font-family="ui-monospace, monospace" letter-spacing="1">github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0</text>
+</svg>

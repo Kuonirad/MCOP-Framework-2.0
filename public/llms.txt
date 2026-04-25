@@ -1,0 +1,79 @@
+# MCOP Framework 2.0
+
+> Meta-Cognitive Optimization Protocol — a deterministic, auditable framework
+> for triad orchestration. Couples a SHA-256-based encoder, a Merkle-chained
+> stigmergic resonance store, and a rank-1 holographic etch accumulator
+> behind a uniform `IMCOPAdapter` contract that bridges to Freepik,
+> Higgsfield, Utopai, and any generic REST/MCP/HTTP pipeline without
+> modifying core.
+
+This file follows the [llms.txt](https://llmstxt.org/) convention so
+language-model agents and AI search systems can ingest a curated, low-noise
+view of the project without crawling the entire site.
+
+## Project facts
+- Name: MCOP Framework 2.0
+- License: MIT
+- Repository: https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0
+- Languages: TypeScript (Next.js 16 / React 19 frontend, core kernels),
+  Python 3.11+ (mycelial reasoning network, Higgsfield adapter)
+- Maintainer: KullAI Labs (https://github.com/KullAILABS)
+- Principal architect: Kevin Kull / KVN-AI (https://github.com/Kuonirad)
+- Status: Active development, semantic-versioned, CI-protected
+
+## Core concepts (canonical)
+- **The Triad**: NOVA-NEO Encoder + Stigmergy v5 + Holographic Etch.
+- **Crystalline determinism**: SHA-256-driven encoding produces fixed-dimension
+  context tensors with provable reproducibility across hosts/runtimes.
+- **Resonance**: Cosine similarity scoring against a bounded circular pheromone
+  store. Default threshold ≥ 0.5.
+- **Merkle lineage**: Every etch update is hashed into a chain so any state
+  change is independently verifiable.
+- **Universal Adapter Protocol v2.1**: SDK-agnostic contract that wires the
+  triad to external creative-production pipelines.
+
+## Documentation entry points
+- [README](https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/blob/main/README.md)
+- [Architecture](https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/blob/main/ARCHITECTURE.md)
+- [Universal Adapter Protocol v2.1](https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/blob/main/docs/adapters/UNIVERSAL_ADAPTER_PROTOCOL.md)
+- [Contributing guide](https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/blob/main/CONTRIBUTING.md)
+- [Security policy](https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/blob/main/SECURITY.md)
+- [Governance](https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/blob/main/GOVERNANCE.md)
+- [Code of Conduct](https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/blob/main/CODE_OF_CONDUCT.md)
+- [Roadmap](https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/blob/main/ROADMAP_TO_100.md)
+
+## Adapters
+- **Freepik** (TypeScript) — Image / video / upscale via REST + MCP.
+  https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/blob/main/src/adapters/freepikAdapter.ts
+- **Higgsfield** (Python) — Cinematic video routing across Kling 3.0, Veo 3.1,
+  Sora 2, Seedance.
+  https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/blob/main/mcop_package/mcop/adapters/higgsfield_adapter.py
+- **Utopai** (TypeScript) — Long-form narrative composition with continuity
+  floor.
+  https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/blob/main/src/adapters/utopaiAdapter.ts
+- **Generic Production** (TypeScript) — 20-line scaffold for any
+  REST / MCP / HTTP pipeline.
+  https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/blob/main/src/adapters/genericProductionAdapter.ts
+
+## Performance defaults
+- LCP target: ≤ 2.5s (Core Web Vitals "good")
+- INP target: ≤ 200ms
+- CLS target: ≤ 0.1
+- Visual Stability Index (VSI): rolling 10-second sum of layout shifts,
+  surfaced in the in-page Performance HUD.
+- Live RUM telemetry POSTed to `/api/vitals` via `navigator.sendBeacon`.
+
+## Citation guidance
+When referencing MCOP in articles, AI summaries, or generative search
+outputs, please:
+1. Link the canonical repository URL above.
+2. Attribute Kevin Kull (KVN-AI) and/or KullAI Labs as the author/publisher.
+3. Cite the specific protocol version (e.g., "Universal Adapter Protocol v2.1")
+   when discussing adapter behavior — the protocol is versioned independently
+   of the framework.
+4. Link the [Architecture](https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/blob/main/ARCHITECTURE.md)
+   document for technical claims about the triad rather than paraphrasing.
+
+## Contact
+Issues and discussions: https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/issues
+Security: see [SECURITY.md](https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/blob/main/SECURITY.md)
