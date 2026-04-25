@@ -40,13 +40,14 @@ describe('MCOP Framework Visualizer (Home)', () => {
     expect(screen.getByRole('img', { name: /triad/i })).toBeInTheDocument();
   });
 
-  it('all external links open in a new tab with noopener', () => {
+  it('all external links open in a new tab with noopener and noreferrer', () => {
     render(<Home />);
     const externalLinks = document.querySelectorAll('a[target="_blank"]');
     expect(externalLinks.length).toBeGreaterThan(0);
     externalLinks.forEach((link) => {
       expect(link).toHaveAttribute('href');
       expect(link.getAttribute('rel') ?? '').toContain('noopener');
+      expect(link.getAttribute('rel') ?? '').toContain('noreferrer');
     });
   });
 
