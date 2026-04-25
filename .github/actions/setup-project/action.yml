@@ -4,7 +4,7 @@ inputs:
   node-version:
     description: 'Node.js version to use'
     required: false
-    default: '20.x'
+    default: '24.x'
   enable-cache:
     description: 'Enable pnpm dependency caching'
     required: false
@@ -30,7 +30,7 @@ runs:
         run_install: false
 
     - name: Setup Node.js
-      uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v4.5.0
       with:
         node-version: ${{ inputs.node-version }}
         # Only enable the pnpm cache when we are actually going to install
