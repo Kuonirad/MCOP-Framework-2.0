@@ -1,0 +1,91 @@
+# MCOP Framework 2.0 — robots policy
+#
+# Selective crawler policy. Public documentation, structured data, and
+# accessibility-relevant routes are indexable; internal API surfaces and
+# server-side telemetry endpoints are not.  AI/LLM crawlers are explicitly
+# *allowed* to ingest the documentation surface — the project benefits from
+# being correctly summarised by generative search systems.  See `/llms.txt`
+# for the curated machine-readable index.
+
+# ----------------------------------------------------------------------------
+# Default policy: allow all by default; deny only the API + Next internals.
+# ----------------------------------------------------------------------------
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /_next/
+
+# ----------------------------------------------------------------------------
+# AI / LLM crawlers — explicit allowlist for transparency.
+# Adding each major bot keeps the policy decision auditable from the file
+# itself rather than relying on the implicit `User-agent: *` fallback.
+# ----------------------------------------------------------------------------
+
+# OpenAI's web-search and citation crawler (powers ChatGPT browse + SearchGPT).
+User-agent: OAI-SearchBot
+Allow: /
+Disallow: /api/
+
+# OpenAI's training crawler — opted in deliberately.
+User-agent: GPTBot
+Allow: /
+Disallow: /api/
+
+# Anthropic's web-search citation crawler.
+User-agent: ClaudeBot
+Allow: /
+Disallow: /api/
+
+# Anthropic's training-data crawler.
+User-agent: anthropic-ai
+Allow: /
+Disallow: /api/
+
+# Google's "extended" generative AI training corpus.
+User-agent: Google-Extended
+Allow: /
+Disallow: /api/
+
+# Common Crawl — the public corpus underpinning many open models.
+User-agent: CCBot
+Allow: /
+Disallow: /api/
+
+# Perplexity AI search.
+User-agent: PerplexityBot
+Allow: /
+Disallow: /api/
+
+# Apple's web-search corpus (Siri / Apple Intelligence).
+User-agent: Applebot
+Allow: /
+Disallow: /api/
+
+User-agent: Applebot-Extended
+Allow: /
+Disallow: /api/
+
+# Meta's training crawler.
+User-agent: FacebookBot
+Allow: /
+Disallow: /api/
+
+# You.com generative search.
+User-agent: YouBot
+Allow: /
+Disallow: /api/
+
+# Bytedance / Doubao search.
+User-agent: Bytespider
+Disallow: /
+
+# DuckDuckGo (uses Bingbot-derived sources but operates DuckAssist separately).
+User-agent: DuckDuckBot
+Allow: /
+Disallow: /api/
+
+# ----------------------------------------------------------------------------
+# Sitemap + LLM index pointers
+# ----------------------------------------------------------------------------
+# Sitemap: https://kuonirad.github.io/KullAILABS-MCOP-Framework-2.0/sitemap.xml
+# llms.txt: https://kuonirad.github.io/KullAILABS-MCOP-Framework-2.0/llms.txt

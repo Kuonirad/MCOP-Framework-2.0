@@ -6,6 +6,7 @@ import {
   type VitalName,
   type VitalSample,
 } from "@/app/_components/vitalsBus";
+import { useDebouncedValue } from "./useDebouncedValue";
 import VSICoach from "./VSICoach";
 
 /**
@@ -167,6 +168,11 @@ export default function PerformanceHUD({ defaultOpen = false }: PerformanceHUDPr
   const [open, setOpen] = useState(defaultOpen);
   const [samples, setSamples] = useState<Partial<Record<VitalName, VitalSample>>>({});
   const [, startTransition] = useTransition();
+  // 300ms trailing-edge debounce on the displayed values. Web Vitals
+  // (especially CLS) can fire many sub-visible deltas per second; the
+  // debounce coalesces them into one trailing reconcile so the HUD never
+  // burns INP budget on values the user can't actually see change.
+  const displayedSamples = useDebouncedValue(samples, 300);
 
   useEffect(() => {
     if (!ready) return;
@@ -278,9 +284,9 @@ export default function PerformanceHUD({ defaultOpen = false }: PerformanceHUDPr
             </div>
             <p className="text-[10px] text-slate-500">Core Web Vitals · VSI</p>
           </div>
-          <MetricRow name="LCP" label="Largest paint" sample={samples.LCP} />
-          <MetricRow name="INP" label="Interaction" sample={samples.INP} />
-          <MetricRow name="CLS" label="Layout shift" sample={samples.CLS} />
+          <MetricRow name="LCP" label="Largest paint" sample={displayedSamples.LCP} />
+          <MetricRow name="INP" label="Interaction" sample={displayedSamples.INP} />
+          <MetricRow name="CLS" label="Layout shift" sample={displayedSamples.CLS} />
           <VSICoach open={open} />
           <p className="mt-3 border-t border-white/5 pt-2 text-[10px] leading-relaxed text-slate-500">
             Real-user metrics from this browser tab. Thresholds follow{" "}
@@ -322,7 +328,7 @@ export default function PerformanceHUD({ defaultOpen = false }: PerformanceHUDPr
             aria-hidden="true"
             className={[
               "inline-block h-2 w-2 rounded-full transition",
-              samples.LCP || samples.INP || samples.CLS
+              displayedSamples.LCP || displayedSamples.INP || displayedSamples.CLS
                 ? "bg-emerald-400 shadow-[0_0_8px] shadow-emerald-400/80"
                 : "bg-slate-500",
             ].join(" ")}

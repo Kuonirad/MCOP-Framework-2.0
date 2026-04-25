@@ -1,69 +1,382 @@
 # Contributing to MCOP Framework 2.0
 
-Thanks for advancing the triad. This guide keeps contributions deterministic, auditable, and easy to review.
+Thanks for advancing the triad. This guide keeps contributions deterministic,
+auditable, and easy to review.
+
+> The repository is a **multi-language monorepo**: a Next.js 16 / React 19
+> TypeScript surface, a `packages/core/` ESM+CJS distribution, and a Python
+> implementation under `mcop_package/`. Coordination across these boundaries
+> is the central concern of this document.
+
+---
+
+## Table of contents
+
+1. [Code of conduct](#-code-of-conduct)
+2. [Contribution philosophy](#-contribution-philosophy-stigmergic)
+3. [Reporting bugs and proposing enhancements](#-reporting-bugs-and-proposing-enhancements)
+4. [Development setup](#-development-setup)
+5. [Repository layout](#-repository-layout)
+6. [Local workflows by surface](#-local-workflows-by-surface)
+7. [Coding standards](#-coding-standards)
+8. [Testing requirements](#-testing-requirements)
+9. [Changesets and release flow](#-changesets-and-release-flow)
+10. [Pull request checklist](#-pull-request-checklist)
+11. [Commit conventions](#-commit-conventions)
+12. [Security and supply chain](#-security-and-supply-chain)
+13. [Documentation expectations](#-documentation-expectations)
+14. [Getting help](#-getting-help)
+
+---
 
 ## 🌟 Code of Conduct
-Participation implies agreement with our Code of Conduct. Report unacceptable behavior to the maintainers.
 
-## 🧭 Contribution Philosophy (Stigmergic)
-- **Pheromone drops**: Small, traceable commits with clear intent.
-- **Provenance**: Reference issues in commits and PRs; include context tensors (problem statements) in descriptions when relevant.
-- **Replayability**: Prefer deterministic tests and scripts; avoid non-reproducible benchmarks.
+Participation implies agreement with our [Code of Conduct](./CODE_OF_CONDUCT.md).
+Report unacceptable behavior to the maintainers via the contact channel listed
+in [GOVERNANCE.md](./GOVERNANCE.md).
 
-## 🚀 How Can I Contribute?
-### Reporting Bugs
-- Provide reproduction steps, expected vs. actual behavior, and environment details.
-- Attach logs or trace hashes if applicable.
+---
 
-### Suggesting Enhancements
-- Outline the problem first, then the proposal.
-- Link to related traces (issues, discussions, or prototypes).
+## 🧭 Contribution philosophy (stigmergic)
 
-### Pull Requests
-1. Fork and branch from `main` (`feature/...`, `bugfix/...`, `docs/...`).
-2. Add or update tests for any behavior changes.
-3. Run `pnpm test` locally; ensure `pnpm lint` and `pnpm typecheck` also pass.
-4. Include a short changelog in the PR description (context → change → validation).
-5. Request review; respond to feedback and keep commits cohesive.
+The framework rewards small, traceable interventions:
 
-## 🛠️ Development Setup
+- **Pheromone drops** — keep commits focused; each one should be reviewable
+  in isolation. If your change touches three concerns, ship three commits.
+- **Provenance first** — link related issues, prior PRs, or design notes in
+  the commit body. Reviewers should not need to reconstruct your reasoning.
+- **Replayability** — prefer deterministic tests, fixed seeds, and pure
+  functions. Anything that depends on wall-clock time, network state, or
+  ordering of events must be quarantined behind a clear seam.
+- **Audit-friendly mutations** — touching state? Add or update the
+  corresponding Merkle/etch test so the audit ring still verifies cleanly.
+
+---
+
+## 🐛 Reporting bugs and proposing enhancements
+
+### Reporting bugs
+- Provide reproduction steps, expected vs. actual behavior, and environment
+  details (Node version, pnpm version, OS).
+- Attach logs or trace hashes if applicable. Trace hashes uniquely identify
+  a triad invocation; including one lets us replay the exact failure.
+- Mark security-sensitive reports per [SECURITY.md](./SECURITY.md) — do not
+  open public issues for vulnerabilities.
+
+### Suggesting enhancements
+- Outline the **problem** first, the **proposal** second.
+- If the proposal touches the protocol surface (Universal Adapter Protocol,
+  triad kernel APIs), open a discussion before a PR — these surfaces are
+  versioned and contract-tested.
+- Link related traces (issues, discussions, prototypes).
+
+---
+
+## 🛠️ Development setup
+
+The repository uses **pnpm@9.15.0** (pinned via `packageManager` in
+`package.json`) and **Node.js 20.11.0** (pinned via `.nvmrc`). The Python
+surface targets **3.11+**.
+
 ```bash
-git clone https://github.com/YOUR_USERNAME/KullAILABS-MCOP-Framework-2.0.git
+# Clone your fork
+git clone https://github.com/<YOUR_USER>/KullAILABS-MCOP-Framework-2.0.git
 cd KullAILABS-MCOP-Framework-2.0
-corepack enable                    # first-time only; activates pnpm@9.15.0
-pnpm install --frozen-lockfile
-pnpm dev                           # dev server
-pnpm test                          # unit + coverage
-pnpm typecheck                     # strict TS check
-pnpm build                         # next build (standalone output)
+
+# Activate the pinned Node version (recommended: nvm or Volta)
+nvm use                              # picks 20.11.0 from .nvmrc
+
+# Activate pnpm via corepack (first time only)
+corepack enable
+corepack prepare pnpm@9.15.0 --activate
+
+# Install JS/TS dependencies for the entire workspace
+pnpm install                         # use plain install, not --frozen-lockfile,
+                                     # for fresh clones; CI uses frozen lockfile.
+
+# Optional: Python development environment
+python -m venv .venv && source .venv/bin/activate
+pip install -e mcop_package[dev]
 ```
 
-## 📋 Guidelines
-- **TypeScript-first**: Use TS/TSX; keep functions small with explicit return types.
-- **No secrets**: Do not commit credentials or tokens. Tests enforce this.
-- **Docs**: Update README/ARCHITECTURE when you add or change triad behavior.
-- **Tests**: Prefer deterministic inputs; avoid network calls in CI.
-- **Commit style**: Imperative mood, ≤72 chars in the subject. Example:
-```
-feat: add holographic etch accumulator
+### Daily commands
 
-- implement rank-1 delta tracking
-- expose audit-friendly retrieval API
-- add unit tests for weight accumulation
+```bash
+pnpm dev                # Next.js dev server (Turbopack)
+pnpm build              # Production build (standalone output)
+pnpm start              # Serve the production build
+pnpm test               # Jest suite (currently 146 tests / 22 suites)
+pnpm test:watch         # Jest in watch mode
+pnpm test:coverage      # Jest + coverage report
+pnpm lint               # ESLint, --max-warnings=0
+pnpm typecheck          # tsc --noEmit (strict)
+pnpm deps:check         # pnpm outdated + audit (moderate+)
+pnpm parity:check       # Cross-runtime parity guardian
+pnpm triad:fingerprint  # Deterministic triad fingerprint
 ```
 
-## 🔬 Review Checklist
+---
+
+## 📁 Repository layout
+
+```
+.
+├── src/
+│   ├── app/             Next.js 16 App Router routes + server components
+│   ├── components/      Client components (HUD, VSI Coach, hooks)
+│   ├── core/            Triad kernels (Encoder, Stigmergy, Etch)
+│   ├── adapters/        TypeScript Universal Adapter Protocol implementations
+│   ├── utils/           Cross-cutting utilities
+│   └── __tests__/       Jest suites (jsdom for client, node for core)
+├── packages/core/       Multi-module (ESM/CJS) TS distribution package
+├── mcop_package/        Python implementation (mycelial reasoning, Higgsfield)
+├── docs/                Long-form architecture + protocol docs
+├── examples/            Runnable adapter examples
+├── public/              Static assets, robots.txt, llms.txt, og-image
+├── scripts/             eco-audit, parity-guardian, triad-fingerprint
+├── .github/workflows/   CI: lint, typecheck, test, security, codeql
+├── .agents/skills/      Reproducible Devin/agent procedures
+└── .jules/              Architectural sentinel logs
+```
+
+---
+
+## 🔁 Local workflows by surface
+
+### Frontend (Next.js + React 19)
+
+Anything in `src/app/` (RSC + routes) and `src/components/` (client). The
+canonical proof of correctness for client components is the jest suite under
+`src/__tests__/`. Hydration is exercised via `testEnvironment: "jsdom"`.
+
+- Always wrap state writes triggered by external streams (vitals, layout
+  shifts, web sockets) in `useTransition` so React can interrupt the
+  reconcile when the user interacts. INP must stay under 200ms.
+- High-frequency input streams (text fields, vitals) should be debounced
+  via `useDebouncedValue` (300ms default) before display.
+- Honour `prefers-reduced-motion`: use the `useReducedMotion` hook to gate
+  animation amplitude, announcement frequency, and any motion-driven UX.
+
+### Triad core (TypeScript)
+
+`src/core/` and `packages/core/`. Determinism is the only acceptance criterion
+that matters here — every public function must be a pure transformation of
+its inputs.
+
+- Mutations must hash into the Merkle chain so the audit ring catches drift.
+- Avoid `Math.random()`; use the seeded RNG facilities in `src/utils/`.
+- Run `pnpm parity:check` before opening a PR that touches encoder weights,
+  resonance scoring, or etch accumulation.
+
+### Python (`mcop_package/`)
+
+Mycelial reasoning network and the Higgsfield adapter. Tests use `pytest`.
+
+```bash
+source .venv/bin/activate
+pip install -e mcop_package[dev]
+pytest mcop_package/tests
+ruff check mcop_package
+mypy mcop_package
+```
+
+---
+
+## ✅ Coding standards
+
+### TypeScript / React
+
+- **Strict TS only** — `tsconfig.json` enables `strict`, `noImplicitAny`,
+  `noUncheckedIndexedAccess`. Do not silence with `any`, `as unknown as T`,
+  `getattr`/`setattr`-style indirection, or `// @ts-expect-error` without a
+  linked issue.
+- Explicit return types on exported functions/components.
+- Functional components only; no class components.
+- Co-locate small helpers; lift to `src/utils/` once shared.
+- Imports ordered: external → `@/*` aliases → relative → CSS.
+- File header comments document **why**, not **what**. Inline comments are
+  reserved for non-obvious invariants.
+- Keep components under ~250 lines. Split when a single component grows
+  more than two distinct concerns.
+
+### CSS / Tailwind
+
+- Tailwind utility classes by default. Custom CSS only for global rules
+  (typography, motion preferences, containment) under `src/app/globals.css`.
+- Honour `prefers-reduced-motion: reduce` — `globals.css` ships a global
+  short-circuit; component-level animations must not bypass it.
+- Avoid arbitrary z-index values; the HUD owns z-40.
+
+### Python
+
+- `ruff` for lint/format (line length 100), `mypy --strict` for typing.
+- Follow PEP 8 + PEP 257 docstrings; prefer dataclasses over dicts for
+  internal records.
+
+### Accessibility (WCAG 2.2 AA target)
+
+- Every interactive control must be keyboard reachable, with a visible
+  `focus-visible` ring on dark backgrounds.
+- Live regions (`role="status"`, `aria-live="polite"`) for any
+  non-modal status change. Throttle announcements so SR users are not
+  spammed during state storms.
+- Use semantic landmarks (`<main>`, `<nav>`, `<section>` with
+  `aria-labelledby`).
+- Decorative imagery must use `alt=""` and `role="presentation"`.
+- Reserve box dimensions for any async-loaded media to keep CLS below 0.1.
+
+---
+
+## 🧪 Testing requirements
+
+- **Every behaviour change ships with a test.** No exceptions for "trivial"
+  fixes — most regressions come from the trivial-looking ones.
+- Jest suites must run fully under `jsdom` for client components and `node`
+  for core kernels. Do not introduce real network calls; mock at the
+  fetch/SDK boundary.
+- Maintain a green `pnpm test`, `pnpm lint`, `pnpm typecheck` before
+  requesting review. CI enforces all three with `--max-warnings 0`.
+- For performance-critical paths (encoder hot loops, resonance scoring),
+  add a micro-benchmark or an O(n) reasoning paragraph in the PR body.
+
+---
+
+## 📦 Changesets and release flow
+
+The framework uses [Changesets](https://github.com/changesets/changesets)
+to manage versioning across the Next.js app, the published
+`@kuonirad/mcop-framework` package, and the Python distribution.
+
+1. After making user-visible changes, run:
+
+   ```bash
+   pnpm changeset
+   ```
+
+   Select the affected packages, choose the SemVer bump (`patch` / `minor`
+   / `major`), and write a short, end-user-readable summary. Avoid
+   internal jargon — this prose ships in the changelog.
+
+2. Commit the generated `.changeset/*.md` file alongside your code changes.
+
+3. CI verifies that any PR touching publishable code includes a changeset
+   entry (or an explicit `--empty` marker for refactors / docs-only
+   changes).
+
+4. On merge to `main`, a release PR is opened by the changesets bot. It
+   batches accumulated entries, bumps versions, regenerates `CHANGELOG.md`,
+   and — once approved — publishes to the GitHub Package Registry under
+   `@kuonirad/mcop-framework`.
+
+5. Python releases are coordinated manually via
+   `mcop_package/pyproject.toml` until the changesets-python bridge lands.
+
+> **Refactors and docs-only PRs**: still run `pnpm changeset --empty` so the
+> CI gate has an explicit signal that the omission was intentional.
+
+---
+
+## 📋 Pull request checklist
+
+Before requesting review:
+
+- [ ] Branch from `main` using a descriptive prefix:
+      `feature/<topic>`, `bugfix/<topic>`, `docs/<topic>`,
+      `chore/<topic>`, `perf/<topic>`.
+- [ ] `pnpm lint` passes with zero warnings.
+- [ ] `pnpm typecheck` passes (strict TS, no `any` introductions).
+- [ ] `pnpm test` passes; new behaviour is covered.
+- [ ] `pnpm changeset` entry committed (or `--empty` for refactors).
+- [ ] PR description follows: **Context → Change → Validation → Risk**.
+- [ ] Documentation updated for any user-visible behaviour change
+      (README / ARCHITECTURE / docs/adapters/*.md).
+- [ ] Screenshots / recordings attached for UI changes.
+- [ ] No secrets, tokens, or `.env` files staged.
+- [ ] No `--no-verify`, `--no-gpg-sign`, or amended public commits.
+
 Reviewers verify:
+
 - Tests pass and code is typed/linters clean.
 - Security posture is unchanged or improved (no secrets, pinned actions).
 - Documentation matches behavior.
 - Performance-sensitive code paths are benchmarked or reasoned about.
+- Provenance: PR links related issues/discussions, commit messages explain
+  the *why*.
 
-## 🎯 Priority Areas
-- Triad kernel enhancements (encoding, resonance, etching).
-- Observability and provenance tooling.
-- Security hardening and supply-chain hygiene.
-- Documentation and tutorials.
+---
 
-## ❓ Questions
-Use GitHub Issues for bugs/requests and Discussions for open-ended design topics. Maintainers watch both.
+## ✍️ Commit conventions
+
+Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/).
+
+```
+<type>(<scope>): <subject>
+
+<body — what + why, wrap at 72 cols>
+
+<footer — refs / breaking-change notes>
+```
+
+- **type**: `feat`, `fix`, `perf`, `refactor`, `docs`, `test`, `chore`,
+  `build`, `ci`, `revert`.
+- **scope** (optional but encouraged): `hud`, `vsi`, `encoder`, `stigmergy`,
+  `etch`, `adapter:freepik`, `adapter:utopai`, `mcop`, `seo`, `a11y`,
+  `monorepo`, `release`.
+- **subject**: imperative, ≤ 72 chars, no trailing period.
+
+Examples:
+
+```
+feat(hud): add 300ms debounced metric display
+
+The Performance HUD was reconciling on every CLS sub-tick during a
+shift storm. Wrapping the displayed sample state in `useDebouncedValue`
+coalesces the trailing edge into a single transition-wrapped commit,
+restoring the INP-safe budget.
+
+Refs #312
+```
+
+```
+fix(stigmergy): bound circular buffer reads to active capacity
+```
+
+---
+
+## 🔒 Security and supply chain
+
+- Never commit credentials, API keys, or `.env` files. The CI security
+  suite scans for these patterns.
+- Pin all GitHub Actions to a SHA, not a tag.
+- Direct dependency upgrades go through `pnpm deps:check` first; any
+  moderate+ advisory must be triaged in the PR body.
+- Reproduce supply-chain reports against `pnpm audit --audit-level=moderate`
+  before claiming "no impact".
+
+See [SECURITY.md](./SECURITY.md) for the responsible-disclosure process.
+
+---
+
+## 📚 Documentation expectations
+
+- Update **README.md** when you add, change, or remove a top-level surface
+  (kernel, adapter, public API).
+- Update **ARCHITECTURE.md** when triad behaviour or data flow changes.
+- Update **`docs/adapters/UNIVERSAL_ADAPTER_PROTOCOL.md`** when the adapter
+  contract version changes; bump the protocol version explicitly.
+- Add or extend a `.agents/skills/<topic>/SKILL.md` when you discover a
+  reproducible procedure (testing flow, debug recipe) that future
+  contributors or agents will need.
+- For E-E-A-T parity, ensure new authors are added to the structured-data
+  bios in `src/app/page.tsx` *and* to `.all-contributorsrc`.
+
+---
+
+## ❓ Getting help
+
+- **Bugs / requests** → [GitHub Issues](https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/issues).
+- **Open-ended design discussion** → [GitHub Discussions](https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/discussions).
+- **Security** → [SECURITY.md](./SECURITY.md).
+- **Onboarding playbook** → [CONTRIBUTOR_ONBOARDING.md](./CONTRIBUTOR_ONBOARDING.md).
+
+Maintainers watch all three channels.
