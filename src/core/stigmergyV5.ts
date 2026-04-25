@@ -62,16 +62,16 @@ export class StigmergyV5 {
     let bestScore = 0;
     let bestTrace: PheromoneTrace | undefined;
 
-    for (const trace of this.traces.values()) {
+    this.traces.forEach((trace) => {
       const traceMag = trace.magnitude ?? magnitude(trace.context);
-      if (traceMag === 0) continue;
+      if (traceMag === 0) return;
 
       const score = cosineWithMagnitudes(context, trace.context, queryMag, traceMag);
       if (score > bestScore) {
         bestScore = score;
         bestTrace = trace;
       }
-    }
+    });
 
     if (bestTrace && bestScore >= this.resonanceThreshold) {
       return { score: bestScore, trace: bestTrace };
