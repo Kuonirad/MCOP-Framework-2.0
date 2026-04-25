@@ -9,7 +9,8 @@ name: Publish npm package
 #   1. Publish the first release manually from `packages/core` to create the
 #      package on npm. npm trusted publishers are package-level, and npm
 #      requires the package to already exist before the trusted publisher can
-#      be configured.
+#      be configured. **See `packages/core/BOOTSTRAP.md` for the exact
+#      command sequence and the @scope-ownership prerequisite.**
 #   2. Then open:
 #      https://www.npmjs.com/package/@kullailabs/mcop-core → Settings →
 #      Trusted publishing → GitHub Actions, with:
@@ -17,6 +18,10 @@ name: Publish npm package
 #     Repository           : KullAILABS-MCOP-Framework-2.0
 #     Workflow filename    : publish-npm.yml
 #     Environment          : npm
+#
+# This workflow includes a pre-flight registry probe so a release event
+# triggered before the bootstrap is complete fails with a clear,
+# human-readable error instead of a generic exit-code-1.
 #
 # Triggers:
 #   • GitHub Release tagged `npm-v*` (e.g. `npm-v0.1.0`) → real publish
@@ -104,6 +109,38 @@ jobs:
             echo "::error::Release tag npm-v$tag does not match package.json version $pkg_version"
             exit 1
           fi
+
+      # Pre-flight: trusted publishing requires the package (and the @scope
+      # it lives under) to already exist on the registry — npm cannot
+      # auto-create a scope from a tokenless OIDC publish.  We probe the
+      # registry up-front so a misconfigured release fails with a clear,
+      # actionable error instead of dying inside `npm publish` with a
+      # generic non-zero exit.
+      - name: Pre-flight — verify package + scope are bootstrapped on npm
+        if: github.event_name == 'release'
+        run: |
+          pkg_name=$(node -p "require('./package.json').name")
+          echo "Probing npm registry for ${pkg_name}…"
+          http_code=$(curl -fsS -o /dev/null -w "%{http_code}" \
+            "https://registry.npmjs.org/${pkg_name}" || echo "000")
+          echo "Registry returned HTTP ${http_code}"
+          if [ "$http_code" = "404" ]; then
+            cat <<EOF >&2
+          ::error title=npm publish bootstrap incomplete::${pkg_name} is not yet on the npm registry.
+          Trusted publishing is package-scoped and cannot create the package or its @scope on the first run.
+          Required one-time setup (see packages/core/BOOTSTRAP.md):
+            1. Ensure the @scope owner on npmjs.com matches your account, or create the org.
+            2. From a local checkout of packages/core, run: npm publish --access public
+            3. On npmjs.com, configure the trusted publisher (workflow file: publish-npm.yml).
+            4. Re-cut the GitHub Release; this workflow will then succeed via OIDC.
+          EOF
+            exit 1
+          fi
+          if [ "$http_code" != "200" ]; then
+            echo "::error::Unexpected HTTP ${http_code} from registry probe — aborting before publish."
+            exit 1
+          fi
+          echo "Package found on npm — proceeding to trusted-publish flow."
 
       - name: Typecheck
         run: npm run typecheck
