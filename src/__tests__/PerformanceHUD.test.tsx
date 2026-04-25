@@ -6,11 +6,12 @@
  */
 
 import React from 'react';
-import { act, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
 import PerformanceHUD from '../components/PerformanceHUD';
 import { __emitForTests, __resetForTests } from '@/app/_components/vitalsBus';
+import { __resetVSIForTests } from '@/app/_components/vsiBus';
 
 // The HUD defers its initial mount to requestIdleCallback / setTimeout(0)
 // so it cannot compete with first paint. In tests we short-circuit both
@@ -30,6 +31,7 @@ beforeAll(() => {
 
 afterEach(() => {
   __resetForTests();
+  __resetVSIForTests();
 });
 
 describe('PerformanceHUD', () => {
@@ -125,5 +127,67 @@ describe('PerformanceHUD', () => {
     // HUD lives in a fixed overlay so it never contributes to document flow.
     expect(hud.className).toMatch(/\bfixed\b/);
     expect(hud.className).toMatch(/pointer-events-none/);
+  });
+
+  it('marks the closed panel inert so descendants are not tab-reachable', async () => {
+    render(<PerformanceHUD />);
+    await screen.findByRole('button', { name: /show performance hud/i });
+    const panel = screen.getByTestId('performance-hud-panel');
+    // React 19 reflects boolean inert as the empty-string attribute.
+    expect(panel.hasAttribute('inert')).toBe(true);
+  });
+
+  it('clears inert when the panel opens', async () => {
+    render(<PerformanceHUD defaultOpen />);
+    await screen.findByRole('region', { name: /live performance metrics/i });
+    const panel = screen.getByTestId('performance-hud-panel');
+    expect(panel.hasAttribute('inert')).toBe(false);
+  });
+
+  it('toggles open state on Alt+P from anywhere on the page', async () => {
+    render(<PerformanceHUD />);
+    const button = await screen.findByRole('button', { name: /show performance hud/i });
+    expect(button).toHaveAttribute('aria-expanded', 'false');
+
+    act(() => {
+      fireEvent.keyDown(window, { key: 'p', altKey: true });
+    });
+    expect(button).toHaveAttribute('aria-expanded', 'true');
+
+    act(() => {
+      fireEvent.keyDown(window, { key: 'P', altKey: true });
+    });
+    expect(button).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  it('closes the panel on Escape when open', async () => {
+    render(<PerformanceHUD defaultOpen />);
+    const button = await screen.findByRole('button', { name: /hide performance hud/i });
+    expect(button).toHaveAttribute('aria-expanded', 'true');
+    act(() => {
+      fireEvent.keyDown(window, { key: 'Escape' });
+    });
+    expect(button).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  it('exposes Alt+P as the shortcut hint via aria-keyshortcuts', async () => {
+    render(<PerformanceHUD />);
+    const button = await screen.findByRole('button', { name: /show performance hud/i });
+    expect(button).toHaveAttribute('aria-keyshortcuts', 'Alt+P');
+  });
+
+  it('ignores plain P keypresses without Alt modifier', async () => {
+    render(<PerformanceHUD />);
+    const button = await screen.findByRole('button', { name: /show performance hud/i });
+    act(() => {
+      fireEvent.keyDown(window, { key: 'p' });
+    });
+    expect(button).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  it('embeds the VSI coach inside the open panel', async () => {
+    render(<PerformanceHUD defaultOpen />);
+    await screen.findByRole('region', { name: /live performance metrics/i });
+    expect(screen.getByTestId('vsi-coach')).toBeInTheDocument();
   });
 });

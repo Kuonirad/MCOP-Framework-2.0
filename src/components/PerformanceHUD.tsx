@@ -6,6 +6,7 @@ import {
   type VitalName,
   type VitalSample,
 } from "@/app/_components/vitalsBus";
+import VSICoach from "./VSICoach";
 
 /**
  * Live Performance HUD — floating, toggleable overlay that renders live
@@ -192,11 +193,46 @@ export default function PerformanceHUD({ defaultOpen = false }: PerformanceHUDPr
     startTransition(() => setOpen((v) => !v));
   }, []);
 
+  // Keyboard a11y:
+  //   Alt+P  — toggle the HUD from anywhere on the page (avoids capturing
+  //            an unmodified key that would conflict with form input).
+  //   Esc    — close the panel when it is currently open.
+  // Only the open-state listener depends on `open`; we deliberately keep
+  // the global Alt+P listener on a stable reference so it doesn't
+  // re-bind on every render and thrash event registration.
+  useEffect(() => {
+    if (!ready) return;
+    if (typeof window === "undefined") return;
+    const onKey = (evt: KeyboardEvent) => {
+      // Alt+P toggle.  We check `evt.altKey` and the lowercased key so
+      // both `KeyP` (en) and locale-mapped variants resolve correctly.
+      if (evt.altKey && (evt.key === "p" || evt.key === "P")) {
+        evt.preventDefault();
+        startTransition(() => setOpen((v) => !v));
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [ready]);
+
+  useEffect(() => {
+    if (!open) return;
+    if (typeof window === "undefined") return;
+    const onKey = (evt: KeyboardEvent) => {
+      if (evt.key === "Escape") {
+        evt.preventDefault();
+        startTransition(() => setOpen(false));
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
+
   if (!ready) return null;
 
   return (
     <div
-      className="pointer-events-none fixed inset-x-0 bottom-4 z-40 flex justify-end px-4 sm:bottom-6 sm:px-6 motion-reduce:transition-none"
+      className="pointer-events-none fixed inset-x-0 bottom-4 z-40 flex justify-end px-4 sm:bottom-6 sm:px-6"
       data-testid="performance-hud"
     >
       <div className="pointer-events-auto flex flex-col items-end gap-2">
@@ -206,10 +242,19 @@ export default function PerformanceHUD({ defaultOpen = false }: PerformanceHUDPr
           role="region"
           aria-label="Live performance metrics"
           aria-hidden={!open}
+          /*
+           * `inert` removes the panel and every descendant from the
+           * accessibility tree and the focus order while it is visually
+           * hidden. Without this, the new VSI Coach buttons (Copy fix
+           * etc.) would still be tab-reachable behind a transparent
+           * overlay — a real keyboard a11y bug. React 19 supports the
+           * boolean prop natively.
+           */
+          inert={!open}
           data-testid="performance-hud-panel"
           data-open={open ? "true" : "false"}
           className={[
-            "w-[min(92vw,18rem)] origin-bottom-right rounded-2xl border border-white/10",
+            "w-[min(92vw,20rem)] origin-bottom-right rounded-2xl border border-white/10",
             "bg-slate-950/70 p-4 text-slate-100 shadow-2xl shadow-sky-500/10 backdrop-blur-xl",
             "transition duration-200 ease-out motion-reduce:transition-none",
             // GPU-only transforms keep the panel toggle off the layout/
@@ -231,14 +276,24 @@ export default function PerformanceHUD({ defaultOpen = false }: PerformanceHUDPr
                 Live vitals
               </p>
             </div>
-            <p className="text-[10px] text-slate-500">Core Web Vitals</p>
+            <p className="text-[10px] text-slate-500">Core Web Vitals · VSI</p>
           </div>
           <MetricRow name="LCP" label="Largest paint" sample={samples.LCP} />
           <MetricRow name="INP" label="Interaction" sample={samples.INP} />
           <MetricRow name="CLS" label="Layout shift" sample={samples.CLS} />
+          <VSICoach open={open} />
           <p className="mt-3 border-t border-white/5 pt-2 text-[10px] leading-relaxed text-slate-500">
             Real-user metrics from this browser tab. Thresholds follow{" "}
             <span className="text-slate-400">web.dev</span> Core Web Vitals.
+            Press{" "}
+            <kbd className="rounded border border-white/10 bg-white/5 px-1 font-mono text-[9px]">
+              Alt
+            </kbd>
+            {" + "}
+            <kbd className="rounded border border-white/10 bg-white/5 px-1 font-mono text-[9px]">
+              P
+            </kbd>{" "}
+            to toggle.
           </p>
         </div>
 
@@ -248,7 +303,12 @@ export default function PerformanceHUD({ defaultOpen = false }: PerformanceHUDPr
           onClick={toggle}
           aria-expanded={open}
           aria-controls="performance-hud-panel"
-          aria-label={open ? "Hide performance HUD" : "Show performance HUD"}
+          aria-keyshortcuts="Alt+P"
+          aria-label={
+            open
+              ? "Hide performance HUD (Alt+P)"
+              : "Show performance HUD (Alt+P)"
+          }
           className={[
             "inline-flex h-11 items-center gap-2 rounded-full border border-white/10",
             "bg-slate-950/70 px-4 text-xs font-medium text-slate-200 shadow-lg",
