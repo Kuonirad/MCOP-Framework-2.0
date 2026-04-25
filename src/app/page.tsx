@@ -90,7 +90,7 @@ export default function Home() {
           <p className="max-w-3xl text-base text-slate-400">
             Now shipping the{" "}
             <a
-              className="text-sky-300 underline-offset-2 hover:underline"
+              className="text-sky-300 underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 rounded focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
               href="https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/blob/main/docs/adapters/UNIVERSAL_ADAPTER_PROTOCOL.md"
               target="_blank"
               rel="noopener noreferrer"
@@ -247,7 +247,7 @@ export default function Home() {
           <span>© {new Date().getFullYear()} KullAI Labs · MIT licensed</span>
           <div className="flex gap-4">
             <a
-              className="hover:text-slate-100"
+              className="hover:text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 rounded focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
               href="https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/blob/main/ARCHITECTURE.md"
               target="_blank"
               rel="noopener noreferrer"
@@ -255,7 +255,7 @@ export default function Home() {
               Architecture
             </a>
             <a
-              className="hover:text-slate-100"
+              className="hover:text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 rounded focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
               href="https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/blob/main/SECURITY.md"
               target="_blank"
               rel="noopener noreferrer"
@@ -263,7 +263,7 @@ export default function Home() {
               Security
             </a>
             <a
-              className="hover:text-slate-100"
+              className="hover:text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 rounded focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
               href="https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/blob/main/CONTRIBUTING.md"
               target="_blank"
               rel="noopener noreferrer"
