@@ -1,16 +1,32 @@
 /**
  * Shared Core Web Vitals broadcast bus.
  *
- * Owns a *single* set of `PerformanceObserver`s for LCP, CLS, INP, FCP, and
- * TTFB and multiplexes samples to every subscriber (the telemetry sentinel,
- * the live HUD, anything else that lands later).  Centralising the observer
- * keeps measurement cost O(1) no matter how many components want to read the
- * vitals stream, which is the whole point of the "zero-impact live HUD".
+ * Fans canonical vitals samples (LCP, CLS, INP, FCP, TTFB) out to every
+ * subscriber from a single source.  Internally we delegate measurement
+ * to the official `web-vitals` library so we get:
  *
- * The module is side-effect free at import time; observers only attach after
- * the first `subscribe()` call, and they detach again when the last subscriber
- * unsubscribes.  That means tests (and SSR) never touch browser-only APIs.
+ *   - **Correct INP** (the worst interaction in the session, debounced),
+ *     not "the duration of the most recent event entry" — which is what
+ *     the previous hand-rolled `event` PerformanceObserver was emitting
+ *     and was the root cause of the HUD's INP flicker.
+ *   - **Canonical LCP** that respects the Web Vitals spec's stop
+ *     conditions (first user interaction / page hide).
+ *   - **Cumulative CLS** measured against the standard session windows.
+ *
+ * The bus is side-effect free at import time; observers only attach
+ * after the first `subscribeVitals()` call, so SSR and tests never touch
+ * browser-only APIs.  The public surface (`subscribeVitals`,
+ * `getLatestVitals`, `__emitForTests`, `__resetForTests`) is unchanged.
  */
+
+import {
+  onCLS,
+  onFCP,
+  onINP,
+  onLCP,
+  onTTFB,
+  type Metric,
+} from "web-vitals";
 
 export type VitalName = "LCP" | "CLS" | "INP" | "FCP" | "TTFB";
 
@@ -23,12 +39,11 @@ export interface VitalSample {
 type Listener = (sample: VitalSample) => void;
 
 const listeners = new Set<Listener>();
-// Remembers the most recent sample for each metric so late subscribers (the
-// HUD mounts after the first LCP has already fired) immediately render a
-// real value instead of dashes.
+// Remembers the most recent sample for each metric so late subscribers
+// (the HUD mounts after the first LCP has already fired) immediately
+// render a real value instead of dashes.
 const latest: Partial<Record<VitalName, VitalSample>> = {};
-let observers: PerformanceObserver[] | null = null;
-let clsValue = 0;
+let attached = false;
 
 function broadcast(sample: VitalSample): void {
   latest[sample.name] = sample;
@@ -43,85 +58,45 @@ function broadcast(sample: VitalSample): void {
   }
 }
 
-function attach(): void {
-  if (observers !== null) return;
-  if (typeof window === "undefined") return;
-  if (!("PerformanceObserver" in window)) return;
-
-  const list: PerformanceObserver[] = [];
-
-  const observe = (
-    type: string,
-    handler: (entry: PerformanceEntry) => void,
-  ): void => {
-    try {
-      const po = new PerformanceObserver((entries) => {
-        for (const entry of entries.getEntries()) handler(entry);
-      });
-      po.observe({ type, buffered: true } as PerformanceObserverInit);
-      list.push(po);
-    } catch {
-      /* entry type unsupported in this browser; skip silently */
-    }
+function fromMetric(metric: Metric): VitalSample {
+  return {
+    name: metric.name as VitalName,
+    value: metric.value,
+    ts: Date.now(),
   };
-
-  observe("largest-contentful-paint", (entry) => {
-    broadcast({ name: "LCP", value: entry.startTime, ts: Date.now() });
-  });
-
-  observe("paint", (entry) => {
-    if (entry.name === "first-contentful-paint") {
-      broadcast({ name: "FCP", value: entry.startTime, ts: Date.now() });
-    }
-  });
-
-  observe("layout-shift", (entry) => {
-    const layoutShift = entry as PerformanceEntry & {
-      value: number;
-      hadRecentInput: boolean;
-    };
-    if (!layoutShift.hadRecentInput) {
-      clsValue += layoutShift.value;
-      broadcast({ name: "CLS", value: clsValue, ts: Date.now() });
-    }
-  });
-
-  observe("event", (entry) => {
-    const eventEntry = entry as PerformanceEntry & {
-      interactionId?: number;
-      duration: number;
-    };
-    if (eventEntry.interactionId) {
-      broadcast({ name: "INP", value: eventEntry.duration, ts: Date.now() });
-    }
-  });
-
-  const nav = performance.getEntriesByType(
-    "navigation",
-  )[0] as PerformanceNavigationTiming | undefined;
-  if (nav) {
-    broadcast({ name: "TTFB", value: nav.responseStart, ts: Date.now() });
-  }
-
-  observers = list;
 }
 
-function detach(): void {
-  if (observers === null) return;
-  for (const po of observers) {
-    try {
-      po.disconnect();
-    } catch {
-      /* already disconnected */
-    }
+function attach(): void {
+  if (attached) return;
+  if (typeof window === "undefined") return;
+  attached = true;
+
+  // `reportAllChanges: true` so the HUD updates as the metric evolves
+  // (e.g. CLS accumulating, INP escalating to a worse interaction).
+  // The library still debounces internally and only fires when the
+  // canonical metric changes.
+  const opts = { reportAllChanges: true };
+  try {
+    onLCP((m) => broadcast(fromMetric(m)), opts);
+    onCLS((m) => broadcast(fromMetric(m)), opts);
+    onINP((m) => broadcast(fromMetric(m)), opts);
+    onFCP((m) => broadcast(fromMetric(m)), opts);
+    onTTFB((m) => broadcast(fromMetric(m)), opts);
+  } catch {
+    /* unsupported browser; silently degrade to no metrics */
   }
-  observers = null;
 }
 
 /**
- * Subscribe to the vitals stream.  Returns an unsubscribe function that
- * cleans up observers when the last listener leaves.  Replays the most
- * recent sample for each metric so late joiners render immediately.
+ * Subscribe to the vitals stream.  Returns an unsubscribe function.
+ * Replays the most recent sample for each metric so late joiners render
+ * immediately.
+ *
+ * Note: `web-vitals` registers persistent observers on first attach;
+ * we no longer detach when the last subscriber leaves because the
+ * library is designed for one-shot lifetime registration.  This costs
+ * nothing at runtime (one observer per metric, regardless of subscriber
+ * count) and avoids the previous double-attach race.
  */
 export function subscribeVitals(listener: Listener): () => void {
   listeners.add(listener);
@@ -141,7 +116,6 @@ export function subscribeVitals(listener: Listener): () => void {
 
   return () => {
     listeners.delete(listener);
-    if (listeners.size === 0) detach();
   };
 }
 
@@ -165,6 +139,7 @@ export function __resetForTests(): void {
   for (const key of Object.keys(latest) as VitalName[]) {
     delete latest[key];
   }
-  clsValue = 0;
-  detach();
+  // We intentionally do NOT flip `attached` back: web-vitals' observers
+  // can't be safely re-registered, but each suite's listeners are
+  // cleared above so the next test starts from a clean broadcast set.
 }
