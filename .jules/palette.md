@@ -19,3 +19,6 @@
 ## 2024-04-24 - Screen Reader Page Headings
 **Learning:** Next.js landing pages often omit an `<h1>` heading if the logo is visual-only, causing screen readers to lack page-level context.
 **Action:** Always include an `<h1 className="sr-only">Page Title</h1>` as the first child of `<main>` when the visual design uses a logo image instead of a text heading.
+## 2024-05-21 - Focus State Consistency
+**Learning:** Found some external links inside footer component that miss `focus-visible` styles which hurts keyboard a11y.
+**Action:** Added `focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950` classes to them for consistency and accessibility.
