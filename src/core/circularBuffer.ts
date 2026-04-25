@@ -83,6 +83,15 @@ export class CircularBuffer<T> {
     }
   }
 
+  /** Execute a callback for each stored item in insertion order (oldest first). */
+  forEach(callback: (item: T, index: number) => void): void {
+    if (this.count === 0) return;
+    const start = (this.head - this.count + this.cap) % this.cap;
+    for (let i = 0; i < this.count; i++) {
+      callback(this.buf[(start + i) % this.cap] as T, i);
+    }
+  }
+
   /** Snapshot as a plain array (oldest first). O(n). */
   toArray(): T[] {
     return Array.from(this.values());

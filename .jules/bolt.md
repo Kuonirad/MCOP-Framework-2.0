@@ -27,3 +27,6 @@
 ## 2025-04-23 - [Optimization] Prevented O(N^2) Lookup Overhead in Mycelial Chain Connection Finding
 **Learning:** Found an $O(N^2 \cdot D)$ performance bottleneck in `mcop_package/mcop/mycelial.py`'s `_create_connections` due to repeated iterative array traversal up the ancestors chain when calculating connections. Mycelial trees with branches could perform redundant lookup allocations continuously.
 **Action:** When performing cross-chain tree traversal for link validation or connections among many node permutations, pre-compute parent trees and map them natively to $O(1)$ set lookups (e.g. `ancestors_map`) rather than generating list permutations redundantly on every connection cycle. This achieved roughly a 43x speedup on ~1000 nodes natively.
+## 2025-04-25 - Generator performance overhead
+**Learning:** Generator functions (like `*values()`) create significant allocation and iteration overhead in hot loops compared to native callbacks or simple `for` loops. In V8 (Node.js), iterating a circular buffer via a generator took ~780ms compared to ~125ms using a `forEach` callback for the same workload (a ~6x slowdown).
+**Action:** In high-frequency hot paths (like Stigmergy `getResonance` checks), use `forEach` with a callback or index-based retrieval instead of exposing and iterating over generator functions.
