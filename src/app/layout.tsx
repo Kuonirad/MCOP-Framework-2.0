@@ -184,6 +184,43 @@ const organizationJsonLd = {
   ],
 };
 
+/**
+ * Schema.org `Person` JSON-LD — top-level author attribution for
+ * Kevin Kull (KVN-AI). Strengthens E-E-A-T (Experience, Expertise,
+ * Authoritativeness, Trustworthiness) by giving generative-search
+ * systems a structured, third-party-verifiable author identity to
+ * attach to articles authored by this Person. The author bio cards
+ * on the landing page already carry `Person` microdata via
+ * `itemScope`/`itemProp`; this script adds an equivalent JSON-LD
+ * record so JSON-only crawlers (which ignore microdata) can still
+ * resolve the same identity graph.
+ *
+ * `sameAs` lists are deliberately limited to identity surfaces the
+ * subject controls (GitHub user/org pages) — no marketing/social
+ * profiles that could be impersonated.
+ */
+const personJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Person",
+  "@id": `${SITE_URL}#person-kevinkull`,
+  name: "Kevin Kull",
+  alternateName: "KVN-AI",
+  url: "https://github.com/Kuonirad",
+  jobTitle: "Principal Architect, MCOP Framework 2.0",
+  worksFor: { "@id": `${SITE_URL}#organization` },
+  knowsAbout: [
+    "Meta-Cognitive Optimization Protocol",
+    "Deterministic AI Systems",
+    "Cryptographic Provenance",
+    "Stigmergic Coordination",
+    "Holographic Memory Architectures",
+  ],
+  sameAs: [
+    "https://github.com/Kuonirad",
+    "https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/commits?author=Kuonirad",
+  ],
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -225,6 +262,12 @@ export default function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{
             __html: JSON.stringify(organizationJsonLd),
+          }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(personJsonLd),
           }}
         />
       </body>
