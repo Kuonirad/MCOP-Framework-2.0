@@ -2,7 +2,7 @@
 
 ## 🎯 Project Overview
 
-**M-COP (Meta-Cognitive Operating Protocol) v3.1** is a universal reasoning framework that implements:
+**M-COP (Meta-Cognitive Optimization Protocol) v3.1** is a universal reasoning framework that implements:
 - Multi-modal reasoning across 4 fundamental modes
 - Mycelial chaining for recursive hypothesis refinement
 - Evidence grounding with domain-specific hierarchies

@@ -292,7 +292,7 @@ def main():
     print("""
 ╔══════════════════════════════════════════════════════════════════════╗
 ║                     M-COP v3.1 DEMONSTRATION                         ║
-║                  Meta-Cognitive Operating Protocol                   ║
+║                 Meta-Cognitive Optimization Protocol                 ║
 ╚══════════════════════════════════════════════════════════════════════╝
     """)
 

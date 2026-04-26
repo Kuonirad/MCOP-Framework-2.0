@@ -5,6 +5,13 @@
 
 The MCOP (Meta-Cognitive Optimization Protocol) Framework represents a revolutionary approach to cognitive enhancement and system optimization. This supplement builds upon the foundational principles established in Volume I, introducing advanced methodologies for entropy reduction, confidence calibration, and dialectical synthesis.
 
+> **Canonical expansion.** As of 2026-04-26 the repository uses a single
+> expansion of MCOP — **Meta-Cognitive Optimization Protocol**. See
+> [`PLAIN_ENGLISH_GLOSSARY.md` §1](../../PLAIN_ENGLISH_GLOSSARY.md#mcop) for
+> the historical variants ("Multi-Cognitive Optimization Protocol",
+> "Meta-Cognitive Operating Protocol") that pre-2026-04-26 documents may
+> still display.
+
 ### Core Principles
 
 #### 1. Entropy Minimization Protocol
@@ -13,10 +20,16 @@ The MCOP (Meta-Cognitive Optimization Protocol) Framework represents a revolutio
 - **Gamma Calibration**: 0.10 ± 0.02
 
 #### 2. Active Kernel Architecture
-- **NOVA-NEO Encoder**: Primary cognitive processing unit
-- **Stigmergy v5 Resonance**: Environmental feedback system
-- **Holographic Etch Trigger**: Memory formation and retrieval
-- **Bootstrap Compression Kernel**: Efficiency optimization
+- **NOVA-NEO Encoder**: Primary cognitive processing unit *(shipping —
+  `src/core/novaNeoEncoder.ts`, `mcop_package/mcop/triad/`)*
+- **Stigmergy v5 Resonance**: Environmental feedback system *(shipping —
+  `src/core/stigmergyV5.ts`)*
+- **Holographic Etch Trigger**: Memory formation and retrieval *(shipping —
+  `src/core/holographicEtch.ts`)*
+- **Bootstrap Compression Kernel**: Efficiency optimization *(**conceptual
+  only** — design vocabulary in this supplement; no counterpart in
+  `src/core/` or `mcop_package/mcop/`. None of the deterministic-triad
+  guarantees depend on it.)*
 
 #### 3. Dialectical Synthesis Framework
 - **Thesis**: Initial proposition or state
@@ -62,7 +75,16 @@ The MCOP (Meta-Cognitive Optimization Protocol) Framework represents a revolutio
 - Quantum-parallel retrieval
 - Contextual pattern matching
 
-#### Bootstrap Compression Algorithm
+#### Bootstrap Compression Algorithm *(conceptual)*
+
+> **Status: design concept, not a shipping module.** The Bootstrap
+> Compression Algorithm (and the related Bootstrap Compression Kernel above)
+> describes a future direction for instantiation-time efficiency. There is
+> no corresponding class in `src/core/` or `mcop_package/mcop/`, and the
+> deterministic triad (encoder → resonance memory → etch) is fully
+> functional and audit-replayable without it. See
+> [`PLAIN_ENGLISH_GLOSSARY.md` §7](../../PLAIN_ENGLISH_GLOSSARY.md#bootstrap-compression-kernel).
+
 - Maximum efficiency in minimum steps
 - Redundant operation elimination
 - Resource optimization

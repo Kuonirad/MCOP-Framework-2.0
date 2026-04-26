@@ -1,6 +1,6 @@
 # mcop
 
-`mcop` is the Python distribution for the Meta-Cognitive Operating Protocol, a
+`mcop` is the Python distribution for the Meta-Cognitive Optimization Protocol, a
 reasoning framework for multi-modal hypothesis generation, recursive refinement,
 and evidence-grounded synthesis.
 

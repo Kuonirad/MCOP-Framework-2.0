@@ -4,7 +4,7 @@
 [![provenance](https://img.shields.io/badge/npm-provenance-blue)](https://docs.npmjs.com/generating-provenance-statements)
 [![license](https://img.shields.io/npm/l/@kullailabs/mcop-core.svg)](./LICENSE)
 
-Core primitives for the **Meta-Cognitive Operating Protocol (MCOP)** — a deterministic, auditable, provenance-tracked reasoning substrate for AI agents.
+Core primitives for the **Meta-Cognitive Optimization Protocol (MCOP)** — a deterministic, auditable, provenance-tracked reasoning substrate for AI agents.
 
 Published with [npm provenance](https://docs.npmjs.com/generating-provenance-statements): every release is cryptographically linked to the exact GitHub Actions build that produced it (Sigstore transparency log).
 

@@ -26,17 +26,24 @@ adding it — the goal is **100% coverage**.
 ## 1. Framework / Branding
 
 ### MCOP
-Used throughout the repo with **three slightly different expansions**:
+**Canonical expansion (as of 2026-04-26): Meta-Cognitive Optimization Protocol.**
+Plain English: *AI cognitive optimization system.*
 
-| Expansion | Where | Plain English |
+This is now the only expansion used in `README.md`, `ARCHITECTURE.md`,
+`packages/core/`, `mcop_package/`, and the published TypeScript / Python
+package metadata. The two historical variants below are preserved here for
+discoverability — anyone searching old issues, blog posts, or pre-2026-04-26
+releases will land on this glossary entry and learn that they refer to the
+same project.
+
+| Historical variant | Last seen in | Status |
 | --- | --- | --- |
-| **Meta-Cognitive Optimization Protocol** | `README.md`, `LICENSE`, most marketing copy | System for self-improving, repeatable AI decision-making. |
-| **Multi-Cognitive Optimization Protocol** | `ARCHITECTURE.md` | Same idea, framed around multiple coordinating agents. |
-| **Meta-Cognitive Operating Protocol** | `packages/core/package.json`, `mcop_package/README.md` | Same idea, framed as an operating layer for AI workflows. |
+| **Multi-Cognitive Optimization Protocol** | `ARCHITECTURE.md` (pre-2026-04-26) | Retired — same project, framed around multiple coordinating agents. |
+| **Meta-Cognitive Operating Protocol** | `packages/core/package.json`, `mcop_package/` (pre-2026-04-26) | Retired — same project, framed as an operating layer for AI workflows. |
 
-All three refer to the same project. Treat **Meta-Cognitive Optimization
-Protocol** as the primary canonical expansion; the others are historical
-variants. Plain English: *AI cognitive optimization system*.
+Identifiers, exports, package names (`@kullailabs/mcop-core`, `mcop`), and
+the on-the-wire protocol are unchanged. Only the prose expansion of the
+acronym was consolidated.
 
 ### MCOP Framework 2.0
 Plain English: *the second-generation toolkit built on top of MCOP — a
@@ -227,8 +234,16 @@ transition hunting, perspective reversal, and distant analogy. Deterministic
 — does not call an LLM.*
 
 ### Bootstrap Compression Kernel
-Plain English: *efficiency-optimization pass referenced in the whitepaper
-supplement. Reduces redundant operations during framework instantiation.*
+Plain English: *conceptual efficiency-optimization pass described in the
+whitepaper supplement. Reduces redundant operations during framework
+instantiation.*
+
+> **Conceptual component (not a shipping class).** The Bootstrap Compression
+> Kernel is a design concept in
+> [`docs/whitepapers/MCOP_Blueprint_Supplement_Volume_II.md`](docs/whitepapers/MCOP_Blueprint_Supplement_Volume_II.md).
+> It has no direct counterpart in `src/core/` or `mcop_package/mcop/` — none
+> of the deterministic-triad guarantees depend on it. Treat it as roadmap
+> vocabulary, not a runtime primitive.
 
 ### Epistemic State (`Growing`, `Validated`, `Pruned`)
 Plain English: *the lifecycle stage of a hypothesis inside the mycelial
@@ -298,15 +313,20 @@ additive — existing consumers of the original names are unaffected.
 
 ---
 
-## 11. Uncertainties / open items
+## 11. Resolved items
 
-- `MCOP` has three different canonical expansions in the repo (see §1).
-  Consolidating to a single expansion in the next major version would
-  reduce confusion.
-- The `ROADMAP_TO_100.md` ecological framework is explicitly deprecated.
-  The contributor tiers in `CONTRIBUTOR_ONBOARDING.md` (Seedling /
-  Sapling / Canopy / Keystone) still reference that legacy model; they
-  may be updated in a future docs pass.
-- The `Bootstrap Compression Kernel` is mentioned in the whitepaper
-  supplement but has no direct counterpart in `src/core/`. It is a
-  conceptual component, not a shipping class.
+The three open items previously listed here were resolved on **2026-04-26**:
+
+- **MCOP expansion consolidated.** The canonical expansion is now
+  **Meta-Cognitive Optimization Protocol** across every doc and package
+  metadata file. See §1 for the historical variants table.
+- **Contributor tiers labeled legacy.** The `Seedling / Sapling / Canopy /
+  Keystone` tiers in `CONTRIBUTOR_ONBOARDING.md` now carry an explicit
+  legacy-disclaimer banner pointing at `GOVERNANCE.md` for the operative
+  contribution model. The tiers themselves are preserved for continuity with
+  existing recognition (avatars, prior PRs, the all-contributors record).
+- **Bootstrap Compression Kernel labeled conceptual.** Both this glossary
+  (§7) and `docs/whitepapers/MCOP_Blueprint_Supplement_Volume_II.md` now
+  explicitly mark the Bootstrap Compression Kernel as a conceptual component
+  with no shipping counterpart in `src/core/`. None of the deterministic
+  triad's functional guarantees depend on it.

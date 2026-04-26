@@ -1,5 +1,5 @@
 """
-M-COP v3.1 - Meta-Cognitive Operating Protocol
+M-COP v3.1 - Meta-Cognitive Optimization Protocol
 
 A universal reasoning framework that implements multi-modal reasoning,
 mycelial chaining, and evidence grounding for domain-agnostic problem solving.
