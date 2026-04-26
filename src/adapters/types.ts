@@ -34,6 +34,19 @@ export interface AdapterRequest<TPayload = Record<string, unknown>> {
   payload?: TPayload;
   /** Free-form metadata persisted with the trace + etch. */
   metadata?: Record<string, unknown>;
+  /**
+   * Optional pre-planned action sequence produced by the MCTS+MAB
+   * planner (`@kuonirad/mcop-framework` `MCOPMCTSPlanner.plan().bestSequence`).
+   *
+   * When supplied the adapter does **not** re-plan; it forwards the
+   * sequence verbatim to the dispatch function (or vendor SDK) and
+   * records it in trace metadata under `plannedSequence` so the entire
+   * planning trace remains Merkle-auditable end-to-end.
+   *
+   * Read-only: the adapter never mutates this field. Omit it to keep
+   * the existing reactive (non-planned) pipeline behaviour unchanged.
+   */
+  plannedSequence?: ReadonlyArray<string>;
 }
 
 /** Provenance record returned alongside every generation. */

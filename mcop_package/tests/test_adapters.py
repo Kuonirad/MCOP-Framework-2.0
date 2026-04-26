@@ -152,6 +152,38 @@ def test_higgsfield_adapter_custom_scorer_is_honoured():
     assert response.result.model == "custom-model"
 
 
+def test_higgsfield_adapter_forwards_planned_sequence_to_trace():
+    """A planner-produced action sequence must show up verbatim in
+    trace metadata for Merkle-auditable provenance, and must be absent
+    when the caller does not pass one (back-compat with the reactive
+    pipeline)."""
+
+    client = FakeHiggsfield()
+    adapter = HiggsfieldMCOPAdapter(client)
+
+    # 1. With a planned sequence — appears in trace metadata.
+    plan = ["shot:wide", "shot:close", "shot:wide"]
+    response = adapter.optimize_cinematic_video(
+        "tracking shot through a forest",
+        motion_refs=["dolly", "handheld"],
+        planned_sequence=plan,
+    )
+    assert response.merkle_root
+    # pylint: disable=protected-access
+    traces = adapter.stigmergy._traces
+    assert traces and traces[-1].metadata.get("plannedSequence") == plan
+
+    # 2. Without a planned sequence — key is absent.
+    response2 = adapter.optimize_cinematic_video(
+        "follow-up shot",
+        motion_refs=["pan"],
+    )
+    assert response2.merkle_root
+    # pylint: disable=protected-access
+    traces_after = adapter.stigmergy._traces
+    assert traces_after and "plannedSequence" not in traces_after[-1].metadata
+
+
 def test_base_adapter_requires_subclass_overrides():
     """Calling unimplemented methods on the base class must raise."""
 
