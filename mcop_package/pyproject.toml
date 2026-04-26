@@ -15,7 +15,7 @@ authors = [
 maintainers = [
   { name = "Kevin John Kull (Kuonirad)", email = "kevin@kullailabs.com" },
 ]
-license = "MIT"
+license = "BUSL-1.1"
 keywords = [
   "mcop",
   "meta-cognitive",

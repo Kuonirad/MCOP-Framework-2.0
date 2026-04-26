@@ -316,7 +316,7 @@ M-COP runs with zero external dependencies for maximum portability.
 5. Multi-agent collaborative reasoning
 
 ## License
-MIT License - See LICENSE file
+Business Source License 1.1 (BUSL 1.1) — see top-level LICENSE / NOTICE.md. Pre-2026-04-26 releases remain available under MIT (LICENSE-MIT-LEGACY).
 
 ## Contributing
 See CONTRIBUTING.md (to be created)
