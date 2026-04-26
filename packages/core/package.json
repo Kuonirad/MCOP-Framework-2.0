@@ -1,6 +1,6 @@
 {
   "name": "@kullailabs/mcop-core",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "MCOP (Meta-Cognitive Operating Protocol) core primitives — deterministic, auditable, provenance-tracked reasoning: NOVA-NEO encoder, Stigmergy v5, Holographic Etch.",
   "keywords": [
     "mcop",

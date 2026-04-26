@@ -4,6 +4,14 @@
 > publishes automatically via the existing `.github/workflows/publish-npm.yml`
 > workflow — no tokens, no manual steps.
 
+> **Status (2026-04-26):** ✅ Bootstrap complete. `@kullailabs/mcop-core@0.1.0`
+> was published from a local checkout using a short-lived granular access
+> token with the `Bypass 2FA` flag enabled. The package and `@kullailabs`
+> scope are now live on the registry, so the steps below are kept only as
+> a reference for ever needing to re-bootstrap (e.g. moving to a new scope).
+> Future releases happen automatically when a `npm-v*` GitHub Release is
+> cut, via OIDC trusted publishing — no token required.
+
 ## Why this is needed
 
 The publish workflow uses [npm Trusted Publishing](https://docs.npmjs.com/trusted-publishers)
