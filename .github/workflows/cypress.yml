@@ -19,16 +19,16 @@ jobs:
     name: Cypress against standalone production server
     runs-on: ubuntu-latest
     timeout-minutes: 25
-    # Empirically, the Next.js 16 hydration block (Error: Connection
-    # closed from /_next/static/chunks/<hash>.js) reproduces in
-    # headless Chrome on Devin VMs even against the standalone
-    # production build. Real GitHub Actions runners may behave
-    # differently, but until we have a confirming CI signal we keep
-    # this job non-blocking so PRs are not held up by an external
-    # environmental constraint. The jest + jsdom + SSR HTML inspection
-    # path remains the canonical proof-of-correctness gate. See
-    # docs/adr/2026-04-25-testing-strategy.md.
-    
+    # Cypress is a blocking gate as of PR #487 (2026-04-26). The
+    # Next.js 16 hydration block (Error: Connection closed from
+    # /_next/static/chunks/<hash>.js) reproduces in headless Chrome
+    # on Devin VMs but does NOT reproduce on real GitHub-hosted
+    # runners — confirmed by two consecutive green Cypress runs on
+    # main (PR #484 final run + workflow_dispatch run 24945861502).
+    # The jest + jsdom + SSR HTML inspection path remains the
+    # canonical correctness gate; Cypress is the live-browser
+    # complement that catches real-hydration regressions the
+    # jsdom path can't see. See docs/adr/2026-04-25-testing-strategy.md.
 
     steps:
       - name: Checkout code
