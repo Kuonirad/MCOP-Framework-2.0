@@ -8,3 +8,4 @@ export * from './vectorMath';
 export * from './tensorGuard';
 export * from './circularBuffer';
 export * from './provenanceTracer';
+export * from './planning';
