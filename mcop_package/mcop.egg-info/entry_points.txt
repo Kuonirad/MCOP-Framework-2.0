@@ -1,2 +1,0 @@
-[console_scripts]
-mcop = mcop.cli:main

@@ -25,6 +25,8 @@ cypress/downloads/
 
 # production
 /build
+dist/
+*.egg-info/
 
 # misc
 .DS_Store
