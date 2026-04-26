@@ -2,10 +2,10 @@
 
 - **Status:** Accepted
 - **Date:** 2026-04-25
-- **Updated:** 2026-04-26 — first real GH Actions Chromium signal in
-  via PR #484: 8/9 Cypress specs passed against the standalone
-  production server, hydration block did **not** reproduce on
-  GitHub-hosted runners. See "CI signal update" below.
+- **Updated:** 2026-04-26 — Cypress ratcheted to a **blocking gate**
+  on `main` after two consecutive green runs (PR #484 final run +
+  workflow_dispatch run 24945861502). Hydration block does **not**
+  reproduce on GitHub-hosted runners. See "CI signal update" below.
 - **Context owners:** MCOP audit (v10 master prompt) — Performance HUD,
   SSR LCP preload contract, Test Mode badge.
 
@@ -17,14 +17,23 @@ adoption time. Cypress booted, hydrated against
 `node .next/standalone/server.js`, and ran the full suite — the
 `Error: Connection closed` chunk-fetch failure that reproduces in
 headless Chrome on Devin VMs **does not** reproduce on
-GitHub-hosted runners. 8 of 9 specs pass; the one remaining failure
-is a real spec-level INP-flush ordering issue rather than the
-underlying hydration block.
+GitHub-hosted runners.
 
-The Cypress workflow stays at `continue-on-error: true` for one or
-two more iterations to confirm the signal is stable across reruns,
-then we ratchet to a blocking gate. The jest + jsdom + SSR HTML path
-remains the canonical correctness gate independent of that ratchet.
+PR #485 fixed the one INP spec failure surfaced by that initial
+run; PR #486 simplified that fix after the synthetic
+`visibilitychange` flush surfaced a brittle interaction with
+`web-vitals`' minified InteractionPolyfill, settling on
+`pending`-tolerant assertions that match the HUD's actual
+truth-telling contract. PR #484's final run on `Kuonirad-patch-1`
+came back fully green, and a follow-up `workflow_dispatch` run on
+`main` (24945861502) confirmed stability.
+
+**As of PR #487, Cypress is a blocking CI gate.** The
+`continue-on-error: true` modifier has been removed from
+`.github/workflows/cypress.yml`. The jest + jsdom + SSR HTML path
+remains the canonical correctness gate; Cypress is the live-browser
+complement that catches real-hydration regressions the jsdom path
+cannot see.
 
 ## Context
 
@@ -67,7 +76,7 @@ rather than replacement:
 |---|---|---|---|
 | L1 — unit / component | **jest** + jsdom | Pure logic, hooks, components, SSR HTML contract | Always, **blocking** (matrix on Node 20.x and 22.x) |
 | L1.5 — SSR HTML invariants | `scripts/verify-ssr-lcp.mjs` | LCP preload contract on the live standalone server | Always, **blocking** (inside the Cypress workflow, before Cypress runs) |
-| L2 — E2E (live browser) | **Cypress** against the **standalone production server** | Real hydration, Performance HUD interactions, self-verifying live LCP / INP / CLS / VSI | Always, **non-blocking** (`continue-on-error: true`) until we confirm whether real GitHub Actions Chromium hits the same hydration block as Devin VM headless Chrome |
+| L2 — E2E (live browser) | **Cypress** against the **standalone production server** | Real hydration, Performance HUD interactions, self-verifying live LCP / INP / CLS / VSI | Always, **blocking** (as of PR #487; previously `continue-on-error: true`) — confirmed against real GitHub Actions Chromium |
 | L3 — cross-browser (optional) | **Playwright** (not installed yet) | Future Firefox / WebKit coverage when the audit calls for it | Only when `PLAYWRIGHT_ENABLED=1` |
 
 ### What this resolves
@@ -76,14 +85,13 @@ rather than replacement:
   against the production standalone server (which strips
   Turbopack's dev hot-reload runtime) but the underlying
   Next.js 16 / headless-Chrome chunk-fetch failure still
-  reproduces locally on Devin VMs. The Cypress workflow is
-  therefore wired as a **non-blocking exploratory CI signal**
-  (`continue-on-error: true`); if real GitHub Actions Chromium
-  hydrates cleanly, we tighten the gate. If it doesn't, the
-  Cypress specs still serve as documentation of the contract
-  the HUD must satisfy and run cleanly the moment the upstream
-  issue is resolved. The jest + jsdom + SSR HTML path remains
-  the canonical correctness gate either way.
+  reproduces locally on Devin VMs. The Cypress workflow was
+  initially wired as a **non-blocking exploratory CI signal**
+  (`continue-on-error: true`) until we had a confirming GitHub
+  Actions signal. As of PR #487 the gate is **blocking** —
+  GitHub-hosted Chromium hydrates cleanly against the standalone
+  production server. The jest + jsdom + SSR HTML path remains the
+  canonical correctness gate either way.
 - **Audit caveat #2 — the SSR vs. live distinction.** The Test Mode
   badge auto-detects `live` against real Chrome (because
   `PerformanceObserver.supportedEntryTypes` is populated) and `ssr`
