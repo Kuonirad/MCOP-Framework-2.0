@@ -2,8 +2,29 @@
 
 - **Status:** Accepted
 - **Date:** 2026-04-25
+- **Updated:** 2026-04-26 — first real GH Actions Chromium signal in
+  via PR #484: 8/9 Cypress specs passed against the standalone
+  production server, hydration block did **not** reproduce on
+  GitHub-hosted runners. See "CI signal update" below.
 - **Context owners:** MCOP audit (v10 master prompt) — Performance HUD,
   SSR LCP preload contract, Test Mode badge.
+
+## CI signal update (2026-04-26)
+
+The first real GitHub Actions Chromium run (PR #484, run 24945364046,
+job 73045794107) settled the open question this ADR flagged at
+adoption time. Cypress booted, hydrated against
+`node .next/standalone/server.js`, and ran the full suite — the
+`Error: Connection closed` chunk-fetch failure that reproduces in
+headless Chrome on Devin VMs **does not** reproduce on
+GitHub-hosted runners. 8 of 9 specs pass; the one remaining failure
+is a real spec-level INP-flush ordering issue rather than the
+underlying hydration block.
+
+The Cypress workflow stays at `continue-on-error: true` for one or
+two more iterations to confirm the signal is stable across reruns,
+then we ratchet to a blocking gate. The jest + jsdom + SSR HTML path
+remains the canonical correctness gate independent of that ratchet.
 
 ## Context
 
