@@ -41,7 +41,9 @@
     "dist",
     "src",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "NOTICE.md",
+    "LICENSE-MIT-LEGACY"
   ],
   "sideEffects": false,
   "engines": {

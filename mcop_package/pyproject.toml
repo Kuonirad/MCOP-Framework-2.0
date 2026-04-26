@@ -1,10 +1,10 @@
 [build-system]
-requires = ["setuptools>=68", "wheel"]
+requires = ["setuptools>=77", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "mcop"
-version = "3.1.0"
+version = "3.1.1"
 description = "Meta-Cognitive Operating Protocol - A universal reasoning framework for multi-modal hypothesis generation, recursive refinement, and evidence-grounded synthesis."
 readme = "README.md"
 requires-python = ">=3.8"
@@ -16,6 +16,7 @@ maintainers = [
   { name = "Kevin John Kull (Kuonirad)", email = "kevin@kullailabs.com" },
 ]
 license = "BUSL-1.1"
+license-files = ["LICENSE", "NOTICE.md", "LICENSE-MIT-LEGACY"]
 keywords = [
   "mcop",
   "meta-cognitive",

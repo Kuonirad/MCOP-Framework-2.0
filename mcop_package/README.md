@@ -100,4 +100,4 @@ Each solution includes the primary response plus supporting metadata such as:
 
 ## License
 
-Business Source License 1.1 (BUSL 1.1) — see the top-level [LICENSE](../LICENSE) and [NOTICE.md](../NOTICE.md) for terms, the Change Date (2030-04-26), and the Additional Use Grant. Releases prior to 2026-04-26 remain available under MIT (see [LICENSE-MIT-LEGACY](../LICENSE-MIT-LEGACY)).
+Business Source License 1.1 (BUSL 1.1) — see [LICENSE](./LICENSE) and [NOTICE.md](./NOTICE.md) for terms, the Change Date (2030-04-26), and the Additional Use Grant. Releases prior to 2026-04-26 remain available under MIT (see [LICENSE-MIT-LEGACY](./LICENSE-MIT-LEGACY)).
