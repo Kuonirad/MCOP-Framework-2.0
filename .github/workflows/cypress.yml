@@ -28,7 +28,7 @@ jobs:
     # environmental constraint. The jest + jsdom + SSR HTML inspection
     # path remains the canonical proof-of-correctness gate. See
     # docs/adr/2026-04-25-testing-strategy.md.
-    continue-on-error: true
+    
 
     steps:
       - name: Checkout code
