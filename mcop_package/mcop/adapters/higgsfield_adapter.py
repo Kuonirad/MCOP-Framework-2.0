@@ -162,12 +162,21 @@ class HiggsfieldMCOPAdapter(BaseMCOPAdapter):
         self,
         script_segment: str,
         motion_refs: Optional[List[str]] = None,
+        *,
+        planned_sequence: Optional[List[str]] = None,
         **extras: Any,
     ) -> AdapterResponse:
         """
         Convenience facade matching the v2.1 spec example. Encodes the
         script, computes resonance against motion references, picks the
         best model and dispatches the SDK call.
+
+        ``planned_sequence`` (optional): a pre-planned action sequence
+        produced by the MCTS+MAB planner. When supplied, the value is
+        forwarded into the underlying :class:`AdapterRequest` and shows
+        up verbatim in the trace metadata under ``plannedSequence`` for
+        Merkle-auditable provenance. Omit to keep the existing reactive
+        pipeline behaviour unchanged.
         """
 
         request = HiggsfieldRequest(
@@ -178,6 +187,9 @@ class HiggsfieldMCOPAdapter(BaseMCOPAdapter):
             human_feedback=extras.pop("human_feedback", None),
             style_context=extras.pop("style_context", None),
             entropy_target=extras.pop("entropy_target", None),
+            planned_sequence=(
+                list(planned_sequence) if planned_sequence is not None else None
+            ),
         )
         return self.generate(request)
 

@@ -3,6 +3,14 @@
  * REST/MCP/HTTP creative pipeline into the MCOP triad. Copy this file
  * and override `dispatch`, `platform` and (optionally) `domainDefaults`
  * to bind a new vendor.
+ *
+ * Planner-aware dispatch: callers may attach an MCTS+MAB-produced
+ * `plannedSequence` to the inbound `AdapterRequest`. The base pipeline
+ * automatically records it in trace metadata for Merkle-auditable
+ * provenance, and the dispatch function receives the same `request`
+ * object so vendor wrappers can read `request.plannedSequence` and
+ * forward it to the vendor SDK if useful (e.g. as a multi-shot prompt
+ * plan, a continuity hint, or a per-step parameter map).
  */
 
 import {

@@ -301,4 +301,46 @@ describe('GenericProductionAdapter', () => {
     expect(response.provenance.etchHash).toMatch(/^[0-9a-f]{64}$/);
     expect(response.provenance.etchDelta).toBeGreaterThan(0);
   });
+
+  it('forwards plannedSequence into trace metadata + dispatch payload', async () => {
+    const triad = baseTriad();
+    const dispatchFn = jest.fn(async ({ request }) => ({
+      planned: [...(request.plannedSequence ?? [])],
+    }));
+    const adapter = new GenericProductionAdapter<{ planned: string[] }>({
+      ...triad,
+      platform: 'planner-aware',
+      dispatch: dispatchFn,
+    });
+    const planned = ['style:lush', 'pace:slow'] as const;
+    const response = await adapter.generate({
+      prompt: 'planner-driven dispatch',
+      plannedSequence: planned,
+    });
+    // Dispatch sees the same sequence the caller provided.
+    expect(response.result.planned).toEqual([...planned]);
+
+    // Trace metadata records the sequence verbatim for Merkle audit.
+    const recent = triad.stigmergy.getRecent(1);
+    expect(recent.length).toBe(1);
+    const recorded = recent[0].metadata as {
+      plannedSequence?: string[];
+    };
+    expect(recorded.plannedSequence).toEqual([...planned]);
+  });
+
+  it('omits plannedSequence from trace metadata when not provided', async () => {
+    const triad = baseTriad();
+    const adapter = new GenericProductionAdapter({
+      ...triad,
+      platform: 'no-planner',
+      dispatch: async () => 'ok',
+    });
+    await adapter.generate({ prompt: 'no plan here' });
+    const recent = triad.stigmergy.getRecent(1);
+    const recorded = recent[0].metadata as {
+      plannedSequence?: string[];
+    };
+    expect(recorded.plannedSequence).toBeUndefined();
+  });
 });

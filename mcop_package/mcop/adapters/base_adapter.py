@@ -71,6 +71,15 @@ class AdapterRequest:
     human_feedback: Optional[HumanFeedback] = None
     payload: Dict[str, Any] = field(default_factory=dict)
     metadata: Dict[str, Any] = field(default_factory=dict)
+    #: Optional pre-planned action sequence produced by the MCTS+MAB
+    #: planner (TypeScript ``MCOPMCTSPlanner.plan().bestSequence``). When
+    #: supplied the adapter does not re-plan; it forwards the sequence
+    #: verbatim to the vendor and records it in trace metadata under
+    #: ``plannedSequence`` so the planning trace and the dispatch trace
+    #: share a single Merkle-auditable record. Read-only: the adapter
+    #: never mutates this field. Omit to keep the existing reactive
+    #: pipeline behaviour unchanged.
+    planned_sequence: Optional[List[str]] = None
 
 
 @dataclass
@@ -426,6 +435,11 @@ class BaseMCOPAdapter:
         }
         if request.entropy_target is not None:
             trace_metadata["entropyTarget"] = request.entropy_target
+        # Mirror the TS contract: surface a planner-produced action
+        # sequence verbatim so the dispatch trace and the planning trace
+        # share a Merkle-auditable record.
+        if request.planned_sequence is not None:
+            trace_metadata["plannedSequence"] = list(request.planned_sequence)
 
         trace = self.stigmergy.record_trace(tensor, style_anchor, trace_metadata)
 

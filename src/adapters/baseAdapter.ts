@@ -125,12 +125,18 @@ export abstract class BaseAdapter<
     const etchRecord = this.etch.applyEtch(tensor, styleAnchor, etchNote);
 
     // Step 4: record the trace so future calls can resonate against it.
+    // When the caller supplied a planner-produced action sequence, we
+    // surface it verbatim in the trace metadata so the planning trace
+    // and the dispatch trace share a single Merkle-auditable record.
     const traceMetadata = {
       ...(input.metadata ?? {}),
       platform: this.platformName(),
       domain: input.domain ?? 'generic',
       ...(input.entropyTarget !== undefined
         ? { entropyTarget: input.entropyTarget }
+        : {}),
+      ...(input.plannedSequence !== undefined
+        ? { plannedSequence: [...input.plannedSequence] }
         : {}),
     };
     const trace = this.stigmergy.recordTrace(
