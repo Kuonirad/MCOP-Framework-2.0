@@ -504,6 +504,8 @@ Maintainers watch all three channels.
 
 As of 2026-04-26, this project is licensed under the **Business Source License 1.1**. By contributing to this repository, you agree that your contributions will be licensed under the same terms.
 
+By submitting a contribution you also grant **Kevin John Kull** (the sole licensor of record, GitHub `@Kuonirad`) a perpetual, irrevocable right to relicense your contribution under the Change License — currently the MIT License — on the BUSL Change Date (`2030-04-26`) documented in [`NOTICE.md`](./NOTICE.md), so that the eventual MIT transition does not require per-contributor outreach.
+
 ### Developer Certificate of Origin (DCO)
 
 To ensure clear provenance and licensing authority, we require all contributors to certify their changes via the **Developer Certificate of Origin (DCO)**. This is the same mechanism used by the Linux Kernel and many other major projects.
@@ -557,3 +559,26 @@ You can automate this by using the `-s` or `--signoff` flag with `git commit`:
 ```bash
 git commit -s -m "Your commit message"
 ```
+
+### SPDX headers (new files only)
+
+New source files SHOULD start with a single-line SPDX identifier so the
+licence is discoverable from the file alone — useful for downstream
+licence scanners and for the eventual MIT transition. Use:
+
+```ts
+// SPDX-License-Identifier: BUSL-1.1
+```
+
+```js
+// SPDX-License-Identifier: BUSL-1.1
+```
+
+```python
+# SPDX-License-Identifier: BUSL-1.1
+```
+
+A repo-wide backfill is intentionally **not** required by this protocol —
+the canonical licence statement still lives in the top-level `LICENSE`
+file. The CI `License Guard` workflow soft-warns when a *newly added*
+source file omits the header but does not fail the build for it.

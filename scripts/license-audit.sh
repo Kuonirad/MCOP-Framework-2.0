@@ -126,6 +126,43 @@ require_grep "README.md" "NOTICE.md" "README.md links NOTICE.md"
 echo "==> license-audit: public/llms.txt does not advertise stale MIT"
 require_not_grep "public/llms.txt" "- License: MIT" "public/llms.txt does not advertise stale MIT"
 
+echo "==> license-audit: SPDX headers on newly-added source files (soft-warn)"
+# Soft-only: never sets FAILED. Requires a usable git ref to diff against.
+# Honours $LICENSE_AUDIT_BASE_REF (CI sets this to the PR base) and falls back
+# to origin/main, then main, then a no-op if no ref is available (fresh
+# clones, detached HEAD, shallow CI checkouts without a base ref).
+if command -v git >/dev/null 2>&1 && git rev-parse --git-dir >/dev/null 2>&1; then
+  base_ref="${LICENSE_AUDIT_BASE_REF:-}"
+  if [[ -z "${base_ref}" ]] && git rev-parse --verify --quiet origin/main >/dev/null; then
+    base_ref="origin/main"
+  fi
+  if [[ -z "${base_ref}" ]] && git rev-parse --verify --quiet main >/dev/null; then
+    base_ref="main"
+  fi
+  if [[ -n "${base_ref}" ]]; then
+    added_sources=$(git diff --name-only --diff-filter=A "${base_ref}...HEAD" -- \
+      '*.ts' '*.tsx' '*.js' '*.mjs' '*.cjs' '*.py' 2>/dev/null || true)
+    missing=0
+    while IFS= read -r f; do
+      [[ -z "${f}" ]] && continue
+      [[ ! -f "${f}" ]] && continue
+      if ! head -n 5 -- "${f}" | grep -qF "SPDX-License-Identifier: BUSL-1.1"; then
+        printf '  ⚠ new source file missing SPDX header (soft-warn): %s\n' "${f}"
+        missing=$((missing + 1))
+      fi
+    done <<< "${added_sources}"
+    if [[ "${missing}" -eq 0 ]]; then
+      pass "all newly-added source files carry the SPDX-License-Identifier header (or none added)"
+    else
+      printf '  ℹ %d newly-added source file(s) missing SPDX header — soft-warn only, build NOT failed\n' "${missing}"
+    fi
+  else
+    pass "SPDX soft-warn skipped (no usable base ref)"
+  fi
+else
+  pass "SPDX soft-warn skipped (not a git checkout)"
+fi
+
 echo
 if [[ "${FAILED}" -ne 0 ]]; then
   echo "license-audit: FAIL" >&2
