@@ -12,5 +12,12 @@
     "confidenceFloor": 0.85,
     "persistence": "memory",
     "auditLog": true
+  },
+  "planning": {
+    "mctsBudget": 200,
+    "ucbC": 1.41421356,
+    "learnedRolloutDepth": 4,
+    "maxFanout": 16,
+    "maxDepth": 6
   }
 }
