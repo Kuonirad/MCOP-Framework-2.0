@@ -94,7 +94,13 @@ export class CircularBuffer<T> {
 
   /** Snapshot as a plain array (oldest first). O(n). */
   toArray(): T[] {
-    return Array.from(this.values());
+    if (this.count === 0) return [];
+    const out = new Array<T>(this.count);
+    const start = (this.head - this.count + this.cap) % this.cap;
+    for (let i = 0; i < this.count; i++) {
+      out[i] = this.buf[(start + i) % this.cap] as T;
+    }
+    return out;
   }
 
   /** Drop all items. O(capacity) to release references for GC. */
