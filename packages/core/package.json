@@ -55,6 +55,9 @@
     "prepack": "npm run clean && npm run build",
     "typecheck": "tsc --noEmit"
   },
+  "dependencies": {
+    "canonicalize": "^2.0.0"
+  },
   "devDependencies": {
     "@types/node": "^22.10.0",
     "rimraf": "^6.0.1",

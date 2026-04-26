@@ -3,6 +3,7 @@ import { ContextTensor } from './types';
 import { NovaNeoEncoder } from './novaNeoEncoder';
 import { StigmergyV5 } from './stigmergyV5';
 import { HolographicEtch } from './holographicEtch';
+import { canonicalDigest } from './canonicalEncoding';
 
 /**
  * Full Synthesis Provenance Tracer — composes the MCOP triad and emits a
@@ -120,7 +121,6 @@ function sha256(value: string): string {
 }
 
 function merkleHash(payload: unknown, parentHash?: string): string {
-  return createHash('sha256')
-    .update(JSON.stringify({ payload, parentHash: parentHash ?? null }))
-    .digest('hex');
+  // RFC 8785 canonical JSON: see `canonicalEncoding.ts` for rationale.
+  return canonicalDigest({ payload, parentHash: parentHash ?? null });
 }

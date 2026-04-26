@@ -42,7 +42,13 @@ classifiers = [
   "Topic :: Scientific/Engineering :: Artificial Intelligence",
   "Topic :: Text Processing :: General",
 ]
-dependencies = []
+dependencies = [
+  # RFC 8785 (JSON Canonicalization Scheme). Used by
+  # ``mcop.canonical_encoding`` to produce SHA-256 Merkle hashes that are
+  # byte-identical with the TypeScript ``canonicalize`` package, so the
+  # cross-runtime parity test can lock against a single golden roots file.
+  "rfc8785>=0.1.4",
+]
 
 [project.optional-dependencies]
 dev = ["pytest>=7", "pytest-cov>=4"]

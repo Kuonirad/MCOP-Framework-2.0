@@ -1,7 +1,7 @@
-import crypto from 'crypto';
 import { ContextTensor, EtchRecord } from './types';
 import { CircularBuffer } from './circularBuffer';
 import { cosineWithMagnitudes, magnitude } from './vectorMath';
+import { canonicalDigest } from './canonicalEncoding';
 
 export interface HolographicEtchConfig {
   /**
@@ -133,10 +133,8 @@ export class HolographicEtch {
     }
 
     const payload = { context, synthesisVector, normalizedDelta, note };
-    const hash = crypto
-      .createHash('sha256')
-      .update(JSON.stringify(payload))
-      .digest('hex');
+    // RFC 8785 canonical JSON: byte-identical with the Python parity etch.
+    const hash = canonicalDigest(payload);
     const record: EtchRecord = {
       hash,
       deltaWeight: normalizedDelta,

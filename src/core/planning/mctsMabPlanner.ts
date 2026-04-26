@@ -23,6 +23,7 @@ import type { ContextTensor } from '../types';
 import { NovaNeoEncoder } from '../novaNeoEncoder';
 import { StigmergyV5 } from '../stigmergyV5';
 import { HolographicEtch } from '../holographicEtch';
+import { canonicalDigest } from '../canonicalEncoding';
 import { UCB1Bandit } from './mab';
 import type {
   PlanResult,
@@ -348,13 +349,13 @@ function computeNodeMerkleHash(args: {
   parentHash?: string;
   tensorHash: string;
 }): string {
-  const raw = JSON.stringify({
+  // RFC 8785 canonical JSON: byte-identical across runtimes.
+  return canonicalDigest({
     id: args.id,
     action: args.action ?? null,
     parentHash: args.parentHash ?? null,
     tensorHash: args.tensorHash,
   });
-  return createHash('sha256').update(raw).digest('hex');
 }
 
 function computeRootMerkleHash(trace: ReadonlyArray<PlannerNodeSnapshot>): string {
