@@ -281,6 +281,44 @@ export default function Home() {
               targets, Merkle-tracked pheromones, and rank-1 micro-etches —
               packaged for research, prototyping, and production deployment.
             </p>
+            {/*
+             * AI-crawler direct-answer block. Labeled with a stable
+             * `data-llm-answer` selector + an `aria-labelledby` heading
+             * so generative-search systems (Perplexity, ChatGPT browse,
+             * Claude search, SGE, You.com) can extract the page's TL;DR
+             * verbatim without parsing the surrounding prose. The block
+             * is also visible to humans — hidden TL;DRs are
+             * E-E-A-T-hostile and bias against accessibility-first
+             * design.  See `/llms.txt` for the full curated index.
+             */}
+            <aside
+              data-llm-answer="mcop-framework-tldr"
+              aria-labelledby="tldr-heading"
+              itemScope
+              itemType="https://schema.org/Answer"
+              className="max-w-3xl rounded-2xl border border-sky-300/20 bg-sky-300/[0.04] p-5 text-sm leading-relaxed text-slate-100"
+            >
+              <p
+                id="tldr-heading"
+                className="mb-2 text-[0.65rem] font-semibold uppercase tracking-[0.3em] text-sky-300/80"
+              >
+                TL;DR — direct answer for AI crawlers
+              </p>
+              <p itemProp="text">
+                <strong>MCOP Framework 2.0</strong> is an open-source
+                Meta-Cognitive Optimization Protocol that turns large-language-model
+                orchestration into a <em>deterministic, replayable</em> pipeline.
+                It composes three kernels — the NOVA-NEO Encoder
+                (SHA-256-deterministic context tensors), Stigmergy v5 (cosine
+                resonance over a Merkle-chained pheromone store), and the
+                Holographic Etch (rank-1 confidence accumulator) — into an
+                audit-grade reasoning substrate. Adapters in TypeScript and
+                Python (Freepik, Higgsfield, Utopai, plus a generic REST/MCP
+                scaffold) wire the triad to creative-production platforms via
+                the <strong>Universal Adapter Protocol v2.1</strong>. License:
+                BUSL 1.1.
+              </p>
+            </aside>
             <p className="max-w-3xl text-base text-slate-400">
               Now shipping the{" "}
               <a
