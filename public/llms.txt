@@ -13,7 +13,7 @@ view of the project without crawling the entire site.
 
 ## Project facts
 - Name: MCOP Framework 2.0
-- License: MIT
+- License: BUSL-1.1 (Business Source License 1.1, MIT on Change Date 2030-04-26)
 - Repository: https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0
 - Languages: TypeScript (Next.js 16 / React 19 frontend, core kernels),
   Python 3.11+ (mycelial reasoning network, Higgsfield adapter)
