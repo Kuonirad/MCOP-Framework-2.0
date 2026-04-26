@@ -242,6 +242,18 @@ export default function Home() {
              * avoid CLS.  An `<img>` rather than `next/image` because
              * `dangerouslyAllowSVG` is intentionally false in
              * `next.config.ts`.
+             *
+             * SSR contract — React 19 auto-emits a matching
+             * `<link rel="preload" as="image" fetchPriority="high">`
+             * for any image rendered with `fetchPriority="high"`
+             * during the server pass (see
+             * https://react.dev/reference/react-dom/components/img#preloading-an-image-with-fetchpriority).
+             * The MCOP audit therefore expects `fetchPriority="high"`
+             * to appear exactly twice in the SSR HTML — once on this
+             * `<img>`, once on the auto-emitted preload `<link>`. The
+             * invariant is enforced by `verifyLCPPreload` (see
+             * `src/core/testing-utils.ts`) and by the
+             * `scripts/verify-ssr-lcp.mjs` SSR validation script.
              */}
             {/* eslint-disable-next-line @next/next/no-img-element -- see comment above */}
             <img

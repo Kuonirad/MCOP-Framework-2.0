@@ -190,4 +190,22 @@ describe('PerformanceHUD', () => {
     await screen.findByRole('region', { name: /live performance metrics/i });
     expect(screen.getByTestId('vsi-coach')).toBeInTheDocument();
   });
+
+  it('renders the Test Mode badge with SSR by default in jsdom (no real PerformanceObserver)', async () => {
+    render(<PerformanceHUD defaultOpen />);
+    await screen.findByRole('region', { name: /live performance metrics/i });
+    const badge = screen.getByTestId('performance-hud-test-mode');
+    expect(badge).toHaveAttribute('data-mode', 'ssr');
+    expect(badge).toHaveTextContent(/SSR/);
+    expect(badge).toHaveAttribute('aria-label', expect.stringMatching(/SSR/));
+  });
+
+  it('renders the Test Mode badge as Live when forced via testModeOverride', async () => {
+    render(<PerformanceHUD defaultOpen testModeOverride="live" />);
+    await screen.findByRole('region', { name: /live performance metrics/i });
+    const badge = screen.getByTestId('performance-hud-test-mode');
+    expect(badge).toHaveAttribute('data-mode', 'live');
+    expect(badge).toHaveTextContent(/Live/);
+    expect(badge).toHaveAttribute('aria-label', expect.stringMatching(/Live/));
+  });
 });
