@@ -122,6 +122,47 @@ The live Performance HUD now renders a small `Test Mode` pill next to the
 When reading a screenshot, always look at the badge first to decide whether
 the HUD numbers are real-user telemetry or test fixtures.
 
+## Cypress E2E (exploratory, non-blocking in CI)
+
+The repo also ships a Cypress layer (`cypress/e2e/`) that drives the
+standalone production server in a real browser:
+
+- `performance-hud.cy.ts` — toggle / panel / ARIA / `Test Mode` badge.
+- `self-verifying-vitals.cy.ts` — uses the HUD as the test oracle by
+  reading each metric's `aria-label` (`LCP 1.42 s good` → parsed value
+  + status), and asserts both halves against the published Core Web
+  Vitals budgets. The HUD therefore cannot publish a status that
+  contradicts its rendered value without a CI failure.
+
+**Why "exploratory":** the Next.js 16 hydration block reproduces in
+headless Chrome on Devin VMs against the standalone production build
+too, not just the Turbopack dev server. Cypress is therefore wired in
+`.github/workflows/cypress.yml` with `continue-on-error: true` until we
+have a real GitHub Actions Chromium signal that says whether the
+constraint is environment-specific or repo-wide. The jest + jsdom +
+SSR HTML inspection path remains the canonical correctness gate.
+
+Local reproduction:
+
+```bash
+pnpm build
+cp -r public .next/standalone/
+cp -r .next/static .next/standalone/.next/
+PORT=3000 node .next/standalone/server.js &
+pnpm cypress:run
+```
+
+Hybrid invocation that wraps jest + Cypress (and Playwright when
+`PLAYWRIGHT_ENABLED=1` is set):
+
+```bash
+pnpm test:hybrid   # concurrent
+pnpm test:ci       # sequential CI fallback
+```
+
+The strategy is documented in
+[`docs/adr/2026-04-25-testing-strategy.md`](../../../docs/adr/2026-04-25-testing-strategy.md).
+
 ## Where the real hydration coverage lives
 
 `jest.config.js` runs every spec under `testEnvironment: 'jsdom'`, so

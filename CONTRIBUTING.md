@@ -306,6 +306,56 @@ const html = renderToString(<RootLayout><Page /></RootLayout>);
 expect(verifyLCPPreload(html).passed).toBe(true);
 ```
 
+### Cypress E2E (exploratory live-browser layer)
+
+The repo ships an optional **Cypress** layer that drives the standalone
+production server (`node .next/standalone/server.js`) in a real browser.
+It is **additive** — the jest + jsdom + SSR HTML inspection path remains
+the canonical correctness gate. Cypress is wired as a **non-blocking
+exploratory CI signal** (`continue-on-error: true` in
+`.github/workflows/cypress.yml`) because the Next.js 16 hydration block
+described above empirically reproduces in headless Chrome against the
+standalone build too, not just the Turbopack dev server. Whether real
+GitHub Actions runners hit the same constraint is the open question
+that signal is meant to answer.
+
+The two specs encode contract assertions, not visual snapshots:
+
+- `cypress/e2e/performance-hud.cy.ts` — toggle button ARIA wiring, panel
+  open/close, three Core Web Vitals rows, the `Test Mode` badge resolves
+  to `live` against real Chrome, `Escape` closes the panel, `Alt+P`
+  re-opens it.
+- `cypress/e2e/self-verifying-vitals.cy.ts` — uses the Performance HUD
+  itself as the test oracle. Reads each metric's `aria-label`, parses
+  the formatted value back into a number, and asserts both the parsed
+  value and the rendered `good | needs-improvement | poor` status
+  against the published Core Web Vitals budgets. A status that drifts
+  from the underlying value cannot pass this spec.
+
+Local reproduction:
+
+```bash
+pnpm build
+cp -r public .next/standalone/
+cp -r .next/static .next/standalone/.next/
+PORT=3000 node .next/standalone/server.js &
+pnpm cypress:run
+```
+
+Hybrid invocation (jest + Cypress + optional Playwright):
+
+```bash
+# Concurrent (developer ergonomics)
+pnpm test:hybrid
+# Sequential (CI fallback)
+pnpm test:ci
+# Opt into Playwright once it is added
+PLAYWRIGHT_ENABLED=1 pnpm test:hybrid
+```
+
+The strategy is documented end-to-end in
+[`docs/adr/2026-04-25-testing-strategy.md`](./docs/adr/2026-04-25-testing-strategy.md).
+
 ---
 
 ## 📦 Changesets and release flow

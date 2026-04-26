@@ -16,6 +16,11 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
+    "test:ssr-lcp": "node scripts/verify-ssr-lcp.mjs",
+    "cypress:open": "cypress open",
+    "cypress:run": "cypress run",
+    "test:hybrid": "concurrently --kill-others-on-fail --names jest,cypress,playwright \"pnpm test\" \"pnpm cypress:run\" \"if [ \\\"$PLAYWRIGHT_ENABLED\\\" = '1' ]; then pnpm exec playwright test; else echo 'playwright skipped (PLAYWRIGHT_ENABLED!=1)'; fi\"",
+    "test:ci": "pnpm test && pnpm cypress:run && (if [ \"$PLAYWRIGHT_ENABLED\" = \"1\" ]; then pnpm exec playwright test; else echo 'playwright skipped (PLAYWRIGHT_ENABLED!=1)'; fi)",
     "deps:check": "pnpm outdated && pnpm audit --audit-level=moderate",
     "deps:audit": "pnpm audit --audit-level=moderate",
     "deps:update-check": "pnpm outdated",
@@ -43,6 +48,8 @@
     "@types/node": "25.0.3",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "concurrently": "^9.2.1",
+    "cypress": "^15.14.1",
     "eslint": "^9",
     "eslint-config-next": "16.2.4",
     "jest": "^30.2.0",
@@ -65,7 +72,7 @@
       "picomatch@2": "^2.3.2",
       "picomatch@4": "^4.0.4",
       "postcss@<8.5.10": "^8.5.10",
-      "uuid@<14.0.0": "^14.0.0"
+      "uuid": "^14.0.0"
     }
   }
 }
