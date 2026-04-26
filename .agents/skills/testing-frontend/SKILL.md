@@ -4,8 +4,8 @@ This repo is a Next.js 16 + React 19 + Turbopack app with a jsdom-based jest
 suite. The canonical proof-of-correctness for any **client component** change
 (anything in `src/components/*` or anything with `"use client"` at the top of
 the file) is the existing jest suite — it runs every component inside the same
-React 19 reconciler the browser uses and currently has 119 tests across 19
-suites.
+React 19 reconciler the browser uses and currently has **164 tests across 25
+suites** (post-final-audit phase).
 
 ## Commands
 
@@ -15,7 +15,7 @@ suites.
 COREPACK_ENABLE_DOWNLOAD_PROMPT=0 pnpm install
 
 # Full test suite:
-pnpm test            # → 119 passed / 119, 19 suites
+pnpm test            # → 164 passed / 164, 25 suites
 
 # Lint / typecheck / build (all enforce zero warnings):
 pnpm lint            # eslint --max-warnings 0
@@ -79,6 +79,49 @@ with `output: "standalone"`; it still serves but uses the regular `.next/`
 build artefact and not the standalone bundle. For SSR-HTML inspection (LCP
 proof) either entrypoint is fine.
 
+## Automated SSR validation (LCP preload contract)
+
+`scripts/verify-ssr-lcp.mjs` is the canonical automated check that the SSR
+HTML still satisfies the LCP preload contract:
+
+- `fetchPriority="high"` appears exactly **2** times in the SSR HTML.
+- One is the hero `<img>` (`/og-image.svg`).
+- One is the `<link rel="preload" as="image" href="/og-image.svg" fetchPriority="high">`
+  that React 19 auto-emits for any image rendered with `fetchPriority="high"`
+  during the server pass.
+
+Run it after the standalone server is live on port 3000:
+
+```bash
+node scripts/verify-ssr-lcp.mjs
+# SSR LCP preload verification
+#   target: http://localhost:3000/
+#   fetchPriority="high" count: 2 (expected 2)
+#   preload link with fetchPriority=high: true
+#   <img> with fetchPriority=high: true
+# PASS — LCP preload contract satisfied.
+```
+
+The shared `verifyLCPPreload` utility lives at `src/core/testing-utils.ts`
+and is reusable from any jest spec that produces markup via
+`react-dom/server` — see the unit tests at
+`src/__tests__/testingUtils.test.ts` for the supported HTML shapes.
+
+## The Performance HUD "Test Mode" badge
+
+The live Performance HUD now renders a small `Test Mode` pill next to the
+"Live vitals" header. The badge auto-detects the runtime via
+`PerformanceObserver.supportedEntryTypes`:
+
+- `SSR` (amber) — server render, jsdom test environment, or any browser
+  without a real `PerformanceObserver`. Metrics shown are deterministic
+  fixtures or empty.
+- `Live` (emerald) — real browser session against a real
+  `PerformanceObserver`-backed `vitalsBus`.
+
+When reading a screenshot, always look at the badge first to decide whether
+the HUD numbers are real-user telemetry or test fixtures.
+
 ## Where the real hydration coverage lives
 
 `jest.config.js` runs every spec under `testEnvironment: 'jsdom'`, so
@@ -87,11 +130,13 @@ proof) either entrypoint is fine.
 reconciler. The four UI-critical suites are:
 
 - `src/__tests__/PerformanceHUD.test.tsx` — idle mount, toggle, metric rows,
-  CLS-safe re-render gating, accessibility
+  CLS-safe re-render gating, accessibility, Test Mode badge
 - `src/__tests__/vitalsBus.test.ts` — `web-vitals` integration, replay, listener
   resilience under throw
 - `src/__tests__/WebVitalsSentinel.test.tsx` — backend POST telemetry
 - `src/__tests__/page.test.tsx` — landing-page SSR + client integration
+- `src/__tests__/testingUtils.test.ts` — `verifyLCPPreload` invariants for
+  the SSR LCP preload contract
 
 If a change passes these and CI is green, it is shippable even when the
 Devin VM cannot hydrate it in a real Chrome session.

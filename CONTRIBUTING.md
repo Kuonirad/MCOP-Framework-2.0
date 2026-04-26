@@ -239,6 +239,73 @@ mypy mcop_package
 - For performance-critical paths (encoder hot loops, resonance scoring),
   add a micro-benchmark or an O(n) reasoning paragraph in the PR body.
 
+### Browser testing constraints (Next.js 16 + Turbopack)
+
+The framework deliberately accepts a **jsdom + SSR HTML inspection** path as
+the canonical proof-of-correctness for client components. Live-Chrome
+hydration is currently blocked by a Next.js 16 / Turbopack runtime-chunk
+issue (`Error: Connection closed` from
+`/_next/static/chunks/<hash>.js` on Devin VMs and similar headless CI
+environments — both `next start` and the standalone `node .next/standalone/server.js`
+entrypoint are affected). React therefore never hydrates and no client
+component mounts in those environments. **This reproduces on `main` with no
+local changes**, so before assuming a PR broke something, verify the same
+hydration error appears on `main`.
+
+The accepted substitute for headless-browser testing is:
+
+1. **Jest under `jsdom`** — the canonical client-component test environment;
+   every spec runs against the real React 19 reconciler.
+2. **SSR HTML inspection** — `curl http://localhost:3000/ | grep -c '<selector>'`
+   proves what the browser will paint *first* (the LCP-relevant surface),
+   which is exactly what every Core Web Vitals optimisation targets.
+3. **Static source checks** — assert behavioural guarantees structurally
+   (e.g. "this file imports X and contains zero `new PerformanceObserver(...)`").
+
+The `Performance HUD` exposes a `Test Mode` badge at runtime so reviewers
+can tell at a glance whether a screenshot reflects SSR / jsdom output (`SSR`)
+or a real browser session (`Live`). See
+[`src/components/PerformanceHUD.tsx`](./src/components/PerformanceHUD.tsx).
+
+### Automated SSR validation
+
+Every PR that touches LCP-critical surfaces (the hero accent, font preloads,
+or the `<head>` shape) MUST keep `scripts/verify-ssr-lcp.mjs` green. The
+script fetches the SSR HTML of the production server and asserts the LCP
+preload contract via the shared `verifyLCPPreload` utility in
+`src/core/testing-utils.ts`:
+
+- `fetchPriority="high"` appears exactly **2** times in the SSR HTML —
+  once on the hero `<img>`, once on the matching
+  `<link rel="preload" as="image" href="/og-image.svg" fetchPriority="high">`
+  that React 19 auto-emits for any image rendered with `fetchPriority="high"`
+  during the server pass (see the
+  [React docs](https://react.dev/reference/react-dom/components/img#preloading-an-image-with-fetchpriority)).
+- The preload `<link>` and `<img>` both reference the same `href` / `src`.
+
+Run it locally against a built standalone server:
+
+```bash
+pnpm build
+cp -r public .next/standalone/
+cp -r .next/static .next/standalone/.next/
+PORT=3000 node .next/standalone/server.js &
+sleep 3
+node scripts/verify-ssr-lcp.mjs
+# PASS — LCP preload contract satisfied.
+```
+
+The same `verifyLCPPreload` utility is reusable from any jest spec that has
+already produced markup via `react-dom/server`:
+
+```ts
+import { renderToString } from "react-dom/server";
+import { verifyLCPPreload } from "@/core/testing-utils";
+
+const html = renderToString(<RootLayout><Page /></RootLayout>);
+expect(verifyLCPPreload(html).passed).toBe(true);
+```
+
 ---
 
 ## 📦 Changesets and release flow

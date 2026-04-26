@@ -1,6 +1,13 @@
 "use client";
 
-import { memo, useCallback, useEffect, useState, useTransition } from "react";
+import {
+  memo,
+  useCallback,
+  useEffect,
+  useState,
+  useSyncExternalStore,
+  useTransition,
+} from "react";
 import {
   subscribeVitals,
   type VitalName,
@@ -143,7 +150,107 @@ interface PerformanceHUDProps {
    * floating button.
    */
   readonly defaultOpen?: boolean;
+  /**
+   * Forces the rendered "Test Mode" badge into a specific state. Used
+   * by jest specs to assert both code paths without mounting twice in
+   * different environments. When omitted (production default), the
+   * badge auto-detects: SSR before hydration, "Live" once the browser
+   * has provided a non-zero `PerformanceObserver` integration.
+   */
+  readonly testModeOverride?: TestMode;
 }
+
+/**
+ * "Test Mode" describes which environment the HUD believes it is
+ * running in:
+ *   - `ssr`  — server-rendered or jsdom test render. No real browser
+ *              vitals are being captured; metrics are deterministic
+ *              fixtures or empty.
+ *   - `live` — running in a real browser tab against a real
+ *              `PerformanceObserver`-backed `vitalsBus`. Numbers
+ *              reflect actual user experience.
+ *
+ * The badge surfaces this distinction so reviewers reading a
+ * screenshot can tell at a glance whether the metrics are trustworthy
+ * end-user telemetry or a deterministic test fixture.
+ */
+export type TestMode = "ssr" | "live";
+
+/**
+ * Detect whether the HUD is currently rendering in a real browser
+ * (live mode) or under SSR / jsdom (test mode). The check runs once
+ * after hydration so the mode label reflects the *runtime*
+ * environment rather than the initial render context. We look for a
+ * `PerformanceObserver` constructor because that is the single
+ * capability the production `vitalsBus` requires; jest specs polyfill
+ * a partial subset per-suite, but never the full constructor on the
+ * real `globalThis`, so this is a reliable discriminator without a
+ * brittle UA string check.
+ */
+function detectTestMode(): TestMode {
+  if (typeof window === "undefined") return "ssr";
+  const candidate = (window as Window & {
+    PerformanceObserver?: { prototype?: unknown };
+  }).PerformanceObserver;
+  if (typeof candidate !== "function") return "ssr";
+  // A real Chrome/Firefox PerformanceObserver advertises its supported
+  // entry types via the static `supportedEntryTypes` array. jsdom's
+  // partial polyfill (when present) does not, which is the seam we
+  // use to tell the two apart.
+  const supported = (candidate as unknown as {
+    supportedEntryTypes?: ReadonlyArray<string>;
+  }).supportedEntryTypes;
+  return Array.isArray(supported) && supported.length > 0 ? "live" : "ssr";
+}
+
+/**
+ * `useSyncExternalStore` adapter for the test-mode probe. The probe
+ * has no real subscription surface (the answer is fixed for the
+ * lifetime of the page), but routing it through the store API gives
+ * us the React-approved hydration seam: SSR renders "ssr"
+ * (`getServerSnapshot`), the client snapshot runs `detectTestMode`
+ * after mount (`getSnapshot`), and React performs the switch without
+ * a `setState`-in-effect lint violation.
+ */
+const subscribeTestMode = (): (() => void) => () => undefined;
+const getTestModeServerSnapshot = (): TestMode => "ssr";
+
+function useDetectedTestMode(): TestMode {
+  return useSyncExternalStore(
+    subscribeTestMode,
+    detectTestMode,
+    getTestModeServerSnapshot,
+  );
+}
+
+/**
+ * Compact "Test Mode" pill rendered next to the "Live vitals" header.
+ * The badge is purely informational — it does not gate any
+ * functionality — so it is `aria-hidden` for the high-density label
+ * and exposes a screen-reader-friendly summary via `aria-label` on a
+ * sibling `sr-only` span.
+ */
+const TestModeBadge = memo(function TestModeBadge({ mode }: { readonly mode: TestMode }) {
+  const isLive = mode === "live";
+  const label = isLive ? "Live" : "SSR";
+  const tone = isLive
+    ? "border-emerald-400/40 bg-emerald-400/10 text-emerald-200"
+    : "border-amber-400/40 bg-amber-400/10 text-amber-200";
+  return (
+    <span
+      data-testid="performance-hud-test-mode"
+      data-mode={mode}
+      className={`ml-1 inline-flex items-center rounded-full border px-1.5 py-px text-[8px] font-semibold uppercase tracking-[0.18em] ${tone}`}
+      aria-label={
+        isLive
+          ? "Test mode: Live — metrics from real PerformanceObserver"
+          : "Test mode: SSR — metrics from server render or jsdom test"
+      }
+    >
+      {label}
+    </span>
+  );
+});
 
 /**
  * Returns `true` if the new sample would change what the HUD displays.
@@ -163,11 +270,19 @@ function isVisibleChange(
   return Math.round(prev.value) !== Math.round(next.value);
 }
 
-export default function PerformanceHUD({ defaultOpen = false }: PerformanceHUDProps = {}) {
+export default function PerformanceHUD({
+  defaultOpen = false,
+  testModeOverride,
+}: PerformanceHUDProps = {}) {
   const ready = useIdleMount();
   const [open, setOpen] = useState(defaultOpen);
   const [samples, setSamples] = useState<Partial<Record<VitalName, VitalSample>>>({});
   const [, startTransition] = useTransition();
+  // Resolve the badge label after hydration so the SSR markup never
+  // claims "Live" prematurely. `useSyncExternalStore` gives us the
+  // React-approved SSR/CSR hydration seam without a setState-in-effect.
+  const detectedTestMode = useDetectedTestMode();
+  const testMode: TestMode = testModeOverride ?? detectedTestMode;
   // 300ms trailing-edge debounce on the displayed values. Web Vitals
   // (especially CLS) can fire many sub-visible deltas per second; the
   // debounce coalesces them into one trailing reconcile so the HUD never
@@ -281,6 +396,7 @@ export default function PerformanceHUD({ defaultOpen = false }: PerformanceHUDPr
               <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-sky-300/90">
                 Live vitals
               </p>
+              <TestModeBadge mode={testMode} />
             </div>
             <p className="text-[10px] text-slate-500">Core Web Vitals · VSI</p>
           </div>
