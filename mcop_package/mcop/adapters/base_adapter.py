@@ -15,13 +15,13 @@ Adapters subclass :class:`BaseMCOPAdapter` and implement
 from __future__ import annotations
 
 import hashlib
-import json
 import math
 import time
 import uuid
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional, Sequence
 
+from mcop.canonical_encoding import canonical_digest
 from mcop.triad import (
     cosine,
     estimate_entropy,
@@ -159,12 +159,10 @@ def _now_iso() -> str:
 
 
 def _merkle_hash(payload: Any, parent_hash: Optional[str]) -> str:
-    raw = json.dumps(
-        {"payload": payload, "parentHash": parent_hash},
-        sort_keys=True,
-        separators=(",", ":"),
-    )
-    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+    # RFC 8785 canonical JSON keeps this hash byte-identical with the
+    # TypeScript stigmergy/etch/provenance hashes. See
+    # ``mcop.canonical_encoding`` for the rationale.
+    return canonical_digest({"payload": payload, "parentHash": parent_hash})
 
 
 class StigmergyStore:
@@ -284,11 +282,8 @@ class EtchLedger:
             "note": note,
         }
         record = EtchRecord(
-            hash=hashlib.sha256(
-                json.dumps(payload, sort_keys=True, separators=(",", ":")).encode(
-                    "utf-8"
-                )
-            ).hexdigest(),
+            # RFC 8785 canonical JSON: byte-identical with the TS etch.
+            hash=canonical_digest(payload),
             delta_weight=normalized,
             note=note,
             timestamp=_now_iso(),

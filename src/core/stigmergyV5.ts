@@ -1,7 +1,8 @@
-import { randomUUID, createHash } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import { ContextTensor, PheromoneTrace, ResonanceResult } from './types';
 import { cosineWithMagnitudes, magnitude } from './vectorMath';
 import { CircularBuffer } from './circularBuffer';
+import { canonicalDigest } from './canonicalEncoding';
 
 export interface StigmergyConfig {
   resonanceThreshold?: number;
@@ -18,8 +19,10 @@ export class StigmergyV5 {
   }
 
   private merkleHash(payload: unknown, parentHash?: string): string {
-    const raw = JSON.stringify({ payload, parentHash });
-    return createHash('sha256').update(raw).digest('hex');
+    // RFC 8785 canonical JSON keeps this hash byte-identical across
+    // runtimes (TS ↔ Python) and engine versions. See
+    // `canonicalEncoding.ts` for the rationale.
+    return canonicalDigest({ payload, parentHash: parentHash ?? null });
   }
 
   recordTrace(

@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { ContextTensor } from './types';
+import { canonicalDigest } from './canonicalEncoding';
 import { NovaNeoEncoder } from './novaNeoEncoder';
 import { StigmergyV5 } from './stigmergyV5';
 import { HolographicEtch } from './holographicEtch';
@@ -120,7 +121,6 @@ function sha256(value: string): string {
 }
 
 function merkleHash(payload: unknown, parentHash?: string): string {
-  return createHash('sha256')
-    .update(JSON.stringify({ payload, parentHash: parentHash ?? null }))
-    .digest('hex');
+  // RFC 8785 canonical JSON: see `canonicalEncoding.ts` for rationale.
+  return canonicalDigest({ payload, parentHash: parentHash ?? null });
 }
