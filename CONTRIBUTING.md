@@ -22,10 +22,11 @@ auditable, and easy to review.
 8. [Testing requirements](#-testing-requirements)
 9. [Changesets and release flow](#-changesets-and-release-flow)
 10. [Pull request checklist](#-pull-request-checklist)
-11. [Commit conventions](#-commit-conventions)
-12. [Security and supply chain](#-security-and-supply-chain)
-13. [Documentation expectations](#-documentation-expectations)
-14. [Getting help](#-getting-help)
+11. [Merging and production deployment](#-merging-and-production-deployment)
+12. [Commit conventions](#-commit-conventions)
+13. [Security and supply chain](#-security-and-supply-chain)
+14. [Documentation expectations](#-documentation-expectations)
+15. [Getting help](#-getting-help)
 
 ---
 
@@ -419,6 +420,68 @@ Reviewers verify:
 - Performance-sensitive code paths are benchmarked or reasoned about.
 - Provenance: PR links related issues/discussions, commit messages explain
   the *why*.
+
+---
+
+## 🚦 Merging and production deployment
+
+The `main` branch is protected by **two independent gates**: standard
+GitHub branch protection (CI checks must pass) **and** a GitHub
+*Environments*-based deployment requirement. Both must be satisfied
+before a PR can merge.
+
+### What you will see on a freshly opened PR
+
+Even with every required CI check green, GitHub will display:
+
+> ⚠️ **Merging is blocked**
+> Missing successful active production deployment.
+
+This is **not** a CI failure. It is the deployment-environment gate
+attached to `main` via repo settings → *Environments* → `production`.
+The gate is configured in GitHub's UI rather than in any
+`.github/workflows/*.yml` file, so you will not find a triggering
+workflow by grepping the repo.
+
+### How the gate is satisfied
+
+A maintainer with access to the `production` environment triggers a
+deployment against the PR's head commit (typically by approving the
+GitHub Environments review request, or by re-running the deployment
+workflow in the maintainer's separate publish pipeline). Once that
+deployment is recorded as `success`, the merge button unblocks.
+
+For regular contributors:
+
+- Make sure every required CI check is green (`build`, `test`,
+  `Cypress against standalone production server`, `Analyze` (CodeQL,
+  both languages), `Python package tests`, `npm package`,
+  `test-malicious-load`, `trojan-source-scan`, `update_release_draft`).
+- Address any review-bot comments (Devin Review, CodeQL, Dependabot).
+- Then **ping a maintainer** in the PR thread asking for the
+  production-environment deployment to be triggered. Do not attempt
+  to bypass the gate (e.g. by force-pushing or by toggling repo
+  settings) — the gate exists to keep the published artifact in
+  lock-step with `main`.
+
+### Who has the credentials
+
+- **`@Kuonirad`** holds the `production` environment approval
+  permission and the npm/PyPI publish credentials.
+- **`@KullAILABS`** is the stewarding org account that the
+  release-drafter and the published packages resolve against.
+
+If neither is available, the PR simply waits — there is no fallback
+path, by design. Crystalline determinism extends to the supply chain.
+
+### Why this gate exists
+
+The `main` branch is the source of truth for the published
+`@kullailabs/mcop-core` (npm) and `mcop-framework` (PyPI) packages,
+and for the GitHub Pages mirror at
+`https://kuonirad.github.io/KullAILABS-MCOP-Framework-2.0`. Tying
+merge to a successful deployment guarantees those public surfaces
+never drift behind a green CI but still-broken artifact build.
 
 ---
 
