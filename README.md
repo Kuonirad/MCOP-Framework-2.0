@@ -3,7 +3,7 @@
 [![CI](https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/actions/workflows/ci.yml/badge.svg)](https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/actions/workflows/codeql.yml/badge.svg)](https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/actions/workflows/codeql.yml)
 [![Releases](https://img.shields.io/github/v/release/Kuonirad/KullAILABS-MCOP-Framework-2.0?style=flat-square)](https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/releases)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](LICENSE)
+[![License: BUSL 1.1](https://img.shields.io/badge/License-BUSL%201.1-amber?style=flat-square)](LICENSE)
 [![Contributors](https://img.shields.io/github/contributors/Kuonirad/KullAILABS-MCOP-Framework-2.0?style=flat-square)](https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/graphs/contributors)
 [![Maintained](https://img.shields.io/badge/maintained-yes-brightgreen?style=flat-square)](./GOVERNANCE.md)
 
@@ -173,4 +173,11 @@ Topics: `typescript`, `nextjs`, `agent-framework`, `collective-intelligence`, `s
 Responsible disclosure details are in [SECURITY.md](SECURITY.md). No secrets belong in source; tests guard against accidental leaks.
 
 ## 🪪 License
-MIT © Kevin Kull
+
+The MCOP Framework 2.0 is licensed under the **Business Source License 1.1** (BUSL 1.1) — see [LICENSE](LICENSE). On **2030-04-26** the codebase as of that date automatically converts to the **MIT License**.
+
+- Personal, internal-business, academic, and research use is permitted.
+- Production use that competes with the Licensor's paid offerings (e.g. hosted services, embedded commercial products) requires a separate commercial license — contact kevinkull.kk@gmail.com.
+- Commits and releases prior to 2026-04-26 remain available under MIT — see [LICENSE-MIT-LEGACY](LICENSE-MIT-LEGACY) and [NOTICE.md](NOTICE.md) for the full transition story.
+
+© 2025-2026 Kevin John Kull (Kuonirad) and KullAILABS MCOP Framework contributors.
