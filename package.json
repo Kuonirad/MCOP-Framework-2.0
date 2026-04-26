@@ -17,6 +17,7 @@
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "test:ssr-lcp": "node scripts/verify-ssr-lcp.mjs",
+    "postinstall": "cypress install || true",
     "cypress:open": "cypress open",
     "cypress:run": "cypress run",
     "test:hybrid": "concurrently --kill-others-on-fail --names jest,cypress,playwright \"pnpm test\" \"pnpm cypress:run\" \"if [ \\\"$PLAYWRIGHT_ENABLED\\\" = '1' ]; then pnpm exec playwright test; else echo 'playwright skipped (PLAYWRIGHT_ENABLED!=1)'; fi\"",

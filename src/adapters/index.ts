@@ -13,3 +13,12 @@ export * from './baseAdapter';
 export * from './freepikAdapter';
 export * from './utopaiAdapter';
 export * from './genericProductionAdapter';
+
+/**
+ * Plain-English aliases — additive, non-breaking.
+ *
+ * See `PLAIN_ENGLISH_GLOSSARY.md` in the repository root for the full
+ * translation map. Original exports above remain canonical.
+ */
+export { DialecticalSynthesizer as HumanReviewRefinementLoop } from './dialecticalSynthesizer';
+export type { ProvenanceMetadata as TraceabilityRecord } from './types';

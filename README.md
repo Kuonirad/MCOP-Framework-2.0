@@ -19,6 +19,9 @@ MCOP also ships the **Universal MCOP Adapter Integration Protocol v2.1**, a SDK-
 - **Hardware-aware**: Clear seams for GPU/FPGA acceleration of rank-1 updates and similarity search.
 - **Human-in-the-loop**: Dialectical synthesis loop that embraces audits, overrides, and replay.
 
+## 📖 Plain-English Glossary
+New to the framework vocabulary? [PLAIN_ENGLISH_GLOSSARY.md](PLAIN_ENGLISH_GLOSSARY.md) translates every custom term (NOVA-NEO, Stigmergy, Holographic Etch, pheromone traces, dialectical synthesis, P_GoT, the ROADMAP's ecological metaphors, etc.) into plain English and documents the additive code aliases (`SharedTraceMemoryV5`, `ContextTensorEncoder`, `ChangeAuditLogger`, `HumanReviewRefinementLoop`, `MemoryTraceRecord`, `TraceabilityRecord`) that resolve to the same constructs as their canonical names.
+
 ## 📐 Architecture
 See [ARCHITECTURE.md](ARCHITECTURE.md) for diagrams and data flows.
 
