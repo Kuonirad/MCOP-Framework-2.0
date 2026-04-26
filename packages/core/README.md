@@ -85,4 +85,6 @@ All primitives are fully typed. Key exports:
 
 ## License
 
-MIT © Kevin John Kull (Kuonirad) and KullAILABS MCOP Framework contributors.
+Business Source License 1.1 (BUSL 1.1) — see the top-level [LICENSE](../../LICENSE) and [NOTICE.md](../../NOTICE.md). The codebase as of the Change Date (2030-04-26) automatically converts to the MIT License. Releases prior to 2026-04-26 remain available under MIT — see [LICENSE-MIT-LEGACY](../../LICENSE-MIT-LEGACY).
+
+© 2025-2026 Kevin John Kull (Kuonirad) and KullAILABS MCOP Framework contributors.

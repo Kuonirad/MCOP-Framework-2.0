@@ -375,7 +375,7 @@ python -c "from mcop import solve; print(solve('test').content)"
 **Status**: Production Ready
 **Date**: 2025-12-19
 **Package Size**: ~103KB (compressed)
-**License**: MIT
+**License**: BUSL 1.1 (going forward; pre-2026-04-26 releases remain MIT — see top-level NOTICE.md)
 
 ================================================================================
 END OF M-COP v3.1 COMPLETE PACKAGE
