@@ -37,7 +37,7 @@ const softwareApplicationJsonLd = {
   codeRepository:
     "https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0",
   programmingLanguage: ["TypeScript", "Python"],
-  license: "https://opensource.org/licenses/MIT",
+  license: "https://mariadb.com/bsl11/",
   isAccessibleForFree: true,
   publisher: { "@id": `${SITE_URL}#organization` },
   author: { "@id": `${SITE_URL}#organization` },
@@ -510,7 +510,7 @@ export default function Home() {
           </section>
 
           <footer className="mt-8 flex flex-wrap items-center justify-between gap-4 border-t border-white/10 pt-8 text-sm text-slate-400">
-            <span>© {new Date().getFullYear()} KullAI Labs · MIT licensed</span>
+            <span>© {new Date().getFullYear()} KullAI Labs · BUSL 1.1 licensed</span>
             <div className="flex gap-4">
               <a
                 className="hover:text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 rounded focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
