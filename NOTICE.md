@@ -1,7 +1,7 @@
 # NOTICE — License transition (MIT → BUSL 1.1)
 
 The KullAILABS MCOP Framework 2.0 was originally distributed under the
-**MIT License**. As of **2026-04-26**, all *new* commits, releases,
+**MIT License**. As of **2026-04-26T03:16:27Z** (Commit: `66438ea3fc57f4af80d4e9d38f769a4e65d7839b`), all *new* commits, releases,
 and distributions of the project are licensed under the **Business
 Source License 1.1** (BUSL 1.1) contained in the top-level
 [`LICENSE`](./LICENSE) file.
@@ -25,11 +25,19 @@ a fixed Change Date**. For this project the parameters are:
 
 | Parameter | Value |
 |---|---|
-| Licensor | Kevin John Kull (GitHub: @Kuonirad) and KullAILABS MCOP Framework contributors |
+| Licensor | Kevin John Kull (GitHub: @Kuonirad) |
 | Licensed Work | KullAILABS MCOP Framework 2.0 |
 | Change Date | **2030-04-26** |
 | Change License | **MIT License** |
-| Additional Use Grant | Personal, internal-business, academic, and research use that does **not** provide the Licensed Work as a hosted or embedded commercial offering competing with the Licensor's paid offerings. Non-production use of any kind is permitted. |
+| Additional Use Grant | Personal, internal-business, academic, and research use. Non-production use of any kind is permitted. |
+
+### Prohibited Use Cases
+
+Without a separate commercial license from the Licensor, you may **NOT**:
+
+1. **Compete with Licensor**: Offer the Licensed Work, or a derivative thereof, as a hosted, managed, or software-as-a-service product that competes with Licensor's paid offerings.
+2. **Embed in Commercial Products**: Embed the Licensed Work, or a derivative thereof, in a commercial product offered to third parties.
+3. **Broaden Rights**: Redistribute the Licensed Work, or a derivative thereof, under terms that grant rights broader than those granted by the BUSL 1.1 license.
 
 In short:
 
@@ -60,8 +68,9 @@ under MIT and **the copyright in those contributions remains with
 their respective authors**. Their commits remain available under MIT
 in the git history; this relicense does not retroactively alter their
 prior grant. New contributions on or after 2026-04-26 are accepted
-under the terms of BUSL 1.1; contributors should consult
-[`CONTRIBUTING.md`](./CONTRIBUTING.md) for the contribution flow.
+under the terms of BUSL 1.1; contributors must certify their contributions
+via the Developer Certificate of Origin (DCO) as described in
+[`CONTRIBUTING.md`](./CONTRIBUTING.md).
 
 ## Commercial licensing
 
