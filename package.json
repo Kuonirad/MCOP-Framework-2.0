@@ -27,7 +27,8 @@
     "deps:update-check": "pnpm outdated",
     "eco:audit": "node scripts/eco-audit.mjs",
     "parity:check": "node scripts/parity-guardian.mjs",
-    "triad:fingerprint": "node scripts/triad-fingerprint.mjs"
+    "triad:fingerprint": "node scripts/triad-fingerprint.mjs",
+    "baseline:stigmergy": "node scripts/baselines/stigmergyResonanceBaseline.mjs"
   },
   "engines": {
     "node": ">=20.0.0",

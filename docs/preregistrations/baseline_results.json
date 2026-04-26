@@ -1,0 +1,31 @@
+{
+  "metadata": {
+    "seed": "0x4d434f50",
+    "trace_count": 10000,
+    "query_count": 1000,
+    "warmup_queries": 50,
+    "dimensions": 64,
+    "runtime": "node v22.12.0",
+    "platform": "linux-x64",
+    "timestamp_iso": "2026-04-26T20:14:22.759Z"
+  },
+  "insert_phase": {
+    "total_wall_ms": 21.14,
+    "mean_per_trace_us": 2.11
+  },
+  "query_phase": {
+    "total_wall_ms": 661.37,
+    "mean_us": 661.37,
+    "p50_us": 660.79,
+    "p95_us": 709.75,
+    "p99_us": 894.7,
+    "max_us": 1323.57,
+    "throughput_qps": 1512,
+    "non_null_results": 1000
+  },
+  "recall_ground_truth": {
+    "definition": "recall@1 of any indexed alternative is the fraction of queries whose top-1 trace id matches the linear-scan top-1 captured in baseline_ground_truth.json",
+    "ground_truth_path": "baseline_ground_truth.json",
+    "query_count": 1000
+  }
+}
