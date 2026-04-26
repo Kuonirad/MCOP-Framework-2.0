@@ -1,0 +1,52 @@
+name: License Guard
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'LICENSE'
+      - 'LICENSE-MIT-LEGACY'
+      - 'NOTICE.md'
+      - 'CONTRIBUTING.md'
+      - 'README.md'
+      - 'public/llms.txt'
+      - 'package.json'
+      - 'packages/core/LICENSE'
+      - 'packages/core/package.json'
+      - 'mcop_package/LICENSE'
+      - 'scripts/license-audit.sh'
+      - '.github/workflows/license-guard.yml'
+  pull_request:
+    paths:
+      - 'LICENSE'
+      - 'LICENSE-MIT-LEGACY'
+      - 'NOTICE.md'
+      - 'CONTRIBUTING.md'
+      - 'README.md'
+      - 'public/llms.txt'
+      - 'package.json'
+      - 'packages/core/LICENSE'
+      - 'packages/core/package.json'
+      - 'mcop_package/LICENSE'
+      - 'scripts/license-audit.sh'
+      - '.github/workflows/license-guard.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: license-guard-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    name: Verify license artefacts
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Run license audit
+        run: bash scripts/license-audit.sh
