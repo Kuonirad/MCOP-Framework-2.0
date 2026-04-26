@@ -535,6 +535,82 @@ fix(stigmergy): bound circular buffer reads to active capacity
 
 See [SECURITY.md](./SECURITY.md) for the responsible-disclosure process.
 
+### Verifying the Sigstore provenance on `@kullailabs/mcop-core`
+
+Both registry uploads use **OIDC-only trusted publishing** — no long-lived
+tokens are stored anywhere. Every release is signed by Sigstore's keyless
+signing pipeline (Fulcio short-lived cert → Rekor transparency log) and
+ships a [SLSA v1.0](https://slsa.dev/spec/v1.0/provenance) build provenance
+attestation that cryptographically binds the tarball to:
+
+- The **source repository** — `Kuonirad/KullAILABS-MCOP-Framework-2.0`.
+- The **commit / tag** — e.g. `refs/tags/npm-v0.1.1`.
+- The **workflow file** — `.github/workflows/publish-npm.yml`.
+- The **GitHub-hosted runner** — `https://github.com/actions/runner/github-hosted`.
+- The **specific run id** — e.g. `actions/runs/24964396730/attempts/1`.
+
+Read more about the underlying primitives at
+[sigstore.dev/how-it-works](https://www.sigstore.dev/how-it-works).
+
+#### One-liner verification (npm)
+
+```bash
+mkdir -p /tmp/audit && cd /tmp/audit
+echo '{"name":"audit","version":"0.0.0","private":true,"dependencies":{"@kullailabs/mcop-core":"latest"}}' > package.json
+npm install --no-audit --no-fund
+npm audit signatures
+```
+
+Expected output:
+
+```
+1 package has a verified registry signature
+1 package has a verified attestation
+```
+
+For the full attestation payload (Rekor log entry, inclusion proof,
+SLSA provenance, GitHub Actions claims):
+
+```bash
+npm audit signatures --json --include-attestations
+```
+
+#### Inspecting the SLSA provenance directly
+
+```bash
+curl -fsS "https://registry.npmjs.org/-/npm/v1/attestations/@kullailabs%2fmcop-core@LATEST_VERSION" \
+  | jq -r '.attestations[] | select(.predicateType=="https://slsa.dev/provenance/v1") | .bundle.dsseEnvelope.payload' \
+  | base64 -d \
+  | jq '.predicate.buildDefinition.externalParameters.workflow, .predicate.runDetails.metadata.invocationId'
+```
+
+This prints the `repository`, `ref`, `path` of the workflow that built the
+package, plus the GitHub Actions run URL — exactly the values listed above.
+If any of these don't match what you expect (e.g. wrong repo, unsigned tag,
+non-`main` branch), do not trust the artifact.
+
+#### PyPI parity
+
+The Python package follows the same pattern: PyPI's Trusted Publishing
+issues attestations via the same Sigstore stack. Verify with:
+
+```bash
+pip install --require-hashes --upgrade mcop  # honors PyPI's signed metadata
+```
+
+or inspect the per-release "Verified" badge on the
+[mcop project page](https://pypi.org/project/mcop/).
+
+#### Bootstrap (one-time, completed)
+
+The npm package required a single manual `npm publish` (with a short-lived
+`Bypass 2FA` granular token) before Trusted Publishing could attach to it —
+npm doesn't support PyPI's "pending publisher" pattern. That bootstrap was
+performed on `2026-04-26` for `0.1.0`; from `0.1.1` onward the workflow
+publishes via OIDC with no manual step. See
+[`packages/core/BOOTSTRAP.md`](./packages/core/BOOTSTRAP.md) for the
+historical record.
+
 ---
 
 ## 📚 Documentation expectations
