@@ -9,3 +9,4 @@ export * from './tensorGuard';
 export * from './circularBuffer';
 export * from './provenanceTracer';
 export * from './planning';
+export * from './canonicalEncoding';
