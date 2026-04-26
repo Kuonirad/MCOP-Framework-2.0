@@ -4,6 +4,33 @@ All notable changes to this project will be documented here. The format is
 based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+- **Docs consolidation: single canonical MCOP expansion.** Replaced the two
+  historical variants ("Multi-Cognitive Optimization Protocol" in
+  `ARCHITECTURE.md`, "Meta-Cognitive Operating Protocol" in
+  `packages/core/`, `mcop_package/`, and the Python CLI/demo strings) with
+  the canonical **Meta-Cognitive Optimization Protocol** across all
+  documentation and package metadata. Identifiers, exports, package names
+  (`@kullailabs/mcop-core`, `mcop`), wire formats, and the deterministic
+  triad's behavior are unchanged — this is a prose-only change.
+- **Contributor tiers labeled legacy.** `CONTRIBUTOR_ONBOARDING.md` now
+  carries an explicit legacy-disclaimer banner above the
+  `Seedling / Sapling / Canopy / Keystone` tiers, pointing at
+  `GOVERNANCE.md` for the operative contribution and maintainer model.
+  The tiers are preserved for continuity with prior recognition.
+- **Bootstrap Compression Kernel labeled conceptual.**
+  `docs/whitepapers/MCOP_Blueprint_Supplement_Volume_II.md` and
+  `PLAIN_ENGLISH_GLOSSARY.md` §7 now mark the Bootstrap Compression Kernel
+  / Algorithm as conceptual design vocabulary with no shipping counterpart
+  in `src/core/` or `mcop_package/mcop/`. None of the deterministic-triad
+  guarantees depend on it.
+- **Glossary §1 and §11 rewritten.** §1 now states the canonical expansion
+  up front and lists historical variants as a discoverability aid; §11
+  ("Uncertainties / open items") becomes "Resolved items" reflecting the
+  three changes above.
+
 ## [2.1.0] — 2026-04-19
 
 ### Added

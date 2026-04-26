@@ -224,7 +224,7 @@ def main():
     """Run all demonstrations."""
     print("\n" + "█"*70)
     print("█" + " "*22 + "M-COP v3.1 DEMO" + " "*23 + "█")
-    print("█" + " "*13 + "Meta-Cognitive Operating Protocol" + " "*13 + "█")
+    print("█" + " "*12 + "Meta-Cognitive Optimization Protocol" + " "*12 + "█")
     print("█"*70)
 
     try:

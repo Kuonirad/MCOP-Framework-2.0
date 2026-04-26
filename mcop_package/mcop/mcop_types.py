@@ -2,7 +2,7 @@
 M-COP v3.1 Core Types and Data Structures
 
 This module defines the fundamental data structures used throughout the
-M-COP (Meta-Cognitive Operating Protocol) reasoning system.
+M-COP (Meta-Cognitive Optimization Protocol) reasoning system.
 """
 
 from dataclasses import dataclass, field

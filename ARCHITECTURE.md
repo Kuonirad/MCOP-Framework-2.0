@@ -2,7 +2,13 @@
 
 ## Overview
 
-The **MCOP (Multi-Cognitive Optimization Protocol) Framework** implements collective intelligence through stigmergic coordination—a mechanism where agents coordinate through environmental traces rather than direct communication.
+The **MCOP (Meta-Cognitive Optimization Protocol) Framework** implements collective intelligence through stigmergic coordination—a mechanism where agents coordinate through environmental traces rather than direct communication.
+
+> **Canonical expansion.** Across the repository, **MCOP** expands to
+> **Meta-Cognitive Optimization Protocol**. Earlier documents and packages
+> sometimes used "Multi-Cognitive Optimization Protocol" or "Meta-Cognitive
+> Operating Protocol"; those are historical variants of the same project.
+> See [`PLAIN_ENGLISH_GLOSSARY.md`](./PLAIN_ENGLISH_GLOSSARY.md#mcop) §1.
 
 **Core Insight:** Just as ant colonies coordinate via pheromone trails, AI agents can coordinate through persistent "cognitive traces" in a shared memory substrate.
 

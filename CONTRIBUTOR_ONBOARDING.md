@@ -154,7 +154,19 @@ git push origin fix/stigmergy-empty-context
 
 ## Recognition System
 
-### Contributor Tiers (inspired by ecological succession)
+> **⚠️ Legacy model — kept for continuity, not for new decisions.**
+> The Seedling / Sapling / Canopy / Keystone tiers below are inherited from
+> the deprecated `ROADMAP_TO_100.md` ecological-succession framework. They
+> are preserved here so that prior contributor recognition (avatars,
+> shout-outs, the all-contributors record) remains stable and discoverable.
+>
+> The **operative contribution and maintainer model** lives in
+> [`GOVERNANCE.md`](./GOVERNANCE.md): lazy-consensus decision-making,
+> maintainer roster, release process, and security escalation path.
+> See [`PLAIN_ENGLISH_GLOSSARY.md` §8](./PLAIN_ENGLISH_GLOSSARY.md#8-ecosystem--roadmap-metaphors-historical-document)
+> for plain-English translations of the ecological vocabulary.
+
+### Contributor Tiers (legacy — inspired by ecological succession)
 1. **Seedling** (1-5 commits) - You're germinating! 🌱
 2. **Sapling** (6-20 commits) - Growing strong 🌿
 3. **Canopy** (21-50 commits) - Providing structure 🌳

@@ -137,7 +137,7 @@ def cmd_interactive(args) -> None:
         f"""
 {'=' * 70}
 M-COP v{__version__} Interactive Mode
-Meta-Cognitive Operating Protocol
+Meta-Cognitive Optimization Protocol
 {'=' * 70}
 
 Commands:
@@ -228,7 +228,7 @@ def cmd_info(args) -> None:
     """Handle the info command."""
     print(
         f"""
-M-COP v{__version__} - Meta-Cognitive Operating Protocol
+M-COP v{__version__} - Meta-Cognitive Optimization Protocol
 
 A universal reasoning framework implementing:
   - Multi-modal reasoning (causal, structural, selective, compositional)
@@ -252,7 +252,7 @@ Usage Examples:
 def build_parser() -> argparse.ArgumentParser:
     """Construct the CLI argument parser."""
     parser = argparse.ArgumentParser(
-        description="M-COP v3.1 - Meta-Cognitive Operating Protocol",
+        description="M-COP v3.1 - Meta-Cognitive Optimization Protocol",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:

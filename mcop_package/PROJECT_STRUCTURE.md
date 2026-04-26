@@ -1,7 +1,7 @@
 # M-COP v3.1 Project Structure
 
 ## Overview
-This document describes the complete structure and organization of the M-COP (Meta-Cognitive Operating Protocol) v3.1 reasoning system.
+This document describes the complete structure and organization of the M-COP (Meta-Cognitive Optimization Protocol) v3.1 reasoning system.
 
 ## Directory Structure
 
@@ -326,6 +326,6 @@ For questions, issues, or contributions, please open an issue on the repository.
 
 ---
 
-**M-COP v3.1** - Meta-Cognitive Operating Protocol
+**M-COP v3.1** - Meta-Cognitive Optimization Protocol
 **Status**: Production Ready
 **Last Updated**: 2025-12-19
