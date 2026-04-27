@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import PerformanceHUD from "@/components/PerformanceHUD";
 import TriadVisualizer from "./_components/TriadVisualizer";
 
@@ -423,6 +425,12 @@ export default function Home() {
               ))}
             </div>
             <div className="flex flex-wrap gap-3 text-sm font-medium">
+              <Link
+                className="rounded-full border border-violet-400/40 bg-violet-500/10 px-4 py-1.5 transition hover:border-violet-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
+                href="/dialectical"
+              >
+                Open Dialectical Studio
+              </Link>
               <a
                 className="rounded-full border border-white/20 px-4 py-1.5 transition hover:border-white/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
                 href="https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/blob/main/docs/adapters/UNIVERSAL_ADAPTER_PROTOCOL.md"
