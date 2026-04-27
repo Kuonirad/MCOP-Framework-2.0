@@ -38,8 +38,20 @@ export interface VSIPredictionState {
   readonly vsi: number;
   readonly status: VSIStatus;
   readonly trend: "improving" | "stable" | "degrading";
-  /** Predicted ms until vsi crosses 0.1.  `null` when not degrading. */
+  /**
+   * Predicted ms until `vsi` crosses into the next worse tier given the
+   * current recent rate.  `null` when the trend is not degrading, the
+   * recent slice is empty, or the session is already in the worst tier
+   * (`poor`, no further tier to predict).
+   *
+   * Semantics by current tier (when `trend === "degrading"`):
+   *   - good (vsi ≤ 0.1)  → ms until vsi reaches 0.1   (target = ni)
+   *   - ni   (vsi ≤ 0.25) → ms until vsi reaches 0.25  (target = poor)
+   *   - poor                                           → null
+   */
   readonly predictionMs: number | null;
+  /** The tier `predictionMs` is counting toward, mirroring the field above. */
+  readonly predictionTarget: VSIStatus | null;
   readonly shiftCount: number;
   readonly rootCause: VSIShiftSource | null;
   readonly sparkline: ReadonlyArray<number>;
@@ -90,7 +102,6 @@ function compute(
   let vsi = 0;
   let recentVsi = 0;
   let olderVsi = 0;
-  let olderDurationMs = 0;
   let count = 0;
   let rootCause: VSIShiftSource | null = null;
   const sparkline: number[] = [];
@@ -104,17 +115,22 @@ function compute(
       recentVsi += s.value;
     } else {
       olderVsi += s.value;
-      olderDurationMs = Math.max(olderDurationMs, recentCutoff - s.startTime);
     }
     if (s.source) rootCause = s.source;
   }
 
-  // Trend: compare recent rate (per second) to older rate. A meaningful
-  // delta requires both windows to have data; otherwise we report stable.
+  // Trend: compare recent rate (per second) to older rate.  Both rates
+  // are normalised against their *fixed slice durations* (recentMs and
+  // windowMs - recentMs) rather than the age of the oldest sample seen,
+  // which previously biased the older-rate denominator and produced
+  // spurious "improving" verdicts during shift bursts.  A meaningful
+  // delta still requires both windows to have data; otherwise we report
+  // stable.
+  const olderSliceMs = Math.max(1, opts.windowMs - opts.recentMs);
   let trend: VSIPredictionState["trend"] = "stable";
   if (recentVsi > 0 && olderVsi > 0) {
     const recentRate = recentVsi / (opts.recentMs / 1000);
-    const olderRate = olderVsi / Math.max(0.001, olderDurationMs / 1000);
+    const olderRate = olderVsi / (olderSliceMs / 1000);
     if (recentRate > olderRate * 1.25) trend = "degrading";
     else if (recentRate < olderRate * 0.75) trend = "improving";
   } else if (recentVsi > 0 && olderVsi === 0) {
@@ -125,13 +141,33 @@ function compute(
     trend = "improving";
   }
 
-  // Prediction: only meaningful when we are degrading and below 0.1.
-  // ms-until-0.1 = (0.1 - vsi) / rate(per ms)
+  // Prediction: time-to-next-tier when degrading.  Previously the
+  // prediction silently went null once the session crossed into `ni`
+  // territory, hiding the most actionable coaching window ("~3 s until
+  // POOR").  We now extrapolate to whichever threshold is next on the
+  // ladder (good → 0.1 → 0.25 → poor) so the coach keeps speaking
+  // until there is no further tier to warn about.
   let predictionMs: number | null = null;
-  if (trend === "degrading" && vsi < VSI_GOOD) {
-    const ratePerMs = recentVsi / opts.recentMs;
-    if (ratePerMs > 0) {
-      predictionMs = Math.max(0, Math.round((VSI_GOOD - vsi) / ratePerMs));
+  let predictionTarget: VSIStatus | null = null;
+  if (trend === "degrading") {
+    let nextThreshold: number | null = null;
+    if (vsi < VSI_GOOD) {
+      nextThreshold = VSI_GOOD;
+      predictionTarget = "ni";
+    } else if (vsi < VSI_POOR) {
+      nextThreshold = VSI_POOR;
+      predictionTarget = "poor";
+    }
+    if (nextThreshold !== null) {
+      const ratePerMs = recentVsi / opts.recentMs;
+      if (ratePerMs > 0) {
+        predictionMs = Math.max(
+          0,
+          Math.round((nextThreshold - vsi) / ratePerMs),
+        );
+      } else {
+        predictionTarget = null;
+      }
     }
   }
 
@@ -146,6 +182,7 @@ function compute(
     status: classify(vsi, count),
     trend,
     predictionMs,
+    predictionTarget,
     shiftCount: count,
     rootCause,
     sparkline: cappedSparkline,
@@ -157,6 +194,7 @@ const IDLE_STATE: VSIPredictionState = Object.freeze({
   status: "idle",
   trend: "stable",
   predictionMs: null,
+  predictionTarget: null,
   shiftCount: 0,
   rootCause: null,
   sparkline: [],

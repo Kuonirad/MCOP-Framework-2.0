@@ -4,6 +4,10 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { useReducedMotion } from "./useReducedMotion";
 import {
+  useStabilityHeatmap,
+  type HeatmapEntry,
+} from "./useStabilityHeatmap";
+import {
   useVSIPredictor,
   type VSIPredictionState,
   type VSIStatus,
@@ -177,6 +181,51 @@ const Sparkline = memo(function Sparkline({ values, status, reducedMotion }: Spa
   );
 });
 
+interface OffenderListProps {
+  readonly entries: ReadonlyArray<HeatmapEntry>;
+}
+
+/**
+ * Top-N stability heatmap rendered inline below the trend line.  This
+ * is the surface that turns the predictor's "what" into the engineer's
+ * "where" — a stable, deterministic ranking of offenders the user can
+ * fix one at a time.  The list is hidden entirely when no attributed
+ * shifts have occurred so it never inflates the panel for stable pages.
+ */
+const OffenderList = memo(function OffenderList({ entries }: OffenderListProps) {
+  if (entries.length === 0) return null;
+  return (
+    <div
+      className="mt-3 rounded-lg border border-white/5 bg-slate-900/40 p-2.5"
+      data-testid="vsi-offenders"
+    >
+      <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-slate-400">
+        Top offenders
+      </p>
+      <ul className="mt-1.5 space-y-1" role="list">
+        {entries.map((entry) => (
+          <li
+            key={entry.selector}
+            data-testid="vsi-offender-row"
+            data-selector={entry.selector}
+            className="flex items-center justify-between gap-2 text-[10px] text-slate-300"
+          >
+            <span
+              className="truncate font-mono text-slate-200"
+              title={`${entry.selector} (${entry.count} shift${entry.count === 1 ? "" : "s"})`}
+            >
+              {entry.selector}
+            </span>
+            <span className="font-mono tabular-nums text-slate-400">
+              {entry.value.toFixed(3)}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+});
+
 interface VSICoachProps {
   /**
    * Honour the parent panel's open state — the announcer pauses while
@@ -188,11 +237,14 @@ interface VSICoachProps {
 
 export const VSICoach = memo(function VSICoach({ open }: VSICoachProps) {
   const state = useVSIPredictor();
+  const heatmap = useStabilityHeatmap();
   const reducedMotion = useReducedMotion();
   const styles = STATUS_TONE[state.status];
   const fix = useMemo(() => buildFixSuggestion(state), [state]);
   const [copied, setCopied] = useState(false);
+  const [diagCopied, setDiagCopied] = useState(false);
   const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const diagTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   /*
    * Live-region announcement is derived in render rather than mirrored
@@ -206,12 +258,25 @@ export const VSICoach = memo(function VSICoach({ open }: VSICoachProps) {
    * hidden or the predictor is idle, we render an empty string so SR
    * users don't get progress spam from a UI they can't see.
    */
+  // Announcement copy: status + (optional) selector + (optional) imminent
+  // breach hint.  The breach phrase is suppressed when the prediction
+  // window is comfortably long (>5s) so we don't crowd the live region
+  // with low-urgency speculation, and entirely silenced for users with
+  // `prefers-reduced-motion: reduce` (cognitive-load opt-out parity
+  // with the LayoutShiftAnnouncer's quieting policy).
+  const breachPhrase =
+    !reducedMotion &&
+    state.predictionMs != null &&
+    state.predictionTarget != null &&
+    state.predictionMs <= 5_000
+      ? ` Predicted ${STATUS_LABEL[state.predictionTarget]} in ${Math.round(state.predictionMs / 100) / 10} seconds.`
+      : "";
   const announcement =
     !open || state.status === "idle"
       ? ""
       : `Visual stability ${STATUS_LABEL[state.status]}${
           state.rootCause?.selector ? ` near ${state.rootCause.selector}` : ""
-        }.`;
+        }.${breachPhrase}`;
   // `reducedMotion` still influences the sparkline below (dots vs polyline)
   // and the visual transitions; we silence the unused-var rule for the
   // announcement branch by referencing it in a stable derived attribute.
@@ -242,9 +307,73 @@ export const VSICoach = memo(function VSICoach({ open }: VSICoachProps) {
     }
   }, [fix.snippet]);
 
+  /**
+   * Build a structured diagnostics payload that engineers can paste
+   * into a bug report.  Captures the live predictor state, the top
+   * offender table, and the suggested fix snippet at the moment the
+   * button was clicked — all serialisable, no DOM references.
+   */
+  const buildDiagnosticsPayload = useCallback(() => {
+    return {
+      schema: "mcop.vsi.diagnostics/v1",
+      capturedAt: new Date().toISOString(),
+      page: typeof window === "undefined" ? null : window.location.href,
+      userAgent:
+        typeof navigator === "undefined" ? null : navigator.userAgent,
+      vsi: {
+        value: state.vsi,
+        status: state.status,
+        trend: state.trend,
+        shiftCount: state.shiftCount,
+        predictionMs: state.predictionMs,
+        predictionTarget: state.predictionTarget,
+        rootCause: state.rootCause,
+      },
+      sparkline: state.sparkline,
+      offenders: heatmap.map((h) => ({
+        selector: h.selector,
+        tagName: h.tagName,
+        accumulatedShift: Number(h.value.toFixed(4)),
+        count: h.count,
+        heightPx: h.heightPx,
+      })),
+      suggestedFix: {
+        title: fix.title,
+        wcag: fix.wcag,
+        snippet: fix.snippet,
+      },
+    };
+  }, [state, heatmap, fix]);
+
+  const handleCopyDiagnostics = useCallback(async () => {
+    if (typeof window === "undefined") return;
+    const text = JSON.stringify(buildDiagnosticsPayload(), null, 2);
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        ta.setAttribute("readonly", "");
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+      }
+      setDiagCopied(true);
+      if (diagTimerRef.current) clearTimeout(diagTimerRef.current);
+      diagTimerRef.current = setTimeout(() => setDiagCopied(false), 1800);
+    } catch {
+      /* clipboard denied — leave UI untouched */
+    }
+  }, [buildDiagnosticsPayload]);
+
   useEffect(
     () => () => {
       if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+      if (diagTimerRef.current) clearTimeout(diagTimerRef.current);
     },
     [],
   );
@@ -305,6 +434,7 @@ export const VSICoach = memo(function VSICoach({ open }: VSICoachProps) {
       <p className="mt-2 text-[10px] text-slate-400" data-testid="vsi-trend-line">
         {trendLabel}
       </p>
+      <OffenderList entries={heatmap} />
       {state.shiftCount > 0 && (
         <div className="mt-3 rounded-lg border border-white/5 bg-slate-900/40 p-2.5">
           <p className="text-[10px] font-medium text-slate-300">{fix.title}</p>
@@ -317,7 +447,26 @@ export const VSICoach = memo(function VSICoach({ open }: VSICoachProps) {
           >
             {fix.snippet}
           </pre>
-          <div className="mt-2 flex justify-end">
+          <div className="mt-2 flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={handleCopyDiagnostics}
+              data-testid="vsi-copy-diagnostics"
+              aria-label={
+                diagCopied
+                  ? "Diagnostics copied to clipboard"
+                  : "Copy VSI diagnostics report to clipboard"
+              }
+              className={[
+                "inline-flex h-7 items-center rounded-full border border-white/10 bg-white/5 px-3 text-[10px] font-medium text-slate-200",
+                "transition hover:border-sky-300/60 hover:text-white",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300",
+                "focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950",
+                "motion-reduce:transition-none",
+              ].join(" ")}
+            >
+              {diagCopied ? "Diagnostics copied" : "Copy diagnostics"}
+            </button>
             <button
               type="button"
               onClick={handleCopy}

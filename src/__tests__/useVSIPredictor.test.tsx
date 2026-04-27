@@ -37,6 +37,9 @@ function Probe() {
       <div data-testid="prediction">
         {state.predictionMs == null ? 'null' : String(state.predictionMs)}
       </div>
+      <div data-testid="prediction-target">
+        {state.predictionTarget ?? 'null'}
+      </div>
     </div>
   );
 }
@@ -106,6 +109,52 @@ describe('useVSIPredictor', () => {
   it('reports stable trend and null prediction when window is empty', () => {
     render(<Probe />);
     expect(screen.getByTestId('trend').textContent).toBe('stable');
+    expect(screen.getByTestId('prediction').textContent).toBe('null');
+    expect(screen.getByTestId('prediction-target').textContent).toBe('null');
+  });
+
+  it('targets the next tier (ni) when degrading from good', async () => {
+    render(<Probe />);
+    const now = performance.now();
+    await act(async () => {
+      __emitShiftForTests(shift({ value: 0.005, startTime: now - 5_000 }));
+    });
+    await act(async () => {
+      __emitShiftForTests(shift({ value: 0.04, startTime: now - 500 }));
+      __emitShiftForTests(shift({ value: 0.04, startTime: now - 100 }));
+    });
+    expect(screen.getByTestId('status').textContent).toBe('good');
+    expect(screen.getByTestId('prediction-target').textContent).toBe('ni');
+    expect(screen.getByTestId('prediction').textContent).not.toBe('null');
+  });
+
+  it('targets the next tier (poor) when degrading from ni', async () => {
+    // Build up vsi into the ni band (~0.15) with a degrading recent rate
+    // so the predictor extrapolates toward the 0.25 poor threshold.
+    render(<Probe />);
+    const now = performance.now();
+    await act(async () => {
+      __emitShiftForTests(shift({ value: 0.02, startTime: now - 5_000 }));
+    });
+    await act(async () => {
+      __emitShiftForTests(shift({ value: 0.07, startTime: now - 500 }));
+      __emitShiftForTests(shift({ value: 0.07, startTime: now - 100 }));
+    });
+    expect(screen.getByTestId('status').textContent).toBe('ni');
+    expect(screen.getByTestId('trend').textContent).toBe('degrading');
+    expect(screen.getByTestId('prediction-target').textContent).toBe('poor');
+    expect(parseInt(screen.getByTestId('prediction').textContent ?? '0', 10)).toBeGreaterThan(0);
+  });
+
+  it('returns null prediction target once the session is already poor', async () => {
+    render(<Probe />);
+    const now = performance.now();
+    await act(async () => {
+      __emitShiftForTests(shift({ value: 0.2, startTime: now - 200 }));
+      __emitShiftForTests(shift({ value: 0.2, startTime: now - 100 }));
+    });
+    expect(screen.getByTestId('status').textContent).toBe('poor');
+    expect(screen.getByTestId('prediction-target').textContent).toBe('null');
     expect(screen.getByTestId('prediction').textContent).toBe('null');
   });
 });
