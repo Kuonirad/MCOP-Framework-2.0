@@ -1,10 +1,14 @@
 import { HolographicEtch, NovaNeoEncoder, StigmergyV5 } from '../core';
 import {
   AdapterRequest,
+  chooseProviderByEntropyResonance,
+  defaultGrokClient,
   DialecticalSynthesizer,
   FreepikClient,
   FreepikMCOPAdapter,
   GenericProductionAdapter,
+  GrokClient,
+  GrokMCOPAdapter,
   HumanFeedback,
   HumanVetoError,
   UtopaiClient,
@@ -342,5 +346,224 @@ describe('GenericProductionAdapter', () => {
       plannedSequence?: string[];
     };
     expect(recorded.plannedSequence).toBeUndefined();
+  });
+});
+
+const grokFixture = (
+  overrides: Partial<Awaited<ReturnType<GrokClient['createCompletion']>>> = {},
+): GrokClient => ({
+  createCompletion: jest.fn(async ({ messages, options }) => ({
+    model: options.model ?? 'grok-3-mini',
+    content: `echo:${messages[messages.length - 1]?.content ?? ''}`,
+    finishReason: 'stop',
+    usage: { promptTokens: 4, completionTokens: 4, totalTokens: 8 },
+    ...overrides,
+  })),
+});
+
+describe('GrokMCOPAdapter', () => {
+  it('rejects empty prompts', async () => {
+    const adapter = new GrokMCOPAdapter({
+      ...baseTriad(),
+      client: grokFixture(),
+    });
+    await expect(adapter.generate({ prompt: '' })).rejects.toThrow(
+      /non-empty/,
+    );
+  });
+
+  it('routes refined prompt through Grok and surfaces provenance + usage', async () => {
+    const client = grokFixture();
+    const adapter = new GrokMCOPAdapter({ ...baseTriad(), client });
+
+    const response = await adapter.generateOptimizedCompletion(
+      'design a research agenda for stigmergic AI',
+      { model: 'grok-3', temperature: 0.2 },
+    );
+
+    expect(response.result.model).toBe('grok-3');
+    expect(response.result.content.startsWith('echo:')).toBe(true);
+    expect(response.result.usage?.totalTokens).toBe(8);
+    expect(client.createCompletion).toHaveBeenCalledTimes(1);
+
+    // Provenance bundle is fully populated.
+    expect(response.merkleRoot).toMatch(/^[0-9a-f]{64}$/);
+    expect(response.provenance.tensorHash).toMatch(/^[0-9a-f]{64}$/);
+    expect(response.provenance.refinedPrompt).toContain(
+      'design a research agenda',
+    );
+
+    // The refined prompt is what was dispatched, not the raw input.
+    const call = (client.createCompletion as jest.Mock).mock.calls[0][0] as {
+      messages: ReadonlyArray<{ role: string; content: string }>;
+    };
+    expect(call.messages[call.messages.length - 1].content).toBe(
+      response.provenance.refinedPrompt,
+    );
+  });
+
+  it('prepends the system prompt when supplied', async () => {
+    const client = grokFixture();
+    const adapter = new GrokMCOPAdapter({ ...baseTriad(), client });
+    await adapter.generateOptimizedCompletion('q', {
+      systemPrompt: 'You are MCOP-aware.',
+    });
+    const call = (client.createCompletion as jest.Mock).mock.calls[0][0] as {
+      messages: ReadonlyArray<{ role: string; content: string }>;
+    };
+    expect(call.messages[0]).toEqual({
+      role: 'system',
+      content: 'You are MCOP-aware.',
+    });
+  });
+
+  it('honours human veto from the dialectical synthesizer', async () => {
+    const adapter = new GrokMCOPAdapter({
+      ...baseTriad(),
+      client: grokFixture(),
+    });
+    await expect(
+      adapter.generateOptimizedCompletion(
+        'sensitive prompt',
+        {},
+        { humanFeedback: { veto: true } satisfies HumanFeedback },
+      ),
+    ).rejects.toThrow(HumanVetoError);
+  });
+
+  it('surfaces capabilities for orchestrators', async () => {
+    const adapter = new GrokMCOPAdapter({
+      ...baseTriad(),
+      client: grokFixture(),
+    });
+    const caps = await adapter.getCapabilities();
+    expect(caps.platform).toBe('xai-grok');
+    expect(caps.features).toContain('entropy-resonance-routing');
+    expect(caps.models.length).toBeGreaterThan(0);
+    expect(caps.supportsAudit).toBe(true);
+  });
+});
+
+describe('defaultGrokClient', () => {
+  it('throws when no API key is available', () => {
+    const original = process.env.XAI_API_KEY;
+    delete process.env.XAI_API_KEY;
+    try {
+      expect(() => defaultGrokClient()).toThrow(/XAI_API_KEY/);
+    } finally {
+      if (original !== undefined) process.env.XAI_API_KEY = original;
+    }
+  });
+
+  const okResponse = (
+    payload: unknown,
+  ): Pick<Response, 'ok' | 'status' | 'statusText' | 'json' | 'text'> => ({
+    ok: true,
+    status: 200,
+    statusText: 'OK',
+    json: async () => payload,
+    text: async () => JSON.stringify(payload),
+  });
+
+  const errorResponse = (
+    status: number,
+    statusText: string,
+    body: string,
+  ): Pick<Response, 'ok' | 'status' | 'statusText' | 'json' | 'text'> => ({
+    ok: false,
+    status,
+    statusText,
+    json: async () => JSON.parse(body),
+    text: async () => body,
+  });
+
+  it('POSTs an OpenAI-compatible body to /chat/completions', async () => {
+    const fetchImpl = jest.fn(async () =>
+      okResponse({
+        id: 'cmpl-1',
+        model: 'grok-3-mini',
+        choices: [
+          {
+            index: 0,
+            message: { role: 'assistant', content: 'hi' },
+            finish_reason: 'stop',
+          },
+        ],
+        usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
+      }),
+    );
+    const client = defaultGrokClient({
+      apiKey: 'test-key',
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+    });
+    const result = await client.createCompletion({
+      messages: [{ role: 'user', content: 'hello' }],
+      options: { model: 'grok-3-mini', temperature: 0.1 },
+    });
+    expect(result.content).toBe('hi');
+    expect(result.usage?.totalTokens).toBe(2);
+    const calls = fetchImpl.mock.calls as unknown as Array<
+      [string, RequestInit]
+    >;
+    expect(calls.length).toBe(1);
+    const [url, init] = calls[0];
+    expect(url).toBe('https://api.x.ai/v1/chat/completions');
+    const headers = init.headers as Record<string, string>;
+    expect(headers.Authorization).toBe('Bearer test-key');
+    const body = JSON.parse(init.body as string);
+    expect(body.model).toBe('grok-3-mini');
+    expect(body.temperature).toBe(0.1);
+    expect(body.messages[0].content).toBe('hello');
+  });
+
+  it('surfaces vendor error bodies in the thrown message', async () => {
+    const fetchImpl = jest.fn(async () =>
+      errorResponse(401, 'Unauthorized', '{"error":"unauthorized"}'),
+    );
+    const client = defaultGrokClient({
+      apiKey: 'bad',
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+    });
+    await expect(
+      client.createCompletion({
+        messages: [{ role: 'user', content: 'x' }],
+        options: {},
+      }),
+    ).rejects.toThrow(/401/);
+  });
+});
+
+describe('chooseProviderByEntropyResonance', () => {
+  it('routes high-resonance prompts to local cache', () => {
+    expect(
+      chooseProviderByEntropyResonance({ entropy: 0.9, resonance: 0.85 }),
+    ).toBe('local');
+  });
+
+  it('routes novel low-resonance prompts to grok', () => {
+    expect(
+      chooseProviderByEntropyResonance({ entropy: 0.7, resonance: 0.3 }),
+    ).toBe('grok');
+  });
+
+  it('escalates very-low-confidence novel prompts to human review', () => {
+    expect(
+      chooseProviderByEntropyResonance({ entropy: 0.7, resonance: 0.05 }),
+    ).toBe('human-review');
+  });
+
+  it('keeps stable prompts local even with mid-range resonance', () => {
+    expect(
+      chooseProviderByEntropyResonance({ entropy: 0.2, resonance: 0.4 }),
+    ).toBe('local');
+  });
+
+  it('respects custom thresholds', () => {
+    expect(
+      chooseProviderByEntropyResonance(
+        { entropy: 0.3, resonance: 0.5 },
+        { noveltyEntropyFloor: 0.25, highResonanceCeiling: 0.9 },
+      ),
+    ).toBe('grok');
   });
 });
