@@ -79,7 +79,7 @@ jobs:
           exit 1
 
       - name: Run Cypress tests
-        uses: cypress-io/github-action@v6
+        uses: cypress-io/github-action@v7
         with:
           install: false
           browser: chrome
