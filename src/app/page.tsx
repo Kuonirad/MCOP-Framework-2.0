@@ -328,6 +328,7 @@ export default function Home() {
                 rel="noopener noreferrer"
               >
                 Universal MCOP Adapter Integration Protocol v2.1
+                <span className="sr-only"> (opens in a new tab)</span>
               </a>
               : a single contract that bridges the cognitive triad to Freepik,
               Higgsfield, Utopai, and any generic REST / MCP / HTTP pipeline
@@ -344,6 +345,7 @@ export default function Home() {
                 rel="noopener noreferrer"
               >
                 Read the docs
+                <span className="sr-only"> (opens in a new tab)</span>
               </a>
               <a
                 className="rounded-full border border-white/20 px-5 py-2 transition hover:border-white/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
@@ -352,6 +354,7 @@ export default function Home() {
                 rel="noopener noreferrer"
               >
                 Source on GitHub
+                <span className="sr-only"> (opens in a new tab)</span>
               </a>
               <a
                 className="rounded-full border border-white/20 px-5 py-2 transition hover:border-white/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
@@ -427,6 +430,7 @@ export default function Home() {
                 rel="noopener noreferrer"
               >
                 Read the spec
+                <span className="sr-only"> (opens in a new tab)</span>
               </a>
               <a
                 className="rounded-full border border-white/20 px-4 py-1.5 transition hover:border-white/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
@@ -435,6 +439,7 @@ export default function Home() {
                 rel="noopener noreferrer"
               >
                 Browse runnable examples
+                <span className="sr-only"> (opens in a new tab)</span>
               </a>
               <a
                 className="rounded-full border border-white/20 px-4 py-1.5 transition hover:border-white/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
@@ -443,6 +448,7 @@ export default function Home() {
                 rel="noopener noreferrer"
               >
                 TypeScript adapters
+                <span className="sr-only"> (opens in a new tab)</span>
               </a>
               <a
                 className="rounded-full border border-white/20 px-4 py-1.5 transition hover:border-white/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
@@ -451,6 +457,7 @@ export default function Home() {
                 rel="noopener noreferrer"
               >
                 Python adapters
+                <span className="sr-only"> (opens in a new tab)</span>
               </a>
             </div>
           </section>
@@ -529,7 +536,7 @@ export default function Home() {
                           target="_blank"
                           rel="noopener noreferrer"
                           itemProp="sameAs"
-                          aria-label={`${c.label}${c.verified ? " (verified third-party identity)" : ""}`}
+                          aria-label={`${c.label}${c.verified ? " (verified third-party identity)" : ""} (opens in a new tab)`}
                         >
                           {c.verified && (
                             <span
@@ -557,6 +564,7 @@ export default function Home() {
                 rel="noopener noreferrer"
               >
                 Architecture
+                <span className="sr-only"> (opens in a new tab)</span>
               </a>
               <a
                 className="hover:text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 rounded focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
@@ -565,6 +573,7 @@ export default function Home() {
                 rel="noopener noreferrer"
               >
                 Security
+                <span className="sr-only"> (opens in a new tab)</span>
               </a>
               <a
                 className="hover:text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 rounded focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
@@ -573,6 +582,7 @@ export default function Home() {
                 rel="noopener noreferrer"
               >
                 Contributing
+                <span className="sr-only"> (opens in a new tab)</span>
               </a>
             </div>
           </footer>
