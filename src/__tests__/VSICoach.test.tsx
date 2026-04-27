@@ -106,4 +106,69 @@ describe('VSICoach', () => {
     const announcer = screen.getByTestId('vsi-announcer');
     expect(announcer.textContent).toBe('');
   });
+
+  it('renders the top-offenders list once attributed shifts arrive', async () => {
+    render(<VSICoach open />);
+    expect(screen.queryByTestId('vsi-offenders')).not.toBeInTheDocument();
+    await act(async () => {
+      emit(0.05, { tagName: 'img', selector: 'img.hero', heightPx: 400 });
+      emit(0.07, { tagName: 'iframe', selector: 'iframe.advert', heightPx: 250 });
+    });
+    // The heatmap hook coalesces bursts with a 250ms trailing-edge poll,
+    // so flush the timer to let the second-emission recompute land.
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 350));
+    });
+    expect(screen.getByTestId('vsi-offenders')).toBeInTheDocument();
+    const rows = screen.getAllByTestId('vsi-offender-row');
+    // Highest accumulated shift first.
+    expect(rows[0].dataset.selector).toBe('iframe.advert');
+    expect(rows[1].dataset.selector).toBe('img.hero');
+  });
+
+  it('does not render the offenders list for unattributed shift storms', async () => {
+    render(<VSICoach open />);
+    await act(async () => {
+      emit(0.5);
+    });
+    // VSI is poor, but no source → nothing to fix-rank.
+    expect(screen.getByTestId('vsi-coach')).toHaveAttribute(
+      'data-vsi-status',
+      'poor',
+    );
+    expect(screen.queryByTestId('vsi-offenders')).not.toBeInTheDocument();
+  });
+
+  it('exposes a Copy diagnostics button that emits a structured JSON report', async () => {
+    const writeText = jest.fn<Promise<void>, [string]>(() => Promise.resolve());
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText },
+    });
+    render(<VSICoach open />);
+    await act(async () => {
+      emit(0.05, { tagName: 'img', selector: 'img.hero', heightPx: 400 });
+    });
+    // Allow the heatmap's trailing-edge recompute (250ms) to flush so
+    // the diagnostics payload includes the offender row.
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 350));
+    });
+    const button = screen.getByTestId('vsi-copy-diagnostics');
+    expect(button).toHaveAttribute(
+      'aria-label',
+      'Copy VSI diagnostics report to clipboard',
+    );
+    await act(async () => {
+      fireEvent.click(button);
+    });
+    expect(writeText).toHaveBeenCalledTimes(1);
+    const payload = JSON.parse(writeText.mock.calls[0]?.[0] ?? '{}');
+    expect(payload.schema).toBe('mcop.vsi.diagnostics/v1');
+    expect(payload.vsi.status).toBe('good');
+    expect(Array.isArray(payload.offenders)).toBe(true);
+    expect(payload.offenders[0].selector).toBe('img.hero');
+    expect(payload.offenders[0].count).toBe(1);
+    expect(payload.suggestedFix.snippet).toMatch(/img\.hero/);
+  });
 });

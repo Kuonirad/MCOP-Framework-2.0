@@ -26,6 +26,12 @@ const eslintConfig = [
       ".next/**",
       "out/**",
       "build/**",
+      // tsup build artefacts under workspace packages (e.g.
+      // `packages/core/dist/index.cjs`) are generated CommonJS files
+      // that intentionally use `require()` and would otherwise trip
+      // `@typescript-eslint/no-require-imports`.  Source-of-truth
+      // remains under `packages/*/src/`.
+      "**/dist/**",
       "coverage/**",
       "cypress/**",
       "next-env.d.ts",
