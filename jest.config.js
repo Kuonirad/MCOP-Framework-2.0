@@ -6,6 +6,10 @@ const config = {
     '^@/(.*)$': '<rootDir>/src/$1',
     '^next/image$': '<rootDir>/src/__mocks__/next-image.tsx',
     '^next/font/google$': '<rootDir>/src/__mocks__/next-font.ts',
+    // canonicalize@>=3 is ESM-only; ts-jest runs in CommonJS, so route the
+    // dependency through a byte-identical CJS shim for tests only. Production
+    // builds (Next.js, packages/core) continue to import the real package.
+    '^canonicalize$': '<rootDir>/tests/shims/canonicalize.cjs',
   },
   testPathIgnorePatterns: ['<rootDir>/node_modules/', '<rootDir>/.next/'],
   transform: {
