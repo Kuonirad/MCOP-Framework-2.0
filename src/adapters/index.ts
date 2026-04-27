@@ -13,6 +13,7 @@ export * from './baseAdapter';
 export * from './freepikAdapter';
 export * from './utopaiAdapter';
 export * from './genericProductionAdapter';
+export * from './grokAdapter';
 
 /**
  * Plain-English aliases — additive, non-breaking.
