@@ -23,6 +23,7 @@ export class PGoT {
   private readonly Phi = new Map<ThoughtId, ContextTensor>();
   private readonly Psi = new Map<ThoughtId, number[]>();
   private readonly Omega: EtchRecord[] = [];
+  private readonly outDegrees = new Map<ThoughtId, number>();
 
   constructor(
     encoder: NovaNeoEncoder,
@@ -65,12 +66,16 @@ export class PGoT {
     if (!this.V.has(from) || !this.V.has(to)) {
       throw new Error(`unknown thought id: ${this.V.has(from) ? to : from}`);
     }
-    const outDegree = this.E.reduce((n, e) => n + (e.from === from ? 1 : 0), 0);
-    if (outDegree >= this.maxFanout) {
+
+    // Optimization: O(1) tracking of out-degrees instead of O(E) Array.prototype.reduce() scan
+    const currentOutDegree = this.outDegrees.get(from) ?? 0;
+    if (currentOutDegree >= this.maxFanout) {
       throw new Error(`maxFanout exceeded at node ${from}`);
     }
     const edge: ThoughtEdge = { from, to, weight, kind };
     this.E.push(edge);
+    this.outDegrees.set(from, currentOutDegree + 1);
+
     return edge;
   }
 
