@@ -34,12 +34,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # NOTE: We intentionally omit `version:` here. pnpm/action-setup@v4
+      # NOTE: We intentionally omit `version:` here. pnpm/action-setup@v6
       # rejects specifying both `version:` and a `packageManager` field
       # in package.json (ERR_PNPM_BAD_PM_VERSION). The action will
       # auto-detect pnpm@9.15.0 from package.json's `packageManager`.
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -79,7 +79,7 @@ jobs:
           exit 1
 
       - name: Run Cypress tests
-        uses: cypress-io/github-action@v6
+        uses: cypress-io/github-action@v7
         with:
           install: false
           browser: chrome
@@ -88,7 +88,7 @@ jobs:
 
       - name: Upload Cypress screenshots on failure
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: cypress-screenshots
           path: cypress/screenshots
