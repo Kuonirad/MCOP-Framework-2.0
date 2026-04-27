@@ -30,3 +30,6 @@
 ## 2025-04-25 - Generator performance overhead
 **Learning:** Generator functions (like `*values()`) create significant allocation and iteration overhead in hot loops compared to native callbacks or simple `for` loops. In V8 (Node.js), iterating a circular buffer via a generator took ~780ms compared to ~125ms using a `forEach` callback for the same workload (a ~6x slowdown).
 **Action:** In high-frequency hot paths (like Stigmergy `getResonance` checks), use `forEach` with a callback or index-based retrieval instead of exposing and iterating over generator functions.
+## 2025-12-19 - [O(E) vs O(1) in Graph Edge Insertion]
+**Learning:** In `PGoT`, tracking the out-degree of nodes by iterating over the entire edges array `this.E.reduce(...)` during each `addEdge` operation scales to O(E²) and creates significant overhead as the graph grows. Using an O(1) Map (`outDegrees`) drops `addEdge` overhead considerably. In benchmarks, 10,000 insertions took 230ms with O(E) compared to 8ms with O(1).
+**Action:** When inserting edges into a large graph tracking fanout or degree, always maintain the degree via a fast lookup map rather than recomputing it continuously via array scans.
