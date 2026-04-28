@@ -18,6 +18,11 @@
 !lib/
 !app/
 
+# Allow data files imported at build time by the Next app.
+# The /benchmarks page does `import results from "../../../docs/benchmarks/results.json"`,
+# so the snapshot has to be in the build context. Markdown under docs/ stays excluded.
+!docs/benchmarks/results.json
+
 # Ignore within allowed directories
 **/.DS_Store
 **/*.log
