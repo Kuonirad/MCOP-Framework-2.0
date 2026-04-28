@@ -28,6 +28,7 @@
     "eco:audit": "node scripts/eco-audit.mjs",
     "parity:check": "node scripts/parity-guardian.mjs",
     "triad:fingerprint": "node scripts/triad-fingerprint.mjs",
+    "audit:placement": "node scripts/placement-linter.mjs",
     "baseline:stigmergy": "node scripts/baselines/stigmergyResonanceBaseline.mjs"
   },
   "engines": {
