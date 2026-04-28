@@ -56,6 +56,7 @@ Shipped adapters:
 | **Utopai** | TypeScript | Long-form narrative film engine | [`src/adapters/utopaiAdapter.ts`](src/adapters/utopaiAdapter.ts) |
 | **xAI / Grok** | TypeScript | LLM chat completions + entropy/resonance routing | [`src/adapters/grokAdapter.ts`](src/adapters/grokAdapter.ts) |
 | **Devin Sub-Agents** | TypeScript | Researcher → Coder → Reviewer orchestration with Merkle-rooted audit chain | [`src/adapters/devinOrchestratorAdapter.ts`](src/adapters/devinOrchestratorAdapter.ts) |
+| **Linear + Slack via MCP** | TypeScript | Entropy/resonance-routed on-call orchestration; auto audit-anchor comments on every Linear issue | [`src/adapters/linearSlackOrchestratorAdapter.ts`](src/adapters/linearSlackOrchestratorAdapter.ts) |
 | **Generic Production** | TypeScript | 20-line scaffold for any REST / MCP / HTTP pipeline | [`src/adapters/genericProductionAdapter.ts`](src/adapters/genericProductionAdapter.ts) |
 
 Live integration tracker: [`INTEGRATIONS.md`](INTEGRATIONS.md).
