@@ -14,6 +14,7 @@ export * from './freepikAdapter';
 export * from './utopaiAdapter';
 export * from './genericProductionAdapter';
 export * from './grokAdapter';
+export * from './devinOrchestratorAdapter';
 
 /**
  * Plain-English aliases — additive, non-breaking.

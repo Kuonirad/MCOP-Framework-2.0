@@ -3,6 +3,7 @@ import {
   AdapterRequest,
   chooseProviderByEntropyResonance,
   defaultGrokClient,
+  DevinOrchestratorAdapter,
   DialecticalSynthesizer,
   FreepikClient,
   FreepikMCOPAdapter,
@@ -11,6 +12,9 @@ import {
   GrokMCOPAdapter,
   HumanFeedback,
   HumanVetoError,
+  mockSubAgentClient,
+  runResearcherCoderReviewer,
+  SubAgentClient,
   UtopaiClient,
   UtopaiMCOPAdapter,
 } from '../adapters';
@@ -565,5 +569,243 @@ describe('chooseProviderByEntropyResonance', () => {
         { noveltyEntropyFloor: 0.25, highResonanceCeiling: 0.9 },
       ),
     ).toBe('grok');
+  });
+});
+
+const devinFixture = (
+  overrides: Partial<{
+    researcher: string;
+    coder: string;
+    reviewer: string;
+  }> = {},
+): SubAgentClient => {
+  return mockSubAgentClient({
+    responders: {
+      researcher: ({ prompt }) => ({
+        role: 'researcher',
+        output: overrides.researcher ?? `RESEARCH:${prompt.slice(0, 32)}`,
+        sessionUrl: 'mock://session/researcher',
+        usage: { tokensIn: 10, tokensOut: 20, tokensTotal: 30, durationMs: 100 },
+      }),
+      coder: ({ prompt }) => ({
+        role: 'coder',
+        output: overrides.coder ?? `CODE:${prompt.slice(0, 32)}`,
+        sessionUrl: 'mock://session/coder',
+        usage: { tokensIn: 12, tokensOut: 24, tokensTotal: 36, durationMs: 120 },
+      }),
+      reviewer: ({ prompt }) => ({
+        role: 'reviewer',
+        output: overrides.reviewer ?? `REVIEW:${prompt.slice(0, 32)}`,
+        sessionUrl: 'mock://session/reviewer',
+        usage: { tokensIn: 8, tokensOut: 16, tokensTotal: 24, durationMs: 80 },
+      }),
+    },
+  });
+};
+
+describe('DevinOrchestratorAdapter', () => {
+  it('reports its capability surface with the canonical roles', async () => {
+    const adapter = new DevinOrchestratorAdapter({
+      ...baseTriad(),
+      client: devinFixture(),
+    });
+    const caps = await adapter.getCapabilities();
+    expect(caps.platform).toBe('devin-suba-gent');
+    expect(caps.models).toEqual(
+      expect.arrayContaining(['researcher', 'coder', 'reviewer']),
+    );
+    expect(caps.features).toEqual(
+      expect.arrayContaining([
+        'multi-role-orchestration',
+        'mcop-triad-refinement',
+        'human-veto',
+        'resonance-cache-detection',
+      ]),
+    );
+    expect(caps.supportsAudit).toBe(true);
+  });
+
+  it('rejects empty prompts on dispatchOptimizedTask', async () => {
+    const adapter = new DevinOrchestratorAdapter({
+      ...baseTriad(),
+      client: devinFixture(),
+    });
+    await expect(
+      adapter.dispatchOptimizedTask('researcher', ''),
+    ).rejects.toThrow(/prompt must be a non-empty string/);
+  });
+
+  it('produces a Merkle-rooted ProvenanceMetadata bundle for a single dispatch', async () => {
+    const adapter = new DevinOrchestratorAdapter({
+      ...baseTriad(),
+      client: devinFixture(),
+    });
+    const response = await adapter.dispatchOptimizedTask(
+      'researcher',
+      'investigate stigmergic resonance',
+    );
+    expect(response.merkleRoot).toMatch(/^[0-9a-f]+$/);
+    expect(response.provenance.tensorHash).toMatch(/^[0-9a-f]+$/);
+    expect(response.provenance.refinedPrompt).toContain(
+      'investigate stigmergic resonance',
+    );
+    expect(response.result.role).toBe('researcher');
+    expect(response.result.sessionUrl).toBe('mock://session/researcher');
+  });
+
+  it('forwards role + options + refined prompt verbatim to the client', async () => {
+    const dispatchTask = jest.fn(
+      async (args: {
+        role: 'researcher' | 'coder' | 'reviewer' | (string & {});
+        prompt: string;
+        options: { maxTokens?: number; tags?: ReadonlyArray<string> };
+      }) => ({
+        role: args.role,
+        output: 'ok',
+        sessionUrl: null,
+        usage: null,
+      }),
+    );
+    const client: SubAgentClient = { dispatchTask };
+    const adapter = new DevinOrchestratorAdapter({
+      ...baseTriad(),
+      client,
+    });
+    await adapter.dispatchOptimizedTask(
+      'coder',
+      'implement feature X',
+      { maxTokens: 4096, tags: ['mcop'] },
+    );
+    expect(dispatchTask).toHaveBeenCalledTimes(1);
+    const calls = dispatchTask.mock.calls as unknown as Array<
+      [{ role: string; prompt: string; options: { maxTokens?: number; tags?: ReadonlyArray<string> } }]
+    >;
+    const [call] = calls[0];
+    expect(call.role).toBe('coder');
+    expect(call.prompt).toContain('implement feature X');
+    expect(call.options.maxTokens).toBe(4096);
+    expect(call.options.tags).toEqual(['mcop']);
+  });
+
+  it('honours human veto via the dialectical synthesizer', async () => {
+    const dispatchTask = jest.fn();
+    const client: SubAgentClient = {
+      dispatchTask: dispatchTask as unknown as SubAgentClient['dispatchTask'],
+    };
+    const adapter = new DevinOrchestratorAdapter({
+      ...baseTriad(),
+      client,
+    });
+    await expect(
+      adapter.dispatchOptimizedTask(
+        'researcher',
+        'risky prompt',
+        {},
+        { humanFeedback: { veto: true } as HumanFeedback },
+      ),
+    ).rejects.toBeInstanceOf(HumanVetoError);
+    expect(dispatchTask).not.toHaveBeenCalled();
+  });
+});
+
+describe('runResearcherCoderReviewer', () => {
+  it('runs all three legs in order and returns a Merkle chain', async () => {
+    const adapter = new DevinOrchestratorAdapter({
+      ...baseTriad(),
+      client: devinFixture(),
+    });
+    const report = await runResearcherCoderReviewer(adapter, {
+      task: 'add a feature flag for the visualiser',
+    });
+    expect(report.legs).toHaveLength(3);
+    expect(report.legs.map((l) => l.role)).toEqual([
+      'researcher',
+      'coder',
+      'reviewer',
+    ]);
+    for (const leg of report.legs) {
+      expect(leg.cacheHit).toBe(false);
+      expect(leg.vetoed).toBe(false);
+      expect(leg.response).not.toBeNull();
+    }
+    expect(report.merkleChain).toHaveLength(3);
+    for (const root of report.merkleChain) {
+      expect(root).toMatch(/^[0-9a-f]+$/);
+    }
+    expect(report.cacheHits).toBe(0);
+    expect(report.humanVetoes).toBe(0);
+    expect(report.totalUsage.tokensTotal).toBeGreaterThan(0);
+  });
+
+  it('records a human veto without dispatching that leg', async () => {
+    const dispatchTask = jest.fn(async (args) => ({
+      role: args.role,
+      output: 'stub',
+      sessionUrl: null,
+      usage: { tokensIn: 1, tokensOut: 1, tokensTotal: 2, durationMs: 5 },
+    }));
+    const client: SubAgentClient = { dispatchTask };
+    const adapter = new DevinOrchestratorAdapter({
+      ...baseTriad(),
+      client,
+    });
+    const report = await runResearcherCoderReviewer(adapter, {
+      task: 'deploy production hot-fix',
+      humanReview: (leg) => (leg === 'coder' ? { veto: true } : undefined),
+    });
+    expect(report.humanVetoes).toBe(1);
+    const coderLeg = report.legs.find((l) => l.role === 'coder');
+    expect(coderLeg?.vetoed).toBe(true);
+    expect(coderLeg?.response).toBeNull();
+    // Researcher + Reviewer still ran.
+    expect(dispatchTask).toHaveBeenCalledTimes(2);
+  });
+
+  it('honours rewrittenPrompt when the operator rewrites a leg', async () => {
+    const dispatchTask = jest.fn(async (args) => ({
+      role: args.role,
+      output: args.prompt,
+      sessionUrl: null,
+      usage: { tokensIn: 1, tokensOut: 1, tokensTotal: 2 },
+    }));
+    const client: SubAgentClient = { dispatchTask };
+    const adapter = new DevinOrchestratorAdapter({
+      ...baseTriad(),
+      client,
+    });
+    const report = await runResearcherCoderReviewer(adapter, {
+      task: 'investigate caching strategy',
+      humanReview: (leg) =>
+        leg === 'researcher'
+          ? { rewrittenPrompt: 'CUSTOM-RESEARCHER-PROMPT' }
+          : undefined,
+    });
+    const researcher = report.legs[0];
+    expect(researcher.response?.result.output).toBe('CUSTOM-RESEARCHER-PROMPT');
+  });
+
+  it('short-circuits to a cache hit when resonance crosses the threshold', async () => {
+    const dispatchTask = jest.fn(async (args) => ({
+      role: args.role,
+      output: `out:${args.prompt.slice(0, 8)}`,
+      sessionUrl: null,
+      usage: { tokensIn: 1, tokensOut: 1, tokensTotal: 2 },
+    }));
+    const client: SubAgentClient = { dispatchTask };
+    const adapter = new DevinOrchestratorAdapter({
+      ...baseTriad(),
+      client,
+    });
+    // Threshold of 0 forces the second leg to be classified as a cache
+    // hit since stigmergy will report a non-negative resonance after the
+    // first leg records its trace.
+    const report = await runResearcherCoderReviewer(adapter, {
+      task: 'identical task probed twice',
+      cacheResonanceThreshold: 0,
+    });
+    expect(report.cacheHits).toBeGreaterThanOrEqual(1);
+    // Cache hits should NOT increase the token usage tally.
+    const dispatchedLegs = report.legs.filter((l) => !l.cacheHit && !l.vetoed);
+    expect(dispatchTask).toHaveBeenCalledTimes(dispatchedLegs.length);
   });
 });
