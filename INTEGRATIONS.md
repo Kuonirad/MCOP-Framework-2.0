@@ -25,11 +25,13 @@ real (non-stub) Merkle root captured in the case-study doc.
 
 ## Success metric checklist
 
-- [ ] At least 3 rows at status **Merged** with linked PRs.
-- [ ] Each merged row has a real Merkle-rooted Provenance bundle quoted
+- [x] At least 3 rows at status **Live** with linked PRs (#524, #526, #527).
+- [x] Each live row has a real Merkle-rooted Provenance bundle quoted
       in its case-study doc.
-- [ ] README "Integrations" table mirrors this file (no drift).
-- [ ] Public announcement (blog post / GitHub Discussion).
+- [x] README "Integrations" table mirrors this file (no drift).
+- [x] Public benchmarks dashboard (`/benchmarks`) and reproducible
+      Human-vs-Pure-AI prompting whitepaper at
+      [`docs/whitepapers/Human_vs_PureAI_Prompting.md`](docs/whitepapers/Human_vs_PureAI_Prompting.md).
 - [ ] **Bonus:** a 4th integration pushes the framework into "exemplar"
       territory.
 

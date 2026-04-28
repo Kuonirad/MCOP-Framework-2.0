@@ -1,0 +1,257 @@
+{
+  "version": "mcop-benchmark/1.0",
+  "capturedAt": "2026-04-27T22:30:00.000Z",
+  "tasks": [
+    {
+      "id": "narrative-rewrite",
+      "domain": "narrative",
+      "humanPrompt": "Rewrite the cabin scene so the protagonist confronts her sister about the will.",
+      "goalKeywords": [
+        "cabin",
+        "sister",
+        "will",
+        "confront"
+      ]
+    },
+    {
+      "id": "cinematic-shotlist",
+      "domain": "cinematic",
+      "humanPrompt": "Generate a 6-shot list for an opening sequence set on a midnight ferry crossing.",
+      "goalKeywords": [
+        "ferry",
+        "midnight",
+        "6-shot",
+        "opening"
+      ]
+    },
+    {
+      "id": "graphic-style-pivot",
+      "domain": "graphic",
+      "humanPrompt": "Pivot the title-card style from neon brutalism to art-deco gold while keeping the typographic hierarchy.",
+      "goalKeywords": [
+        "title-card",
+        "art-deco",
+        "gold",
+        "typographic"
+      ]
+    },
+    {
+      "id": "oncall-runbook",
+      "domain": "generic",
+      "humanPrompt": "Draft an on-call runbook entry for a Postgres replication-lag spike on shard-3.",
+      "goalKeywords": [
+        "runbook",
+        "postgres",
+        "replication",
+        "shard-3"
+      ]
+    },
+    {
+      "id": "audio-stem-mix",
+      "domain": "audio",
+      "humanPrompt": "Specify the stem-mix structure for a cinematic trailer that escalates over 90 seconds.",
+      "goalKeywords": [
+        "stem-mix",
+        "cinematic",
+        "trailer",
+        "90 seconds"
+      ]
+    }
+  ],
+  "runs": [
+    {
+      "mode": "human-only",
+      "taskId": "narrative-rewrite",
+      "inputTokens": 13,
+      "outputTokens": 11,
+      "totalTokens": 24,
+      "dispatchedPromptLength": 79,
+      "goalCoverage": 1,
+      "auditable": false,
+      "merkleRoot": null
+    },
+    {
+      "mode": "pure-ai",
+      "taskId": "narrative-rewrite",
+      "inputTokens": 36,
+      "outputTokens": 21,
+      "totalTokens": 57,
+      "dispatchedPromptLength": 276,
+      "goalCoverage": 1,
+      "auditable": false,
+      "merkleRoot": null
+    },
+    {
+      "mode": "mcop-mediated",
+      "taskId": "narrative-rewrite",
+      "inputTokens": 14,
+      "outputTokens": 16,
+      "totalTokens": 30,
+      "dispatchedPromptLength": 79,
+      "goalCoverage": 1,
+      "auditable": true,
+      "merkleRoot": "4b0e712e434d884dbdcb043dcac795541383fe507d44bf4f59b6004459508811"
+    },
+    {
+      "mode": "human-only",
+      "taskId": "cinematic-shotlist",
+      "inputTokens": 15,
+      "outputTokens": 12,
+      "totalTokens": 27,
+      "dispatchedPromptLength": 80,
+      "goalCoverage": 1,
+      "auditable": false,
+      "merkleRoot": null
+    },
+    {
+      "mode": "pure-ai",
+      "taskId": "cinematic-shotlist",
+      "inputTokens": 38,
+      "outputTokens": 22,
+      "totalTokens": 60,
+      "dispatchedPromptLength": 277,
+      "goalCoverage": 1,
+      "auditable": false,
+      "merkleRoot": null
+    },
+    {
+      "mode": "mcop-mediated",
+      "taskId": "cinematic-shotlist",
+      "inputTokens": 16,
+      "outputTokens": 17,
+      "totalTokens": 33,
+      "dispatchedPromptLength": 80,
+      "goalCoverage": 1,
+      "auditable": true,
+      "merkleRoot": "72a0b9341d5145461e29cc0c8b94a4e458595c509529eb833804cc886e0e30a5"
+    },
+    {
+      "mode": "human-only",
+      "taskId": "graphic-style-pivot",
+      "inputTokens": 17,
+      "outputTokens": 14,
+      "totalTokens": 31,
+      "dispatchedPromptLength": 104,
+      "goalCoverage": 1,
+      "auditable": false,
+      "merkleRoot": null
+    },
+    {
+      "mode": "pure-ai",
+      "taskId": "graphic-style-pivot",
+      "inputTokens": 40,
+      "outputTokens": 24,
+      "totalTokens": 64,
+      "dispatchedPromptLength": 301,
+      "goalCoverage": 1,
+      "auditable": false,
+      "merkleRoot": null
+    },
+    {
+      "mode": "mcop-mediated",
+      "taskId": "graphic-style-pivot",
+      "inputTokens": 18,
+      "outputTokens": 19,
+      "totalTokens": 37,
+      "dispatchedPromptLength": 104,
+      "goalCoverage": 1,
+      "auditable": true,
+      "merkleRoot": "6ef5482099d5afbb04144374e6372d14d3d0d3ccef4923ad1cf55fa2804a9566"
+    },
+    {
+      "mode": "human-only",
+      "taskId": "oncall-runbook",
+      "inputTokens": 15,
+      "outputTokens": 12,
+      "totalTokens": 27,
+      "dispatchedPromptLength": 79,
+      "goalCoverage": 1,
+      "auditable": false,
+      "merkleRoot": null
+    },
+    {
+      "mode": "pure-ai",
+      "taskId": "oncall-runbook",
+      "inputTokens": 38,
+      "outputTokens": 22,
+      "totalTokens": 60,
+      "dispatchedPromptLength": 276,
+      "goalCoverage": 1,
+      "auditable": false,
+      "merkleRoot": null
+    },
+    {
+      "mode": "mcop-mediated",
+      "taskId": "oncall-runbook",
+      "inputTokens": 16,
+      "outputTokens": 17,
+      "totalTokens": 33,
+      "dispatchedPromptLength": 79,
+      "goalCoverage": 1,
+      "auditable": true,
+      "merkleRoot": "1e7c70ab6289fc080e6360e802a2241a6eb6cb45c974a0823fd7f517cf590162"
+    },
+    {
+      "mode": "human-only",
+      "taskId": "audio-stem-mix",
+      "inputTokens": 14,
+      "outputTokens": 14,
+      "totalTokens": 28,
+      "dispatchedPromptLength": 86,
+      "goalCoverage": 1,
+      "auditable": false,
+      "merkleRoot": null
+    },
+    {
+      "mode": "pure-ai",
+      "taskId": "audio-stem-mix",
+      "inputTokens": 37,
+      "outputTokens": 24,
+      "totalTokens": 61,
+      "dispatchedPromptLength": 283,
+      "goalCoverage": 1,
+      "auditable": false,
+      "merkleRoot": null
+    },
+    {
+      "mode": "mcop-mediated",
+      "taskId": "audio-stem-mix",
+      "inputTokens": 15,
+      "outputTokens": 19,
+      "totalTokens": 34,
+      "dispatchedPromptLength": 86,
+      "goalCoverage": 1,
+      "auditable": true,
+      "merkleRoot": "ff2990717e293234fe23b4dc64040e2bd5eef8403720b5c38afd0af536002e4a"
+    }
+  ],
+  "summary": [
+    {
+      "mode": "human-only",
+      "tasks": 5,
+      "avgInputTokens": 14.8,
+      "avgOutputTokens": 12.6,
+      "avgTotalTokens": 27.4,
+      "avgGoalCoverage": 1,
+      "auditableRuns": 0
+    },
+    {
+      "mode": "pure-ai",
+      "tasks": 5,
+      "avgInputTokens": 37.8,
+      "avgOutputTokens": 22.6,
+      "avgTotalTokens": 60.4,
+      "avgGoalCoverage": 1,
+      "auditableRuns": 0
+    },
+    {
+      "mode": "mcop-mediated",
+      "tasks": 5,
+      "avgInputTokens": 15.8,
+      "avgOutputTokens": 17.6,
+      "avgTotalTokens": 33.4,
+      "avgGoalCoverage": 1,
+      "auditableRuns": 5
+    }
+  ]
+}
