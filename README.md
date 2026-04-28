@@ -55,6 +55,7 @@ Shipped adapters:
 | **Higgsfield** | Python | Cinematic video (Kling 3.0 / Veo 3.1 / Sora 2 / Seedance) | [`mcop_package/mcop/adapters/higgsfield_adapter.py`](mcop_package/mcop/adapters/higgsfield_adapter.py) |
 | **Utopai** | TypeScript | Long-form narrative film engine | [`src/adapters/utopaiAdapter.ts`](src/adapters/utopaiAdapter.ts) |
 | **xAI / Grok** | TypeScript | LLM chat completions + entropy/resonance routing | [`src/adapters/grokAdapter.ts`](src/adapters/grokAdapter.ts) |
+| **Devin Sub-Agents** | TypeScript | Researcher → Coder → Reviewer orchestration with Merkle-rooted audit chain | [`src/adapters/devinOrchestratorAdapter.ts`](src/adapters/devinOrchestratorAdapter.ts) |
 | **Generic Production** | TypeScript | 20-line scaffold for any REST / MCP / HTTP pipeline | [`src/adapters/genericProductionAdapter.ts`](src/adapters/genericProductionAdapter.ts) |
 
 Live integration tracker: [`INTEGRATIONS.md`](INTEGRATIONS.md).
