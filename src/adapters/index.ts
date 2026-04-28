@@ -15,6 +15,7 @@ export * from './utopaiAdapter';
 export * from './genericProductionAdapter';
 export * from './grokAdapter';
 export * from './devinOrchestratorAdapter';
+export * from './linearSlackOrchestratorAdapter';
 
 /**
  * Plain-English aliases — additive, non-breaking.

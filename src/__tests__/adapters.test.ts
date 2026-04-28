@@ -1,6 +1,7 @@
 import { HolographicEtch, NovaNeoEncoder, StigmergyV5 } from '../core';
 import {
   AdapterRequest,
+  chooseLinearSlackAction,
   chooseProviderByEntropyResonance,
   defaultGrokClient,
   DevinOrchestratorAdapter,
@@ -12,6 +13,9 @@ import {
   GrokMCOPAdapter,
   HumanFeedback,
   HumanVetoError,
+  LinearSlackOrchestratorAdapter,
+  mockLinearClient,
+  mockSlackClient,
   mockSubAgentClient,
   runResearcherCoderReviewer,
   SubAgentClient,
@@ -807,5 +811,215 @@ describe('runResearcherCoderReviewer', () => {
     // Cache hits should NOT increase the token usage tally.
     const dispatchedLegs = report.legs.filter((l) => !l.cacheHit && !l.vetoed);
     expect(dispatchTask).toHaveBeenCalledTimes(dispatchedLegs.length);
+  });
+});
+
+describe('chooseLinearSlackAction', () => {
+  it('routes high-resonance events to slack-only', () => {
+    expect(
+      chooseLinearSlackAction({ entropy: 0.1, resonance: 0.95 }),
+    ).toBe('slack-only');
+  });
+
+  it('routes novel high-entropy events to linear-only', () => {
+    expect(
+      chooseLinearSlackAction({ entropy: 0.6, resonance: 0.1 }),
+    ).toBe('linear-only');
+  });
+
+  it('routes everything else to both', () => {
+    expect(
+      chooseLinearSlackAction({ entropy: 0.2, resonance: 0.5 }),
+    ).toBe('both');
+  });
+
+  it('respects custom thresholds', () => {
+    expect(
+      chooseLinearSlackAction(
+        { entropy: 0.3, resonance: 0.5 },
+        { slackOnlyResonanceFloor: 0.4 },
+      ),
+    ).toBe('slack-only');
+  });
+});
+
+describe('LinearSlackOrchestratorAdapter', () => {
+  const buildAdapter = () => {
+    const linear = mockLinearClient({ teamKeyPrefix: 'MCOP' });
+    const slack = mockSlackClient();
+    const adapter = new LinearSlackOrchestratorAdapter({
+      ...baseTriad(),
+      linear,
+      slack,
+      defaultLinearTeamKey: 'MCOP',
+      defaultSlackChannel: '#mcop-oncall',
+    });
+    return { adapter, linear, slack };
+  };
+
+  it('reports its capability surface', async () => {
+    const { adapter } = buildAdapter();
+    const caps = await adapter.getCapabilities();
+    expect(caps.platform).toBe('linear-slack-mcp');
+    expect(caps.features).toEqual(
+      expect.arrayContaining([
+        'mcp-orchestration',
+        'human-veto',
+        'entropy-resonance-routing',
+        'multi-tool-fanout',
+      ]),
+    );
+  });
+
+  it('rejects empty prompts on dispatchOptimizedAlert', async () => {
+    const { adapter } = buildAdapter();
+    await expect(adapter.dispatchOptimizedAlert('')).rejects.toThrow(
+      /prompt must be a non-empty string/,
+    );
+  });
+
+  it('produces a Merkle-rooted ProvenanceMetadata bundle', async () => {
+    const { adapter } = buildAdapter();
+    const response = await adapter.dispatchOptimizedAlert(
+      'investigate replication lag on shard-3',
+    );
+    expect(response.merkleRoot).toMatch(/^[0-9a-f]+$/);
+    expect(response.provenance.refinedPrompt).toContain(
+      'investigate replication lag',
+    );
+    expect(response.result.action).toMatch(
+      /^(slack-only|linear-only|both)$/,
+    );
+    expect(response.result.signals.entropy).toBeGreaterThanOrEqual(0);
+    expect(response.result.signals.resonance).toBeGreaterThanOrEqual(0);
+  });
+
+  it('files a Linear issue with an audit-anchor comment for the both action', async () => {
+    const { adapter } = buildAdapter();
+    const response = await adapter.dispatchOptimizedAlert(
+      'novel-event-A',
+      // Force the both branch via a router override so the spec is robust
+      // to encoder-entropy fluctuations.
+      {
+        router: {
+          slackOnlyResonanceFloor: 1.5,
+          linearOnlyEntropyFloor: 5,
+          noveltyResonanceCeiling: -1,
+        },
+      },
+    );
+    expect(response.result.action).toBe('both');
+    expect(response.result.slack).not.toBeNull();
+    expect(response.result.linear).not.toBeNull();
+    expect(response.result.linear?.identifier).toMatch(/^MCOP-\d+$/);
+    expect(response.result.comment).not.toBeNull();
+    expect(response.result.comment?.id).toMatch(/^mock-comment-\d+$/);
+  });
+
+  it('hits Slack only when the router decides slack-only', async () => {
+    const linear = mockLinearClient();
+    const slack = mockSlackClient();
+    const linearSpy = jest.spyOn(linear, 'createIssue');
+    const slackSpy = jest.spyOn(slack, 'postMessage');
+    const adapter = new LinearSlackOrchestratorAdapter({
+      ...baseTriad(),
+      linear,
+      slack,
+      defaultLinearTeamKey: 'MCOP',
+      defaultSlackChannel: '#mcop-oncall',
+    });
+    await adapter.dispatchOptimizedAlert('cached-event-B', {
+      router: {
+        slackOnlyResonanceFloor: -1, // every event becomes slack-only
+      },
+    });
+    expect(slackSpy).toHaveBeenCalledTimes(1);
+    expect(linearSpy).not.toHaveBeenCalled();
+  });
+
+  it('honours human veto via the dialectical synthesizer', async () => {
+    const linear = mockLinearClient();
+    const slack = mockSlackClient();
+    const linearSpy = jest.spyOn(linear, 'createIssue');
+    const slackSpy = jest.spyOn(slack, 'postMessage');
+    const adapter = new LinearSlackOrchestratorAdapter({
+      ...baseTriad(),
+      linear,
+      slack,
+      defaultLinearTeamKey: 'MCOP',
+      defaultSlackChannel: '#mcop-oncall',
+    });
+    await expect(
+      adapter.dispatchOptimizedAlert('vetoed-event', {
+        humanFeedback: { veto: true } as HumanFeedback,
+      }),
+    ).rejects.toBeInstanceOf(HumanVetoError);
+    expect(linearSpy).not.toHaveBeenCalled();
+    expect(slackSpy).not.toHaveBeenCalled();
+  });
+
+  it('throws when slack action is required but no channel is configured', async () => {
+    const linear = mockLinearClient();
+    const slack = mockSlackClient();
+    const adapter = new LinearSlackOrchestratorAdapter({
+      ...baseTriad(),
+      linear,
+      slack,
+      defaultLinearTeamKey: 'MCOP',
+      // no defaultSlackChannel
+    });
+    await expect(
+      adapter.dispatchOptimizedAlert('needs-slack', {
+        router: { slackOnlyResonanceFloor: -1 },
+      }),
+    ).rejects.toThrow(/slackChannel is required/);
+  });
+
+  it('throws when linear action is required but no team key is configured', async () => {
+    const linear = mockLinearClient();
+    const slack = mockSlackClient();
+    const adapter = new LinearSlackOrchestratorAdapter({
+      ...baseTriad(),
+      linear,
+      slack,
+      defaultSlackChannel: '#mcop-oncall',
+      // no defaultLinearTeamKey
+    });
+    await expect(
+      adapter.dispatchOptimizedAlert('needs-linear', {
+        router: {
+          slackOnlyResonanceFloor: 5,
+          linearOnlyEntropyFloor: -1,
+          noveltyResonanceCeiling: 5,
+        },
+      }),
+    ).rejects.toThrow(/linearTeamKey is required/);
+  });
+
+  it('forwards labels and a custom title verbatim to Linear', async () => {
+    const linear = mockLinearClient();
+    const slack = mockSlackClient();
+    const linearSpy = jest.spyOn(linear, 'createIssue');
+    const adapter = new LinearSlackOrchestratorAdapter({
+      ...baseTriad(),
+      linear,
+      slack,
+      defaultLinearTeamKey: 'MCOP',
+      defaultSlackChannel: '#mcop-oncall',
+    });
+    await adapter.dispatchOptimizedAlert('force-linear-event', {
+      linearLabels: ['oncall', 'p1'],
+      linearTitle: 'Custom incident title',
+      router: {
+        slackOnlyResonanceFloor: 5,
+        linearOnlyEntropyFloor: -1,
+        noveltyResonanceCeiling: 5,
+      },
+    });
+    expect(linearSpy).toHaveBeenCalledTimes(1);
+    const args = linearSpy.mock.calls[0]![0];
+    expect(args.title).toBe('Custom incident title');
+    expect(args.labels).toEqual(['oncall', 'p1']);
+    expect(args.teamKey).toBe('MCOP');
   });
 });
