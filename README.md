@@ -59,7 +59,7 @@ Shipped adapters:
 | **Linear + Slack via MCP** | TypeScript | Entropy/resonance-routed on-call orchestration; auto audit-anchor comments on every Linear issue | [`src/adapters/linearSlackOrchestratorAdapter.ts`](src/adapters/linearSlackOrchestratorAdapter.ts) |
 | **Generic Production** | TypeScript | 20-line scaffold for any REST / MCP / HTTP pipeline | [`src/adapters/genericProductionAdapter.ts`](src/adapters/genericProductionAdapter.ts) |
 
-Live integration tracker: [`INTEGRATIONS.md`](INTEGRATIONS.md).
+Live integration tracker: [`INTEGRATIONS.md`](INTEGRATIONS.md). Reproducible benchmarks: [`/benchmarks`](src/app/benchmarks/page.tsx) · [`docs/whitepapers/Human_vs_PureAI_Prompting.md`](docs/whitepapers/Human_vs_PureAI_Prompting.md).
 
 Quick start (TypeScript):
 
