@@ -65,6 +65,36 @@ Consistent contributors are invited to become maintainers on the basis of:
 Nominations may be opened by any existing maintainer or self-nominated via a
 GitHub Discussion. Approval is by consensus of current maintainers.
 
+## Branch hygiene
+
+### Automated branch cleanup
+
+The repository uses an automated workflow (`.github/workflows/delete-stale-bot-branches.yml`) that removes machine-generated branches after a grace period. Current policy:
+
+| Branch pattern | Grace period | Action |
+|---|---|---|
+| `bolt-*` | 7 days | Auto-delete if no activity |
+| `feature/*`, `chore/*`, `fix/*`, `audit/*` | 90 days | Flag for review only |
+| `main`, `gh-pages` | Permanent | Never delete |
+
+### Manual cleanup
+
+Maintainers may prune stale branches at any time via:
+
+```bash
+# List remote branches by age
+gh api repos/Kuonirad/MCOP-Framework-2.0/branches --jq '.[].name'
+
+# Delete a specific branch
+gh api -X DELETE repos/Kuonirad/MCOP-Framework-2.0/git/refs/heads/BRANCH_NAME
+```
+
+### Why this matters
+
+The project once accumulated 316 `bolt-*` branches from an automated optimization tool. Excess branches slow clone times, clutter the GitHub UI, and create cognitive load for new contributors. The cleanup workflow prevents recurrence.
+
+---
+
 ## Changing this document
 
 Changes to governance go through the same lazy-consensus process as code,
