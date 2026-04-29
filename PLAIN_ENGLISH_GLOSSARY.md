@@ -68,7 +68,9 @@ components*.
 Repo: *"Deterministic hashing pipeline to generate fixed-dimension tensors
 with optional normalization and entropy estimates."*
 Plain English: *text-to-vector encoder that always produces the same vector
-for the same input, with a built-in clarity/uncertainty score.*
+for the same input, with a built-in clarity/uncertainty score. Two backends:
+`hash` (legacy SHA-256, default) and `embedding` (n-gram feature hashing
+that captures semantic overlap).*
 Alias: **`ContextTensorEncoder`** (exported alongside `NovaNeoEncoder`).
 
 ### Stigmergy v5 / Resonance (`StigmergyV5`)

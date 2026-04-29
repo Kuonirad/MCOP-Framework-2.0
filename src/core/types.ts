@@ -4,6 +4,12 @@ export interface NovaNeoConfig {
   dimensions: number;
   normalize?: boolean;
   entropyFloor?: number;
+  /**
+   * Encoding backend. `'hash'` = legacy SHA-256 deterministic hash
+   * (default, fully backward-compatible). `'embedding'` = n-gram
+   * feature-hashing backend that captures semantic overlap.
+   */
+  backend?: 'hash' | 'embedding';
 }
 
 export interface PheromoneTrace {
