@@ -8,6 +8,7 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 - **NOVA-NEO Embedding Backend.** `NovaNeoConfig` now accepts `backend: 'hash' | 'embedding'`. The default `'hash'` preserves byte-identical v1.x behavior. The new `'embedding'` backend uses n-gram feature hashing (the "hashing trick") to produce vectors where semantically similar prompts have correlated activations — a zero-dependency, deterministic, cross-platform semantic encoder. See `src/core/embeddingEngine.ts` and `src/__tests__/novaNeoEncoder.embedding.test.ts`.
+- **Independent Audit Response.** `docs/audits/independent-audit-response-2026-04-30.md` documents findings (316 `bolt-*` branches, bus factor ~1, florid terminology, unverified claims, scope creep risk) and registers remediation status for each. Includes a formal Scope Lock limiting core additions to the deterministic triad only.
 
 ### Changed
 - **Docs consolidation: single canonical MCOP expansion.** Replaced the two
