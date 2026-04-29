@@ -77,4 +77,124 @@ describe("LayoutShiftAnnouncer", () => {
     expect(region).toHaveAttribute("data-vsi-status", "poor");
     expect(region.textContent).toMatch(/unstable/i);
   });
+
+  /* ── Branch coverage extensions ── */
+
+  it("suppresses non-poor transitions when reduced motion is preferred", () => {
+    // Mock matchMedia to return reduced-motion preference
+    const originalMatchMedia = window.matchMedia;
+    window.matchMedia = jest.fn().mockImplementation((query: string) => ({
+      matches: query === "(prefers-reduced-motion: reduce)",
+      media: query,
+      onchange: null,
+      addListener: jest.fn(),
+      removeListener: jest.fn(),
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
+      dispatchEvent: jest.fn(),
+    })) as unknown as typeof window.matchMedia;
+
+    render(<LayoutShiftAnnouncer />);
+
+    act(() => {
+      emitShift(0.05); // good tier
+      jest.advanceTimersByTime(50);
+    });
+
+    act(() => {
+      jest.advanceTimersByTime(1600);
+    });
+
+    const region = screen.getByTestId("layout-shift-announcer");
+    // Reduced-motion users don't hear good-tier transitions.
+    expect(region.textContent).toBe("");
+
+    window.matchMedia = originalMatchMedia;
+  });
+
+  it("announces poor-tier transitions even with reduced motion", () => {
+    const originalMatchMedia = window.matchMedia;
+    window.matchMedia = jest.fn().mockImplementation((query: string) => ({
+      matches: query === "(prefers-reduced-motion: reduce)",
+      media: query,
+      onchange: null,
+      addListener: jest.fn(),
+      removeListener: jest.fn(),
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
+      dispatchEvent: jest.fn(),
+    })) as unknown as typeof window.matchMedia;
+
+    render(<LayoutShiftAnnouncer />);
+
+    act(() => {
+      emitShift(0.4); // poor
+      jest.advanceTimersByTime(50);
+    });
+
+    act(() => {
+      jest.advanceTimersByTime(1600);
+    });
+
+    const region = screen.getByTestId("layout-shift-announcer");
+    expect(region.textContent).toMatch(/unstable/i);
+
+    window.matchMedia = originalMatchMedia;
+  });
+
+  it("does not re-announce when status rank stays the same (burst suppression)", () => {
+    render(<LayoutShiftAnnouncer />);
+
+    // First poor transition
+    act(() => {
+      emitShift(0.4);
+      jest.advanceTimersByTime(50);
+    });
+    act(() => {
+      jest.advanceTimersByTime(400);
+    });
+
+    const region = screen.getByTestId("layout-shift-announcer");
+    expect(region.textContent).toMatch(/unstable/i);
+    const firstText = region.textContent;
+
+    // Emit another poor shift — same rank, should not trigger a new announcement
+    act(() => {
+      emitShift(0.35);
+      jest.advanceTimersByTime(50);
+    });
+    act(() => {
+      jest.advanceTimersByTime(400);
+    });
+
+    // Text should remain the same (no re-announcement for same tier)
+    expect(region.textContent).toBe(firstText);
+  });
+
+  it("does not escalate latched status when rank is equal", () => {
+    render(<LayoutShiftAnnouncer />);
+
+    // Drive to poor first
+    act(() => {
+      emitShift(0.4);
+      jest.advanceTimersByTime(50);
+    });
+    act(() => {
+      jest.advanceTimersByTime(400);
+    });
+    const region = screen.getByTestId("layout-shift-announcer");
+    expect(region).toHaveAttribute("data-vsi-status", "poor");
+
+    // Emit a shift that keeps poor — same rank, same status
+    act(() => {
+      emitShift(0.5);
+      jest.advanceTimersByTime(50);
+    });
+    act(() => {
+      jest.advanceTimersByTime(400);
+    });
+
+    // Status should still be poor, no re-transition
+    expect(region).toHaveAttribute("data-vsi-status", "poor");
+  });
 });

@@ -91,4 +91,34 @@ describe('vitalsBus', () => {
     expect(fresh).toHaveBeenCalledTimes(1);
     unsub();
   });
+
+  /* ── Branch coverage extensions ── */
+
+  it('isolates a throwing subscriber during replay', () => {
+    __emitForTests(sample({ name: 'LCP', value: 1000 }));
+    const bad = jest.fn(() => {
+      throw new Error('replay boom');
+    });
+    const good = jest.fn();
+    subscribeVitals(bad);
+    subscribeVitals(good);
+    expect(bad).toHaveBeenCalledTimes(1);
+    expect(good).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not throw when a subscriber throws during broadcast', () => {
+    subscribeVitals(() => {
+      throw new Error('broadcast boom');
+    });
+    expect(() => __emitForTests(sample({ name: 'CLS', value: 0.1 }))).not.toThrow();
+  });
+
+  it('does not throw when a subscriber throws during replay', () => {
+    __emitForTests(sample({ name: 'FCP', value: 800 }));
+    expect(() =>
+      subscribeVitals(() => {
+        throw new Error('replay throw');
+      }),
+    ).not.toThrow();
+  });
 });
