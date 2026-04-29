@@ -1,5 +1,6 @@
 "use client";
 
+import { MCOP_CONFIG } from "@/config/mcop.config";
 import { useEffect, useRef, useState, useTransition } from "react";
 
 /**
@@ -44,8 +45,8 @@ const IDLE_STATE: LCPProfilerState = Object.freeze({
 });
 
 function classifyLCP(value: number): "good" | "ni" | "poor" {
-  if (value <= 2500) return "good";
-  if (value <= 4000) return "ni";
+  if (value <= MCOP_CONFIG.LCP.good) return "good";
+  if (value <= MCOP_CONFIG.LCP.poor) return "ni";
   return "poor";
 }
 
