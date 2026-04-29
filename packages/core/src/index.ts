@@ -7,6 +7,7 @@ export * from './tensorGuard';
 export * from './circularBuffer';
 export * from './provenanceTracer';
 export * from './canonicalEncoding';
+export * from './embeddingEngine';
 
 /**
  * Plain-English aliases — additive, non-breaking.
