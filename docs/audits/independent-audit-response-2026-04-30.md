@@ -4,6 +4,7 @@
 **Auditor:** Independent review (automated + manual)
 **Original Score:** 7.2 / 10
 **Response Branch:** `audit/coverage-push`
+**Updated:** 2026-04-30
 
 ---
 
@@ -17,8 +18,8 @@
 - [x] Identified all 316 `bolt-*` branches as machine-generated (no human PRs, no reviews)
 - [x] Created `docs/audits/branch-cleanup-strategy.md` with triage process, deletion scripts, and prevention workflow
 - [x] Added `.github/workflows/delete-stale-bot-branches.yml` — weekly automated cleanup of `bolt-*` branches older than 7 days
+- [x] Added `GOVERNANCE.md` §Branch Hygiene documenting grace periods and manual commands
 - [ ] Execute bulk deletion after 48h grace period (requires user action)
-- [ ] Document in `GOVERNANCE.md` §Branch Hygiene
 
 **Rationale for Retention (temporary):** Some `bolt-*` branches may contain unmerged experimental work. Before mass-deletion, a one-time triage is required. This response document serves as the inventory.
 
@@ -81,7 +82,7 @@ import { SharedTraceMemoryV5 } from '@/core';  // alias for StigmergyV5
 
 **Remediation:**
 - [x] ADR-2026-04-28 (`docs/adr/2026-04-28-meta-layer-integration.md`) defines the meta-layer boundary
-- [ ] This response document explicitly scopes the framework's "no-expand" rule:
+- [x] This response document explicitly scopes the framework's "no-expand" rule:
 
 ### Scope Lock (Effective Immediately)
 The MCOP Framework 2.0 core consists of **exactly four components**:
@@ -96,20 +97,29 @@ Everything else — adapters, UI, benchmarks, whitepapers — is **optional down
 
 ## 6. Test Coverage — IN PROGRESS
 
-**Current:** 89.73% statements, 80.61% branches, 91.82% functions, 92.93% lines
+**Current:** 91.34% statements, 82.43% branches, 92.08% functions, 94.56% lines  
+**Previous:** 89.73% statements, 80.61% branches, 91.82% functions, 92.93% lines  
+**Delta:** +1.61% statements, +1.82% branches, +0.26% functions, +1.63% lines  
 **Target:** 100% on all testable modules (browser-only APIs excluded)
 
-**Known Structural Gaps:**
+**Known Structural Gaps (jsdom-untestable):**
 - `WebVitalsSentinel.tsx` — excluded from coverage (jsdom cannot polyfill `PerformanceObserver` for LCP/CLS)
 - `useLCPProfiler.ts` — browser-only `PerformanceObserver` branches unreachable in jsdom
 - `vsiBus.ts` — Layout Instability API branches unreachable in jsdom
 
-**Active Work:** `audit/coverage-push` branch adds tests for:
-- `VSICoach.tsx` (61.84% → target 90%+)
-- `benchmarks/promptingModes.ts` (59.25% → target 90%+)
-- `LayoutShiftAnnouncer.tsx` (88% → target 95%+)
-- `vitalsBus.ts` (74.41% → target 90%+)
-- `usePerformanceCoach.ts` (84.69% → target 90%+)
+**Coverage Push Results (`audit/coverage-push` branch):**
+| File | Before → After | Branch Δ |
+|------|----------------|----------|
+| VSICoach.tsx | 61.84% → 82.89% stmts, 65.54% → **78.99%** branch | +13.45% |
+| LayoutShiftAnnouncer.tsx | 88% → 92% stmts, 60% → **86.66%** branch | +26.66% |
+| benchmarks/promptingModes.ts | 98.33% stmts, 59.25% → **62.96%** branch | +3.71% |
+| vitalsBus.ts | 74.41% stmts, 66.66% branch | +SSR guard + error path tests |
+
+**Remaining Gaps to Close:**
+- `benchmarks/promptingModes.ts` — 62.96% branches (many condition branches in token estimation)
+- `usePerformanceCoach.ts` — 67.85% branches (idle deadline fallback)
+- `DialecticalStudio.tsx` — 74.6% branches (dialog state, keyboard shortcuts)
+- `useVSIPredictor.ts` — 74.07% branches (next-tier targeting)
 
 ---
 
@@ -117,11 +127,11 @@ Everything else — adapters, UI, benchmarks, whitepapers — is **optional down
 
 | # | Action | Owner | Status |
 |---|--------|-------|--------|
-| 1 | Triage `bolt-*` branches for deletion | @Kuonirad | ✅ Strategy + workflow created |
-| 2 | Add branch-hygiene policy to GOVERNANCE.md | @Kuonirad | Pending |
+| 1 | Triage `bolt-*` branches for deletion | @Kuonirad | ✅ Strategy + workflow + governance updated |
+| 2 | Add branch-hygiene policy to GOVERNANCE.md | @Kuonirad | ✅ Complete |
 | 3 | Recruit 2+ external contributors | @Kuonirad | Pending |
 | 4 | Create 10 "Good First Issues" | @Kuonirad | Pending |
-| 5 | Merge coverage tests (`audit/coverage-push`) | @Kuonirad | 🔄 In Progress |
+| 5 | Merge coverage tests (`audit/coverage-push`) | @Kuonirad | 🔄 In Progress — awaiting PR |
 | 6 | Add SPDX headers to source files | Future | Deferred |
 | 7 | Backfill CONTRIBUTING.md CLA clause | Future | Deferred |
 
