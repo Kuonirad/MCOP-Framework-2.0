@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef } from "react";
 
 /**
  * `useVSIWorker` — Web Worker-backed VSI computation with graceful
@@ -159,17 +159,14 @@ export function useVSIWorker(): {
   readonly compute: (
     payload: ComputePayload,
   ) => Promise<VSIPredictionState>;
-  readonly usingWorker: boolean;
 } {
   const workerRef = useRef<Worker | null>(null);
   const idRef = useRef(0);
-  const [usingWorker, setUsingWorker] = useState(false);
 
   useEffect(() => {
     const worker = createWorker();
     if (worker) {
       workerRef.current = worker;
-      setUsingWorker(true);
     }
     return () => {
       worker?.terminate();
@@ -200,7 +197,7 @@ export function useVSIWorker(): {
     [],
   );
 
-  return { compute, usingWorker };
+  return { compute };
 }
 
 /** Synchronous fallback when the worker is unavailable. */

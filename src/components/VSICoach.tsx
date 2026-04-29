@@ -270,6 +270,23 @@ export const VSICoach = memo(function VSICoach({ open }: VSICoachProps) {
   const previewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const previewSelectorRef = useRef<string | null>(null);
 
+  const revertPreview = useCallback(() => {
+    if (typeof window === "undefined") return;
+    const selector = previewSelectorRef.current;
+    if (!selector) return;
+    const element = document.querySelector(selector) as HTMLElement | null;
+    if (element) {
+      element.style.removeProperty("contain");
+      element.style.removeProperty("min-height");
+    }
+    previewSelectorRef.current = null;
+    setPreviewing(false);
+    if (previewTimerRef.current) {
+      clearTimeout(previewTimerRef.current);
+      previewTimerRef.current = null;
+    }
+  }, []);
+
   // Auto-revert preview when the root-cause selector changes, so we
   // never leave a stale `contain: layout` on a different element.
   const currentSelector = state.rootCause?.selector ?? null;
@@ -312,24 +329,7 @@ export const VSICoach = memo(function VSICoach({ open }: VSICoachProps) {
     previewTimerRef.current = setTimeout(() => {
       revertPreview();
     }, 8_000);
-  }, [state.rootCause]);
-
-  const revertPreview = useCallback(() => {
-    if (typeof window === "undefined") return;
-    const selector = previewSelectorRef.current;
-    if (!selector) return;
-    const element = document.querySelector(selector) as HTMLElement | null;
-    if (element) {
-      element.style.removeProperty("contain");
-      element.style.removeProperty("min-height");
-    }
-    previewSelectorRef.current = null;
-    setPreviewing(false);
-    if (previewTimerRef.current) {
-      clearTimeout(previewTimerRef.current);
-      previewTimerRef.current = null;
-    }
-  }, []);
+  }, [state.rootCause, revertPreview]);
 
   // Clean up any active preview on unmount so the page is never left
   // with orphaned inline styles.

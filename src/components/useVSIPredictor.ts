@@ -1,6 +1,6 @@
 "use client";
 
-import { MCOP_CONFIG, classifyVSI } from "@/config/mcop.config";
+import { MCOP_CONFIG } from "@/config/mcop.config";
 import { useEffect, useRef, useState, useTransition } from "react";
 import {
   subscribeVSI,
@@ -103,7 +103,7 @@ export function useVSIPredictor(
   const pendingRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [state, setState] = useState<VSIPredictionState>(IDLE_STATE);
   const [, startTransition] = useTransition();
-  const { compute, usingWorker } = useVSIWorker();
+  const { compute } = useVSIWorker();
 
   useEffect(() => {
     const recompute = () => {
@@ -125,16 +125,15 @@ export function useVSIPredictor(
         opts,
       };
 
-      if (!usingWorker) {
-        // Synchronous path for jsdom / tests / SSR — preserves the
-        // original immediate-update semantics so jest fake-timers and
-        // existing specs continue to work without async flush dances.
+      // When Web Workers are unavailable (jsdom, CSP, SSR), compute
+      // synchronously so jest fake-timers and existing tests continue
+      // to work without async flush dances.
+      if (typeof Worker === "undefined" || typeof window === "undefined") {
         const next = fallbackCompute(payload);
         startTransition(() => setState(next));
         return;
       }
 
-      // Worker path: offload math to the worker thread.
       compute(payload).then((next) => {
         startTransition(() => setState(next));
       });

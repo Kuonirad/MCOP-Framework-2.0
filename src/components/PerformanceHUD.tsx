@@ -51,10 +51,6 @@ import VSICoach from "./VSICoach";
 
 type Status = "good" | "ni" | "poor" | "idle";
 
-// Thresholds imported from centralised MCOP config so teams can override
-// at build time without touching component code.
-const THRESHOLDS = MCOP_CONFIG;
-
 function classify(name: "LCP" | "INP" | "CLS", value: number): Status {
   return classifyMetric(name, value);
 }
