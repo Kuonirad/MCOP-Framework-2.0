@@ -171,4 +171,188 @@ describe('VSICoach', () => {
     expect(payload.offenders[0].count).toBe(1);
     expect(payload.suggestedFix.snippet).toMatch(/img\.hero/);
   });
+
+  /* ── Branch coverage extensions ── */
+
+  it('announces a predictive breach when trend is degrading and window is short', async () => {
+    render(<VSICoach open />);
+    // Emit multiple degrading shifts rapidly to trigger predictionMs <= 5000
+    await act(async () => {
+      emit(0.08, { tagName: 'div', selector: 'div.banner', heightPx: 200 });
+      emit(0.08, { tagName: 'div', selector: 'div.banner', heightPx: 200 });
+      emit(0.08, { tagName: 'div', selector: 'div.banner', heightPx: 200 });
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 350));
+    });
+    const announcer = screen.getByTestId('vsi-announcer');
+    // Should contain the breach phrase mentioning predicted status
+    expect(announcer.textContent).toMatch(/Predicted/);
+  });
+
+  it('uses the document.execCommand clipboard fallback when navigator.clipboard is unavailable', async () => {
+    const execCommand = jest.fn(() => true);
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: undefined,
+    });
+    Object.defineProperty(document, 'execCommand', {
+      configurable: true,
+      value: execCommand,
+      writable: true,
+    });
+    render(<VSICoach open />);
+    await act(async () => {
+      emit(0.05, { tagName: 'div', selector: 'div.banner' });
+    });
+    const button = screen.getByTestId('vsi-copy-fix');
+    await act(async () => {
+      fireEvent.click(button);
+    });
+    expect(execCommand).toHaveBeenCalledWith('copy');
+  });
+
+  it('swallows clipboard errors without crashing', async () => {
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText: jest.fn(() => Promise.reject(new Error('denied'))) },
+    });
+    render(<VSICoach open />);
+    await act(async () => {
+      emit(0.05, { tagName: 'div', selector: 'div.banner' });
+    });
+    const button = screen.getByTestId('vsi-copy-fix');
+    await act(async () => {
+      fireEvent.click(button);
+    });
+    // If we reach here without throwing, the catch swallowed the error.
+    expect(screen.getByTestId('vsi-coach')).toBeInTheDocument();
+  });
+
+  it('swallows diagnostics clipboard errors without crashing', async () => {
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText: jest.fn(() => Promise.reject(new Error('denied'))) },
+    });
+    render(<VSICoach open />);
+    await act(async () => {
+      emit(0.05, { tagName: 'div', selector: 'div.banner' });
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 350));
+    });
+    const button = screen.getByTestId('vsi-copy-diagnostics');
+    await act(async () => {
+      fireEvent.click(button);
+    });
+    expect(screen.getByTestId('vsi-coach')).toBeInTheDocument();
+  });
+
+  it('applies and reverts a preview fix on the root-cause element', async () => {
+    const el = document.createElement('div');
+    el.className = 'banner';
+    document.body.appendChild(el);
+
+    render(<VSICoach open />);
+    await act(async () => {
+      emit(0.05, { tagName: 'div', selector: 'div.banner', heightPx: 120 });
+    });
+
+    const previewBtn = screen.getByTestId('vsi-preview-fix');
+    await act(async () => {
+      fireEvent.click(previewBtn);
+    });
+    expect(el.style.getPropertyValue('contain')).toBe('layout');
+    expect(screen.getByTestId('vsi-preview-active')).toBeInTheDocument();
+
+    const revertBtn = screen.getByTestId('vsi-revert-fix');
+    await act(async () => {
+      fireEvent.click(revertBtn);
+    });
+    expect(el.style.getPropertyValue('contain')).toBe('');
+
+    document.body.removeChild(el);
+  });
+
+  it('auto-reverts preview when root-cause selector changes', async () => {
+    const elA = document.createElement('div');
+    elA.className = 'banner';
+    document.body.appendChild(elA);
+
+    render(<VSICoach open />);
+    await act(async () => {
+      emit(0.05, { tagName: 'div', selector: 'div.banner', heightPx: 120 });
+    });
+
+    const previewBtn = screen.getByTestId('vsi-preview-fix');
+    await act(async () => {
+      fireEvent.click(previewBtn);
+    });
+    expect(elA.style.getPropertyValue('contain')).toBe('layout');
+
+    // Change root cause
+    const elB = document.createElement('img');
+    elB.className = 'hero';
+    document.body.appendChild(elB);
+    await act(async () => {
+      emit(0.06, { tagName: 'img', selector: 'img.hero', heightPx: 300 });
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 350));
+    });
+
+    expect(elA.style.getPropertyValue('contain')).toBe('');
+
+    document.body.removeChild(elA);
+    document.body.removeChild(elB);
+  });
+
+  it('reverts preview on unmount', async () => {
+    const el = document.createElement('div');
+    el.className = 'banner';
+    document.body.appendChild(el);
+
+    const { unmount } = render(<VSICoach open />);
+    await act(async () => {
+      emit(0.05, { tagName: 'div', selector: 'div.banner', heightPx: 120 });
+    });
+
+    const previewBtn = screen.getByTestId('vsi-preview-fix');
+    await act(async () => {
+      fireEvent.click(previewBtn);
+    });
+    expect(el.style.getPropertyValue('contain')).toBe('layout');
+
+    unmount();
+    expect(el.style.getPropertyValue('contain')).toBe('');
+
+    document.body.removeChild(el);
+  });
+
+  it('shows singular "shift" when count is 1', async () => {
+    render(<VSICoach open />);
+    await act(async () => {
+      emit(0.05);
+    });
+    expect(screen.getByText(/1 shift$/)).toBeInTheDocument();
+  });
+
+  it('shows plural "shifts" when count is >1', async () => {
+    render(<VSICoach open />);
+    await act(async () => {
+      emit(0.05);
+      emit(0.06);
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 350));
+    });
+    const headingArea = screen.getByRole('heading', { name: /visual stability/i }).parentElement;
+    expect(headingArea?.textContent).toMatch(/2 shifts/);
+  });
+
+  it('renders an empty sparkline placeholder when no sparkline values exist', () => {
+    render(<VSICoach open />);
+    // In idle state the sparkline receives an empty array and renders a placeholder gradient
+    expect(screen.getByTestId('vsi-coach').querySelector('[aria-hidden="true"]')).toBeInTheDocument();
+  });
 });

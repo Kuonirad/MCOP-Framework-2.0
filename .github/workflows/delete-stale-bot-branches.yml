@@ -1,0 +1,90 @@
+name: Delete Stale Bot Branches
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'  # Weekly Monday 6AM UTC
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'List branches without deleting'
+        required: false
+        default: 'true'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Setup GitHub CLI
+        uses: actions/checkout@v4
+
+      - name: Delete bolt-* branches older than 7 days
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          DRY_RUN: ${{ github.event.inputs.dry_run || 'true' }}
+        run: |
+          set -euo pipefail
+          
+          echo "=== Branch Cleanup Report ==="
+          echo "Repository: $REPO"
+          echo "Dry run: $DRY_RUN"
+          echo ""
+          
+          deleted=0
+          skipped=0
+          page=1
+          
+          while true; do
+            branches=$(gh api "repos/$REPO/branches?per_page=100&page=$page" \
+              --jq '.[].name | select(test("^bolt-"))' 2>/dev/null || true)
+            
+            [ -z "$branches" ] && break
+            
+            for branch in $branches; do
+              branch_info=$(gh api "repos/$REPO/branches/$branch" 2>/dev/null || echo '{}')
+              last_commit=$(echo "$branch_info" | jq -r '.commit.commit.committer.date // empty')
+              
+              if [ -z "$last_commit" ]; then
+                echo "SKIP: $branch (could not fetch info)"
+                skipped=$((skipped + 1))
+                continue
+              fi
+              
+              days_old=$(( ($(date +%s) - $(date -d "$last_commit" +%s)) / 86400 ))
+              
+              if [ "$days_old" -gt 7 ]; then
+                if [ "$DRY_RUN" = "true" ]; then
+                  echo "WOULD DELETE: $branch ($days_old days old)"
+                else
+                  echo "DELETING: $branch ($days_old days old)"
+                  gh api -X DELETE "repos/$REPO/git/refs/heads/$branch" 2>/dev/null || {
+                    echo "FAILED: $branch"
+                    skipped=$((skipped + 1))
+                    continue
+                  }
+                fi
+                deleted=$((deleted + 1))
+              else
+                echo "KEEP: $branch ($days_old days old, <= 7 days)"
+                skipped=$((skipped + 1))
+              fi
+            done
+            
+            page=$((page + 1))
+          done
+          
+          echo ""
+          echo "=== Summary ==="
+          echo "Deleted/Would delete: $deleted"
+          echo "Kept/Skipped: $skipped"
+          
+          if [ "$DRY_RUN" = "false" ]; then
+            echo ""
+            echo "Deleted $deleted stale bolt-* branches."
+          fi

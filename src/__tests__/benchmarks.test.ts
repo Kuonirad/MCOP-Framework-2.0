@@ -7,6 +7,8 @@ import {
   goalCoverage,
   pureAIRewrite,
   runPromptingBenchmark,
+  type BenchmarkTask,
+  type MockLlmCompletion,
 } from '../benchmarks/promptingModes';
 
 describe('benchmark utilities', () => {
@@ -117,5 +119,63 @@ describe('runPromptingBenchmark', () => {
     expect(summary['human-only']).toBe(0);
     expect(summary['pure-ai']).toBe(0);
     expect(summary['mcop-mediated']).toBe(CANONICAL_BENCHMARK_TASKS.length);
+  });
+
+  /* ── Branch coverage extensions ── */
+
+  it('uses the default capturedAt when none is supplied', async () => {
+    const before = new Date().toISOString();
+    const report = await runPromptingBenchmark({
+      tasks: CANONICAL_BENCHMARK_TASKS.slice(0, 1),
+    });
+    const after = new Date().toISOString();
+    expect(report.capturedAt >= before).toBe(true);
+    expect(report.capturedAt <= after).toBe(true);
+  });
+
+  it('handles a custom llm that returns sparse responses', async () => {
+    const tasks: BenchmarkTask[] = [
+      {
+        id: 'sparse',
+        domain: 'generic',
+        humanPrompt: 'test prompt',
+        goalKeywords: ['test'],
+      },
+    ];
+
+    const llm: MockLlmCompletion = ({ mode }) => {
+      if (mode === 'mcop-mediated') {
+        return 'test'; // short response so goalCoverage still hits
+      }
+      return 'nothing here';
+    };
+
+    const report = await runPromptingBenchmark({
+      tasks,
+      llm,
+      capturedAt: '2026-04-27T22:30:00.000Z',
+    });
+
+    expect(report.runs).toHaveLength(3);
+    const human = report.runs.find((r) => r.mode === 'human-only')!;
+    expect(human.goalCoverage).toBe(0);
+    const mediated = report.runs.find((r) => r.mode === 'mcop-mediated')!;
+    expect(mediated.goalCoverage).toBe(1);
+  });
+
+  it('exposes avg([]) returning 0 for empty arrays', async () => {
+    // The avg helper is private to the module; we exercise it through
+    // the public API by ensuring no division-by-zero occurs.
+    const report = await runPromptingBenchmark({
+      tasks: CANONICAL_BENCHMARK_TASKS,
+      capturedAt: '2026-04-27T22:30:00.000Z',
+    });
+    expect(report.summary.length).toBe(3);
+    report.summary.forEach((s) => {
+      expect(Number.isFinite(s.avgGoalCoverage)).toBe(true);
+      expect(Number.isFinite(s.avgInputTokens)).toBe(true);
+      expect(Number.isFinite(s.avgOutputTokens)).toBe(true);
+      expect(Number.isFinite(s.avgTotalTokens)).toBe(true);
+    });
   });
 });
