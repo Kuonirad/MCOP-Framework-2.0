@@ -243,6 +243,17 @@ export function useVSIPredictor(
     };
 
     const unsubscribe = subscribeVSI((sample: VSIShiftSample) => {
+      const now =
+        typeof performance !== "undefined" && typeof performance.now === "function"
+          ? performance.now()
+          : Date.now();
+      // Proactively prune aged-out samples before pushing to prevent
+      // unbounded buffer growth during shift storms.
+      const cutoff = now - opts.windowMs;
+      const list = samplesRef.current;
+      let dropIdx = 0;
+      while (dropIdx < list.length && list[dropIdx].startTime < cutoff) dropIdx += 1;
+      if (dropIdx > 0) list.splice(0, dropIdx);
       samplesRef.current.push({
         value: sample.value,
         startTime: sample.startTime,

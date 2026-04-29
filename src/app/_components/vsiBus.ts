@@ -63,12 +63,8 @@ interface LayoutShiftEntry extends PerformanceEntry {
   readonly sources?: ReadonlyArray<LayoutShiftAttribution>;
 }
 
-function describeNode(node: Node | null): VSIShiftSource | null {
+function describeNode(node: Node | null, rect?: DOMRectReadOnly): VSIShiftSource | null {
   if (!node) return null;
-  // Element nodes carry tag + id + classList. Other node types (text,
-  // document) have no useful selector and are reported as just the
-  // tag name (or null) so the coach can still surface "an unknown
-  // element shifted by Xpx".
   const el = node.nodeType === 1 ? (node as Element) : null;
   const tagName = el ? el.tagName.toLowerCase() : null;
   let selector: string | null = null;
@@ -77,15 +73,17 @@ function describeNode(node: Node | null): VSIShiftSource | null {
     if (el.id) {
       selector = `#${el.id}`;
     } else if (el.classList.length > 0) {
-      // Use the first stable-looking class (length > 1 char) to avoid
-      // tailwind atomic noise like `.p-6` dominating the hint.
       const stableClass = Array.from(el.classList).find((c) => c.length > 2) ?? el.classList[0];
       selector = `${tagName}.${stableClass}`;
     } else {
       selector = tagName;
     }
-    const rect = el.getBoundingClientRect();
-    heightPx = Math.round(rect.height);
+    // Use the provided rect from LayoutShiftAttribution instead of
+    // calling getBoundingClientRect(), which would force a synchronous
+    // layout calculation during an active layout-shift observation.
+    if (rect) {
+      heightPx = Math.round(rect.height);
+    }
   }
   return { tagName, selector, heightPx };
 }
@@ -106,7 +104,7 @@ function pickLargestSource(
       bestArea = area;
     }
   }
-  return best ? describeNode(best.node) : null;
+  return best ? describeNode(best.node, best.currentRect) : null;
 }
 
 function broadcast(sample: VSIShiftSample): void {

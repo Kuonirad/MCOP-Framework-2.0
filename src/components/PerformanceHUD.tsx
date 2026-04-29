@@ -14,6 +14,7 @@ import {
   type VitalSample,
 } from "@/app/_components/vitalsBus";
 import { useDebouncedValue } from "./useDebouncedValue";
+import PerformanceBudgetBar from "./PerformanceBudgetBar";
 import VSICoach from "./VSICoach";
 
 /**
@@ -87,28 +88,45 @@ interface MetricRowProps {
   readonly sample: VitalSample | undefined;
 }
 
+const BUDGET_THRESHOLDS: Record<"LCP" | "INP" | "CLS", { good: number; poor: number }> = {
+  LCP: { good: 2500, poor: 4000 },
+  INP: { good: 200, poor: 500 },
+  CLS: { good: 0.1, poor: 0.25 },
+};
+
 const MetricRow = memo(function MetricRow({ name, label, sample }: MetricRowProps) {
   const status: Status = sample ? classify(name, sample.value) : "idle";
   const styles = STATUS_STYLES[status];
   const display = sample ? format(name, sample.value) : "—";
+  const budget = BUDGET_THRESHOLDS[name];
   return (
-    <div className="flex items-center justify-between gap-6 py-1.5">
-      <div className="flex items-center gap-2">
+    <div className="flex flex-col gap-1 py-1.5">
+      <div className="flex items-center justify-between gap-6">
+        <div className="flex items-center gap-2">
+          <span
+            aria-hidden="true"
+            className={`inline-block h-2 w-2 rounded-full shadow-[0_0_8px] ${styles.dot}`}
+          />
+          <span className="text-[11px] font-medium uppercase tracking-[0.18em] text-slate-300/80">
+            {label}
+          </span>
+        </div>
         <span
-          aria-hidden="true"
-          className={`inline-block h-2 w-2 rounded-full shadow-[0_0_8px] ${styles.dot}`}
-        />
-        <span className="text-[11px] font-medium uppercase tracking-[0.18em] text-slate-300/80">
-          {label}
+          className={`font-mono text-sm tabular-nums ${styles.text}`}
+          aria-live="polite"
+          aria-label={`${name} ${display} ${status === "idle" ? "pending" : status}`}
+        >
+          {display}
         </span>
       </div>
-      <span
-        className={`font-mono text-sm tabular-nums ${styles.text}`}
-        aria-live="polite"
-        aria-label={`${name} ${display} ${status === "idle" ? "pending" : status}`}
-      >
-        {display}
-      </span>
+      {sample && (
+        <PerformanceBudgetBar
+          label={name}
+          value={sample.value}
+          goodThreshold={budget.good}
+          poorThreshold={budget.poor}
+        />
+      )}
     </div>
   );
 });
