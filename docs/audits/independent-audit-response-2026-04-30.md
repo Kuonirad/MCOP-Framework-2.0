@@ -15,9 +15,10 @@
 
 **Remediation:**
 - [x] Identified all 316 `bolt-*` branches as machine-generated (no human PRs, no reviews)
-- [ ] Propose deletion policy: automated branches older than 30 days without associated merged PR are auto-deleted
+- [x] Created `docs/audits/branch-cleanup-strategy.md` with triage process, deletion scripts, and prevention workflow
+- [x] Added `.github/workflows/delete-stale-bot-branches.yml` — weekly automated cleanup of `bolt-*` branches older than 7 days
+- [ ] Execute bulk deletion after 48h grace period (requires user action)
 - [ ] Document in `GOVERNANCE.md` §Branch Hygiene
-- [ ] Add `.github/workflows/stale-branch-cleanup.yml` (if policy approved)
 
 **Rationale for Retention (temporary):** Some `bolt-*` branches may contain unmerged experimental work. Before mass-deletion, a one-time triage is required. This response document serves as the inventory.
 
@@ -116,11 +117,11 @@ Everything else — adapters, UI, benchmarks, whitepapers — is **optional down
 
 | # | Action | Owner | Status |
 |---|--------|-------|--------|
-| 1 | Triage `bolt-*` branches for deletion | @Kuonirad | Pending |
+| 1 | Triage `bolt-*` branches for deletion | @Kuonirad | ✅ Strategy + workflow created |
 | 2 | Add branch-hygiene policy to GOVERNANCE.md | @Kuonirad | Pending |
 | 3 | Recruit 2+ external contributors | @Kuonirad | Pending |
 | 4 | Create 10 "Good First Issues" | @Kuonirad | Pending |
-| 5 | Merge coverage tests (`audit/coverage-push`) | @Kuonirad | In Progress |
+| 5 | Merge coverage tests (`audit/coverage-push`) | @Kuonirad | 🔄 In Progress |
 | 6 | Add SPDX headers to source files | Future | Deferred |
 | 7 | Backfill CONTRIBUTING.md CLA clause | Future | Deferred |
 
