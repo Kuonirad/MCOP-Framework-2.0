@@ -215,6 +215,9 @@ export default function Home() {
        * enforces.  Crawlers consume these scripts from anywhere inside
        * `<body>`, so position is purely a test-suite contract.
        */}
+      {/* Performance: preconnect to critical origins to reduce connection setup time */}
+      <link rel="preconnect" href="https://github.com" />
+      <link rel="dns-prefetch" href="https://github.com" />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{

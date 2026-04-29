@@ -192,6 +192,16 @@ export function useStabilityHeatmap(
       const source: VSIShiftSource | null = sample.source;
       // Only attributed shifts can be fixed → skip unattributed entries.
       if (!source || !source.selector) return;
+      const now =
+        typeof performance !== "undefined" && typeof performance.now === "function"
+          ? performance.now()
+          : Date.now();
+      // Proactively prune aged-out entries to cap memory during storms.
+      const cutoff = now - opts.windowMs;
+      const list = samplesRef.current;
+      let dropIdx = 0;
+      while (dropIdx < list.length && list[dropIdx].startTime < cutoff) dropIdx += 1;
+      if (dropIdx > 0) list.splice(0, dropIdx);
       samplesRef.current.push({
         selector: source.selector,
         tagName: source.tagName,
