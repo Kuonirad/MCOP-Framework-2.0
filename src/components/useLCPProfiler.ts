@@ -44,13 +44,13 @@ const IDLE_STATE: LCPProfilerState = Object.freeze({
   recommendation: "Waiting for Largest Contentful Paint…",
 });
 
-function classifyLCP(value: number): "good" | "ni" | "poor" {
+export function classifyLCP(value: number): "good" | "ni" | "poor" {
   if (value <= MCOP_CONFIG.LCP.good) return "good";
   if (value <= MCOP_CONFIG.LCP.poor) return "ni";
   return "poor";
 }
 
-function buildRecommendation(tag: string | null, url: string | null): string {
+export function buildRecommendation(tag: string | null, url: string | null): string {
   if (!tag) return "LCP element not yet identified. Ensure your hero content is visible above the fold.";
   if (tag === "img") {
     if (url) {

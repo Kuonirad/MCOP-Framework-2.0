@@ -63,7 +63,7 @@ interface LayoutShiftEntry extends PerformanceEntry {
   readonly sources?: ReadonlyArray<LayoutShiftAttribution>;
 }
 
-function describeNode(node: Node | null, rect?: DOMRectReadOnly): VSIShiftSource | null {
+export function describeNode(node: Node | null, rect?: DOMRectReadOnly): VSIShiftSource | null {
   if (!node) return null;
   const el = node.nodeType === 1 ? (node as Element) : null;
   const tagName = el ? el.tagName.toLowerCase() : null;
@@ -88,7 +88,7 @@ function describeNode(node: Node | null, rect?: DOMRectReadOnly): VSIShiftSource
   return { tagName, selector, heightPx };
 }
 
-function pickLargestSource(
+export function pickLargestSource(
   sources: ReadonlyArray<LayoutShiftAttribution> | undefined,
 ): VSIShiftSource | null {
   if (!sources || sources.length === 0) return null;
@@ -182,4 +182,6 @@ export function __emitShiftForTests(sample: VSIShiftSample): void {
 export function __resetVSIForTests(): void {
   listeners.clear();
   recentSamples.length = 0;
+  attached = false;
+  observer = null;
 }
