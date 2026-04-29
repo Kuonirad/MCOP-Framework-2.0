@@ -20,6 +20,8 @@ import {
  *   - a tiny SVG sparkline of recent shift magnitudes,
  *   - the most-recent largest-source attribution ("which element jumped"),
  *   - a one-shot copy-to-clipboard fix snippet tailored to that source,
+ *   - a **preview-fix mode** that temporarily applies `contain: layout`
+ *     so engineers can validate the fix before committing it,
  *   - and a debounced `aria-live` announcer that respects
  *     `prefers-reduced-motion` by quieting status churn.
  *
@@ -33,6 +35,8 @@ import {
  *     static dot row instead of an animated polyline.
  *   - One-click "Copy fix" uses `navigator.clipboard` with a graceful
  *     `document.execCommand` fallback so it works without HTTPS in dev.
+ *   - **Preview fix** auto-reverts on unmount or when the root-cause
+ *     selector changes, so the page is never left in a modified state.
  *   - Every interactive control is keyboard reachable, with visible
  *     `focus-visible` ring on dark backgrounds.
  */
@@ -44,7 +48,10 @@ const STATUS_LABEL: Record<VSIStatus, string> = {
   idle: "Pending",
 };
 
-const STATUS_TONE: Record<VSIStatus, { dot: string; text: string; bar: string }> = {
+const STATUS_TONE: Record<
+  VSIStatus,
+  { dot: string; text: string; bar: string }
+> = {
   good: {
     dot: "bg-emerald-400 shadow-emerald-400/60",
     text: "text-emerald-300",
@@ -121,7 +128,11 @@ interface SparklineProps {
   readonly reducedMotion: boolean;
 }
 
-const Sparkline = memo(function Sparkline({ values, status, reducedMotion }: SparklineProps) {
+const Sparkline = memo(function Sparkline({
+  values,
+  status,
+  reducedMotion,
+}: SparklineProps) {
   // Empty state: a calm baseline placeholder rather than collapsing the
   // row, so the panel height never changes (zero CLS contribution).
   if (values.length === 0) {
@@ -154,7 +165,8 @@ const Sparkline = memo(function Sparkline({ values, status, reducedMotion }: Spa
         preserveAspectRatio="none"
       >
         {values.map((v, i) => {
-          const cx = values.length === 1 ? w / 2 : (i / (values.length - 1)) * w;
+          const cx =
+            values.length === 1 ? w / 2 : (i / (values.length - 1)) * w;
           const cy = h - (v / max) * (h - 2) - 1;
           return <circle key={i} cx={cx} cy={cy} r="1.6" fill={stroke} />;
         })}
@@ -164,7 +176,8 @@ const Sparkline = memo(function Sparkline({ values, status, reducedMotion }: Spa
 
   const points = values
     .map((v, i) => {
-      const x = values.length === 1 ? w / 2 : (i / (values.length - 1)) * w;
+      const x =
+        values.length === 1 ? w / 2 : (i / (values.length - 1)) * w;
       const y = h - (v / max) * (h - 2) - 1;
       return `${x.toFixed(1)},${y.toFixed(1)}`;
     })
@@ -176,7 +189,13 @@ const Sparkline = memo(function Sparkline({ values, status, reducedMotion }: Spa
       className="h-6 w-full"
       preserveAspectRatio="none"
     >
-      <polyline points={points} fill="none" stroke={stroke} strokeWidth="1.2" strokeLinejoin="round" />
+      <polyline
+        points={points}
+        fill="none"
+        stroke={stroke}
+        strokeWidth="1.2"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 });
@@ -192,7 +211,9 @@ interface OffenderListProps {
  * fix one at a time.  The list is hidden entirely when no attributed
  * shifts have occurred so it never inflates the panel for stable pages.
  */
-const OffenderList = memo(function OffenderList({ entries }: OffenderListProps) {
+const OffenderList = memo(function OffenderList({
+  entries,
+}: OffenderListProps) {
   if (entries.length === 0) return null;
   return (
     <div
@@ -243,8 +264,79 @@ export const VSICoach = memo(function VSICoach({ open }: VSICoachProps) {
   const fix = useMemo(() => buildFixSuggestion(state), [state]);
   const [copied, setCopied] = useState(false);
   const [diagCopied, setDiagCopied] = useState(false);
+  const [previewing, setPreviewing] = useState(false);
   const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const diagTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const previewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const previewSelectorRef = useRef<string | null>(null);
+
+  const revertPreview = useCallback(() => {
+    if (typeof window === "undefined") return;
+    const selector = previewSelectorRef.current;
+    if (!selector) return;
+    const element = document.querySelector(selector) as HTMLElement | null;
+    if (element) {
+      element.style.removeProperty("contain");
+      element.style.removeProperty("min-height");
+    }
+    previewSelectorRef.current = null;
+    setPreviewing(false);
+    if (previewTimerRef.current) {
+      clearTimeout(previewTimerRef.current);
+      previewTimerRef.current = null;
+    }
+  }, []);
+
+  // Auto-revert preview when the root-cause selector changes, so we
+  // never leave a stale `contain: layout` on a different element.
+  const currentSelector = state.rootCause?.selector ?? null;
+  useEffect(() => {
+    if (
+      previewing &&
+      previewSelectorRef.current !== null &&
+      previewSelectorRef.current !== currentSelector
+    ) {
+      revertPreview();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentSelector]);
+
+  /**
+   * Apply `contain: layout` (and a min-height matching the observed
+   * shift) to the root-cause element so the engineer can see the
+   * fix in action before committing it to source.
+   */
+  const applyPreview = useCallback(() => {
+    if (typeof window === "undefined") return;
+    const selector = state.rootCause?.selector;
+    if (!selector) return;
+    const element = document.querySelector(selector) as HTMLElement | null;
+    if (!element) return;
+    const heightPx = state.rootCause?.heightPx ?? 0;
+    element.style.setProperty("contain", "layout", "important");
+    if (heightPx > 0) {
+      element.style.setProperty(
+        "min-height",
+        `${Math.max(40, heightPx)}px`,
+        "important",
+      );
+    }
+    previewSelectorRef.current = selector;
+    setPreviewing(true);
+    // Auto-revert after 8 s so the page isn't left in a modified state
+    // if the engineer forgets to click Revert.
+    if (previewTimerRef.current) clearTimeout(previewTimerRef.current);
+    previewTimerRef.current = setTimeout(() => {
+      revertPreview();
+    }, 8_000);
+  }, [state.rootCause, revertPreview]);
+
+  // Clean up any active preview on unmount so the page is never left
+  // with orphaned inline styles.
+  useEffect(() => () => {
+    revertPreview();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   /*
    * Live-region announcement is derived in render rather than mirrored
@@ -275,7 +367,9 @@ export const VSICoach = memo(function VSICoach({ open }: VSICoachProps) {
     !open || state.status === "idle"
       ? ""
       : `Visual stability ${STATUS_LABEL[state.status]}${
-          state.rootCause?.selector ? ` near ${state.rootCause.selector}` : ""
+          state.rootCause?.selector
+            ? ` near ${state.rootCause.selector}`
+            : ""
         }.${breachPhrase}`;
   // `reducedMotion` still influences the sparkline below (dots vs polyline)
   // and the visual transitions; we silence the unused-var rule for the
@@ -374,11 +468,13 @@ export const VSICoach = memo(function VSICoach({ open }: VSICoachProps) {
     () => () => {
       if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
       if (diagTimerRef.current) clearTimeout(diagTimerRef.current);
+      if (previewTimerRef.current) clearTimeout(previewTimerRef.current);
     },
     [],
   );
 
-  const vsiDisplay = state.shiftCount === 0 ? "—" : state.vsi.toFixed(3);
+  const vsiDisplay =
+    state.shiftCount === 0 ? "—" : state.vsi.toFixed(3);
   const trendLabel =
     state.shiftCount === 0
       ? "no shifts in window"
@@ -429,7 +525,11 @@ export const VSICoach = memo(function VSICoach({ open }: VSICoachProps) {
         </span>
       </div>
       <div className="mt-2">
-        <Sparkline values={state.sparkline} status={state.status} reducedMotion={reducedMotion} />
+        <Sparkline
+          values={state.sparkline}
+          status={state.status}
+          reducedMotion={reducedMotion}
+        />
       </div>
       <p className="mt-2 text-[10px] text-slate-400" data-testid="vsi-trend-line">
         {trendLabel}
@@ -467,11 +567,48 @@ export const VSICoach = memo(function VSICoach({ open }: VSICoachProps) {
             >
               {diagCopied ? "Diagnostics copied" : "Copy diagnostics"}
             </button>
+            {previewing ? (
+              <button
+                type="button"
+                onClick={revertPreview}
+                data-testid="vsi-revert-fix"
+                aria-label="Revert the previewed CSS fix"
+                className={[
+                  "inline-flex h-7 items-center rounded-full border border-rose-400/30 bg-rose-400/10 px-3 text-[10px] font-medium text-rose-200",
+                  "transition hover:border-rose-300/60 hover:text-white",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300",
+                  "focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950",
+                  "motion-reduce:transition-none",
+                ].join(" ")}
+              >
+                Revert fix
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={applyPreview}
+                data-testid="vsi-preview-fix"
+                aria-label="Preview the proposed CSS fix on the page"
+                className={[
+                  "inline-flex h-7 items-center rounded-full border border-white/10 bg-white/5 px-3 text-[10px] font-medium text-slate-200",
+                  "transition hover:border-sky-300/60 hover:text-white",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300",
+                  "focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950",
+                  "motion-reduce:transition-none",
+                ].join(" ")}
+              >
+                Preview fix
+              </button>
+            )}
             <button
               type="button"
               onClick={handleCopy}
               data-testid="vsi-copy-fix"
-              aria-label={copied ? "Fix copied to clipboard" : "Copy suggested fix to clipboard"}
+              aria-label={
+                copied
+                  ? "Fix copied to clipboard"
+                  : "Copy suggested fix to clipboard"
+              }
               className={[
                 "inline-flex h-7 items-center rounded-full border border-white/10 bg-white/5 px-3 text-[10px] font-medium text-slate-200",
                 "transition hover:border-sky-300/60 hover:text-white",
@@ -483,6 +620,11 @@ export const VSICoach = memo(function VSICoach({ open }: VSICoachProps) {
               {copied ? "Copied" : "Copy fix"}
             </button>
           </div>
+          {previewing && (
+            <p className="mt-1.5 text-[9px] text-sky-300/80" data-testid="vsi-preview-active">
+              Preview active · auto-reverts in 8 s
+            </p>
+          )}
         </div>
       )}
       <p

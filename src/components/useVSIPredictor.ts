@@ -1,11 +1,13 @@
 "use client";
 
+import { MCOP_CONFIG } from "@/config/mcop.config";
 import { useEffect, useRef, useState, useTransition } from "react";
 import {
   subscribeVSI,
   type VSIShiftSample,
   type VSIShiftSource,
 } from "@/app/_components/vsiBus";
+import { fallbackCompute, useVSIWorker } from "./useVSIWorker";
 
 /**
  * `useVSIPredictor` — turns the raw stream from `vsiBus` into a
@@ -69,124 +71,16 @@ export interface UseVSIPredictorOptions {
 }
 
 const DEFAULT_OPTS: Required<UseVSIPredictorOptions> = {
-  windowMs: 10_000,
-  recentMs: 2_000,
-  pollMs: 250,
-  sparklineCap: 32,
+  windowMs: MCOP_CONFIG.VSI.windowMs,
+  recentMs: MCOP_CONFIG.VSI.recentMs,
+  pollMs: MCOP_CONFIG.VSI.pollMs,
+  sparklineCap: MCOP_CONFIG.VSI.sparklineCap,
 };
-
-const VSI_GOOD = 0.1;
-const VSI_POOR = 0.25;
-
-function classify(vsi: number, count: number): VSIStatus {
-  if (count === 0) return "idle";
-  if (vsi <= VSI_GOOD) return "good";
-  if (vsi <= VSI_POOR) return "ni";
-  return "poor";
-}
 
 interface InternalSample {
   readonly value: number;
   readonly startTime: number;
   readonly source: VSIShiftSource | null;
-}
-
-function compute(
-  samples: ReadonlyArray<InternalSample>,
-  now: number,
-  opts: Required<UseVSIPredictorOptions>,
-): VSIPredictionState {
-  const cutoff = now - opts.windowMs;
-  const recentCutoff = now - opts.recentMs;
-
-  let vsi = 0;
-  let recentVsi = 0;
-  let olderVsi = 0;
-  let count = 0;
-  let rootCause: VSIShiftSource | null = null;
-  const sparkline: number[] = [];
-
-  for (const s of samples) {
-    if (s.startTime < cutoff) continue;
-    vsi += s.value;
-    count += 1;
-    sparkline.push(s.value);
-    if (s.startTime >= recentCutoff) {
-      recentVsi += s.value;
-    } else {
-      olderVsi += s.value;
-    }
-    if (s.source) rootCause = s.source;
-  }
-
-  // Trend: compare recent rate (per second) to older rate.  Both rates
-  // are normalised against their *fixed slice durations* (recentMs and
-  // windowMs - recentMs) rather than the age of the oldest sample seen,
-  // which previously biased the older-rate denominator and produced
-  // spurious "improving" verdicts during shift bursts.  A meaningful
-  // delta still requires both windows to have data; otherwise we report
-  // stable.
-  const olderSliceMs = Math.max(1, opts.windowMs - opts.recentMs);
-  let trend: VSIPredictionState["trend"] = "stable";
-  if (recentVsi > 0 && olderVsi > 0) {
-    const recentRate = recentVsi / (opts.recentMs / 1000);
-    const olderRate = olderVsi / (olderSliceMs / 1000);
-    if (recentRate > olderRate * 1.25) trend = "degrading";
-    else if (recentRate < olderRate * 0.75) trend = "improving";
-  } else if (recentVsi > 0 && olderVsi === 0) {
-    // Brand-new instability with no prior baseline → flag as degrading
-    // so the coach surfaces it instead of silently waiting.
-    trend = "degrading";
-  } else if (recentVsi === 0 && olderVsi > 0) {
-    trend = "improving";
-  }
-
-  // Prediction: time-to-next-tier when degrading.  Previously the
-  // prediction silently went null once the session crossed into `ni`
-  // territory, hiding the most actionable coaching window ("~3 s until
-  // POOR").  We now extrapolate to whichever threshold is next on the
-  // ladder (good → 0.1 → 0.25 → poor) so the coach keeps speaking
-  // until there is no further tier to warn about.
-  let predictionMs: number | null = null;
-  let predictionTarget: VSIStatus | null = null;
-  if (trend === "degrading") {
-    let nextThreshold: number | null = null;
-    if (vsi < VSI_GOOD) {
-      nextThreshold = VSI_GOOD;
-      predictionTarget = "ni";
-    } else if (vsi < VSI_POOR) {
-      nextThreshold = VSI_POOR;
-      predictionTarget = "poor";
-    }
-    if (nextThreshold !== null) {
-      const ratePerMs = recentVsi / opts.recentMs;
-      if (ratePerMs > 0) {
-        predictionMs = Math.max(
-          0,
-          Math.round((nextThreshold - vsi) / ratePerMs),
-        );
-      } else {
-        predictionTarget = null;
-      }
-    }
-  }
-
-  // Cap sparkline length for the UI.  Latest values matter most.
-  const cappedSparkline =
-    sparkline.length > opts.sparklineCap
-      ? sparkline.slice(-opts.sparklineCap)
-      : sparkline;
-
-  return {
-    vsi,
-    status: classify(vsi, count),
-    trend,
-    predictionMs,
-    predictionTarget,
-    shiftCount: count,
-    rootCause,
-    sparkline: cappedSparkline,
-  };
 }
 
 const IDLE_STATE: VSIPredictionState = Object.freeze({
@@ -209,6 +103,7 @@ export function useVSIPredictor(
   const pendingRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [state, setState] = useState<VSIPredictionState>(IDLE_STATE);
   const [, startTransition] = useTransition();
+  const { compute } = useVSIWorker();
 
   useEffect(() => {
     const recompute = () => {
@@ -222,8 +117,26 @@ export function useVSIPredictor(
       let dropIdx = 0;
       while (dropIdx < list.length && list[dropIdx].startTime < cutoff) dropIdx += 1;
       if (dropIdx > 0) list.splice(0, dropIdx);
-      const next = compute(list, now, opts);
-      startTransition(() => setState(next));
+
+      const payload = {
+        type: "compute" as const,
+        samples: list,
+        now,
+        opts,
+      };
+
+      // When Web Workers are unavailable (jsdom, CSP, SSR), compute
+      // synchronously so jest fake-timers and existing tests continue
+      // to work without async flush dances.
+      if (typeof Worker === "undefined" || typeof window === "undefined") {
+        const next = fallbackCompute(payload);
+        startTransition(() => setState(next));
+        return;
+      }
+
+      compute(payload).then((next) => {
+        startTransition(() => setState(next));
+      });
     };
 
     const schedule = () => {

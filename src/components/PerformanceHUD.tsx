@@ -1,5 +1,6 @@
 "use client";
 
+import { MCOP_CONFIG, classifyMetric } from "@/config/mcop.config";
 import {
   memo,
   useCallback,
@@ -14,6 +15,7 @@ import {
   type VitalSample,
 } from "@/app/_components/vitalsBus";
 import { useDebouncedValue } from "./useDebouncedValue";
+import { useLCPProfiler } from "./useLCPProfiler";
 import PerformanceBudgetBar from "./PerformanceBudgetBar";
 import VSICoach from "./VSICoach";
 
@@ -49,24 +51,8 @@ import VSICoach from "./VSICoach";
 
 type Status = "good" | "ni" | "poor" | "idle";
 
-interface Threshold {
-  readonly good: number;
-  readonly ni: number;
-}
-
-// Thresholds match web.dev Core Web Vitals rubrics (Nov 2024 cutoffs).
-// LCP/INP are in milliseconds, CLS is unitless.
-const THRESHOLDS: Record<"LCP" | "INP" | "CLS", Threshold> = {
-  LCP: { good: 2500, ni: 4000 },
-  INP: { good: 200, ni: 500 },
-  CLS: { good: 0.1, ni: 0.25 },
-};
-
 function classify(name: "LCP" | "INP" | "CLS", value: number): Status {
-  const t = THRESHOLDS[name];
-  if (value <= t.good) return "good";
-  if (value <= t.ni) return "ni";
-  return "poor";
+  return classifyMetric(name, value);
 }
 
 function format(name: "LCP" | "INP" | "CLS", value: number): string {
@@ -76,9 +62,18 @@ function format(name: "LCP" | "INP" | "CLS", value: number): string {
 }
 
 const STATUS_STYLES: Record<Status, { dot: string; text: string }> = {
-  good: { dot: "bg-emerald-400 shadow-emerald-400/60", text: "text-emerald-300" },
-  ni: { dot: "bg-amber-400 shadow-amber-400/60", text: "text-amber-300" },
-  poor: { dot: "bg-rose-400 shadow-rose-400/60", text: "text-rose-300" },
+  good: {
+    dot: "bg-emerald-400 shadow-emerald-400/60",
+    text: "text-emerald-300",
+  },
+  ni: {
+    dot: "bg-amber-400 shadow-amber-400/60",
+    text: "text-amber-300",
+  },
+  poor: {
+    dot: "bg-rose-400 shadow-rose-400/60",
+    text: "text-rose-300",
+  },
   idle: { dot: "bg-slate-500/60 shadow-none", text: "text-slate-400" },
 };
 
@@ -86,15 +81,22 @@ interface MetricRowProps {
   readonly name: "LCP" | "INP" | "CLS";
   readonly label: string;
   readonly sample: VitalSample | undefined;
+  /** Optional LCP attribution from useLCPProfiler — shown below the metric. */
+  readonly lcpAttribution?: {
+    readonly elementTag: string | null;
+    readonly elementUrl: string | null;
+    readonly recommendation: string;
+  } | null;
 }
 
-const BUDGET_THRESHOLDS: Record<"LCP" | "INP" | "CLS", { good: number; poor: number }> = {
-  LCP: { good: 2500, poor: 4000 },
-  INP: { good: 200, poor: 500 },
-  CLS: { good: 0.1, poor: 0.25 },
-};
+const BUDGET_THRESHOLDS = MCOP_CONFIG;
 
-const MetricRow = memo(function MetricRow({ name, label, sample }: MetricRowProps) {
+const MetricRow = memo(function MetricRow({
+  name,
+  label,
+  sample,
+  lcpAttribution,
+}: MetricRowProps) {
   const status: Status = sample ? classify(name, sample.value) : "idle";
   const styles = STATUS_STYLES[status];
   const display = sample ? format(name, sample.value) : "—";
@@ -127,6 +129,28 @@ const MetricRow = memo(function MetricRow({ name, label, sample }: MetricRowProp
           poorThreshold={budget.poor}
         />
       )}
+      {name === "LCP" && lcpAttribution && lcpAttribution.elementTag && (
+        <div className="mt-1 rounded border border-white/5 bg-slate-900/40 p-2">
+          <p className="text-[9px] font-mono uppercase tracking-[0.2em] text-slate-400">
+            LCP Element
+          </p>
+          <p className="mt-0.5 text-[10px] text-slate-200">
+            <code className="rounded bg-slate-950/60 px-1 py-px text-sky-300">
+              {lcpAttribution.elementTag}
+            </code>
+            {lcpAttribution.elementUrl && (
+              <span className="ml-1 text-slate-500">
+                {lcpAttribution.elementUrl.length > 40
+                  ? lcpAttribution.elementUrl.slice(0, 40) + "…"
+                  : lcpAttribution.elementUrl}
+              </span>
+            )}
+          </p>
+          <p className="mt-1 text-[9px] leading-relaxed text-slate-400">
+            {lcpAttribution.recommendation}
+          </p>
+        </div>
+      )}
     </div>
   );
 });
@@ -141,18 +165,26 @@ function useIdleMount(): boolean {
   useEffect(() => {
     if (typeof window === "undefined") return;
     const win = window as Window & {
-      requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
+      requestIdleCallback?: (
+        cb: () => void,
+        opts?: { timeout: number },
+      ) => number;
       cancelIdleCallback?: (id: number) => void;
     };
     let idleId: number | undefined;
     let timeoutId: ReturnType<typeof setTimeout> | undefined;
     if (typeof win.requestIdleCallback === "function") {
-      idleId = win.requestIdleCallback(() => setReady(true), { timeout: 1500 });
+      idleId = win.requestIdleCallback(() => setReady(true), {
+        timeout: 1500,
+      });
     } else {
       timeoutId = setTimeout(() => setReady(true), 0);
     }
     return () => {
-      if (idleId !== undefined && typeof win.cancelIdleCallback === "function") {
+      if (
+        idleId !== undefined &&
+        typeof win.cancelIdleCallback === "function"
+      ) {
         win.cancelIdleCallback(idleId);
       }
       if (timeoutId !== undefined) clearTimeout(timeoutId);
@@ -215,9 +247,11 @@ function detectTestMode(): TestMode {
   // entry types via the static `supportedEntryTypes` array. jsdom's
   // partial polyfill (when present) does not, which is the seam we
   // use to tell the two apart.
-  const supported = (candidate as unknown as {
-    supportedEntryTypes?: ReadonlyArray<string>;
-  }).supportedEntryTypes;
+  const supported = (
+    candidate as unknown as {
+      supportedEntryTypes?: ReadonlyArray<string>;
+    }
+  ).supportedEntryTypes;
   return Array.isArray(supported) && supported.length > 0 ? "live" : "ssr";
 }
 
@@ -248,7 +282,11 @@ function useDetectedTestMode(): TestMode {
  * and exposes a screen-reader-friendly summary via `aria-label` on a
  * sibling `sr-only` span.
  */
-const TestModeBadge = memo(function TestModeBadge({ mode }: { readonly mode: TestMode }) {
+const TestModeBadge = memo(function TestModeBadge({
+  mode,
+}: {
+  readonly mode: TestMode;
+}) {
   const isLive = mode === "live";
   const label = isLive ? "Live" : "SSR";
   const tone = isLive
@@ -294,7 +332,9 @@ export default function PerformanceHUD({
 }: PerformanceHUDProps = {}) {
   const ready = useIdleMount();
   const [open, setOpen] = useState(defaultOpen);
-  const [samples, setSamples] = useState<Partial<Record<VitalName, VitalSample>>>({});
+  const [samples, setSamples] = useState<
+    Partial<Record<VitalName, VitalSample>>
+  >({});
   const [, startTransition] = useTransition();
   // Resolve the badge label after hydration so the SSR markup never
   // claims "Live" prematurely. `useSyncExternalStore` gives us the
@@ -306,6 +346,9 @@ export default function PerformanceHUD({
   // debounce coalesces them into one trailing reconcile so the HUD never
   // burns INP budget on values the user can't actually see change.
   const displayedSamples = useDebouncedValue(samples, 300);
+
+  // Pull LCP element attribution for element-level debugging.
+  const lcpProfile = useLCPProfiler();
 
   useEffect(() => {
     if (!ready) return;
@@ -416,20 +459,43 @@ export default function PerformanceHUD({
               </p>
               <TestModeBadge mode={testMode} />
             </div>
-            <p className="text-[10px] text-slate-500">Core Web Vitals · VSI</p>
+            <p className="text-[10px] text-slate-500">
+              Core Web Vitals · VSI
+            </p>
           </div>
-          <MetricRow name="LCP" label="Largest paint" sample={displayedSamples.LCP} />
-          <MetricRow name="INP" label="Interaction" sample={displayedSamples.INP} />
-          <MetricRow name="CLS" label="Layout shift" sample={displayedSamples.CLS} />
+          <MetricRow
+            name="LCP"
+            label="Largest paint"
+            sample={displayedSamples.LCP}
+            lcpAttribution={
+              lcpProfile?.attribution
+                ? {
+                    elementTag: lcpProfile.attribution.elementTag,
+                    elementUrl: lcpProfile.attribution.elementUrl,
+                    recommendation: lcpProfile.recommendation,
+                  }
+                : null
+            }
+          />
+          <MetricRow
+            name="INP"
+            label="Interaction"
+            sample={displayedSamples.INP}
+          />
+          <MetricRow
+            name="CLS"
+            label="Layout shift"
+            sample={displayedSamples.CLS}
+          />
           <VSICoach open={open} />
           <p className="mt-3 border-t border-white/5 pt-2 text-[10px] leading-relaxed text-slate-500">
-            Real-user metrics from this browser tab. Thresholds follow{" "}
-            <span className="text-slate-400">web.dev</span> Core Web Vitals.
-            Press{" "}
+            Real-user metrics from this browser tab. Thresholds from{" "}
+            <span className="text-slate-400">MCOP config</span> (web.dev
+            defaults). Press{" "}
             <kbd className="rounded border border-white/10 bg-white/5 px-1 font-mono text-[9px]">
               Alt
-            </kbd>
-            {" + "}
+            </kbd>{" "}
+            +{" "}
             <kbd className="rounded border border-white/10 bg-white/5 px-1 font-mono text-[9px]">
               P
             </kbd>{" "}
@@ -462,7 +528,9 @@ export default function PerformanceHUD({
             aria-hidden="true"
             className={[
               "inline-block h-2 w-2 rounded-full transition",
-              displayedSamples.LCP || displayedSamples.INP || displayedSamples.CLS
+              displayedSamples.LCP ||
+                displayedSamples.INP ||
+                displayedSamples.CLS
                 ? "bg-emerald-400 shadow-[0_0_8px] shadow-emerald-400/80"
                 : "bg-slate-500",
             ].join(" ")}

@@ -1,5 +1,6 @@
 "use client";
 
+import { MCOP_CONFIG } from "@/config/mcop.config";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import {
   subscribeVitals,
@@ -44,9 +45,9 @@ export interface MetricThreshold {
 }
 
 export const THRESHOLDS: Record<"LCP" | "INP" | "CLS", MetricThreshold> = {
-  LCP: { good: 2500, poor: 4000 },
-  INP: { good: 200, poor: 500 },
-  CLS: { good: 0.1, poor: 0.25 },
+  LCP: MCOP_CONFIG.LCP,
+  INP: MCOP_CONFIG.INP,
+  CLS: MCOP_CONFIG.CLS,
 };
 
 export function classifyMetric(
@@ -190,14 +191,14 @@ function buildCLSState(sample: VitalSample | null): { status: MetricStatus; last
 function buildFCPState(sample: VitalSample | null): { status: MetricStatus; lastValue: number } {
   if (!sample) return IDLE_FCP;
   const value = sample.value;
-  const status: MetricStatus = value <= 1800 ? "good" : value <= 3000 ? "ni" : "poor";
+  const status: MetricStatus = value <= MCOP_CONFIG.FCP.good ? "good" : value <= MCOP_CONFIG.FCP.poor ? "ni" : "poor";
   return { status, lastValue: value };
 }
 
 function buildTTFBState(sample: VitalSample | null): { status: MetricStatus; lastValue: number } {
   if (!sample) return IDLE_TTFB;
   const value = sample.value;
-  const status: MetricStatus = value <= 800 ? "good" : value <= 1800 ? "ni" : "poor";
+  const status: MetricStatus = value <= MCOP_CONFIG.TTFB.good ? "good" : value <= MCOP_CONFIG.TTFB.poor ? "ni" : "poor";
   return { status, lastValue: value };
 }
 
@@ -211,8 +212,8 @@ function computeVSI(
   samples: ReadonlyArray<InternalVSISample>,
   now: number,
 ): VSIState {
-  const windowMs = 10_000;
-  const recentMs = 2_000;
+  const windowMs = MCOP_CONFIG.VSI.windowMs;
+  const recentMs = MCOP_CONFIG.VSI.recentMs;
   const cutoff = now - windowMs;
   const recentCutoff = now - recentMs;
 
@@ -236,8 +237,8 @@ function computeVSI(
 
   let status: MetricStatus = "idle";
   if (count > 0) {
-    if (vsi <= 0.1) status = "good";
-    else if (vsi <= 0.25) status = "ni";
+    if (vsi <= MCOP_CONFIG.VSI.good) status = "good";
+    else if (vsi <= MCOP_CONFIG.VSI.poor) status = "ni";
     else status = "poor";
   }
 
@@ -258,11 +259,11 @@ function computeVSI(
   let predictionTarget: MetricStatus | null = null;
   if (trend === "degrading") {
     let nextThreshold: number | null = null;
-    if (vsi < 0.1) {
-      nextThreshold = 0.1;
+    if (vsi < MCOP_CONFIG.VSI.good) {
+      nextThreshold = MCOP_CONFIG.VSI.good;
       predictionTarget = "ni";
-    } else if (vsi < 0.25) {
-      nextThreshold = 0.25;
+    } else if (vsi < MCOP_CONFIG.VSI.poor) {
+      nextThreshold = MCOP_CONFIG.VSI.poor;
       predictionTarget = "poor";
     }
     if (nextThreshold !== null) {
@@ -446,7 +447,7 @@ export function usePerformanceCoach(): PerformanceCoachState {
         : Date.now();
 
     // Prune VSI samples
-    const vsiCutoff = now - 10_000;
+    const vsiCutoff = now - MCOP_CONFIG.VSI.windowMs;
     const vsiList = vsiSamplesRef.current;
     let dropIdx = 0;
     while (dropIdx < vsiList.length && vsiList[dropIdx].startTime < vsiCutoff) dropIdx += 1;
