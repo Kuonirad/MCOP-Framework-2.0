@@ -1,8 +1,8 @@
 name: Publish Python to PyPI
 
-# Builds and publishes the `mcop` Python distribution on every GitHub Release
-# whose tag starts with `py-v` (e.g. `py-v0.1.0`). Uses PyPI Trusted Publishing
-# via OIDC — no long-lived API tokens. Configure the trusted publisher at
+# Builds and publishes the `mcop` Python distribution on every push of a tag
+# starting with `py-v` (e.g. `py-v3.2.0`). Uses PyPI Trusted Publishing via
+# OIDC — no long-lived API tokens. Configure the trusted publisher at
 # https://pypi.org/manage/account/publishing/ (or pending-publisher for the
 # very first release) with:
 #   PyPI Project Name: mcop
@@ -12,10 +12,17 @@ name: Publish Python to PyPI
 #   Environment:       pypi
 # The `pypi` environment also gates the release behind branch protection and
 # reviewer rules you can set under repo Settings → Environments.
+#
+# This workflow OWNS the GitHub Release for the tag — do not pre-create a
+# Release object via the API or UI. The workflow creates it as a draft,
+# attaches the CycloneDX SBOMs, then publishes it. This is required because
+# GitHub's Immutable Releases setting locks released artefacts at publish
+# time, blocking post-publish asset uploads.
 
 on:
-  release:
-    types: [published]
+  push:
+    tags:
+      - 'py-v*'
   workflow_dispatch:
     inputs:
       target:
@@ -46,7 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     if: >-
       github.event_name == 'workflow_dispatch' ||
-      (github.event_name == 'release' && startsWith(github.event.release.tag_name, 'py-v'))
+      (github.event_name == 'push' && startsWith(github.ref_name, 'py-v'))
     timeout-minutes: 15
     permissions:
       contents: read
@@ -65,7 +72,7 @@ jobs:
         run: python -m pip install --upgrade pip build
 
       - name: Verify package version matches release tag
-        if: github.event_name == 'release'
+        if: startsWith(github.ref_name, 'py-v')
         working-directory: mcop_package
         run: |
           tag="${GITHUB_REF_NAME#py-v}"
@@ -153,7 +160,7 @@ jobs:
     name: Publish to PyPI
     needs: build
     if: >-
-      (github.event_name == 'release' && startsWith(github.event.release.tag_name, 'py-v')) ||
+      (github.event_name == 'push' && startsWith(github.ref_name, 'py-v')) ||
       (github.event_name == 'workflow_dispatch' && inputs.target == 'pypi')
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -161,7 +168,7 @@ jobs:
       name: pypi
       url: https://pypi.org/p/mcop
     permissions:
-      contents: write   # required to attach SBOM artefacts to the GitHub Release
+      contents: write   # required to create + manage the GitHub Release with SBOMs
       id-token: write   # OIDC — required for trusted publishing
     steps:
       - name: Download distribution artifacts
@@ -192,14 +199,53 @@ jobs:
           print-hash: true
 
       # ------------------------------------------------------------------
-      # Attach the CycloneDX SBOMs to the GitHub Release as downloadable
-      # assets. Skipped on workflow_dispatch (no release object exists).
+      # GitHub Release management. The repo has Immutable Releases enabled,
+      # which locks released artefacts at publish time and rejects all
+      # post-publish asset uploads. To get the CycloneDX SBOMs attached we
+      # therefore have to (1) make sure no released-and-locked release
+      # exists for this tag yet, (2) create a draft with the SBOMs as
+      # assets, then (3) flip the draft to published so it inherits the
+      # immutability lock with the SBOMs already in place.
       # ------------------------------------------------------------------
-      - name: Attach SBOMs to GitHub Release
-        if: github.event_name == 'release'
+      - name: Remove any prior published release for this tag
+        if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.target == 'pypi')
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Existing release found for tag $TAG — deleting (Immutable Releases blocks asset uploads after publish)"
+            gh release delete "$TAG" --repo "$GITHUB_REPOSITORY" --yes --cleanup-tag=false
+          else
+            echo "No existing release for tag $TAG — proceeding to create"
+          fi
+
+      - name: Create draft release with SBOMs attached
+        id: draft_release
+        if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.target == 'pypi')
         uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
         with:
+          tag_name: ${{ github.ref_name }}
+          name: "Python mcop ${{ github.ref_name }}"
+          draft: true
+          generate_release_notes: true
+          body: |
+            **Python `mcop` ${{ github.ref_name }}** — published to PyPI via Trusted Publishing (OIDC, automatic Sigstore provenance).
+
+            - PyPI: https://pypi.org/project/mcop/
+            - Framework release notes: see the corresponding `v*` framework Release for the full feature set.
+
+            **Attached assets**: CycloneDX SBOMs covering the framework workspace and the `@kullailabs/mcop-core` package, generated by `pnpm sbom` and validated against the upstream CycloneDX schema (`pnpm sbom:validate`).
           files: |
             sbom/mcop-framework.cdx.json
             sbom/mcop-core.cdx.json
           fail_on_unmatched_files: true
+
+      - name: Publish the release (lifts draft, becomes immutable with SBOMs in place)
+        if: steps.draft_release.outputs.id != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_ID: ${{ steps.draft_release.outputs.id }}
+        run: |
+          gh api -X PATCH "/repos/${GITHUB_REPOSITORY}/releases/${RELEASE_ID}" -F draft=false -F make_latest=false
+          echo "Release ${RELEASE_ID} (tag ${{ github.ref_name }}) is now published."
