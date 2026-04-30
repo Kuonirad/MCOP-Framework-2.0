@@ -7,7 +7,7 @@ name: Publish Python to PyPI
 # very first release) with:
 #   PyPI Project Name: mcop
 #   Owner:             Kuonirad
-#   Repository:        MCOP-Framework-2.0
+#   Repository:        KullAILABS-MCOP-Framework-2.0
 #   Workflow:          publish-pypi.yml
 #   Environment:       pypi
 # The `pypi` environment also gates the release behind branch protection and
