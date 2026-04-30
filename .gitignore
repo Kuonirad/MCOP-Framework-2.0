@@ -19,6 +19,9 @@ cypress/screenshots/
 cypress/videos/
 cypress/downloads/
 
+# generated API docs (TypeDoc)
+docs/api/core/
+
 # next.js
 /.next/
 /out/

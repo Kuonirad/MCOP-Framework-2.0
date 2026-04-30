@@ -29,7 +29,10 @@
     "parity:check": "node scripts/parity-guardian.mjs",
     "triad:fingerprint": "node scripts/triad-fingerprint.mjs",
     "audit:placement": "node scripts/placement-linter.mjs",
-    "baseline:stigmergy": "node scripts/baselines/stigmergyResonanceBaseline.mjs"
+    "baseline:stigmergy": "node scripts/baselines/stigmergyResonanceBaseline.mjs",
+    "typedoc": "pnpm --filter @kullailabs/mcop-core typedoc",
+    "coverage:badge": "node scripts/coverage-badge.mjs",
+    "benchmark:refresh": "BENCHMARK_GENERATE=1 jest --testPathPatterns=src/__tests__/benchmarks.test.ts"
   },
   "engines": {
     "node": ">=20.0.0",

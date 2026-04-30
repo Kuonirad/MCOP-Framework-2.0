@@ -1,0 +1,18 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "entryPoints": ["./src/index.ts"],
+  "out": "../../docs/api/core",
+  "tsconfig": "./tsconfig.json",
+  "name": "@kullailabs/mcop-core API",
+  "readme": "./README.md",
+  "includeVersion": true,
+  "excludePrivate": true,
+  "excludeInternal": true,
+  "hideGenerator": true,
+  "skipErrorChecking": true,
+  "navigationLinks": {
+    "GitHub": "https://github.com/Kuonirad/MCOP-Framework-2.0",
+    "npm": "https://www.npmjs.com/package/@kullailabs/mcop-core"
+  },
+  "categorizeByGroup": true
+}
