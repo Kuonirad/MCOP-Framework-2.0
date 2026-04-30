@@ -71,11 +71,29 @@ to `cosign attest --predicate` and pushed alongside the release artefact.
 
 ## Local verification
 
-After running `pnpm sbom`, the JSON files can be validated with:
+After running `pnpm sbom`, validate the JSON files against the official
+CycloneDX schemas (using the JSON validator bundled with
+`@cyclonedx/cyclonedx-library`):
 
 ```bash
-npx -y @cyclonedx/cyclonedx-cli@latest validate \
-  --input-file docs/sbom/mcop-framework.cdx.json \
-  --input-format json \
-  --input-version v1_6
+pnpm sbom:validate
 ```
+
+The script auto-detects each SBOM's declared `specVersion` (1.0 – 1.7
+supported) and reports:
+
+```
+sbom:validate: docs/sbom/mcop-framework.cdx.json — VALID (CycloneDX 1.7)
+sbom:validate: docs/sbom/mcop-core.cdx.json — VALID (CycloneDX 1.7)
+sbom:validate: all 2 SBOM(s) conform to their declared CycloneDX schema.
+```
+
+Exit codes: `0` on success, `1` on schema violations, `2` on IO/setup
+errors. Wire this into CI alongside `pnpm sbom` to fail builds whenever
+the generated SBOM is non-conformant.
+
+> Why not `@cyclonedx/cyclonedx-cli`? The OWASP CLI ships as a Rust
+> binary on the [`cyclonedx-cli` GitHub releases](https://github.com/CycloneDX/cyclonedx-cli/releases),
+> not on npm — `npx @cyclonedx/cyclonedx-cli` returns a 404. The
+> in-repo Node validator avoids that extra binary download and runs
+> against the same upstream JSON schemas.

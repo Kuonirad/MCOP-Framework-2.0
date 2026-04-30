@@ -34,7 +34,8 @@
     "typedoc": "pnpm --filter @kullailabs/mcop-core typedoc",
     "coverage:badge": "node scripts/coverage-badge.mjs",
     "benchmark:refresh": "BENCHMARK_GENERATE=1 jest --testPathPatterns=src/__tests__/benchmarks.test.ts",
-    "sbom": "node scripts/generate-sbom.mjs"
+    "sbom": "node scripts/generate-sbom.mjs",
+    "sbom:validate": "node scripts/validate-sbom.mjs"
   },
   "engines": {
     "node": ">=20.0.0",
@@ -51,6 +52,7 @@
   },
   "devDependencies": {
     "@cyclonedx/cdxgen": "^12.3.0",
+    "@cyclonedx/cyclonedx-library": "^10",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
@@ -58,6 +60,9 @@
     "@types/node": "25.6.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "ajv": "^8",
+    "ajv-formats": "^3",
+    "ajv-formats-draft2019": "^1",
     "concurrently": "^9.2.1",
     "cypress": "^15.14.1",
     "eslint": "^9",

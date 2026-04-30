@@ -7,6 +7,15 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **CycloneDX SBOM schema validation.** New `pnpm sbom:validate`
+  script (`scripts/validate-sbom.mjs`) validates each generated SBOM
+  against the official CycloneDX JSON schema bundled with
+  [`@cyclonedx/cyclonedx-library`](https://www.npmjs.com/package/@cyclonedx/cyclonedx-library).
+  The script auto-detects each SBOM's declared `specVersion` (1.0 –
+  1.7) and exits non-zero on schema violations. Replaces the
+  previously-suggested `@cyclonedx/cyclonedx-cli` recipe, which is not
+  published to npm (the OWASP CLI ships as a Rust binary on GitHub
+  releases). `docs/sbom/README.md` updated accordingly.
 - **CycloneDX SBOM generation.** `pnpm sbom` runs
   [`@cyclonedx/cdxgen`](https://www.npmjs.com/package/@cyclonedx/cdxgen)
   (OWASP-maintained, pnpm-lockfile aware) against both the root
