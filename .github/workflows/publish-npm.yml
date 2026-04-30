@@ -177,22 +177,41 @@ jobs:
       # is set. Provenance is generated automatically — no `--provenance` flag
       # needed and no NPM_TOKEN required.
       #
-      # We must explicitly clear `NODE_AUTH_TOKEN` here. `actions/setup-node`
-      # auto-writes `.npmrc` with `//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}`
-      # whenever `registry-url` is set, AND it exports the literal sentinel
-      # `NODE_AUTH_TOKEN=XXXXX-XXXXX-XXXXX-XXXXX` as a default. Without this
-      # override, npm CLI 11.x prefers the (bogus) token over OIDC, fails auth,
-      # and surfaces a misleading `404 Not Found - PUT` from the registry —
-      # see actions/setup-node#1445 and npm/cli#9088. Setting NODE_AUTH_TOKEN
-      # to an empty string forces npm to fall through to the OIDC trusted-
-      # publishing flow (provenance is still signed via Sigstore automatically).
+      # `actions/setup-node` (with `registry-url`) writes a `.npmrc` containing
+      # `//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}` and exports the
+      # literal sentinel `NODE_AUTH_TOKEN=XXXXX-XXXXX-XXXXX-XXXXX` as default.
+      # When the repo has no real `NODE_AUTH_TOKEN` secret (the correct config
+      # for Trusted Publishing), npm CLI 11.x sees the bogus token, prefers it
+      # over OIDC, and fails auth with a misleading `404 Not Found - PUT` from
+      # the registry. Clearing `NODE_AUTH_TOKEN` to an empty string is a step
+      # forward (the placeholder no longer poisons the request body), but it
+      # is *not enough on its own*: npm 11.x then sees `_authToken=` (empty)
+      # in `.npmrc` as "auth is configured but empty" and refuses to fall
+      # through to OIDC, surfacing `ENEEDAUTH` instead.
+      #
+      # The defence-in-depth fix: clear `NODE_AUTH_TOKEN` AND strip every
+      # `_authToken` line from the `.npmrc` written by setup-node. With both
+      # in place, npm CLI sees no auth config at all and correctly detects
+      # the OIDC env vars (`ACTIONS_ID_TOKEN_REQUEST_TOKEN` etc.) for trusted
+      # publishing. Provenance attestation is still signed via Sigstore
+      # automatically.
+      #
+      # Refs: actions/setup-node#1445, npm/cli#9088
       - name: Publish to npm (trusted publishing + automatic provenance)
         if: >-
           github.event_name == 'release' ||
           (github.event_name == 'workflow_dispatch' && inputs.dry_run == false)
         env:
           NODE_AUTH_TOKEN: ''
-        run: npm publish --access public
+        run: |
+          if [ -n "$NPM_CONFIG_USERCONFIG" ] && [ -f "$NPM_CONFIG_USERCONFIG" ]; then
+            echo "Stripping _authToken lines from $NPM_CONFIG_USERCONFIG so npm CLI falls through to OIDC trusted publishing…"
+            sed -i '/_authToken/d' "$NPM_CONFIG_USERCONFIG"
+            echo "--- effective .npmrc after strip ---"
+            cat "$NPM_CONFIG_USERCONFIG"
+            echo "------------------------------------"
+          fi
+          npm publish --access public
 
       # ------------------------------------------------------------------
       # Attach the generated SBOM JSONs to the GitHub Release as
