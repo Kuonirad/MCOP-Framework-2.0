@@ -229,7 +229,22 @@ jobs:
           echo "=== OIDC env presence (sanitised) ==="
           printenv | grep -E '^(ACTIONS_ID_TOKEN_REQUEST_(URL|TOKEN)|NODE_AUTH_TOKEN|NPM_CONFIG_USERCONFIG)=' | sed -E 's/=.*/=<set>/'
           echo "=== publishing with NODE_AUTH_TOKEN removed at exec time ==="
-          env -u NODE_AUTH_TOKEN npm publish --access public
+          # `--provenance` is required (not just recommended) to trigger npm
+          # 11.x's OIDC trusted-publishing path. Despite npm's docs claiming
+          # OIDC auth is auto-detected, npm 11.x silently falls through to
+          # token auth (and surfaces ENEEDAUTH) when `--provenance` is not
+          # passed explicitly.
+          #
+          # This is most relevant on the first publish from a (possibly
+          # renamed) repo under OIDC — npm 11.x doesn't have a cached
+          # repository-binding for the package yet, so it can't infer that
+          # OIDC should be tried first. Passing `--provenance` forces the
+          # OIDC path and signs a Sigstore provenance attestation in the
+          # process.
+          #
+          # Refs: npm/cli#8730 (closed 2026-03-25, 37 👍 — explicitly
+          # documented by @nex3 and @dragonman225 as the working fix)
+          env -u NODE_AUTH_TOKEN npm publish --access public --provenance
 
       # ------------------------------------------------------------------
       # Attach the generated SBOM JSONs to the GitHub Release as
