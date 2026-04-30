@@ -19,6 +19,21 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   between root, `packages/core/`, and `mcop_package/`. Advisory-only
   reporting for `NOTICE.md` and `LICENSE-MIT-LEGACY` (legitimately
   divergent per-package).
+- **Public benchmarks refresh CLI** — `pnpm benchmark:refresh` regenerates
+  `docs/benchmarks/results.json` from `runPromptingBenchmark` against the
+  canonical fixture. Existing test guards keep the snapshot reproducible
+  in CI; the new script provides a one-line refresh affordance for
+  fixture changes. The benchmarks page (`/benchmarks`) and methodology
+  doc (`docs/benchmarks/methodology.md`) already wire this dataset.
+- **TypeDoc API docs** — `pnpm typedoc` (root alias) generates static
+  HTML for `@kullailabs/mcop-core` into `docs/api/core/` (gitignored,
+  regenerable). `packages/core/typedoc.json` controls entry points and
+  branding. See `docs/api/README.md` for local-generation +
+  publishing-to-Pages instructions.
+- **Coverage badge** — `pnpm coverage:badge` reads
+  `coverage/coverage-summary.json` (Jest `json-summary` reporter) and
+  writes a self-contained SVG to `docs/badges/coverage.svg`. README links
+  to it. No external service (no shields.io, no Codecov) needed.
 
 ### Changed
 - **Repo rename hygiene.** Updated all GitHub URLs, badges, clone
