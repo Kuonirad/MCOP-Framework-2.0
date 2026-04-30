@@ -162,6 +162,6 @@ tokenizer, and the goal-coverage scorer all stay the same — only the
 
 Every adapter shipped in this repo (`grokAdapter`,
 `devinOrchestratorAdapter`, `linearSlackOrchestratorAdapter`,
-`utopaiAdapter`, `freepikAdapter`) routes through the same triad the
+`utopaiAdapter`, `magnificAdapter`) routes through the same triad the
 `mcop-mediated` mode benchmarks. The numbers above are not aspirational
 — they are what the production code path already does, every call.

@@ -27,7 +27,8 @@ src/
     ├── types.ts                    # IMCOPAdapter contract + provenance shapes
     ├── dialecticalSynthesizer.ts   # Human-in-the-loop refinement seam
     ├── baseAdapter.ts              # Abstract pipeline (encode → resonance → etch)
-    ├── freepikAdapter.ts           # Freepik image/video/upscale adapter
+    ├── magnificAdapter.ts          # Magnific image/video/upscale adapter (ex-Freepik)
+    ├── freepikAdapter.ts           # Legacy backward-compat wrapper → magnificAdapter
     ├── utopaiAdapter.ts            # Long-form narrative adapter
     └── genericProductionAdapter.ts # 20-line scaffold for new platforms
 
@@ -36,7 +37,8 @@ mcop_package/mcop/adapters/         # Python adapters
     └── higgsfield_adapter.py       # Cinematic video adapter (Kling/Veo/Sora)
 
 examples/
-    ├── freepik_production_flow.ts
+    ├── magnific_production_flow.ts   # Post-rebrand Magnific v1/ai/ API usage
+    ├── freepik_production_flow.ts    # Legacy compat wrapper (deprecated)
     ├── higgsfield_cinematic_pipeline.py
     └── multi_platform_orchestrator.ts
 ```
@@ -93,7 +95,7 @@ Adapters MUST be lightweight (no heavy dependency footprint) and MUST
 NOT modify the MCOP core. Stateful concerns (rate-limit caching,
 long-form stitching, …) live inside the adapter.
 
-## Example: Freepik (TypeScript)
+## Example: Magnific (TypeScript)
 
 ```ts
 import {
@@ -101,20 +103,30 @@ import {
   NovaNeoEncoder,
   StigmergyV5,
 } from '@/core';
-import { FreepikMCOPAdapter } from '@/adapters';
+import { MagnificMCOPAdapter } from '@/adapters';
 
-const adapter = new FreepikMCOPAdapter({
+const adapter = new MagnificMCOPAdapter({
   encoder: new NovaNeoEncoder({ dimensions: 64, normalize: true }),
   stigmergy: new StigmergyV5({ resonanceThreshold: 0.4 }),
   etch: new HolographicEtch({ confidenceFloor: 0 }),
-  client: freepikClient, // your SDK / MCP wrapper
+  client: magnificClient, // your SDK / MCP wrapper targeting /v1/ai/*
+  maxUpscaleOutputArea: 33_177_600, // 8K UHD guardrail
+  maxCallCostEur: 5.0,
 });
 
 const { result, merkleRoot } = await adapter.generateOptimizedImage(
   'aurora-lit cathedral at dawn, painterly mood',
-  { model: 'mystic', resolution: '4k' },
+  { model: 'mystic-2.5-fluid', resolution: '4k' },
 );
 ```
+
+**Post-April 2026 rebrand notes:**
+- Routes are now under `/v1/ai/*`
+- Image upscaling uses volumetric pixel-area pricing (2×, 4×, 8×, 16×)
+- Video upscaling uses the dedicated `POST /v1/ai/video-upscaler/turbo` endpoint
+- `turbo` and `premium_quality` booleans are removed
+- Raw Base64 or direct HTTPS URLs required — no canvas.toDataURL()
+- Model-agnostic orchestration: Mystic 2.5, Google Veo 3.1, ByteDance Seeddance 2.0
 
 ## Example: Higgsfield (Python)
 
@@ -145,9 +157,9 @@ provenance for you.
 | Pattern                | Notes                                                                                                                |
 | ---------------------- | -------------------------------------------------------------------------------------------------------------------- |
 | **NPM / PyPI package** | Publish `@kullailabs/mcop-adapters` and `mcop-adapters`. One-line import drops MCOP into existing pipelines.         |
-| **Docker sidecar**     | `docker run -e MCOP_ADAPTERS=freepik,higgsfield …` exposes adapter functionality over REST/gRPC.                     |
-| **MCP Server**         | Re-expose adapter methods as MCP tools for LLM orchestration frameworks (Freepik already ships an MCP server).       |
-| **Next.js dashboard**  | Surface resonance metrics ("Freepik asset → Higgsfield shot continuity: 94 %") on the existing triad visualizer.     |
+| **Docker sidecar**     | `docker run -e MCOP_ADAPTERS=magnific,higgsfield …` exposes adapter functionality over REST/gRPC.                     |
+| **MCP Server**         | Re-expose adapter methods as MCP tools for LLM orchestration frameworks (Magnific ships an MCP server).                 |
+| **Next.js dashboard**  | Surface resonance metrics ("Magnific asset → Higgsfield shot continuity: 94 %") on the existing triad visualizer.        |
 | **Generic template**   | Copy `genericProductionAdapter.ts`, override `dispatch`, wire the new platform.                                      |
 
 ## Constraints

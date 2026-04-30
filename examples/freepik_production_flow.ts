@@ -1,16 +1,10 @@
 /**
- * Freepik production flow example.
+ * Freepik production flow example — LEGACY COMPAT.
  *
- * Demonstrates how to wire the FreepikMCOPAdapter into a production pipeline:
- * 1. Construct the MCOP triad (encoder + stigmergy + etch).
- * 2. Inject a thin FreepikClient — typically the official MCP server SDK
- *    or an in-house HTTP wrapper.
- * 3. Generate a brand-aligned image, persist the Merkle root for compliance
- *    and feed the resulting tensor back as a styleContext anchor for the
- *    next call so brand continuity is preserved.
- *
- * Run with `npx ts-node examples/freepik_production_flow.ts` once you wire
- * in a real Freepik client; otherwise it acts as executable documentation.
+ * Demonstrates how to wire the FreepikMCOPAdapter (now a backward-compat
+ * wrapper over MagnificMCOPAdapter) into a production pipeline.
+ * New code should use MagnificMCOPAdapter directly — see
+ * examples/magnific_production_flow.ts.
  */
 
 import {
@@ -25,8 +19,9 @@ import {
 
 // ---------------------------------------------------------------- client
 //
-// Replace this stub with the real Freepik SDK / MCP client. The adapter
-// only depends on the shape declared in `FreepikClient`.
+// Replace this stub with the real Magnific SDK / MCP client. The adapter
+// only depends on the shape declared in `FreepikClient` (now an alias for
+// MagnificClient).
 const freepikClient: FreepikClient = {
   async textToImage({ prompt, options }) {
     return {
@@ -49,6 +44,13 @@ const freepikClient: FreepikClient = {
       kind: 'upscale',
       assetUrl: `${sourceAssetUrl}?upscale=${options.scale ?? 2}`,
       raw: { options },
+    };
+  },
+  async videoUpscale({ sourceAssetUrl }) {
+    return {
+      kind: 'video-upscale',
+      assetUrl: `${sourceAssetUrl}?video-upscale=1`,
+      raw: {},
     };
   },
 };

@@ -34,7 +34,7 @@ const softwareApplicationJsonLd = {
   operatingSystem: "Cross-platform (Node.js 20+, Python 3.11+)",
   softwareVersion: "2.1",
   description:
-    "Deterministic, auditable Meta-Cognitive Optimization Protocol with NOVA-NEO encoder, Stigmergy v5 resonance store, and Holographic Etch engine. Ships the Universal Adapter Protocol v2.1 for Freepik, Higgsfield, Utopai, and any REST/MCP/HTTP pipeline.",
+    "Deterministic, auditable Meta-Cognitive Optimization Protocol with NOVA-NEO encoder, Stigmergy v5 resonance store, and Holographic Etch engine. Ships the Universal Adapter Protocol v2.1 for Magnific, Higgsfield, Utopai, and any REST/MCP/HTTP pipeline.",
   url: SITE_URL,
   codeRepository:
     "https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0",
@@ -182,9 +182,9 @@ export default function Home() {
     badge: string;
   }> = [
     {
-      title: "Freepik",
-      badge: "TypeScript · Image / Video / Upscale",
-      body: "Brand-aligned image, video, and upscale generation through Freepik's REST API and MCP server. Continuity tags propagate across calls via stigmergic resonance.",
+      title: "Magnific",
+      badge: "TypeScript · Image / Video / Upscale / Model Orchestration",
+      body: "Brand-aligned image, video, and upscale generation through Magnific's unified v1/ai/ API gateway. Supports Mystic 2.5, Google Veo 3.1, ByteDance Seeddance 2.0. Volumetric pixel-area billing with server-side guardrails.",
       tone: "from-sky-500/20 to-sky-500/5 ring-sky-400/40",
     },
     {
@@ -318,7 +318,7 @@ export default function Home() {
                 resonance over a Merkle-chained pheromone store), and the
                 Holographic Etch (rank-1 confidence accumulator) — into an
                 audit-grade reasoning substrate. Adapters in TypeScript and
-                Python (Freepik, Higgsfield, Utopai, plus a generic REST/MCP
+                Python (Magnific, Higgsfield, Utopai, plus a generic REST/MCP
                 scaffold) wire the triad to creative-production platforms via
                 the <strong>Universal Adapter Protocol v2.1</strong>. License:
                 BUSL 1.1.
@@ -335,7 +335,7 @@ export default function Home() {
                 Universal MCOP Adapter Integration Protocol v2.1
                 <span className="sr-only"> (opens in a new tab)</span>
               </a>
-              : a single contract that bridges the cognitive triad to Freepik,
+              : a single contract that bridges the cognitive triad to Magnific,
               Higgsfield, Utopai, and any generic REST / MCP / HTTP pipeline
               — without touching core.
             </p>
