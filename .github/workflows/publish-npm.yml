@@ -15,7 +15,7 @@ name: Publish npm package
 #      https://www.npmjs.com/package/@kullailabs/mcop-core → Settings →
 #      Trusted publishing → GitHub Actions, with:
 #     Organization or user : Kuonirad
-#     Repository           : KullAILABS-MCOP-Framework-2.0
+#     Repository           : MCOP-Framework-2.0
 #     Workflow filename    : publish-npm.yml
 #     Environment          : npm
 #
