@@ -6,6 +6,12 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [2.2.0] — 2026-04-30
+
+**Framework v2.2.0** — supply-chain hardening, public benchmarks, expanded
+test coverage. Ships alongside `@kullailabs/mcop-core@0.2.0` (npm) and
+`mcop@3.2.0` (PyPI).
+
 ### Added
 - **CycloneDX SBOM generation + schema validation in publish
   workflows.** `.github/workflows/publish-npm.yml` and
