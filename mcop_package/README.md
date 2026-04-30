@@ -84,11 +84,11 @@ Each solution includes the primary response plus supporting metadata such as:
 
 ## Project Resources
 
-- Repository: [Kuonirad/KullAILABS-MCOP-Framework-2.0](https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0)
-- Usage guide: [mcop_package/USAGE_GUIDE.md](https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/blob/main/mcop_package/USAGE_GUIDE.md)
-- API reference: [mcop_package/API_REFERENCE.md](https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/blob/main/mcop_package/API_REFERENCE.md)
-- Project structure: [mcop_package/PROJECT_STRUCTURE.md](https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/blob/main/mcop_package/PROJECT_STRUCTURE.md)
-- Changelog: [CHANGELOG.md](https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/blob/main/CHANGELOG.md)
+- Repository: [Kuonirad/MCOP-Framework-2.0](https://github.com/Kuonirad/MCOP-Framework-2.0)
+- Usage guide: [mcop_package/USAGE_GUIDE.md](https://github.com/Kuonirad/MCOP-Framework-2.0/blob/main/mcop_package/USAGE_GUIDE.md)
+- API reference: [mcop_package/API_REFERENCE.md](https://github.com/Kuonirad/MCOP-Framework-2.0/blob/main/mcop_package/API_REFERENCE.md)
+- Project structure: [mcop_package/PROJECT_STRUCTURE.md](https://github.com/Kuonirad/MCOP-Framework-2.0/blob/main/mcop_package/PROJECT_STRUCTURE.md)
+- Changelog: [CHANGELOG.md](https://github.com/Kuonirad/MCOP-Framework-2.0/blob/main/CHANGELOG.md)
 
 ## Notes
 
@@ -96,7 +96,7 @@ Each solution includes the primary response plus supporting metadata such as:
 - Medical and scientific adapters are decision-support examples and do not
   replace professional judgment.
 - Trusted publishing setup for PyPI is documented in
-  [TRUSTED_PUBLISHING_SETUP.md](https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/blob/main/TRUSTED_PUBLISHING_SETUP.md).
+  [TRUSTED_PUBLISHING_SETUP.md](https://github.com/Kuonirad/MCOP-Framework-2.0/blob/main/TRUSTED_PUBLISHING_SETUP.md).
 
 ## License
 

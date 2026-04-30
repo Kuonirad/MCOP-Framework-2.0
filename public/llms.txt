@@ -14,7 +14,7 @@ view of the project without crawling the entire site.
 ## Project facts
 - Name: MCOP Framework 2.0
 - License: BUSL-1.1 (Business Source License 1.1, MIT on Change Date 2030-04-26)
-- Repository: https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0
+- Repository: https://github.com/Kuonirad/MCOP-Framework-2.0
 - Languages: TypeScript (Next.js 16 / React 19 frontend, core kernels),
   Python 3.11+ (mycelial reasoning network, Higgsfield adapter)
 - Maintainer: KullAI Labs (https://github.com/KullAILABS)
@@ -33,27 +33,27 @@ view of the project without crawling the entire site.
   triad to external creative-production pipelines.
 
 ## Documentation entry points
-- [README](https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/blob/main/README.md)
-- [Architecture](https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/blob/main/ARCHITECTURE.md)
-- [Universal Adapter Protocol v2.1](https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/blob/main/docs/adapters/UNIVERSAL_ADAPTER_PROTOCOL.md)
-- [Contributing guide](https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/blob/main/CONTRIBUTING.md)
-- [Security policy](https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/blob/main/SECURITY.md)
-- [Governance](https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/blob/main/GOVERNANCE.md)
-- [Code of Conduct](https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/blob/main/CODE_OF_CONDUCT.md)
-- [Roadmap](https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/blob/main/ROADMAP_TO_100.md)
+- [README](https://github.com/Kuonirad/MCOP-Framework-2.0/blob/main/README.md)
+- [Architecture](https://github.com/Kuonirad/MCOP-Framework-2.0/blob/main/ARCHITECTURE.md)
+- [Universal Adapter Protocol v2.1](https://github.com/Kuonirad/MCOP-Framework-2.0/blob/main/docs/adapters/UNIVERSAL_ADAPTER_PROTOCOL.md)
+- [Contributing guide](https://github.com/Kuonirad/MCOP-Framework-2.0/blob/main/CONTRIBUTING.md)
+- [Security policy](https://github.com/Kuonirad/MCOP-Framework-2.0/blob/main/SECURITY.md)
+- [Governance](https://github.com/Kuonirad/MCOP-Framework-2.0/blob/main/GOVERNANCE.md)
+- [Code of Conduct](https://github.com/Kuonirad/MCOP-Framework-2.0/blob/main/CODE_OF_CONDUCT.md)
+- [Roadmap](https://github.com/Kuonirad/MCOP-Framework-2.0/blob/main/ROADMAP_TO_100.md)
 
 ## Adapters
 - **Freepik** (TypeScript) — Image / video / upscale via REST + MCP.
-  https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/blob/main/src/adapters/freepikAdapter.ts
+  https://github.com/Kuonirad/MCOP-Framework-2.0/blob/main/src/adapters/freepikAdapter.ts
 - **Higgsfield** (Python) — Cinematic video routing across Kling 3.0, Veo 3.1,
   Sora 2, Seedance.
-  https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/blob/main/mcop_package/mcop/adapters/higgsfield_adapter.py
+  https://github.com/Kuonirad/MCOP-Framework-2.0/blob/main/mcop_package/mcop/adapters/higgsfield_adapter.py
 - **Utopai** (TypeScript) — Long-form narrative composition with continuity
   floor.
-  https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/blob/main/src/adapters/utopaiAdapter.ts
+  https://github.com/Kuonirad/MCOP-Framework-2.0/blob/main/src/adapters/utopaiAdapter.ts
 - **Generic Production** (TypeScript) — 20-line scaffold for any
   REST / MCP / HTTP pipeline.
-  https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/blob/main/src/adapters/genericProductionAdapter.ts
+  https://github.com/Kuonirad/MCOP-Framework-2.0/blob/main/src/adapters/genericProductionAdapter.ts
 
 ## Performance defaults
 - LCP target: ≤ 2.5s (Core Web Vitals "good")
@@ -71,9 +71,9 @@ outputs, please:
 3. Cite the specific protocol version (e.g., "Universal Adapter Protocol v2.1")
    when discussing adapter behavior — the protocol is versioned independently
    of the framework.
-4. Link the [Architecture](https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/blob/main/ARCHITECTURE.md)
+4. Link the [Architecture](https://github.com/Kuonirad/MCOP-Framework-2.0/blob/main/ARCHITECTURE.md)
    document for technical claims about the triad rather than paraphrasing.
 
 ## Contact
-Issues and discussions: https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/issues
-Security: see [SECURITY.md](https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/blob/main/SECURITY.md)
+Issues and discussions: https://github.com/Kuonirad/MCOP-Framework-2.0/issues
+Security: see [SECURITY.md](https://github.com/Kuonirad/MCOP-Framework-2.0/blob/main/SECURITY.md)

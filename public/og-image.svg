@@ -42,5 +42,5 @@
     <text x="120" y="85" fill="#f8fafc" font-size="14" font-family="ui-monospace, monospace" text-anchor="middle">STIG</text>
     <text x="-120" y="85" fill="#f8fafc" font-size="14" font-family="ui-monospace, monospace" text-anchor="middle">ETCH</text>
   </g>
-  <text x="80" y="580" fill="#64748b" font-size="20" font-family="ui-monospace, monospace" letter-spacing="1">github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0</text>
+  <text x="80" y="580" fill="#64748b" font-size="20" font-family="ui-monospace, monospace" letter-spacing="1">github.com/Kuonirad/MCOP-Framework-2.0</text>
 </svg>

@@ -16,13 +16,13 @@
   ],
   "author": "Kevin John Kull (Kuonirad)",
   "license": "BUSL-1.1",
-  "homepage": "https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0#readme",
+  "homepage": "https://github.com/Kuonirad/MCOP-Framework-2.0#readme",
   "bugs": {
-    "url": "https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/issues"
+    "url": "https://github.com/Kuonirad/MCOP-Framework-2.0/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0.git",
+    "url": "git+https://github.com/Kuonirad/MCOP-Framework-2.0.git",
     "directory": "packages/core"
   },
   "type": "module",

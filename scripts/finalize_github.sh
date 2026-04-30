@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-REPO="${REPO:-Kuonirad/KullAILABS-MCOP-Framework-2.0}"
+REPO="${REPO:-Kuonirad/MCOP-Framework-2.0}"
 NOTES_DIR="docs/releases"
 
 echo "==> GitHub Finalization Runner"

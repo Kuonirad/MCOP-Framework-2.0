@@ -81,7 +81,7 @@ All primitives are fully typed. Key exports:
 - Built and published only from GitHub Actions via OIDC — no long-lived npm tokens.
 - `npm publish --provenance` emits a [Sigstore](https://www.sigstore.dev/) transparency log entry for each release.
 - All GitHub Actions used in the release pipeline are pinned to SHA-1.
-- Source available at [Kuonirad/KullAILABS-MCOP-Framework-2.0](https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0).
+- Source available at [Kuonirad/MCOP-Framework-2.0](https://github.com/Kuonirad/MCOP-Framework-2.0).
 
 ## License
 

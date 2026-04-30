@@ -16,8 +16,8 @@ This guide helps new contributors become productive members of our **collective 
 ### Setup
 ```bash
 # 1. Fork and clone
-git clone https://github.com/YOUR_USERNAME/KullAILABS-MCOP-Framework-2.0
-cd KullAILABS-MCOP-Framework-2.0
+git clone https://github.com/YOUR_USERNAME/MCOP-Framework-2.0
+cd MCOP-Framework-2.0
 
 # 2. Install dependencies
 npm install

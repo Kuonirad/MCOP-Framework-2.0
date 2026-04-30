@@ -87,5 +87,5 @@ Disallow: /api/
 # ----------------------------------------------------------------------------
 # Sitemap + LLM index pointers
 # ----------------------------------------------------------------------------
-# Sitemap: https://kuonirad.github.io/KullAILABS-MCOP-Framework-2.0/sitemap.xml
-# llms.txt: https://kuonirad.github.io/KullAILABS-MCOP-Framework-2.0/llms.txt
+# Sitemap: https://kuonirad.github.io/MCOP-Framework-2.0/sitemap.xml
+# llms.txt: https://kuonirad.github.io/MCOP-Framework-2.0/llms.txt

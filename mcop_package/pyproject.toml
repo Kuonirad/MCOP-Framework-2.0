@@ -55,11 +55,11 @@ dev = ["pytest>=7", "pytest-cov>=4"]
 llm = ["openai>=1.0"]
 
 [project.urls]
-Homepage = "https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0"
-Documentation = "https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/blob/main/mcop_package/README.md"
-Repository = "https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0"
-Issues = "https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/issues"
-Changelog = "https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/blob/main/CHANGELOG.md"
+Homepage = "https://github.com/Kuonirad/MCOP-Framework-2.0"
+Documentation = "https://github.com/Kuonirad/MCOP-Framework-2.0/blob/main/mcop_package/README.md"
+Repository = "https://github.com/Kuonirad/MCOP-Framework-2.0"
+Issues = "https://github.com/Kuonirad/MCOP-Framework-2.0/issues"
+Changelog = "https://github.com/Kuonirad/MCOP-Framework-2.0/blob/main/CHANGELOG.md"
 
 [project.scripts]
 mcop = "mcop.cli:main"

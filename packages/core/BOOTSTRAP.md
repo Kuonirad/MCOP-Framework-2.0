@@ -74,7 +74,7 @@ The package now exists at <https://www.npmjs.com/package/@kullailabs/mcop-core>.
    | Field                    | Value                                  |
    | ------------------------ | -------------------------------------- |
    | Organization or user     | `Kuonirad`                             |
-   | Repository               | `KullAILABS-MCOP-Framework-2.0`        |
+   | Repository               | `MCOP-Framework-2.0`        |
    | Workflow filename        | `publish-npm.yml`                      |
    | Environment              | `npm`                                  |
 

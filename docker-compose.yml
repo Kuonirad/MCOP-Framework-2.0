@@ -4,7 +4,7 @@
 
 services:
   mcop-app:
-    image: ghcr.io/${GITHUB_REPOSITORY:-kuonirad/kullailabs-mcop-framework-2.0}:${TAG:-latest}
+    image: ghcr.io/${GITHUB_REPOSITORY:-kuonirad/mcop-framework-2.0}:${TAG:-latest}
     container_name: mcop-framework
     ports:
       - "3000:3000"

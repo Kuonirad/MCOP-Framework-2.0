@@ -48,7 +48,7 @@ scripts/eco-fitness-audit.sh      - Local audit script
 **Remaining Work:**
 1. Add dynamic badge to README:
    ```markdown
-   ![Eco-Fitness](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/main/.github/metrics/latest.json)
+   ![Eco-Fitness](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/Kuonirad/MCOP-Framework-2.0/main/.github/metrics/latest.json)
    ```
 
 2. Create Shields.io endpoint schema in `latest.json`:
