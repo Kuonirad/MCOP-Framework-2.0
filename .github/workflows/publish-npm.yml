@@ -202,15 +202,23 @@ jobs:
           github.event_name == 'release' ||
           (github.event_name == 'workflow_dispatch' && inputs.dry_run == false)
         run: |
-          # IMPORTANT: `unset` (not `env: NODE_AUTH_TOKEN: ''` at step level)
-          # is required here. npm CLI 11.x triggers its OIDC trusted-publishing
-          # path on `process.env.NODE_AUTH_TOKEN === undefined`, NOT on
-          # `!process.env.NODE_AUTH_TOKEN`. Setting the env var to an empty
-          # string at step level keeps it defined (just empty), so npm treats
-          # it as "user provided a token" and surfaces ENEEDAUTH instead of
-          # falling through to OIDC. `unset` actually removes it from the
-          # bash process env that npm inherits.
-          unset NODE_AUTH_TOKEN
+          # IMPORTANT: We need npm to see *no* NODE_AUTH_TOKEN at all (not
+          # empty, not undefined-but-still-injected) so it triggers its OIDC
+          # trusted-publishing path. Empirically (#561, #563), neither
+          # `env: NODE_AUTH_TOKEN: ''` at step level nor `unset NODE_AUTH_TOKEN`
+          # in bash is enough — the runner re-injects the var (likely from
+          # actions/setup-node's contribution to $GITHUB_ENV) before each
+          # invocation, so by the time `npm publish` runs the variable is
+          # back. We use `env -u` to bypass bash's variable handling entirely
+          # and exec `npm` with a child environment that the kernel itself
+          # has stripped of NODE_AUTH_TOKEN.
+          #
+          # We also strip every `_authToken` line from the `.npmrc` written
+          # by setup-node, because npm 11.x treats `_authToken=` (empty) as
+          # "auth is configured but missing" and surfaces ENEEDAUTH instead
+          # of falling through to OIDC.
+          #
+          # Refs: actions/setup-node#1445, npm/cli#9088
           if [ -n "$NPM_CONFIG_USERCONFIG" ] && [ -f "$NPM_CONFIG_USERCONFIG" ]; then
             echo "Stripping _authToken lines from $NPM_CONFIG_USERCONFIG so npm CLI falls through to OIDC trusted publishing…"
             sed -i '/_authToken/d' "$NPM_CONFIG_USERCONFIG"
@@ -218,8 +226,10 @@ jobs:
             cat "$NPM_CONFIG_USERCONFIG"
             echo "------------------------------------"
           fi
-          echo "NODE_AUTH_TOKEN is $([ -z \"${NODE_AUTH_TOKEN+x}\" ] && echo 'undefined (good)' || echo 'still defined (bad)')"
-          npm publish --access public
+          echo "=== OIDC env presence (sanitised) ==="
+          printenv | grep -E '^(ACTIONS_ID_TOKEN_REQUEST_(URL|TOKEN)|NODE_AUTH_TOKEN|NPM_CONFIG_USERCONFIG)=' | sed -E 's/=.*/=<set>/'
+          echo "=== publishing with NODE_AUTH_TOKEN removed at exec time ==="
+          env -u NODE_AUTH_TOKEN npm publish --access public
 
       # ------------------------------------------------------------------
       # Attach the generated SBOM JSONs to the GitHub Release as
