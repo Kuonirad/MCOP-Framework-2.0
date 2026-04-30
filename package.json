@@ -29,7 +29,8 @@
     "parity:check": "node scripts/parity-guardian.mjs",
     "triad:fingerprint": "node scripts/triad-fingerprint.mjs",
     "audit:placement": "node scripts/placement-linter.mjs",
-    "baseline:stigmergy": "node scripts/baselines/stigmergyResonanceBaseline.mjs"
+    "baseline:stigmergy": "node scripts/baselines/stigmergyResonanceBaseline.mjs",
+    "docs:guard": "node scripts/shared-docs-guard.mjs"
   },
   "engines": {
     "node": ">=20.0.0",
