@@ -163,7 +163,15 @@ jobs:
       - name: Setup pnpm + Node for SBOM generation (root workspace)
         uses: ./.github/actions/setup-project
         with:
-          node-version: '22.x'
+          # IMPORTANT: keep this on Node 24 so the publish step that follows
+          # runs under npm 11.x. The earlier `actions/setup-node@v6` step
+          # installed Node 24, but this composite action calls
+          # `actions/setup-node@v4` again — re-pinning Node here would
+          # downgrade to whatever is requested. We previously pinned to
+          # '22.x', which silently dropped npm to 10.9.7 and disabled OIDC
+          # trusted publishing entirely (npm 10.x has no OIDC code path).
+          # See diagnostic run 25177269818 (`npm verbose npm v10.9.7`).
+          node-version: '24.x'
 
       - name: Generate CycloneDX SBOMs
         working-directory: ${{ github.workspace }}
