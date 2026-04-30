@@ -176,10 +176,22 @@ jobs:
       # Trusted publishing is auto-detected by the npm CLI when `id-token: write`
       # is set. Provenance is generated automatically — no `--provenance` flag
       # needed and no NPM_TOKEN required.
+      #
+      # We must explicitly clear `NODE_AUTH_TOKEN` here. `actions/setup-node`
+      # auto-writes `.npmrc` with `//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}`
+      # whenever `registry-url` is set, AND it exports the literal sentinel
+      # `NODE_AUTH_TOKEN=XXXXX-XXXXX-XXXXX-XXXXX` as a default. Without this
+      # override, npm CLI 11.x prefers the (bogus) token over OIDC, fails auth,
+      # and surfaces a misleading `404 Not Found - PUT` from the registry —
+      # see actions/setup-node#1445 and npm/cli#9088. Setting NODE_AUTH_TOKEN
+      # to an empty string forces npm to fall through to the OIDC trusted-
+      # publishing flow (provenance is still signed via Sigstore automatically).
       - name: Publish to npm (trusted publishing + automatic provenance)
         if: >-
           github.event_name == 'release' ||
           (github.event_name == 'workflow_dispatch' && inputs.dry_run == false)
+        env:
+          NODE_AUTH_TOKEN: ''
         run: npm publish --access public
 
       # ------------------------------------------------------------------
