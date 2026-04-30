@@ -7,6 +7,16 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **CycloneDX SBOM generation + schema validation in publish
+  workflows.** `.github/workflows/publish-npm.yml` and
+  `publish-pypi.yml` now run `pnpm sbom` + `pnpm sbom:validate`
+  before publishing, then attach the two generated SBOMs
+  (`mcop-framework.cdx.json` and `mcop-core.cdx.json`) to the GitHub
+  Release via `softprops/action-gh-release@v2.6.2`. Closes Phase 2 ②
+  of the post-audit roadmap; `docs/sbom/README.md` updated to drop
+  the previous "Devin's GitHub OAuth lacks workflow scope" caveat
+  and link directly to the workflow files.
+
 - **Targeted branch-coverage tests for the four roadmap-flagged hot
   files** (`src/__tests__/coverage-gaps.test.tsx`, +14 cases).
   Addresses Phase 2 ① of the post-audit roadmap: lifts branch coverage

@@ -63,7 +63,7 @@ jobs:
       name: npm
       url: https://www.npmjs.com/package/@kullailabs/mcop-core
     permissions:
-      contents: read
+      contents: write   # required to attach SBOM artefacts to the GitHub Release
       id-token: write   # OIDC — required for Trusted Publishing + provenance
     defaults:
       run:
@@ -153,6 +153,26 @@ jobs:
           github.event_name == 'workflow_dispatch' && inputs.dry_run == true
         run: npm publish --access public --dry-run
 
+      # ------------------------------------------------------------------
+      # CycloneDX SBOM generation (root-of-repo command). We deliberately
+      # do this AFTER the npm build step so the SBOM reflects the exact
+      # dependency graph that will be published, and BEFORE the publish
+      # step so a malformed SBOM aborts the release before a tarball ever
+      # leaves the runner.
+      # ------------------------------------------------------------------
+      - name: Setup pnpm + Node for SBOM generation (root workspace)
+        uses: ./.github/actions/setup-project
+        with:
+          node-version: '22.x'
+
+      - name: Generate CycloneDX SBOMs
+        working-directory: ${{ github.workspace }}
+        run: pnpm sbom
+
+      - name: Validate CycloneDX SBOMs against upstream schema
+        working-directory: ${{ github.workspace }}
+        run: pnpm sbom:validate
+
       # Trusted publishing is auto-detected by the npm CLI when `id-token: write`
       # is set. Provenance is generated automatically — no `--provenance` flag
       # needed and no NPM_TOKEN required.
@@ -161,3 +181,18 @@ jobs:
           github.event_name == 'release' ||
           (github.event_name == 'workflow_dispatch' && inputs.dry_run == false)
         run: npm publish --access public
+
+      # ------------------------------------------------------------------
+      # Attach the generated SBOM JSONs to the GitHub Release as
+      # downloadable assets. Skipped on workflow_dispatch (no release to
+      # attach to). softprops/action-gh-release@v2 honours the existing
+      # release referenced by ${{ github.event.release }}.
+      # ------------------------------------------------------------------
+      - name: Attach SBOMs to GitHub Release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
+        with:
+          files: |
+            ${{ github.workspace }}/docs/sbom/mcop-framework.cdx.json
+            ${{ github.workspace }}/docs/sbom/mcop-core.cdx.json
+          fail_on_unmatched_files: true

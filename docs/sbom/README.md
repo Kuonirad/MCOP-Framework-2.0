@@ -49,22 +49,21 @@ without depending on `npm ls`.
 
 ## Publish-workflow integration
 
-Devin's GitHub OAuth token does not currently grant the `workflow`
-scope, so I cannot wire SBOM generation into `.github/workflows/publish-*.yml`
-directly. The recommended one-line addition for the maintainer (added
-to both `publish-npm.yml` and `publish-pypi.yml` near the publish
-step):
+SBOM generation, schema validation, and GitHub Release attachment are
+already wired into both publish workflows:
 
-```yaml
-- name: Generate CycloneDX SBOM
-  run: pnpm sbom
-- name: Attach SBOM to release
-  uses: softprops/action-gh-release@v2
-  with:
-    files: |
-      docs/sbom/mcop-framework.cdx.json
-      docs/sbom/mcop-core.cdx.json
-```
+- [`.github/workflows/publish-npm.yml`](../../.github/workflows/publish-npm.yml)
+  — runs `pnpm sbom` + `pnpm sbom:validate` before `npm publish`, then
+  uploads `mcop-framework.cdx.json` + `mcop-core.cdx.json` as release
+  assets.
+- [`.github/workflows/publish-pypi.yml`](../../.github/workflows/publish-pypi.yml)
+  — generates the same two SBOMs in the build job, carries them
+  forward as a workflow artefact (`cyclonedx-sbom`), and attaches them
+  to the GitHub Release after `pypi-publish` completes.
+
+Both jobs declare `permissions.contents: write` on the publish step
+specifically (and not on the build job) so the Release-asset upload
+can succeed without expanding the rest of the job's blast radius.
 
 For Sigstore / `cosign` attestations, the same SBOM JSON can be passed
 to `cosign attest --predicate` and pushed alongside the release artefact.
