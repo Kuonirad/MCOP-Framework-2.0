@@ -16,7 +16,7 @@
 //   2  IO / parse / setup error (missing file, unsupported specVersion, etc.)
 
 import { Validation, Spec } from "@cyclonedx/cyclonedx-library";
-import { readFile, access } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -56,18 +56,18 @@ let failures = 0;
 
 for (const file of targets) {
   const rel = path.relative(repoRoot, file);
-  try {
-    await access(file);
-  } catch {
-    console.error(`sbom:validate: missing ${rel} — run \`pnpm sbom\` first.`);
-    process.exit(2);
-  }
 
+  // Single-step read avoids any TOCTOU race between checking existence and
+  // reading the file. ENOENT is reported as a missing-target error.
   let raw;
   try {
     raw = await readFile(file, "utf8");
   } catch (err) {
-    console.error(`sbom:validate: read failed for ${rel}: ${err.message}`);
+    if (err && err.code === "ENOENT") {
+      console.error(`sbom:validate: missing ${rel} — run \`pnpm sbom\` first.`);
+    } else {
+      console.error(`sbom:validate: read failed for ${rel}: ${err.message}`);
+    }
     process.exit(2);
   }
 
