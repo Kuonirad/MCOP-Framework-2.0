@@ -201,9 +201,16 @@ jobs:
         if: >-
           github.event_name == 'release' ||
           (github.event_name == 'workflow_dispatch' && inputs.dry_run == false)
-        env:
-          NODE_AUTH_TOKEN: ''
         run: |
+          # IMPORTANT: `unset` (not `env: NODE_AUTH_TOKEN: ''` at step level)
+          # is required here. npm CLI 11.x triggers its OIDC trusted-publishing
+          # path on `process.env.NODE_AUTH_TOKEN === undefined`, NOT on
+          # `!process.env.NODE_AUTH_TOKEN`. Setting the env var to an empty
+          # string at step level keeps it defined (just empty), so npm treats
+          # it as "user provided a token" and surfaces ENEEDAUTH instead of
+          # falling through to OIDC. `unset` actually removes it from the
+          # bash process env that npm inherits.
+          unset NODE_AUTH_TOKEN
           if [ -n "$NPM_CONFIG_USERCONFIG" ] && [ -f "$NPM_CONFIG_USERCONFIG" ]; then
             echo "Stripping _authToken lines from $NPM_CONFIG_USERCONFIG so npm CLI falls through to OIDC trusted publishing…"
             sed -i '/_authToken/d' "$NPM_CONFIG_USERCONFIG"
@@ -211,6 +218,7 @@ jobs:
             cat "$NPM_CONFIG_USERCONFIG"
             echo "------------------------------------"
           fi
+          echo "NODE_AUTH_TOKEN is $([ -z \"${NODE_AUTH_TOKEN+x}\" ] && echo 'undefined (good)' || echo 'still defined (bad)')"
           npm publish --access public
 
       # ------------------------------------------------------------------
