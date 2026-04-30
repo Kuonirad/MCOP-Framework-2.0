@@ -1,11 +1,11 @@
 """
-M-COP v3.1 - Meta-Cognitive Optimization Protocol
+M-COP v3.2 - Meta-Cognitive Optimization Protocol
 
 A universal reasoning framework that implements multi-modal reasoning,
 mycelial chaining, and evidence grounding for domain-agnostic problem solving.
 """
 
-__version__ = "3.1.0"
+__version__ = "3.2.0"
 
 # Core types
 from .mcop_types import (
