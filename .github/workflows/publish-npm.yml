@@ -229,22 +229,36 @@ jobs:
           echo "=== OIDC env presence (sanitised) ==="
           printenv | grep -E '^(ACTIONS_ID_TOKEN_REQUEST_(URL|TOKEN)|NODE_AUTH_TOKEN|NPM_CONFIG_USERCONFIG)=' | sed -E 's/=.*/=<set>/'
           echo "=== publishing with NODE_AUTH_TOKEN removed at exec time ==="
-          # `--provenance` is required (not just recommended) to trigger npm
-          # 11.x's OIDC trusted-publishing path. Despite npm's docs claiming
-          # OIDC auth is auto-detected, npm 11.x silently falls through to
-          # token auth (and surfaces ENEEDAUTH) when `--provenance` is not
-          # passed explicitly.
+          # npm's OIDC trusted-publishing flow (lib/utils/oidc.js) POSTs the
+          # GitHub OIDC token to:
+          #   https://registry.npmjs.org/-/npm/v1/oidc/token/exchange/package/<pkg>
+          # If that token-exchange call fails (e.g. Trusted Publisher mismatch
+          # on npm's side), npm 11.x logs the reason ONLY at verbose level
+          # and silently falls through to token auth, surfacing ENEEDAUTH
+          # without any indication of why OIDC failed.
           #
-          # This is most relevant on the first publish from a (possibly
-          # renamed) repo under OIDC — npm 11.x doesn't have a cached
-          # repository-binding for the package yet, so it can't infer that
-          # OIDC should be tried first. Passing `--provenance` forces the
-          # OIDC path and signs a Sigstore provenance attestation in the
-          # process.
-          #
-          # Refs: npm/cli#8730 (closed 2026-03-25, 37 👍 — explicitly
-          # documented by @nex3 and @dragonman225 as the working fix)
-          env -u NODE_AUTH_TOKEN npm publish --access public --provenance
+          # We run with --loglevel=verbose so the OIDC failure reason is in
+          # the workflow output, and we deliberately do NOT fail-fast — we
+          # always cat the npm debug log on failure so the verbose oidc
+          # diagnostics survive even if the run exits non-zero.
+          set +e
+          env -u NODE_AUTH_TOKEN npm publish \
+            --access public \
+            --provenance \
+            --loglevel=verbose
+          publish_exit=$?
+          set -e
+          if [ "$publish_exit" -ne 0 ]; then
+            echo "::group::npm publish debug log (most recent)"
+            latest_log=$(ls -t "$HOME/.npm/_logs/"*-debug-0.log 2>/dev/null | head -1 || true)
+            if [ -n "$latest_log" ] && [ -f "$latest_log" ]; then
+              cat "$latest_log"
+            else
+              echo "(no npm debug log found at $HOME/.npm/_logs/)"
+            fi
+            echo "::endgroup::"
+            exit "$publish_exit"
+          fi
 
       # ------------------------------------------------------------------
       # Attach the generated SBOM JSONs to the GitHub Release as
