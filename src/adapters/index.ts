@@ -10,6 +10,7 @@
 export * from './types';
 export * from './dialecticalSynthesizer';
 export * from './baseAdapter';
+export * from './magnificAdapter';
 export * from './freepikAdapter';
 export * from './utopaiAdapter';
 export * from './genericProductionAdapter';

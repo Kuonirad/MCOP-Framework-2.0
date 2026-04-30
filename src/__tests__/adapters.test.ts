@@ -14,6 +14,9 @@ import {
   HumanFeedback,
   HumanVetoError,
   LinearSlackOrchestratorAdapter,
+  MagnificClient,
+  MagnificMCOPAdapter,
+  checkMagnificAttribution,
   mockLinearClient,
   mockSlackClient,
   mockSubAgentClient,
@@ -42,6 +45,10 @@ const freepikFixture = (): FreepikClient => ({
   upscale: jest.fn(async ({ sourceAssetUrl }) => ({
     kind: 'upscale' as const,
     assetUrl: `${sourceAssetUrl}@2x`,
+  })),
+  videoUpscale: jest.fn(async ({ sourceAssetUrl }) => ({
+    kind: 'video-upscale' as const,
+    assetUrl: `${sourceAssetUrl}@video-upscale`,
   })),
 });
 
@@ -195,6 +202,173 @@ describe('FreepikMCOPAdapter', () => {
       defaultEntropyTarget: 0.2,
     });
     // The configured default must round-trip into request metadata.
+    const result = await adapter.generateOptimizedImage('configured target');
+    expect(result.provenance.refinedPrompt).toContain('configured target');
+  });
+});
+
+describe('MagnificMCOPAdapter', () => {
+  const magnificFixture = (): MagnificClient => ({
+    textToImage: jest.fn(async ({ prompt }) => ({
+      kind: 'image' as const,
+      assetUrl: `image://${prompt}`,
+      jobId: 'job-magnific-1',
+    })),
+    textToVideo: jest.fn(async ({ prompt }) => ({
+      kind: 'video' as const,
+      assetUrl: `video://${prompt}`,
+      jobId: 'job-magnific-vid',
+    })),
+    upscale: jest.fn(async ({ sourceAssetUrl }) => ({
+      kind: 'upscale' as const,
+      assetUrl: `${sourceAssetUrl}@magnific-upscale`,
+    })),
+    videoUpscale: jest.fn(async ({ sourceAssetUrl }) => ({
+      kind: 'video-upscale' as const,
+      assetUrl: `${sourceAssetUrl}@magnific-video-upscale`,
+    })),
+  });
+
+  it('rejects empty prompts', async () => {
+    const adapter = new MagnificMCOPAdapter({
+      ...baseTriad(),
+      client: magnificFixture(),
+    });
+    await expect(adapter.generate({ prompt: '' })).rejects.toThrow(
+      /non-empty/,
+    );
+  });
+
+  it('routes image / video / upscale / video-upscale requests correctly', async () => {
+    const client = magnificFixture();
+    const adapter = new MagnificMCOPAdapter({ ...baseTriad(), client });
+
+    const img = await adapter.generateOptimizedImage('hero shot', {
+      model: 'mystic-2.5-fluid',
+    });
+    expect(img.result.kind).toBe('image');
+    expect(client.textToImage).toHaveBeenCalledTimes(1);
+    expect(img.merkleRoot).toMatch(/^[0-9a-f]{64}$/);
+    expect(img.provenance.tensorHash).toMatch(/^[0-9a-f]{64}$/);
+
+    const vid = await adapter.generateOptimizedVideo('motion shot', {
+      model: 'seeddance-2.0',
+    });
+    expect(vid.result.kind).toBe('video');
+    expect(client.textToVideo).toHaveBeenCalledTimes(1);
+
+    const up = await adapter.upscaleImage('https://cdn/example.png', {
+      scale: 4,
+      sourceWidth: 1280,
+      sourceHeight: 720,
+    });
+    expect(up.result.kind).toBe('upscale');
+    expect(client.upscale).toHaveBeenCalledTimes(1);
+
+    const vUp = await adapter.upscaleVideo('https://cdn/example.mp4');
+    expect(vUp.result.kind).toBe('video-upscale');
+    expect(client.videoUpscale).toHaveBeenCalledTimes(1);
+  });
+
+  it('surfaces capabilities for orchestrators', async () => {
+    const adapter = new MagnificMCOPAdapter({
+      ...baseTriad(),
+      client: magnificFixture(),
+    });
+    const caps = await adapter.getCapabilities();
+    expect(caps.platform).toBe('magnific');
+    expect(caps.models).toContain('veo-3.1');
+    expect(caps.models).toContain('seeddance-2.0');
+    expect(caps.supportsAudit).toBe(true);
+  });
+
+  it('estimates upscale cost using volumetric table', () => {
+    const adapter = new MagnificMCOPAdapter({
+      ...baseTriad(),
+      client: magnificFixture(),
+    });
+    // Known reference: 640×480 @ 2× = €0.10
+    expect(adapter.estimateUpscaleCost(640, 480, 2)).toBe(0.10);
+    // Known reference: 1920×1080 @ 2× = €0.20
+    expect(adapter.estimateUpscaleCost(1920, 1080, 2)).toBe(0.20);
+    // Interpolated: 1280×720 @ 8× (no exact row — heuristic)
+    const interpolated = adapter.estimateUpscaleCost(1280, 720, 8);
+    expect(interpolated).toBeGreaterThan(0);
+    expect(interpolated).toBeLessThan(10);
+  });
+
+  it('estimates video cost by model', () => {
+    const adapter = new MagnificMCOPAdapter({
+      ...baseTriad(),
+      client: magnificFixture(),
+    });
+    expect(adapter.estimateVideoCost(10, 'veo-3.1')).toBe(4.0);
+    expect(adapter.estimateVideoCost(10, 'seeddance-2.0')).toBe(3.0);
+  });
+
+  it('validates upscale guardrails before dispatch', async () => {
+    const adapter = new MagnificMCOPAdapter({
+      ...baseTriad(),
+      client: magnificFixture(),
+      maxUpscaleOutputArea: 10_000_000,
+      maxCallCostEur: 1.0,
+    });
+
+    // Should pass — within guardrails
+    await expect(
+      adapter.upscaleImage('https://cdn/small.png', {
+        scale: 2,
+        sourceWidth: 640,
+        sourceHeight: 480,
+      }),
+    ).resolves.toBeDefined();
+
+    // Should throw — output area too large
+    await expect(
+      adapter.upscaleImage('https://cdn/huge.png', {
+        scale: 16,
+        sourceWidth: 3840,
+        sourceHeight: 2160,
+      }),
+    ).rejects.toThrow(/exceeds adapter guardrail/);
+  });
+
+  it('rejects upscale calls without source asset', async () => {
+    const adapter = new MagnificMCOPAdapter({
+      ...baseTriad(),
+      client: magnificFixture(),
+    });
+    await expect(
+      adapter.generate({ prompt: 'enhance', payload: { kind: 'upscale' } }),
+    ).rejects.toThrow(/sourceAssetUrl or sourceAssetBase64/);
+  });
+
+  it('accepts Base64 source in addition to URL', async () => {
+    const client = magnificFixture();
+    const adapter = new MagnificMCOPAdapter({ ...baseTriad(), client });
+
+    const result = await adapter.generate({
+      prompt: 'enhance',
+      payload: {
+        kind: 'upscale',
+        sourceAssetBase64: 'data:image/png;base64,abc123',
+        upscale: { scale: 2 },
+      },
+    });
+    expect(result.result.kind).toBe('upscale');
+  });
+
+  it('checks Magnific attribution string', () => {
+    expect(checkMagnificAttribution('Powered by Magnific')).toBe(true);
+    expect(checkMagnificAttribution('Some random text')).toBe(false);
+  });
+
+  it('accepts a custom default entropy target', async () => {
+    const adapter = new MagnificMCOPAdapter({
+      ...baseTriad(),
+      client: magnificFixture(),
+      defaultEntropyTarget: 0.2,
+    });
     const result = await adapter.generateOptimizedImage('configured target');
     expect(result.provenance.refinedPrompt).toContain('configured target');
   });

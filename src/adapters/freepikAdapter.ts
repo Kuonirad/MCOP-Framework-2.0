@@ -1,187 +1,136 @@
 /**
- * Freepik MCOP Adapter — orchestrates Freepik's REST/MCP image, video and
- * upscale endpoints through the MCOP cognitive layer. The adapter does
- * NOT bundle the Freepik SDK; instead it accepts a thin client interface
- * so callers can wire either the official `@freepik/mcp` package, an
- * in-house HTTP wrapper, or a fixture for tests.
+ * Freepik MCOP Adapter — BACKWARD-COMPATIBILITY WRAPPER.
+ *
+ * Freepik rebranded to Magnific on 27 April 2026.  This module re-exports
+ * the Magnific adapter under the old names so existing consumers do not
+ * break, but every call emits a one-time console warning urging migration.
+ *
+ * Migration checklist for consumers:
+ *  1. Rename imports: FreepikMCOPAdapter → MagnificMCOPAdapter
+ *  2. Rename client interface: FreepikClient → MagnificClient
+ *  3. Update endpoint paths to /v1/ai/*
+ *  4. Remove deprecated turbo / premium_quality booleans from video upscaling
+ *  5. Add server-side input validation (this wrapper guards by default)
+ *  6. Add "Powered by Magnific" attribution in consumer-facing UIs
+ *  7. Implement download-reporting webhooks for cached assets
+ *
+ * Full spec: see docs/adapters/MAGNIFIC_MIGRATION.md (generate via
+ * `pnpm run docs:magnific` if missing).
  */
 
 import {
-  BaseAdapter,
-  BaseAdapterDeps,
-  PreparedDispatch,
-} from './baseAdapter';
-import {
-  AdapterCapabilities,
-  AdapterRequest,
-} from './types';
+  MagnificAssetKind,
+  MagnificClient,
+  MagnificGenerationResult,
+  MagnificImageOptions,
+  MagnificMCOPAdapter,
+  MagnificAdapterConfig,
+  MagnificRequest,
+  MagnificUpscaleFactor,
+  MagnificUpscaleOptions,
+  MagnificVideoOptions,
+  MagnificVideoModel,
+  MagnificVideoUpscaleOptions,
+  MagnificImageModel,
+  MAGNIFIC_ATTRIBUTION,
+  checkMagnificAttribution,
+  estimateUpscaleCost as magnificEstimateUpscaleCost,
+} from './magnificAdapter';
 
-export interface FreepikImageOptions {
-  model?: 'mystic' | 'classic-fast' | 'flux-dev' | string;
-  resolution?: '1k' | '2k' | '4k' | string;
-  aspectRatio?: string;
-  seed?: number;
+let warned = false;
+function deprecationWarning(): void {
+  if (warned || typeof console === 'undefined') return;
+  warned = true;
+  // eslint-disable-next-line no-console
+  console.warn(
+    '[MCOP] FreepikMCOPAdapter is deprecated. Freepik rebranded to Magnific ' +
+      'on 2026-04-27. Please migrate to MagnificMCOPAdapter. ' +
+      'See docs/adapters/MAGNIFIC_MIGRATION.md',
+  );
 }
 
-export interface FreepikVideoOptions {
-  model?: 'kling-v2' | 'minimax-hailuo' | string;
-  durationSeconds?: number;
-  fps?: number;
-}
+/* ------------------------------------------------------------------ */
+/*  Re-export everything under legacy names                            */
 
-export interface FreepikUpscaleOptions {
-  scale?: 2 | 4;
-  preserveDetail?: boolean;
-}
+export type FreepikImageOptions = MagnificImageOptions;
+export type FreepikVideoOptions = MagnificVideoOptions;
+export type FreepikUpscaleOptions = MagnificUpscaleOptions;
+export type FreepikAssetKind = MagnificAssetKind;
+export type FreepikRequest = MagnificRequest;
+export type FreepikGenerationResult = MagnificGenerationResult;
+export type FreepikClient = MagnificClient;
+export type FreepikAdapterConfig = MagnificAdapterConfig;
 
-export type FreepikAssetKind = 'image' | 'video' | 'upscale';
+/** @deprecated Use MagnificUpscaleFactor directly. */
+export type FreepikUpscaleFactor = MagnificUpscaleFactor;
 
-export interface FreepikRequest extends AdapterRequest {
-  payload?: {
-    kind?: FreepikAssetKind;
-    image?: FreepikImageOptions;
-    video?: FreepikVideoOptions;
-    upscale?: FreepikUpscaleOptions;
-    /** For upscale jobs: a URL or asset id supplied by the caller. */
-    sourceAssetUrl?: string;
-  };
-}
+export type {
+  MagnificVideoModel,
+  MagnificVideoUpscaleOptions,
+  MagnificImageModel,
+};
+export {
+  MAGNIFIC_ATTRIBUTION,
+  checkMagnificAttribution,
+};
 
-export interface FreepikGenerationResult {
-  kind: FreepikAssetKind;
-  assetUrl: string;
-  jobId?: string;
-  raw?: unknown;
-}
+/* ------------------------------------------------------------------ */
+/*  Legacy adapter class — thin wrapper                               */
 
-/** Minimal client surface — keeps the adapter SDK-agnostic. */
-export interface FreepikClient {
-  textToImage(args: {
-    prompt: string;
-    options: FreepikImageOptions;
-  }): Promise<FreepikGenerationResult>;
-  textToVideo(args: {
-    prompt: string;
-    options: FreepikVideoOptions;
-  }): Promise<FreepikGenerationResult>;
-  upscale(args: {
-    sourceAssetUrl: string;
-    options: FreepikUpscaleOptions;
-  }): Promise<FreepikGenerationResult>;
-}
-
-export interface FreepikAdapterConfig extends BaseAdapterDeps {
-  client: FreepikClient;
-  /** Default entropy target for graphic prompts (0.12 per spec). */
-  defaultEntropyTarget?: number;
-}
-
-export class FreepikMCOPAdapter extends BaseAdapter<
-  FreepikRequest,
-  FreepikGenerationResult
-> {
-  private readonly client: FreepikClient;
-  private readonly defaultEntropyTarget: number;
-
+export class FreepikMCOPAdapter extends MagnificMCOPAdapter {
   constructor(config: FreepikAdapterConfig) {
+    deprecationWarning();
     super(config);
-    this.client = config.client;
-    this.defaultEntropyTarget = config.defaultEntropyTarget ?? 0.12;
   }
 
   protected platformName(): string {
     return 'freepik';
   }
 
-  async getCapabilities(): Promise<AdapterCapabilities> {
+  async getCapabilities() {
+    const caps = await super.getCapabilities();
     return {
-      platform: 'freepik',
-      version: '2024-10',
-      models: ['mystic', 'classic-fast', 'flux-dev', 'kling-v2', 'minimax-hailuo'],
-      supportsAudit: true,
-      features: ['text-to-image', 'text-to-video', 'upscale', 'mcp-server'],
-      maxResolution: '4k',
+      ...caps,
+      platform: 'freepik' as const,
+      version: '2026-04-27-legacy',
       notes:
-        'Default entropyTarget=0.12 tuned for graphic-domain prompts; ' +
-        'override per-request via AdapterRequest.entropyTarget.',
+        (caps.notes ?? '') +
+        ' | LEGACY WRAPPER: this adapter delegates to MagnificMCOPAdapter ' +
+        'and will be removed in MCOP v3.0. Migrate now.',
     };
   }
 
   /**
-   * Convenience facade matching the v2.1 spec example: produces a Freepik
-   * image while preserving brand continuity through the stigmergy layer.
+   * Legacy upscale facade — only supports 2× and 4×.
+   * Modern Magnific supports 2×, 4×, 8×, 16×.
    */
-  async generateOptimizedImage(
-    prompt: string,
-    options: FreepikImageOptions = {},
+  async upscaleAsset(
+    sourceAssetUrl: string,
+    options: Pick<MagnificUpscaleOptions, 'scale' | 'preserveDetail'> = {},
     extras: Pick<
-      FreepikRequest,
+      MagnificRequest,
       'styleContext' | 'humanFeedback' | 'metadata' | 'entropyTarget'
     > = {},
   ) {
-    return this.generate({
-      prompt,
-      domain: 'graphic',
-      entropyTarget: extras.entropyTarget ?? this.defaultEntropyTarget,
-      styleContext: extras.styleContext,
-      humanFeedback: extras.humanFeedback,
-      metadata: { ...(extras.metadata ?? {}), assetKind: 'image' },
-      payload: { kind: 'image', image: options },
-    });
-  }
-
-  async generateOptimizedVideo(
-    prompt: string,
-    options: FreepikVideoOptions = {},
-    extras: Pick<
-      FreepikRequest,
-      'styleContext' | 'humanFeedback' | 'metadata' | 'entropyTarget'
-    > = {},
-  ) {
-    return this.generate({
-      prompt,
-      domain: 'cinematic',
-      entropyTarget: extras.entropyTarget ?? this.defaultEntropyTarget,
-      styleContext: extras.styleContext,
-      humanFeedback: extras.humanFeedback,
-      metadata: { ...(extras.metadata ?? {}), assetKind: 'video' },
-      payload: { kind: 'video', video: options },
-    });
-  }
-
-  protected async callPlatform(
-    dispatch: PreparedDispatch,
-    request: FreepikRequest,
-  ): Promise<FreepikGenerationResult> {
-    const kind = request.payload?.kind ?? 'image';
-    switch (kind) {
-      case 'image':
-        return this.client.textToImage({
-          prompt: dispatch.refinedPrompt,
-          options: request.payload?.image ?? {},
-        });
-      case 'video':
-        return this.client.textToVideo({
-          prompt: dispatch.refinedPrompt,
-          options: request.payload?.video ?? {},
-        });
-      case 'upscale': {
-        const source = request.payload?.sourceAssetUrl;
-        if (!source) {
-          throw new Error(
-            'freepik: upscale requires payload.sourceAssetUrl',
-          );
-        }
-        return this.client.upscale({
-          sourceAssetUrl: source,
-          options: request.payload?.upscale ?? {},
-        });
-      }
-      /* istanbul ignore next -- TS exhaustiveness guard */
-      default: {
-        const exhaustive: never = kind;
-        throw new Error(`freepik: unsupported asset kind ${exhaustive}`);
-      }
+    const scale = options.scale ?? 2;
+    if (scale !== 2 && scale !== 4) {
+      throw new Error(
+        `freepik: legacy adapter only supports 2×/4× upscaling. ` +
+          `Use MagnificMCOPAdapter.upscaleImage() for 8×/16×.`,
+      );
     }
+    return this.upscaleImage(sourceAssetUrl, options, extras);
   }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Legacy cost helper (kept for API surface parity)                  */
+
+export function estimateFreepikUpscaleCost(
+  width: number,
+  height: number,
+  scale: 2 | 4,
+): number {
+  deprecationWarning();
+  return magnificEstimateUpscaleCost(width, height, scale);
 }
