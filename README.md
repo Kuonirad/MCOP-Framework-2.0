@@ -11,7 +11,7 @@ Meta-Cognitive Optimization Protocol for deterministic, auditable triad orchestr
 
 > Crystalline entropy targets, Merkle-tracked pheromones, and rank-1 micro-etches—packaged for real-world deployment.
 
-MCOP also ships the **Universal MCOP Adapter Integration Protocol v2.1**, a SDK-agnostic contract that wires the deterministic triad to external creative-production platforms (Freepik, Higgsfield, Utopai, and any generic REST/MCP/HTTP pipeline) without modifying core. See [docs/adapters/UNIVERSAL_ADAPTER_PROTOCOL.md](docs/adapters/UNIVERSAL_ADAPTER_PROTOCOL.md).
+MCOP also ships the **Universal MCOP Adapter Integration Protocol v2.1**, a SDK-agnostic contract that wires the deterministic triad to external creative-production platforms (Magnific, Higgsfield, Utopai, and any generic REST/MCP/HTTP pipeline) without modifying core. See [docs/adapters/UNIVERSAL_ADAPTER_PROTOCOL.md](docs/adapters/UNIVERSAL_ADAPTER_PROTOCOL.md).
 
 ## 🔭 Vision
 - **Deterministic cognition**: Reproducible context tensors with explicit entropy metrics.
@@ -35,7 +35,7 @@ graph TD
     D -->|Synthesis| UI[Next.js Experience]
     UI -->|Feedback| S
     D -->|Refined Prompt| A[Adapter Layer v2.1]
-    A -->|REST / SDK / MCP| P[Freepik · Higgsfield · Utopai · Generic]
+    A -->|REST / SDK / MCP| P[Magnific · Higgsfield · Utopai · Generic]
     A -->|Merkle Root| UI
 ```
 
@@ -51,7 +51,8 @@ Shipped adapters:
 
 | Adapter | Language | Domain | Module |
 | --- | --- | --- | --- |
-| **Freepik** | TypeScript | Image / video / upscale (REST + MCP) | [`src/adapters/freepikAdapter.ts`](src/adapters/freepikAdapter.ts) |
+| **Magnific** | TypeScript | Image / video / upscale / model orchestration (REST + MCP) | [`src/adapters/magnificAdapter.ts`](src/adapters/magnificAdapter.ts) |
+| **Freepik** *(legacy)* | TypeScript | Backward-compat wrapper → Magnific | [`src/adapters/freepikAdapter.ts`](src/adapters/freepikAdapter.ts) |
 | **Higgsfield** | Python | Cinematic video (Kling 3.0 / Veo 3.1 / Sora 2 / Seedance) | [`mcop_package/mcop/adapters/higgsfield_adapter.py`](mcop_package/mcop/adapters/higgsfield_adapter.py) |
 | **Utopai** | TypeScript | Long-form narrative film engine | [`src/adapters/utopaiAdapter.ts`](src/adapters/utopaiAdapter.ts) |
 | **xAI / Grok** | TypeScript | LLM chat completions + entropy/resonance routing | [`src/adapters/grokAdapter.ts`](src/adapters/grokAdapter.ts) |
@@ -69,18 +70,18 @@ import {
   NovaNeoEncoder,
   StigmergyV5,
 } from '@/core';
-import { FreepikMCOPAdapter } from '@/adapters';
+import { MagnificMCOPAdapter } from '@/adapters';
 
-const adapter = new FreepikMCOPAdapter({
+const adapter = new MagnificMCOPAdapter({
   encoder: new NovaNeoEncoder({ dimensions: 64, normalize: true }),
   stigmergy: new StigmergyV5({ resonanceThreshold: 0.4 }),
   etch: new HolographicEtch({ confidenceFloor: 0 }),
-  client: freepikClient, // your SDK / MCP wrapper
+  client: magnificClient, // your SDK / MCP wrapper
 });
 
 const { result, merkleRoot, provenance } = await adapter.generateOptimizedImage(
   'aurora-lit cathedral at dawn, painterly mood',
-  { model: 'mystic', resolution: '4k' },
+  { model: 'mystic-2.5-fluid', resolution: '4k' },
 );
 ```
 
@@ -97,7 +98,7 @@ response = adapter.optimize_cinematic_video(
 print(response.result.model, response.merkle_root)
 ```
 
-More: end-to-end runnable scripts under [`examples/`](examples/) (`freepik_production_flow.ts`, `higgsfield_cinematic_pipeline.py`, `multi_platform_orchestrator.ts`).
+More: end-to-end runnable scripts under [`examples/`](examples/) (`magnific_production_flow.ts`, `freepik_production_flow.ts` *(legacy)*, `higgsfield_cinematic_pipeline.py`, `multi_platform_orchestrator.ts`).
 
 Every adapter call returns a `ProvenanceMetadata` bundle (tensor hash, Stigmergy trace hash, resonance score, etch Merkle root, refined prompt) that can be persisted for compliance and replay. Human overrides flow through `HumanFeedback` — including a hard `veto` that raises `HumanVetoError` and refuses dispatch.
 

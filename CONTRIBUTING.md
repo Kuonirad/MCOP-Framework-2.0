@@ -500,7 +500,7 @@ Commit messages follow [Conventional Commits](https://www.conventionalcommits.or
 - **type**: `feat`, `fix`, `perf`, `refactor`, `docs`, `test`, `chore`,
   `build`, `ci`, `revert`.
 - **scope** (optional but encouraged): `hud`, `vsi`, `encoder`, `stigmergy`,
-  `etch`, `adapter:freepik`, `adapter:utopai`, `mcop`, `seo`, `a11y`,
+  `etch`, `adapter:magnific`, `adapter:freepik`, `adapter:utopai`, `mcop`, `seo`, `a11y`,
   `monorepo`, `release`.
 - **subject**: imperative, ≤ 72 chars, no trailing period.
 

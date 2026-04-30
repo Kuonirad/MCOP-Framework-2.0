@@ -148,7 +148,7 @@ framework produces identical outputs — no hidden randomness.*
 
 ### Universal MCOP Adapter Integration Protocol v2.1
 Plain English: *a standard contract (`IMCOPAdapter`) that lets you plug the
-triad into any external creative-production platform (Freepik, Higgsfield,
+triad into any external creative-production platform (Magnific, Higgsfield,
 Utopai, or any generic REST/MCP/HTTP service) without modifying the core.*
 
 ### Dialectical Synthesizer (`DialecticalSynthesizer`)
