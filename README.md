@@ -2,6 +2,9 @@
 
 [![CI](https://github.com/Kuonirad/MCOP-Framework-2.0/actions/workflows/ci.yml/badge.svg)](https://github.com/Kuonirad/MCOP-Framework-2.0/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/Kuonirad/MCOP-Framework-2.0/actions/workflows/codeql.yml/badge.svg)](https://github.com/Kuonirad/MCOP-Framework-2.0/actions/workflows/codeql.yml)
+[![Coverage](./docs/badges/coverage.svg)](./docs/api/README.md)
+[![API docs](https://img.shields.io/badge/API-TypeDoc-3178C6?style=flat-square)](./docs/api/README.md)
+[![Benchmarks](https://img.shields.io/badge/benchmarks-public-emerald?style=flat-square)](./docs/benchmarks/methodology.md)
 [![Releases](https://img.shields.io/github/v/release/Kuonirad/MCOP-Framework-2.0?style=flat-square)](https://github.com/Kuonirad/MCOP-Framework-2.0/releases)
 [![License: BUSL 1.1](https://img.shields.io/badge/License-BUSL%201.1-amber?style=flat-square)](LICENSE)
 [![Contributors](https://img.shields.io/github/contributors/Kuonirad/MCOP-Framework-2.0?style=flat-square)](https://github.com/Kuonirad/MCOP-Framework-2.0/graphs/contributors)

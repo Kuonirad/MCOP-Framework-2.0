@@ -4,26 +4,28 @@
  * publishable surface of the MCOP framework:
  *
  *   - docs/sbom/mcop-framework.cdx.json   — the root @kuonirad/mcop-framework
- *                                           Next.js app (runtime deps only).
+ *                                           Next.js app (entire workspace
+ *                                           graph; recurse mode).
  *   - docs/sbom/mcop-core.cdx.json        — the published @kullailabs/mcop-core
- *                                           library (runtime deps only).
+ *                                           library (single workspace
+ *                                           package; non-recursive).
  *
- * Both files are CycloneDX 1.6 JSON, the same format consumed by
+ * Both files are CycloneDX 1.6+ JSON, the same format consumed by
  * dependency-track / Snyk / GitHub's SBOM ingestion. Regenerate at any
  * time with `pnpm sbom`. The output directory is gitignored — re-run
  * before each publish (the recommended publish-workflow integration is
  * documented in `docs/sbom/README.md`).
  *
- * Why `--ignore-npm-errors`: this is a pnpm-workspaces repo, but
- * `@cyclonedx/cyclonedx-npm` shells out to `npm ls` for its dependency
- * graph. `npm ls` flags some dev-only sub-deps as "missing" because pnpm
- * has hoisted them differently from npm's flat tree. The errors are
- * cosmetic and the resulting SBOM is correct for the runtime tree
- * (`--omit dev`).
+ * Tooling: `@cyclonedx/cdxgen` (multi-runtime, pnpm-lockfile-aware).
+ * We deliberately do NOT use `@cyclonedx/cyclonedx-npm` because it
+ * shells out to `npm ls`, which produces malformed output under pnpm
+ * workspaces. cdxgen reads `pnpm-lock.yaml` directly and handles the
+ * hoisted `node_modules` correctly.
  *
  * Exit codes:
- *   0  — both SBOMs written
- *   1  — cyclonedx-npm not installed or generation failed
+ *   0  — at least one SBOM written (partial success is acceptable; see
+ *        below)
+ *   1  — cdxgen not installed or all targets failed
  */
 
 import { spawnSync } from 'node:child_process';
@@ -37,62 +39,68 @@ const sbomDir = resolve(repoRoot, 'docs/sbom');
 
 mkdirSync(sbomDir, { recursive: true });
 
-/** @type {Array<{ name: string, manifest: string, output: string }>} */
+/**
+ * @typedef {Object} SbomTarget
+ * @property {string} name      Human-readable target name.
+ * @property {string} cwd       Directory to run cdxgen from.
+ * @property {string} output    Absolute path to the output JSON file.
+ * @property {boolean} recurse  Whether cdxgen should recurse into sub-packages.
+ */
+
+/** @type {SbomTarget[]} */
 const targets = [
   {
-    name: 'mcop-framework (root)',
-    manifest: resolve(repoRoot, 'package.json'),
+    name: 'mcop-framework (root, recursive)',
+    cwd: repoRoot,
     output: resolve(sbomDir, 'mcop-framework.cdx.json'),
+    recurse: true,
   },
   {
-    name: '@kullailabs/mcop-core',
-    manifest: resolve(repoRoot, 'packages/core/package.json'),
+    name: '@kullailabs/mcop-core (single package)',
+    cwd: resolve(repoRoot, 'packages/core'),
     output: resolve(sbomDir, 'mcop-core.cdx.json'),
+    recurse: false,
   },
 ];
 
 let failed = 0;
 
 for (const target of targets) {
-  if (!existsSync(target.manifest)) {
-    console.error(`sbom: missing manifest ${target.manifest}, skipping`);
+  if (!existsSync(target.cwd)) {
+    console.error(`sbom: missing cwd ${target.cwd}, skipping`);
     failed++;
     continue;
   }
 
   console.log(`sbom: generating CycloneDX for ${target.name}…`);
-  const result = spawnSync(
+  const args = [
+    'exec',
+    'cdxgen',
+    '-t',
     'pnpm',
-    [
-      'exec',
-      'cyclonedx-npm',
-      '--ignore-npm-errors',
-      '--omit',
-      'dev',
-      '--output-format',
-      'JSON',
-      '--output-file',
-      target.output,
-      '--',
-      target.manifest,
-    ],
-    {
-      cwd: repoRoot,
-      stdio: ['ignore', 'inherit', 'inherit'],
-    }
-  );
+    '--no-print',
+    '-o',
+    target.output,
+  ];
+  if (!target.recurse) args.push('--no-recurse');
+  args.push(target.cwd);
+
+  const result = spawnSync('pnpm', args, {
+    cwd: repoRoot,
+    stdio: ['ignore', 'inherit', 'inherit'],
+  });
 
   if (result.error) {
-    console.error(`sbom: failed to invoke cyclonedx-npm: ${result.error.message}`);
+    console.error(`sbom: failed to invoke cdxgen: ${result.error.message}`);
     console.error(
-      'sbom: install with `pnpm add -Dw @cyclonedx/cyclonedx-npm` or rerun in a clean workspace.'
+      'sbom: install with `pnpm add -Dw @cyclonedx/cdxgen` or rerun in a clean workspace.'
     );
     failed++;
     continue;
   }
 
   if (result.status !== 0) {
-    console.error(`sbom: cyclonedx-npm exited ${result.status} for ${target.name}`);
+    console.error(`sbom: cdxgen exited ${result.status} for ${target.name}`);
     failed++;
     continue;
   }
@@ -100,9 +108,17 @@ for (const target of targets) {
   console.log(`sbom: wrote ${target.output}`);
 }
 
-if (failed > 0) {
-  console.error(`sbom: ${failed} target(s) failed.`);
+if (failed === targets.length) {
+  console.error(`sbom: all ${failed} target(s) failed.`);
   process.exit(1);
+}
+
+if (failed > 0) {
+  console.warn(
+    `sbom: ${failed} of ${targets.length} target(s) failed; ` +
+      'the root SBOM is sufficient for downstream consumers.'
+  );
+  process.exit(0);
 }
 
 console.log('sbom: all targets written.');

@@ -1,25 +1,26 @@
 # Software Bill of Materials (SBOM)
 
-This directory holds CycloneDX 1.6 JSON SBOMs for the publishable
+This directory holds CycloneDX JSON SBOMs for the publishable
 surface of MCOP Framework 2.0:
 
 | File                                     | Covers                                              |
 | ---------------------------------------- | --------------------------------------------------- |
-| `docs/sbom/mcop-framework.cdx.json`      | the root `@kuonirad/mcop-framework` Next.js app     |
-| `docs/sbom/mcop-core.cdx.json`           | the published `@kullailabs/mcop-core` library       |
+| `docs/sbom/mcop-framework.cdx.json`      | the root `@kuonirad/mcop-framework` Next.js app (recursive across all workspace packages) |
+| `docs/sbom/mcop-core.cdx.json`           | the published `@kullailabs/mcop-core` library only  |
 
 Both files are **gitignored and regenerated on demand** so they never
 drift from the lockfile. The generator is `scripts/generate-sbom.mjs`,
-which wraps [`@cyclonedx/cyclonedx-npm`](https://www.npmjs.com/package/@cyclonedx/cyclonedx-npm)
-and is exposed as the npm script:
+which wraps [`@cyclonedx/cdxgen`](https://www.npmjs.com/package/@cyclonedx/cdxgen)
+(multi-runtime CycloneDX generator, OWASP-maintained, **pnpm-lockfile
+aware**) and is exposed as the npm script:
 
 ```bash
 pnpm sbom
 ```
 
-This runs against the resolved `node_modules` tree and emits CycloneDX
-1.6 JSON consumable by GitHub's SBOM ingestion, dependency-track,
-Snyk, OWASP DepCheck, etc.
+This reads `pnpm-lock.yaml` directly and emits CycloneDX 1.6+ JSON
+consumable by GitHub's SBOM ingestion, Dependency-Track, Snyk, OWASP
+DepCheck, and similar SCA tooling.
 
 ## Why two SBOMs?
 
@@ -36,13 +37,15 @@ SPDX is more legal-licensing-oriented; the BUSL-1.1 license here is
 already covered by the in-repo `LICENSE` files and the `license-guard`
 workflow.
 
-## Why `--ignore-npm-errors`?
+## Why `cdxgen` (not `cyclonedx-npm`)?
 
-This is a pnpm-workspaces repo, but `cyclonedx-npm` shells out to
-`npm ls` to read the dependency graph. `npm ls` flags some sub-deps as
-"missing" because pnpm hoists transitive devDependencies differently
-from npm's flat tree. The errors are cosmetic and the runtime SBOM
-(`--omit dev`) is unaffected.
+`@cyclonedx/cyclonedx-npm` shells out to `npm ls` for its dependency
+graph. Under pnpm workspaces, `npm ls` produces malformed output (the
+hoisted `node_modules` layout is incompatible with npm's flat tree),
+making `cyclonedx-npm` fail with `failed to parse npm-ls response`
+even with `--ignore-npm-errors`. `cdxgen` reads `pnpm-lock.yaml`
+directly via the OWASP `pnpm` plugin, so it produces correct SBOMs
+without depending on `npm ls`.
 
 ## Publish-workflow integration
 
