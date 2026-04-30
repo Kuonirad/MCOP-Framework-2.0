@@ -6,6 +6,35 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [2.2.1] — 2026-04-30
+
+**Framework v2.2.1** — operational patch: re-anchor the v2.2.0 release with
+its CycloneDX SBOMs attached to the GitHub Release page, after the original
+`v2.2.0` Release was lost to GitHub's Immutable Releases lock during the
+post-publish SBOM-attach sequence. **No code changes from v2.2.0**; the
+`mcop-framework.cdx.json` and `mcop-core.cdx.json` SBOMs attached to this
+Release are byte-identical to the ones that would have been attached to
+v2.2.0. Per-artefact registry versions remain unchanged
+(`@kullailabs/mcop-core@0.2.0` on npm, `mcop@3.2.0` on PyPI).
+
+### Fixed
+- **GitHub Release page restored.** The framework v2.2.0 Release page was
+  deleted in an attempt to flip its `immutable: true` flag so SBOMs could
+  be attached. GitHub's API does not permit re-creating a release on a
+  tag-name that previously had an immutable release attached
+  (`tag_name was used by an immutable release`, HTTP 422). v2.2.1 is the
+  successor anchor; the v2.2.0 tag (`5ff1b32…`) and `docs/releases/v2.2.0.md`
+  are unchanged.
+
+### Notes for downstream
+- `pnpm sbom` and `pnpm sbom:validate` produce the same CycloneDX 1.7
+  documents from the v2.2.0 commit as they do from the v2.2.1 commit
+  (these commits differ only in this CHANGELOG entry and a new
+  `docs/releases/v2.2.1.md`).
+- The PyPI `mcop@3.2.0` registry entry remains the canonical 2026-04-30
+  PyPI release; downstream auditors should pull the SBOMs from this
+  framework v2.2.1 Release.
+
 ## [2.2.0] — 2026-04-30
 
 **Framework v2.2.0** — supply-chain hardening, public benchmarks, expanded
