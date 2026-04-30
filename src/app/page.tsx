@@ -17,7 +17,7 @@ import TriadVisualizer from "./_components/TriadVisualizer";
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ??
-  "https://kuonirad.github.io/KullAILABS-MCOP-Framework-2.0";
+  "https://kuonirad.github.io/MCOP-Framework-2.0";
 
 /**
  * Schema.org `SoftwareApplication` JSON-LD — describes MCOP itself as a
@@ -37,7 +37,7 @@ const softwareApplicationJsonLd = {
     "Deterministic, auditable Meta-Cognitive Optimization Protocol with NOVA-NEO encoder, Stigmergy v5 resonance store, and Holographic Etch engine. Ships the Universal Adapter Protocol v2.1 for Magnific, Higgsfield, Utopai, and any REST/MCP/HTTP pipeline.",
   url: SITE_URL,
   codeRepository:
-    "https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0",
+    "https://github.com/Kuonirad/MCOP-Framework-2.0",
   programmingLanguage: ["TypeScript", "Python"],
   license: "https://mariadb.com/bsl11/",
   isAccessibleForFree: true,
@@ -80,7 +80,7 @@ const techArticleJsonLd = {
     url: "https://github.com/Kuonirad",
     sameAs: [
       "https://github.com/Kuonirad",
-      "https://github.com/KullAILABS/KullAILABS-MCOP-Framework-2.0",
+      "https://github.com/KullAILABS/MCOP-Framework-2.0",
     ],
   },
 };
@@ -119,7 +119,7 @@ const AUTHORS: ReadonlyArray<AuthorBio> = [
       },
       {
         label: "Project commits",
-        href: "https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/commits?author=Kuonirad",
+        href: "https://github.com/Kuonirad/MCOP-Framework-2.0/commits?author=Kuonirad",
         verified: true,
       },
     ],
@@ -137,12 +137,12 @@ const AUTHORS: ReadonlyArray<AuthorBio> = [
       },
       {
         label: "Repository",
-        href: "https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0",
+        href: "https://github.com/Kuonirad/MCOP-Framework-2.0",
         verified: true,
       },
       {
         label: "Governance",
-        href: "https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/blob/main/GOVERNANCE.md",
+        href: "https://github.com/Kuonirad/MCOP-Framework-2.0/blob/main/GOVERNANCE.md",
         verified: true,
       },
     ],
@@ -328,7 +328,7 @@ export default function Home() {
               Now shipping the{" "}
               <a
                 className="text-sky-300 underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 rounded focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
-                href="https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/blob/main/docs/adapters/UNIVERSAL_ADAPTER_PROTOCOL.md"
+                href="https://github.com/Kuonirad/MCOP-Framework-2.0/blob/main/docs/adapters/UNIVERSAL_ADAPTER_PROTOCOL.md"
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -345,7 +345,7 @@ export default function Home() {
             >
               <a
                 className="rounded-full bg-white px-5 py-2 text-slate-950 shadow-lg shadow-sky-500/10 transition hover:bg-sky-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
-                href="https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0#readme"
+                href="https://github.com/Kuonirad/MCOP-Framework-2.0#readme"
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -354,7 +354,7 @@ export default function Home() {
               </a>
               <a
                 className="rounded-full border border-white/20 px-5 py-2 transition hover:border-white/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
-                href="https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0"
+                href="https://github.com/Kuonirad/MCOP-Framework-2.0"
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -436,7 +436,7 @@ export default function Home() {
               </Link>
               <a
                 className="rounded-full border border-white/20 px-4 py-1.5 transition hover:border-white/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
-                href="https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/blob/main/docs/adapters/UNIVERSAL_ADAPTER_PROTOCOL.md"
+                href="https://github.com/Kuonirad/MCOP-Framework-2.0/blob/main/docs/adapters/UNIVERSAL_ADAPTER_PROTOCOL.md"
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -445,7 +445,7 @@ export default function Home() {
               </a>
               <a
                 className="rounded-full border border-white/20 px-4 py-1.5 transition hover:border-white/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
-                href="https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/tree/main/examples"
+                href="https://github.com/Kuonirad/MCOP-Framework-2.0/tree/main/examples"
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -454,7 +454,7 @@ export default function Home() {
               </a>
               <a
                 className="rounded-full border border-white/20 px-4 py-1.5 transition hover:border-white/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
-                href="https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/tree/main/src/adapters"
+                href="https://github.com/Kuonirad/MCOP-Framework-2.0/tree/main/src/adapters"
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -463,7 +463,7 @@ export default function Home() {
               </a>
               <a
                 className="rounded-full border border-white/20 px-4 py-1.5 transition hover:border-white/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
-                href="https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/tree/main/mcop_package/mcop/adapters"
+                href="https://github.com/Kuonirad/MCOP-Framework-2.0/tree/main/mcop_package/mcop/adapters"
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -570,7 +570,7 @@ export default function Home() {
             <div className="flex gap-4">
               <a
                 className="hover:text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 rounded focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
-                href="https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/blob/main/ARCHITECTURE.md"
+                href="https://github.com/Kuonirad/MCOP-Framework-2.0/blob/main/ARCHITECTURE.md"
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -579,7 +579,7 @@ export default function Home() {
               </a>
               <a
                 className="hover:text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 rounded focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
-                href="https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/blob/main/SECURITY.md"
+                href="https://github.com/Kuonirad/MCOP-Framework-2.0/blob/main/SECURITY.md"
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -588,7 +588,7 @@ export default function Home() {
               </a>
               <a
                 className="hover:text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 rounded focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
-                href="https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/blob/main/CONTRIBUTING.md"
+                href="https://github.com/Kuonirad/MCOP-Framework-2.0/blob/main/CONTRIBUTING.md"
                 target="_blank"
                 rel="noopener noreferrer"
               >

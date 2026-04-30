@@ -125,8 +125,8 @@ non-deterministic real-LLM client to show the gap widening from 45%
 ## Reproduce it yourself
 
 ```sh
-git clone https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0
-cd KullAILABS-MCOP-Framework-2.0
+git clone https://github.com/Kuonirad/MCOP-Framework-2.0
+cd MCOP-Framework-2.0
 pnpm install
 pnpm test -- benchmarks            # asserts the committed snapshot
 BENCHMARK_GENERATE=1 pnpm test -- benchmarks   # regenerates results.json

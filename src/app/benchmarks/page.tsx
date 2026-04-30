@@ -85,14 +85,14 @@ export default function BenchmarksPage() {
             canonical five-task fixture: average tokens, goal coverage, and
             audit-trail availability. The full methodology lives in{" "}
             <Link
-              href="https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/blob/main/docs/benchmarks/methodology.md"
+              href="https://github.com/Kuonirad/MCOP-Framework-2.0/blob/main/docs/benchmarks/methodology.md"
               className="underline decoration-dotted underline-offset-4 hover:text-white"
             >
               docs/benchmarks/methodology.md
             </Link>{" "}
             and the whitepaper that quotes these numbers is{" "}
             <Link
-              href="https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/blob/main/docs/whitepapers/Human_vs_PureAI_Prompting.md"
+              href="https://github.com/Kuonirad/MCOP-Framework-2.0/blob/main/docs/whitepapers/Human_vs_PureAI_Prompting.md"
               className="underline decoration-dotted underline-offset-4 hover:text-white"
             >
               docs/whitepapers/Human_vs_PureAI_Prompting.md

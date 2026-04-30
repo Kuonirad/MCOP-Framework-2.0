@@ -22,7 +22,7 @@ import type { MetadataRoute } from "next";
 
 const SITE_URL = (
   process.env.NEXT_PUBLIC_SITE_URL ??
-  "https://kuonirad.github.io/KullAILABS-MCOP-Framework-2.0"
+  "https://kuonirad.github.io/MCOP-Framework-2.0"
 ).replace(/\/$/, "");
 
 /**

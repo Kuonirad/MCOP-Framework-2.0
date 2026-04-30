@@ -6,6 +6,14 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+- **Repo rename hygiene.** Updated all GitHub URLs, badges, clone
+  instructions, sitemap entries, and package metadata to the canonical
+  repository name `Kuonirad/MCOP-Framework-2.0` (previously
+  `Kuonirad/KullAILABS-MCOP-Framework-2.0`; GitHub continues to redirect
+  the old slug). The published npm scope `@kullailabs/mcop-core` and the
+  PyPI package `mcop` are unchanged so no consumer action is required.
+
 ### Added
 - **NOVA-NEO Embedding Backend.** `NovaNeoConfig` now accepts `backend: 'hash' | 'embedding'`. The default `'hash'` preserves byte-identical v1.x behavior. The new `'embedding'` backend uses n-gram feature hashing (the "hashing trick") to produce vectors where semantically similar prompts have correlated activations — a zero-dependency, deterministic, cross-platform semantic encoder. See `src/core/embeddingEngine.ts` and `src/__tests__/novaNeoEncoder.embedding.test.ts`.
 - **Independent Audit Response.** `docs/audits/independent-audit-response-2026-04-30.md` documents findings (316 `bolt-*` branches, bus factor ~1, florid terminology, unverified claims, scope creep risk) and registers remediation status for each. Includes a formal Scope Lock limiting core additions to the deterministic triad only.

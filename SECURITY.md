@@ -14,7 +14,7 @@ We are committed to the security of this framework and take all security vulnera
 
 ### DO NOT Report Security Vulnerabilities Through Public GitHub Issues
 
-Report privately via GitHub's [Private Vulnerability Reporting](https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/security/advisories/new)
+Report privately via GitHub's [Private Vulnerability Reporting](https://github.com/Kuonirad/MCOP-Framework-2.0/security/advisories/new)
 (Security → Report a vulnerability). This creates a private advisory visible
 only to maintainers and the reporter, and supports collaborator invites and
 CVE issuance when appropriate.

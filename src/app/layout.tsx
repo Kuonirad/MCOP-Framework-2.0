@@ -36,7 +36,7 @@ const geistMono = Geist_Mono({
  */
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ??
-  "https://kuonirad.github.io/KullAILABS-MCOP-Framework-2.0";
+  "https://kuonirad.github.io/MCOP-Framework-2.0";
 
 const SITE_NAME = "MCOP Framework 2.0";
 const SITE_DESCRIPTION =
@@ -166,7 +166,7 @@ const organizationJsonLd = {
   sameAs: [
     "https://github.com/KullAILABS",
     "https://github.com/Kuonirad",
-    "https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0",
+    "https://github.com/Kuonirad/MCOP-Framework-2.0",
   ],
   founder: {
     "@type": "Person",
@@ -217,7 +217,7 @@ const personJsonLd = {
   ],
   sameAs: [
     "https://github.com/Kuonirad",
-    "https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/commits?author=Kuonirad",
+    "https://github.com/Kuonirad/MCOP-Framework-2.0/commits?author=Kuonirad",
   ],
 };
 

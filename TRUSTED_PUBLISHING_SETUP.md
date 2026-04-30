@@ -10,7 +10,7 @@ The repository already contains the publishing workflow:
 
 - Workflow file: `.github/workflows/publish-pypi.yml`
 - GitHub owner: `Kuonirad`
-- Repository: `KullAILABS-MCOP-Framework-2.0`
+- Repository: `MCOP-Framework-2.0`
 - PyPI project name: `mcop`
 - Test environment name: `testpypi`
 - Production environment name: `pypi`
@@ -47,7 +47,7 @@ Use these exact values:
 
 - PyPI project name: `mcop`
 - Owner: `Kuonirad`
-- Repository name: `KullAILABS-MCOP-Framework-2.0`
+- Repository name: `MCOP-Framework-2.0`
 - Workflow name: `publish-pypi.yml`
 - Environment name: `pypi`
 
@@ -64,7 +64,7 @@ Use these values:
 
 - PyPI project name: `mcop`
 - Owner: `Kuonirad`
-- Repository name: `KullAILABS-MCOP-Framework-2.0`
+- Repository name: `MCOP-Framework-2.0`
 - Workflow name: `publish-pypi.yml`
 - Environment name: `testpypi`
 
@@ -168,7 +168,7 @@ Once the package exists on npm, open:
 Use these exact values:
 
 - Organization or user: `Kuonirad`
-- Repository: `KullAILABS-MCOP-Framework-2.0`
+- Repository: `MCOP-Framework-2.0`
 - Workflow filename: `publish-npm.yml`
 - Environment name: `npm`
 

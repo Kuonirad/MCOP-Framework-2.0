@@ -1,4 +1,4 @@
-# Testing the KullAILABS-MCOP-Framework-2.0 frontend
+# Testing the MCOP-Framework-2.0 frontend
 
 This repo is a Next.js 16 + React 19 + Turbopack app with a jsdom-based jest
 suite. The canonical proof-of-correctness for any **client component** change

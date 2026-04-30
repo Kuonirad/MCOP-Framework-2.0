@@ -35,7 +35,7 @@ Apply to: `main` branch
 
 ## GitHub Web Interface Steps
 
-1. Navigate to: https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/settings/branches
+1. Navigate to: https://github.com/Kuonirad/MCOP-Framework-2.0/settings/branches
 
 2. Click the **"Add rule"** button
 

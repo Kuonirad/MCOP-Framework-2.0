@@ -81,8 +81,8 @@ surface targets **3.11+**.
 
 ```bash
 # Clone your fork
-git clone https://github.com/<YOUR_USER>/KullAILABS-MCOP-Framework-2.0.git
-cd KullAILABS-MCOP-Framework-2.0
+git clone https://github.com/<YOUR_USER>/MCOP-Framework-2.0.git
+cd MCOP-Framework-2.0
 
 # Activate the pinned Node version (recommended: nvm or Volta)
 nvm use                              # picks 20.11.0 from .nvmrc
@@ -479,7 +479,7 @@ path, by design. Crystalline determinism extends to the supply chain.
 The `main` branch is the source of truth for the published
 `@kullailabs/mcop-core` (npm) and `mcop-framework` (PyPI) packages,
 and for the GitHub Pages mirror at
-`https://kuonirad.github.io/KullAILABS-MCOP-Framework-2.0`. Tying
+`https://kuonirad.github.io/MCOP-Framework-2.0`. Tying
 merge to a successful deployment guarantees those public surfaces
 never drift behind a green CI but still-broken artifact build.
 
@@ -543,7 +543,7 @@ signing pipeline (Fulcio short-lived cert → Rekor transparency log) and
 ships a [SLSA v1.0](https://slsa.dev/spec/v1.0/provenance) build provenance
 attestation that cryptographically binds the tarball to:
 
-- The **source repository** — `Kuonirad/KullAILABS-MCOP-Framework-2.0`.
+- The **source repository** — `Kuonirad/MCOP-Framework-2.0`.
 - The **commit / tag** — e.g. `refs/tags/npm-v0.1.1`.
 - The **workflow file** — `.github/workflows/publish-npm.yml`.
 - The **GitHub-hosted runner** — `https://github.com/actions/runner/github-hosted`.
@@ -630,8 +630,8 @@ historical record.
 
 ## ❓ Getting help
 
-- **Bugs / requests** → [GitHub Issues](https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/issues).
-- **Open-ended design discussion** → [GitHub Discussions](https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/discussions).
+- **Bugs / requests** → [GitHub Issues](https://github.com/Kuonirad/MCOP-Framework-2.0/issues).
+- **Open-ended design discussion** → [GitHub Discussions](https://github.com/Kuonirad/MCOP-Framework-2.0/discussions).
 - **Security** → [SECURITY.md](./SECURITY.md).
 - **Onboarding playbook** → [CONTRIBUTOR_ONBOARDING.md](./CONTRIBUTOR_ONBOARDING.md).
 

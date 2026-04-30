@@ -1,10 +1,10 @@
 # MCOP Framework 2.0 🌌
 
-[![CI](https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/actions/workflows/ci.yml/badge.svg)](https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/actions/workflows/ci.yml)
-[![CodeQL](https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/actions/workflows/codeql.yml/badge.svg)](https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/actions/workflows/codeql.yml)
-[![Releases](https://img.shields.io/github/v/release/Kuonirad/KullAILABS-MCOP-Framework-2.0?style=flat-square)](https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/releases)
+[![CI](https://github.com/Kuonirad/MCOP-Framework-2.0/actions/workflows/ci.yml/badge.svg)](https://github.com/Kuonirad/MCOP-Framework-2.0/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/Kuonirad/MCOP-Framework-2.0/actions/workflows/codeql.yml/badge.svg)](https://github.com/Kuonirad/MCOP-Framework-2.0/actions/workflows/codeql.yml)
+[![Releases](https://img.shields.io/github/v/release/Kuonirad/MCOP-Framework-2.0?style=flat-square)](https://github.com/Kuonirad/MCOP-Framework-2.0/releases)
 [![License: BUSL 1.1](https://img.shields.io/badge/License-BUSL%201.1-amber?style=flat-square)](LICENSE)
-[![Contributors](https://img.shields.io/github/contributors/Kuonirad/KullAILABS-MCOP-Framework-2.0?style=flat-square)](https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0/graphs/contributors)
+[![Contributors](https://img.shields.io/github/contributors/Kuonirad/MCOP-Framework-2.0?style=flat-square)](https://github.com/Kuonirad/MCOP-Framework-2.0/graphs/contributors)
 [![Maintained](https://img.shields.io/badge/maintained-yes-brightgreen?style=flat-square)](./GOVERNANCE.md)
 
 Meta-Cognitive Optimization Protocol for deterministic, auditable triad orchestration: **NOVA-NEO Encoder**, **Stigmergy v5 Resonance**, and **Holographic Etch Engine**. Built with Next.js + TypeScript and ready for research, prototyping, and production hardening.
@@ -110,8 +110,8 @@ Every adapter call returns a `ProvenanceMetadata` bundle (tensor hash, Stigmergy
 
 ### Installation
 ```bash
-git clone https://github.com/Kuonirad/KullAILABS-MCOP-Framework-2.0.git
-cd KullAILABS-MCOP-Framework-2.0
+git clone https://github.com/Kuonirad/MCOP-Framework-2.0.git
+cd MCOP-Framework-2.0
 corepack enable                           # first-time only
 pnpm install --frozen-lockfile
 ```

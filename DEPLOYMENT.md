@@ -2,7 +2,7 @@
 
 ## GitHub Container Registry (GHCR)
 
-Images are automatically built and pushed to `ghcr.io/kuonirad/kullailabs-mcop-framework-2.0` on:
+Images are automatically built and pushed to `ghcr.io/kuonirad/mcop-framework-2.0` on:
 - Pushes to the `main` branch (tagged as `latest`)
 - Tagged releases (e.g., `v2.0.0`, tagged as `2.0.0` and `2.0`)
 
