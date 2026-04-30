@@ -24,7 +24,6 @@ import {
   MagnificClient,
   MagnificMCOPAdapter,
   checkMagnificAttribution,
-  MAGNIFIC_ATTRIBUTION,
 } from '../src/adapters';
 
 // ---------------------------------------------------------------- client
@@ -137,8 +136,8 @@ async function main() {
       sourceHeight: 1080,
     });
     console.log('upscale:', up.result.assetUrl, 'merkle=', up.merkleRoot);
-  } catch (err: any) {
-    console.error('Upscale rejected by guardrail:', err.message);
+  } catch (err) {
+    console.error('Upscale rejected by guardrail:', (err as Error).message);
   }
 
   // --- 7. Video upscale (dedicated endpoint, legacy params removed) -----

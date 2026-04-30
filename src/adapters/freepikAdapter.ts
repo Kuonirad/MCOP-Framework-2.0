@@ -41,7 +41,6 @@ let warned = false;
 function deprecationWarning(): void {
   if (warned || typeof console === 'undefined') return;
   warned = true;
-  // eslint-disable-next-line no-console
   console.warn(
     '[MCOP] FreepikMCOPAdapter is deprecated. Freepik rebranded to Magnific ' +
       'on 2026-04-27. Please migrate to MagnificMCOPAdapter. ' +

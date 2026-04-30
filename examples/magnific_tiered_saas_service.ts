@@ -293,8 +293,8 @@ async function demo() {
 
   try {
     await freeSvc.generateImage('user-1', 'a cat', { model: 'mystic-2.5-fluid' });
-  } catch (e: any) {
-    console.log('Free tier blocked Mystic:', e.message);
+  } catch (e) {
+    console.log('Free tier blocked Mystic:', (e as Error).message);
   }
 
   // --- Pro tier: full access -------------------------------------------
@@ -312,8 +312,8 @@ async function demo() {
       sourceWidth: 3840,
       sourceHeight: 2160,
     });
-  } catch (e: any) {
-    console.log('Pro tier blocked 16× 4K:', e.message);
+  } catch (e) {
+    console.log('Pro tier blocked 16× 4K:', (e as Error).message);
   }
 
   // --- Enterprise tier: everything allowed -------------------------------
