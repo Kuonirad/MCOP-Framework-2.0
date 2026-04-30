@@ -7,6 +7,27 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **CycloneDX SBOM generation.** `pnpm sbom` runs
+  [`@cyclonedx/cyclonedx-npm`](https://www.npmjs.com/package/@cyclonedx/cyclonedx-npm)
+  against both the root `@kuonirad/mcop-framework` workspace and the
+  publishable `packages/core/` (`@kullailabs/mcop-core`) workspace,
+  emitting CycloneDX 1.6 JSON SBOMs to `docs/sbom/*.cdx.json`
+  (gitignored, regenerated on demand). Documented at
+  `docs/sbom/README.md`, including the recommended one-line addition
+  for the maintainer to attach SBOMs to GitHub releases. Pairs with
+  the existing Sigstore provenance attestations from npm Trusted
+  Publishing.
+- **Runnable ONNX `IEmbeddingBackend` example** at
+  `examples/onnx_embedding_backend.ts`. Demonstrates wrapping
+  `onnxruntime-node` against an `all-MiniLM-L6-v2` ONNX export to
+  produce 384-d sentence embeddings, mean-pooling over tokens, and
+  projecting into MCOP's configured `dimensions` budget via
+  signed-bucket folding so the rest of the triad needs no changes.
+  Uses dynamic `import()` so the file typechecks and runs the
+  fallback path even when `onnxruntime-node` is not installed —
+  doubles as executable documentation. Header comment includes the
+  exact `curl` setup commands.
+
 - **pnpm workspaces.** `pnpm-workspace.yaml` registers `packages/*` so
   `packages/core/` (`@kullailabs/mcop-core`) is now a first-class workspace
   member, hoisted into a single shared `node_modules`. `pnpm install`,

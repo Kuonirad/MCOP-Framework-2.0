@@ -30,7 +30,8 @@
     "triad:fingerprint": "node scripts/triad-fingerprint.mjs",
     "audit:placement": "node scripts/placement-linter.mjs",
     "baseline:stigmergy": "node scripts/baselines/stigmergyResonanceBaseline.mjs",
-    "docs:guard": "node scripts/shared-docs-guard.mjs"
+    "docs:guard": "node scripts/shared-docs-guard.mjs",
+    "sbom": "node scripts/generate-sbom.mjs"
   },
   "engines": {
     "node": ">=20.0.0",
@@ -46,6 +47,7 @@
     "web-vitals": "^5.2.0"
   },
   "devDependencies": {
+    "@cyclonedx/cyclonedx-npm": "^4.2.1",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
