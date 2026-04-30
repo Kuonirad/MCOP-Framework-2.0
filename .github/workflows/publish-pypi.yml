@@ -89,6 +89,31 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+      # ------------------------------------------------------------------
+      # CycloneDX SBOM generation. Runs alongside the Python build so the
+      # SBOM is produced from the same checkout commit that yielded the
+      # sdist/wheel, then carried forward to the publish job as an
+      # artefact (avoids re-running pnpm install in publish jobs).
+      # ------------------------------------------------------------------
+      - name: Setup pnpm + Node for SBOM generation
+        uses: ./.github/actions/setup-project
+        with:
+          node-version: '22.x'
+
+      - name: Generate CycloneDX SBOMs
+        run: pnpm sbom
+
+      - name: Validate CycloneDX SBOMs against upstream schema
+        run: pnpm sbom:validate
+
+      - name: Upload SBOM artefacts
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: cyclonedx-sbom
+          path: docs/sbom/*.cdx.json
+          if-no-files-found: error
+          retention-days: 7
+
   # ------------------------------------------------------------------
   # 2. Publish to TestPyPI (default for workflow_dispatch unless
   #    explicitly targeting `pypi`).
@@ -136,6 +161,7 @@ jobs:
       name: pypi
       url: https://pypi.org/p/mcop
     permissions:
+      contents: write   # required to attach SBOM artefacts to the GitHub Release
       id-token: write   # OIDC — required for trusted publishing
     steps:
       - name: Download distribution artifacts
@@ -143,6 +169,12 @@ jobs:
         with:
           name: python-package-distributions
           path: dist/
+
+      - name: Download SBOM artefacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: cyclonedx-sbom
+          path: sbom/
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b # v1.14.0
@@ -158,3 +190,16 @@ jobs:
           # generic upstream "Bad Request" line.
           verbose: true
           print-hash: true
+
+      # ------------------------------------------------------------------
+      # Attach the CycloneDX SBOMs to the GitHub Release as downloadable
+      # assets. Skipped on workflow_dispatch (no release object exists).
+      # ------------------------------------------------------------------
+      - name: Attach SBOMs to GitHub Release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
+        with:
+          files: |
+            sbom/mcop-framework.cdx.json
+            sbom/mcop-core.cdx.json
+          fail_on_unmatched_files: true
