@@ -7,6 +7,17 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **Targeted branch-coverage tests for the four roadmap-flagged hot
+  files** (`src/__tests__/coverage-gaps.test.tsx`, +14 cases).
+  Addresses Phase 2 ① of the post-audit roadmap: lifts branch coverage
+  on `usePerformanceCoach.ts` 67.85% → 89.28%, `useVSIPredictor.ts`
+  74.07% → 81.48%, `DialecticalStudio.tsx` 79.36% → 84.74%, and
+  `promptingModes.ts` 62.96% → 70.37%. Project-wide branch coverage
+  rises 81.96% → 84.57% and project-wide line coverage rises 94.24% →
+  96%. Genuinely-unreachable browser-only paths (real-Worker callback,
+  `execCommand` clipboard fallback for non-secure contexts) are tagged
+  with `/* istanbul ignore next */` and a one-line justification rather
+  than tested through jsdom.
 - **CycloneDX SBOM schema validation.** New `pnpm sbom:validate`
   script (`scripts/validate-sbom.mjs`) validates each generated SBOM
   against the official CycloneDX JSON schema bundled with

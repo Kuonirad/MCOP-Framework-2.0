@@ -134,6 +134,9 @@ export function useVSIPredictor(
         return;
       }
 
+      /* istanbul ignore next -- @preserve: real-Worker success path; jsdom
+         takes the synchronous fallback above, so this branch is exercised
+         only in real browsers (Cypress + production). */
       compute(payload).then((next) => {
         startTransition(() => setState(next));
       });
