@@ -22,6 +22,9 @@ cypress/downloads/
 # generated API docs (TypeDoc)
 docs/api/core/
 
+# generated SBOMs (CycloneDX) — regenerated on each publish
+docs/sbom/*.cdx.json
+
 # next.js
 /.next/
 /out/

@@ -33,7 +33,8 @@
     "docs:guard": "node scripts/shared-docs-guard.mjs",
     "typedoc": "pnpm --filter @kullailabs/mcop-core typedoc",
     "coverage:badge": "node scripts/coverage-badge.mjs",
-    "benchmark:refresh": "BENCHMARK_GENERATE=1 jest --testPathPatterns=src/__tests__/benchmarks.test.ts"
+    "benchmark:refresh": "BENCHMARK_GENERATE=1 jest --testPathPatterns=src/__tests__/benchmarks.test.ts",
+    "sbom": "node scripts/generate-sbom.mjs"
   },
   "engines": {
     "node": ">=20.0.0",
@@ -49,6 +50,7 @@
     "web-vitals": "^5.2.0"
   },
   "devDependencies": {
+    "@cyclonedx/cdxgen": "^12.3.0",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
