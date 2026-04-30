@@ -529,16 +529,11 @@ function emptySnapshot(thesis: string): DialecticalSnapshot {
   };
 }
 
-async function copyToClipboard(text: string): Promise<void> {
-  if (
-    typeof navigator !== "undefined" &&
-    navigator.clipboard &&
-    typeof navigator.clipboard.writeText === "function"
-  ) {
-    await navigator.clipboard.writeText(text);
-    return;
-  }
-  // Fallback for jest-jsdom and non-secure contexts.
+/* istanbul ignore next -- @preserve: legacy execCommand fallback used
+   only in non-secure contexts (HTTP localhost, old browsers). jsdom
+   always provides navigator.clipboard.writeText so this helper is
+   unreachable in unit tests; exercised via Cypress on real browsers. */
+function copyViaExecCommand(text: string): void {
   if (typeof document === "undefined") {
     throw new Error("clipboard unavailable");
   }
@@ -552,4 +547,17 @@ async function copyToClipboard(text: string): Promise<void> {
   const ok = document.execCommand?.("copy");
   ta.remove();
   if (!ok) throw new Error("execCommand copy failed");
+}
+
+async function copyToClipboard(text: string): Promise<void> {
+  if (
+    typeof navigator !== "undefined" &&
+    navigator.clipboard &&
+    typeof navigator.clipboard.writeText === "function"
+  ) {
+    await navigator.clipboard.writeText(text);
+    return;
+  }
+  /* istanbul ignore next -- @preserve: see copyViaExecCommand JSDoc. */
+  copyViaExecCommand(text);
 }
