@@ -30,6 +30,7 @@
     "triad:fingerprint": "node scripts/triad-fingerprint.mjs",
     "audit:placement": "node scripts/placement-linter.mjs",
     "baseline:stigmergy": "node scripts/baselines/stigmergyResonanceBaseline.mjs",
+    "docs:guard": "node scripts/shared-docs-guard.mjs",
     "typedoc": "pnpm --filter @kullailabs/mcop-core typedoc",
     "coverage:badge": "node scripts/coverage-badge.mjs",
     "benchmark:refresh": "BENCHMARK_GENERATE=1 jest --testPathPatterns=src/__tests__/benchmarks.test.ts"

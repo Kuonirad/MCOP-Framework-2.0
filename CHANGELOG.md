@@ -7,6 +7,18 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **pnpm workspaces.** `pnpm-workspace.yaml` registers `packages/*` so
+  `packages/core/` (`@kullailabs/mcop-core`) is now a first-class workspace
+  member, hoisted into a single shared `node_modules`. `pnpm install`,
+  `pnpm -r typecheck`, and `pnpm --filter @kullailabs/mcop-core build` all
+  work end-to-end. The Python sibling `mcop_package/` remains an
+  independent PyPI project. See `docs/MONOREPO.md` for the full layout
+  and intentional code-divergence map.
+- **Shared-docs guardian** — `scripts/shared-docs-guard.mjs` (invokable
+  via `pnpm docs:guard`). Hard-fails when the BUSL `LICENSE` text drifts
+  between root, `packages/core/`, and `mcop_package/`. Advisory-only
+  reporting for `NOTICE.md` and `LICENSE-MIT-LEGACY` (legitimately
+  divergent per-package).
 - **Public benchmarks refresh CLI** — `pnpm benchmark:refresh` regenerates
   `docs/benchmarks/results.json` from `runPromptingBenchmark` against the
   canonical fixture. Existing test guards keep the snapshot reproducible

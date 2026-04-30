@@ -1,0 +1,11 @@
+# pnpm workspace declaration.
+#
+# Surfaces `packages/core` (the published `@kullailabs/mcop-core` library)
+# as a first-class workspace package. The Python sibling `mcop_package/`
+# is intentionally NOT a pnpm workspace — it has its own pyproject.toml /
+# setup.py and is published independently to PyPI.
+#
+# Adding more TypeScript packages? Drop them under `packages/*` and they
+# will be picked up automatically.
+packages:
+  - "packages/*"
