@@ -18,9 +18,60 @@ and the checks that should stay green as the ecosystem expands.
 
 ## OpenSSF Scorecard
 
-`.github/workflows/scorecard.yml` runs OpenSSF Scorecard weekly and on pushes to
-`main`. It publishes authenticated results to Scorecard using GitHub OIDC and
-uploads the SARIF report to code scanning.
+Add `.github/workflows/scorecard.yml` to run OpenSSF Scorecard weekly and on
+pushes to `main`. It should publish authenticated results to Scorecard using
+GitHub OIDC and upload the SARIF report to code scanning.
+
+> Note: adding or updating workflow files requires a GitHub token with
+> `workflow` scope. If an automation token lacks that scope, land this
+> documentation first and add the workflow from an authorized maintainer token.
+
+Suggested workflow:
+
+```yaml
+name: OpenSSF Scorecard
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '17 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: scorecard-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  scorecard:
+    name: Scorecard analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      security-events: write
+      id-token: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Run OpenSSF Scorecard
+        uses: ossf/scorecard-action@4eaacf0543bb3f2c246792bd56e8cdeffafb205a # v2.4.3
+        with:
+          results_file: scorecard-results.sarif
+          results_format: sarif
+          publish_results: true
+
+      - name: Upload Scorecard SARIF
+        uses: github/codeql-action/upload-sarif@95e58e9a2cdfd71adc6e0353d5c52f41a045d225 # v4.35.2
+        with:
+          sarif_file: scorecard-results.sarif
+```
 
 Badge:
 
