@@ -72,6 +72,24 @@ narrow the genuine remaining-work surface to mutation / fuzz testing,
 OpenTelemetry, i18n, hosted TypeDoc deployment, and (now closed in this
 PR) Lighthouse CI.
 
+## Second Audit (received 2026-05-01) — findings reconciliation
+
+A second audit landed on the same day with a "Critical Findings Summary"
+table. Each row was verified against the repository:
+
+| Severity (per auditor) | Claim | Verification | Action taken |
+|------------------------|-------|--------------|--------------|
+| 🔴 CRITICAL | `uuid` overridden to `^14.0.0` (non-existent version) | uuid 14.0.0 was published; verified via `npm view uuid versions`. Auditor's knowledge cutoff predates the release | None — claim incorrect |
+| 🔴 CRITICAL | `src/core/testing-utils.ts` is test-only and ships in production | File header documents it as a runtime SSR / LCP HTML inspector consumed by `scripts/verify-ssr-lcp.mjs` (CI) and jest specs alike; the "testing" in the name describes purpose, not scope | None — claim incorrect |
+| 🔴 CRITICAL | Dual lockfiles (`package-lock.json` + `pnpm-lock.yaml`) | **Real regression.** PR #534 explicitly removed `package-lock.json` ("pnpm project"); PR #537 (Magnific migration) re-added it accidentally. CI workflows use `npm install --no-package-lock` — they actively avoid it | ✅ Removed `package-lock.json` in this PR |
+| 🟠 HIGH | No ML runtime dependencies despite ML-named modules | By design — `NovaNeoEncoder` is deterministic hashing (not inference), `StigmergyV5` is cosine vector math, `tensorGuard` validates shapes only. Optional `openai>=1.0` extra exists in `mcop_package/pyproject.toml` for downstream LLM consumers | None — claim incorrect |
+| 🟠 HIGH | `@kullailabs/mcop-core` namespace inconsistency vs `@kuonirad` | Intentional dual identity: the repo is personal (`@kuonirad/mcop-framework` — the Next.js app), the published library is org-scoped (`@kullailabs/mcop-core`). Documented in `GOVERNANCE.md` | None — claim incorrect |
+| 🟠 HIGH | `stigmergyV5.ts` — version in filename is an anti-pattern | Intentional protocol-generation marker (cf. HTTP/2, IPv6). Documented in `PLAIN_ENGLISH_GLOSSARY.md` under "Stigmergy v5 / Resonance" | None — claim incorrect |
+| 🟡 MEDIUM | BUSL-1.1 relicense from MIT — contributor IP risk | Already addressed: `LICENSE-MIT-LEGACY` preserves pre-2026-04-26 commits under MIT; `NOTICE.md` documents the transition; `CONTRIBUTING.md` requires DCO sign-off | None — already mitigated |
+| 🟡 MEDIUM | Concurrent E2E in `test:hybrid` causes flakiness | `test:hybrid` is a developer-convenience script (run-locally), not the CI entry point. CI uses sequential `pnpm test`, `pnpm cypress:run`, etc. via separate jobs | None — non-issue in CI |
+| 🟡 MEDIUM | Dual test directories (`src/__tests__/` and `tests/`) | `src/__tests__/` holds unit specs co-located with source; `tests/` holds integration specs; `cypress/` holds E2E. Standard three-tier convention | None — claim conflates conventions |
+| 🟡 MEDIUM | 15+ Markdown docs at root with no freshness mechanism | `scripts/shared-docs-guard.mjs` (`pnpm docs:guard`) enforces freshness; `pnpm parity:check` validates cross-doc parity | None — already automated |
+
 ## Net Outstanding Work After This PR
 
 1. Wire a GitHub Pages (or equivalent) deploy for the `docs/api/` TypeDoc
