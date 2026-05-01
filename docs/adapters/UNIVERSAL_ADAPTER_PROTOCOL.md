@@ -37,6 +37,7 @@ mcop_package/mcop/adapters/         # Python adapters
     └── higgsfield_adapter.py       # Cinematic video adapter (Kling/Veo/Sora)
 
 examples/
+    ├── full_film_production_pipeline.ts
     ├── magnific_production_flow.ts   # Post-rebrand Magnific v1/ai/ API usage
     ├── freepik_production_flow.ts    # Legacy compat wrapper (deprecated)
     ├── higgsfield_cinematic_pipeline.py
@@ -151,6 +152,14 @@ Use `GenericProductionAdapter` as a 20-line scaffold for any new
 platform — provide a `platform` name and a `dispatch` function and the
 adapter handles encoding, resonance, dialectical refinement, and
 provenance for you.
+
+## Reference Implementations
+
+| Reference | Location | Notes |
+| --- | --- | --- |
+| Full film production case study | [`examples/full_film_production_pipeline.ts`](../../examples/full_film_production_pipeline.ts) | Writing → visual development → shot generation → score stems → editorial → delivery, all sharing one triad and Merkle lineage. |
+| ONNX embedding backend | [`examples/onnx_embedding_backend.ts`](../../examples/onnx_embedding_backend.ts) | Optional neural embedding path; can be hosted on CPU, CUDA, DirectML, or WebGPU services before returning a projected `ContextTensor`. |
+| MCP reference server | [`examples/universal_adapter_mcp_server/`](../../examples/universal_adapter_mcp_server/) | JSON-RPC-over-stdio tools for `capabilities`, `generate`, and `prepare`; swap the fixture adapter for any production `IMCOPAdapter`. |
 
 ## Integration Patterns
 

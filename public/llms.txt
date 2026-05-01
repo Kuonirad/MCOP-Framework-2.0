@@ -36,6 +36,8 @@ view of the project without crawling the entire site.
 - [README](https://github.com/Kuonirad/MCOP-Framework-2.0/blob/main/README.md)
 - [Architecture](https://github.com/Kuonirad/MCOP-Framework-2.0/blob/main/ARCHITECTURE.md)
 - [Universal Adapter Protocol v2.1](https://github.com/Kuonirad/MCOP-Framework-2.0/blob/main/docs/adapters/UNIVERSAL_ADAPTER_PROTOCOL.md)
+- [Case studies](https://github.com/Kuonirad/MCOP-Framework-2.0/blob/main/docs/CASE_STUDIES.md)
+- [Supply-chain trust posture](https://github.com/Kuonirad/MCOP-Framework-2.0/blob/main/docs/SUPPLY_CHAIN_TRUST.md)
 - [Contributing guide](https://github.com/Kuonirad/MCOP-Framework-2.0/blob/main/CONTRIBUTING.md)
 - [Security policy](https://github.com/Kuonirad/MCOP-Framework-2.0/blob/main/SECURITY.md)
 - [Governance](https://github.com/Kuonirad/MCOP-Framework-2.0/blob/main/GOVERNANCE.md)
@@ -54,6 +56,9 @@ view of the project without crawling the entire site.
 - **Generic Production** (TypeScript) — 20-line scaffold for any
   REST / MCP / HTTP pipeline.
   https://github.com/Kuonirad/MCOP-Framework-2.0/blob/main/src/adapters/genericProductionAdapter.ts
+- **MCP reference server** (TypeScript) — JSON-RPC-over-stdio tool surface for
+  Universal Adapter Protocol `capabilities`, `generate`, and `prepare`.
+  https://github.com/Kuonirad/MCOP-Framework-2.0/tree/main/examples/universal_adapter_mcp_server
 
 ## Performance defaults
 - LCP target: ≤ 2.5s (Core Web Vitals "good")
