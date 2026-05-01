@@ -6,6 +6,32 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## `@kullailabs/mcop-core` [0.2.1] — 2026-05-01
+
+**npm package patch — OIDC trusted-publishing validation release.**
+
+`@kullailabs/mcop-core@0.2.0` was published manually from a maintainer
+environment with a short-lived publish token (since rotated) to unblock
+the v2.2.0 release cycle while the CI-side Node-version skew was being
+diagnosed. As a result, **0.2.0 does not carry a Sigstore provenance
+attestation** — the `dist.attestations` field on the registry is null
+for that version.
+
+`0.2.1` is a no-functional-change patch release (identical TypeScript
+sources, identical compiled output) whose sole purpose is to validate
+that `publish-npm.yml` after [PR #567](https://github.com/Kuonirad/MCOP-Framework-2.0/pull/567)
+trust-publishes via OIDC end-to-end and re-establishes a Sigstore
+provenance attestation for downstream consumers.
+
+### Notes
+- No source changes from `0.2.0` (TypeScript, ESM/CJS dist, type
+  declarations are byte-identical modulo the version string in
+  `package.json`).
+- Framework `mcop` (Python, PyPI) is unaffected.
+- Framework GitHub Release `v2.2.1` remains the canonical SBOM anchor
+  for the v2.2.0 release cycle; `0.2.1` is covered by the same
+  `mcop-core.cdx.json` (the dependency graph is unchanged).
+
 ## [2.2.1] — 2026-04-30
 
 **Framework v2.2.1** — operational patch: re-anchor the v2.2.0 release with
