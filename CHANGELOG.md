@@ -6,6 +6,16 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Deprecated
+- **Freepik adapter — concrete removal timeline set.** `FreepikMCOPAdapter`
+  (rebranded to Magnific on 2026-04-27) will be **removed in v3.0.0**
+  (target 2026-Q3). The wrapper currently delegates to
+  `MagnificMCOPAdapter` and emits a one-time console warning. Migrate now:
+  rename imports, update endpoint paths to `/v1/ai/*`, and remove legacy
+  `turbo` / `premium_quality` booleans. See `docs/adapters/MAGNIFIC_MIGRATION.md`
+  for the full checklist. No new features will be added to the Freepik
+  wrapper between now and removal.
+
 ## `@kullailabs/mcop-core` [0.2.1] — 2026-05-01
 
 **npm package patch — OIDC trusted-publishing validation release.**
