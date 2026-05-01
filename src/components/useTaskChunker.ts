@@ -35,7 +35,7 @@ export interface ChunkOptions {
   readonly budgetMs?: number;
   /** Abort signal for mid-flight cancellation. */
   readonly signal?: AbortSignal;
-  /** Called after each chunk with progress (0–1). */
+  /** Called before work starts and after each chunk with progress (0–1). */
   readonly onProgress?: (progress: number) => void;
 }
 
@@ -69,6 +69,14 @@ export function useTaskChunker(): <T, R>(
     const onProgress = opts?.onProgress;
     const results: R[] = [];
     const total = items.length;
+
+    if (signal?.aborted) {
+      throw new Error("Chunked task aborted");
+    }
+    if (total === 0) {
+      return results;
+    }
+    onProgress?.(0);
 
     let i = 0;
     while (i < total) {
