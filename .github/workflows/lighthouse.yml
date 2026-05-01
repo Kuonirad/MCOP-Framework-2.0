@@ -1,0 +1,56 @@
+name: Lighthouse CI
+
+# Runs Lighthouse against a production build of the Next.js app on every PR
+# and on pushes to main. Closes the "no public Lighthouse / a11y score" gap
+# identified in docs/audits/master-audit-2026-05-01.md (Priority 2 #5,
+# Priority 3 #8). Accessibility threshold is enforced as an `error` so PRs
+# that regress a11y below 0.95 fail; perf / best-practices / SEO are `warn`
+# only for now and can be tightened once we have a baseline distribution.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lighthouse-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lighthouse:
+    name: Lighthouse audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Setup project environment
+        uses: ./.github/actions/setup-project
+        with:
+          node-version: 22.x
+
+      - name: Build Next.js app
+        run: pnpm build
+
+      - name: Install Lighthouse CI
+        run: npm install --global @lhci/cli@0.14.x
+
+      - name: Run Lighthouse CI
+        env:
+          LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
+        run: lhci autorun --config=./lighthouserc.json
+
+      - name: Upload Lighthouse reports
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: lighthouse-reports
+          path: .lighthouseci/
+          if-no-files-found: warn
+          retention-days: 14

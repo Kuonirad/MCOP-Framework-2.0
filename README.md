@@ -180,6 +180,7 @@ Contributors welcome. The project follows a lightweight governance model with la
 - **Good first issues:** [issues labeled `good first issue`](../../issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22).
 - **Governance:** [GOVERNANCE.md](GOVERNANCE.md) — maintainers, decision model, and release process.
 - **Protocol:** [CONTRIBUTING.md](CONTRIBUTING.md) — branch hygiene, PR template, and review expectations.
+- **Audit history:** [docs/audits/](docs/audits/) — independent and quarterly audits, plus the [2026-05-01 master audit](docs/audits/master-audit-2026-05-01.md) and its [remediation tracker](docs/audits/remediation-tracker-2026-05-01.md).
 
 Topics: `typescript`, `nextjs`, `agent-framework`, `collective-intelligence`, `stigmergy`, `meta-cognitive-optimization`.
 
