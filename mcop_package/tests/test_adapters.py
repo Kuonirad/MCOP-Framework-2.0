@@ -203,3 +203,61 @@ def test_base_adapter_requires_subclass_overrides():
             ),
             AdapterRequest(prompt="p"),
         )
+
+
+# ---------------------------------------------------------------------------
+# Resilience & error-path coverage (audit remediation 2026-05-01)
+# ---------------------------------------------------------------------------
+
+class FailingHiggsfield(HiggsfieldClient):  # type: ignore[misc]
+    """Client that always raises — exercises adapter exception propagation."""
+
+    def __init__(self, exc: Exception = RuntimeError("SDK failure")) -> None:
+        self._exc = exc
+
+    def generate_video(
+        self,
+        *,
+        model: str,
+        prompt: str,
+        motion_refs: List[str],
+        audit: str | None = None,
+    ) -> Dict[str, Any]:
+        raise self._exc
+
+
+def test_higgsfield_adapter_propagates_sdk_failure():
+    """If the underlying Higgsfield client raises, the adapter must not
+    swallow the exception — callers need to decide retry / circuit-break.
+    """
+    adapter = HiggsfieldMCOPAdapter(FailingHiggsfield())
+    with pytest.raises(RuntimeError, match="SDK failure"):
+        adapter.optimize_cinematic_video("prompt", motion_refs=["zoom"])
+
+
+def test_higgsfield_adapter_empty_scorer_raises():
+    """A model scorer that returns no candidates must produce a clear
+    RuntimeError so the caller knows the dispatch pipeline cannot proceed.
+    """
+    client = FakeHiggsfield()
+
+    def empty_scorer(_dispatch: PreparedDispatch, _request: HiggsfieldRequest):
+        return []
+
+    adapter = HiggsfieldMCOPAdapter(client, model_scorer=empty_scorer)
+    with pytest.raises(RuntimeError, match="no candidates"):
+        adapter.optimize_cinematic_video("prompt", motion_refs=["zoom"])
+
+
+def test_higgsfield_adapter_graceful_with_partial_raw_response():
+    """The adapter must tolerate minimal / partial raw responses from the
+    SDK (e.g. missing optional fields like video_url).
+    """
+    client = FakeHiggsfield(override={"job_id": "minimal-1"})
+    # remove synthetic video_url the FakeHiggsfield would otherwise inject
+    del client._override["video_url"]
+    adapter = HiggsfieldMCOPAdapter(client)
+    response = adapter.optimize_cinematic_video("prompt", motion_refs=["pan"])
+    assert response.result.job_id == "minimal-1"
+    # video_url may be None when the job is still processing
+    assert response.result.video_url is None or isinstance(response.result.video_url, str)

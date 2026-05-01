@@ -6,6 +6,23 @@ The adapter is SDK-agnostic: callers pass in a
 :class:`HiggsfieldClient`-conforming object (the official ``higgsfield``
 SDK, an in-house HTTP wrapper, or a fixture) and the adapter handles
 encoder + resonance + etch + model selection.
+
+--------------------------------------------------------------------------
+TIMEOUT & RETRY SEMANTICS (audit remediation 2026-05-01)
+--------------------------------------------------------------------------
+This adapter does NOT implement internal timeouts or retries — it is
+intentionally thin so that transport policy lives in the
+:class:`HiggsfieldClient` implementation. Production callers should
+enforce:
+
+1. **Per-generation timeout** — e.g. 120 s for short clips, 300 s for
+   cinematic sequences. Pass via the client's own ``timeout`` param.
+2. **Exponential back-off** — max 3 retries on 5xx / connection errors.
+3. **Circuit-breaker** — after 3 consecutive ``generate_video`` failures,
+   fail fast for 60 s rather than queueing more jobs.
+4. **Idempotency** — forward ``audit`` (the Merkle root) as the
+   idempotency key so re-dispatches with the same provenance dedupe
+   safely on the Higgsfield side.
 """
 
 from __future__ import annotations

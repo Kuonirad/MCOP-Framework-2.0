@@ -100,6 +100,22 @@ table. Each row was verified against the repository:
 4. Decide whether to defer i18n until concrete non-English contributor
    demand materializes (current recommendation: defer).
 
+## Third Audit (received 2026-05-01) — comprehensive recommendation remediation
+
+A third audit (the "comprehensive full audit") contained an additional
+recommendation list. Remediation actions taken on 2026-05-01:
+
+| Severity | Recommendation | Action | File |
+|----------|----------------|--------|------|
+| 🔴 CRITICAL | `.env.example` — verify no real credentials | ✅ Audited and annotated with security audit marker | `.env.example` |
+| 🔴 CRITICAL | `pnpm-lock.yaml` staleness — validate with `--frozen-lockfile` | ✅ Already enforced in `.github/actions/setup-project/action.yml` | No change required |
+| 🟠 HIGH | Python test parity — add `pytest` for `higgsfield_adapter.py` | ✅ Added 3 new test cases: SDK failure propagation, empty scorer error, partial raw response tolerance | `mcop_package/tests/test_adapters.py` |
+| 🟠 HIGH | Devin sub-agent failure modes — document timeout/retry semantics | ✅ Added explicit timeout/retry/circuit-breaker documentation to adapter header | `src/adapters/devinOrchestratorAdapter.ts` |
+| 🟡 MEDIUM | Freepik legacy adapter — document concrete deprecation/removal timeline | ✅ Added removal target (v3.0.0, 2026-Q3) to `CHANGELOG.md` `[Unreleased]` | `CHANGELOG.md` |
+| 🟡 MEDIUM | Coverage badge automation — badge may be stale | ✅ Badge updated 94.24% → 96% (current project-wide line coverage); CI already uploads to Codecov | `docs/badges/coverage.svg` |
+| 🟡 MEDIUM | Higgsfield adapter timeout/retry — no visible semantics | ✅ Added timeout/retry/circuit-breaker/idempotency documentation to adapter module docstring | `mcop_package/mcop/adapters/higgsfield_adapter.py` |
+| 🟢 LOW | `.agents/` and `.jules/` dirs — add inline README files | ✅ Added `README.md` to both directories explaining purpose, structure, and security constraints | `.agents/README.md`, `.jules/README.md` |
+
 ---
 
 *Tracker maintained by the maintainer-of-record. Update on each audit cycle.*
