@@ -5,6 +5,7 @@
 [![Coverage](./docs/badges/coverage.svg)](./docs/api/README.md)
 [![API docs](https://img.shields.io/badge/API-TypeDoc-3178C6?style=flat-square)](./docs/api/README.md)
 [![Benchmarks](https://img.shields.io/badge/benchmarks-public-emerald?style=flat-square)](./docs/benchmarks/methodology.md)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/Kuonirad/MCOP-Framework-2.0/badge)](https://scorecard.dev/viewer/?uri=github.com/Kuonirad/MCOP-Framework-2.0)
 [![Releases](https://img.shields.io/github/v/release/Kuonirad/MCOP-Framework-2.0?style=flat-square)](https://github.com/Kuonirad/MCOP-Framework-2.0/releases)
 [![License: BUSL 1.1](https://img.shields.io/badge/License-BUSL%201.1-amber?style=flat-square)](LICENSE)
 [![Contributors](https://img.shields.io/github/contributors/Kuonirad/MCOP-Framework-2.0?style=flat-square)](https://github.com/Kuonirad/MCOP-Framework-2.0/graphs/contributors)
@@ -101,7 +102,7 @@ response = adapter.optimize_cinematic_video(
 print(response.result.model, response.merkle_root)
 ```
 
-More: end-to-end runnable scripts under [`examples/`](examples/) (`magnific_production_flow.ts`, `freepik_production_flow.ts` *(legacy)*, `higgsfield_cinematic_pipeline.py`, `multi_platform_orchestrator.ts`).
+More: end-to-end runnable scripts under [`examples/`](examples/) (`full_film_production_pipeline.ts`, `magnific_production_flow.ts`, `freepik_production_flow.ts` *(legacy)*, `higgsfield_cinematic_pipeline.py`, `multi_platform_orchestrator.ts`). Case-study notes live in [`docs/CASE_STUDIES.md`](docs/CASE_STUDIES.md), including the full film production pipeline and ONNX/GPU acceleration runbook.
 
 Every adapter call returns a `ProvenanceMetadata` bundle (tensor hash, Stigmergy trace hash, resonance score, etch Merkle root, refined prompt) that can be persisted for compliance and replay. Human overrides flow through `HumanFeedback` — including a hard `veto` that raises `HumanVetoError` and refuses dispatch.
 
@@ -169,6 +170,7 @@ Configuration knobs live in [`config/examples/mcop.config.example.json`](config/
 - Jest tests cover security baselines and triad seed behaviors.
 - Deterministic hashing avoids side effects in CI.
 - Provenance hashes and audit-friendly logging enable replay.
+- Supply-chain posture is tracked in [`docs/SUPPLY_CHAIN_TRUST.md`](docs/SUPPLY_CHAIN_TRUST.md): SBOM validation, Dependabot, CodeQL, npm provenance, and OpenSSF Scorecard.
 
 ## 🤝 Contributing
 
