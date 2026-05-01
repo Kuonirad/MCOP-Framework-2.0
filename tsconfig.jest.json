@@ -7,6 +7,10 @@
     "isolatedModules": false,
     "noEmit": false
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "packages/core/src/**/*.ts"
+  ],
   "exclude": ["node_modules", ".next"]
 }
