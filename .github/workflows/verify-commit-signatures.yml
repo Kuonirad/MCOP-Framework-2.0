@@ -1,0 +1,75 @@
+name: Verify Commit Signatures
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  verify-signatures:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR HEAD
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: List unsigned commits in PR
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          echo "=== Commit Signature Check ==="
+          echo "Base: $BASE_SHA"
+          echo "Head: $HEAD_SHA"
+          echo ""
+          
+          unsigned=$(git log "$BASE_SHA..$HEAD_SHA" --format='%H %G? %s' | grep -E '^[a-f0-9]+ [NGUXB] ' || true)
+          
+          if [ -n "$unsigned" ]; then
+            echo "❌ UNSIGNED / UNVERIFIED COMMITS FOUND:"
+            echo "$unsigned" | while read hash status msg; do
+              echo "  - $hash ($status) $msg"
+            done
+            echo ""
+            echo "This repository requires all commits to be GPG or SSH signed."
+            echo "See CONTRIBUTING.md §Commit Signing for setup instructions."
+            exit 1
+          else
+            echo "✅ All commits in this PR are signed and verified."
+          fi
+
+      - name: PR comment on failure
+        if: failure()
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        with:
+          script: |
+            const body = `## ⚠️ Commit Signature Check Failed
+            
+            This PR contains **unsigned or unverified commits**. The \`main\` branch requires all commits to be GPG or SSH signed.
+            
+            **How to fix:**
+            1. Set up commit signing: see [CONTRIBUTING.md §Commit Signing](https://github.com/${{ github.repository }}/blob/main/CONTRIBUTING.md)
+            2. Re-sign your commits:
+               \`\`\`bash
+               git rebase -i HEAD~N --exec "git commit --amend --no-edit -S"
+               git push --force-with-lease
+               \`\`\`
+            3. Verify with: \`git log --show-signature\`
+            
+            **Why this matters:** Signed commits cryptographically bind the author's identity to every change, preventing impersonation and tampering in the supply chain. This is a hardening measure for a project with production-release ambitions.
+            
+            _This check is currently advisory (not blocking merge) while contributors transition. It will become blocking on 2026-06-01._
+            `;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body
+            });
