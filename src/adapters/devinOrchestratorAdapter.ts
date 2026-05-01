@@ -23,6 +23,23 @@
  * router from `grokAdapter.ts` so MCOP itself decides whether a task is
  * worth dispatching to a fresh sub-agent or whether the cached resonance
  * trace is enough.
+ *
+ * -------------------------------------------------------------------------
+ * TIMEOUT & RETRY SEMANTICS (audit remediation 2026-05-01)
+ * -------------------------------------------------------------------------
+ * This adapter does NOT implement internal timeouts or retries — it is
+ * intentionally thin so that policy lives in the `SubAgentClient`
+ * implementation. Callers using a real Devin MCP client should enforce:
+ *
+ *   1. Per-dispatch timeout   — e.g. 5 min for researcher, 10 min for coder.
+ *   2. Exponential back-off   — max 3 retries on 5xx or MCP stream errors.
+ *   3. Circuit-breaker        — after 3 consecutive failures, fail fast for
+ *                               60 s rather than burning tokens.
+ *   4. Idempotency key        — pass `metadata.requestId` through the
+ *                               client so duplicate dispatches dedupe safely.
+ *
+ * The mock client returns instantly; production clients MUST document their
+ * timeout/retry contract in their own README.
  */
 
 import {
