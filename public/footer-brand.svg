@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 160" width="1200" height="160">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#000008"/>
+      <stop offset="50%" stop-color="#080818"/>
+      <stop offset="100%" stop-color="#000008"/>
+    </linearGradient>
+    <linearGradient id="goldLine" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#000008" stop-opacity="0"/>
+      <stop offset="30%" stop-color="#ffd700" stop-opacity="0.6"/>
+      <stop offset="50%" stop-color="#ffd700" stop-opacity="1"/>
+      <stop offset="70%" stop-color="#ffd700" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#000008" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="cyanLine" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#000008" stop-opacity="0"/>
+      <stop offset="40%" stop-color="#00f0ff" stop-opacity="0.4"/>
+      <stop offset="60%" stop-color="#7b2dff" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#000008" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <rect width="1200" height="160" fill="url(#bgGrad)"/>
+
+  <!-- Top rule -->
+  <line x1="0" y1="1" x2="1200" y2="1" stroke="url(#cyanLine)" stroke-width="1"/>
+  <line x1="0" y1="8" x2="1200" y2="8" stroke="url(#goldLine)" stroke-width="2" filter="url(#glow)"/>
+  <line x1="0" y1="15" x2="1200" y2="15" stroke="url(#cyanLine)" stroke-width="0.5"/>
+
+  <!-- Logo left -->
+  <!-- K lettermark -->
+  <text x="60" y="95" fill="#ffd700" font-family="system-ui,sans-serif" font-size="55" font-weight="900" letter-spacing="-3" filter="url(#glow)">K</text>
+  <line x1="95" y1="48" x2="95" y2="130" stroke="#ffd700" stroke-width="2" opacity="0.4"/>
+
+  <!-- Brand name -->
+  <text x="110" y="80" fill="#ffffff" font-family="system-ui,sans-serif" font-size="24" font-weight="700" letter-spacing="3">KULLAILABS</text>
+  <text x="110" y="105" fill="#556677" font-family="monospace" font-size="12" letter-spacing="2">Deterministic Cognition  ·  Provenance-First</text>
+
+  <!-- Center vertical rule -->
+  <line x1="400" y1="40" x2="400" y2="130" stroke="#223344" stroke-width="1"/>
+
+  <!-- Center: MCOP branding -->
+  <text x="600" y="72" text-anchor="middle" fill="#334455" font-family="system-ui,sans-serif" font-size="11" letter-spacing="5">META-COGNITIVE OPTIMIZATION PROTOCOL</text>
+  <text x="600" y="100" text-anchor="middle" fill="#00f0ff" font-family="system-ui,sans-serif" font-size="32" font-weight="900" letter-spacing="2" filter="url(#glow)">MCOP 2.0</text>
+  <text x="600" y="122" text-anchor="middle" fill="#334455" font-family="monospace" font-size="11">BUSL 1.1  →  MIT  ·  2030-04-26  ·  v2.2.1</text>
+
+  <!-- Right vertical rule -->
+  <line x1="800" y1="40" x2="800" y2="130" stroke="#223344" stroke-width="1"/>
+
+  <!-- Right: links -->
+  <text x="870" y="68" text-anchor="middle" fill="#556677" font-family="monospace" font-size="11">github.com/Kuonirad</text>
+  <text x="870" y="86" text-anchor="middle" fill="#00f0ff" font-family="monospace" font-size="11" opacity="0.8">/MCOP-Framework-2.0</text>
+  <text x="870" y="110" text-anchor="middle" fill="#556677" font-family="monospace" font-size="10">encode → resonate → etch → provenance</text>
+
+  <!-- Far right: triad mini-indicator -->
+  <circle cx="1060" cy="80" r="16" fill="#00f0ff" opacity="0.1" stroke="#00f0ff" stroke-width="1"/>
+  <circle cx="1090" cy="80" r="13" fill="#7b2dff" opacity="0.1" stroke="#7b2dff" stroke-width="1"/>
+  <circle cx="1115" cy="80" r="10" fill="#ff006e" opacity="0.1" stroke="#ff006e" stroke-width="1"/>
+  <circle cx="1138" cy="80" r="7" fill="#ffd700" opacity="0.3" stroke="#ffd700" stroke-width="1"/>
+
+  <!-- Bottom rule -->
+  <line x1="0" y1="152" x2="1200" y2="152" stroke="url(#cyanLine)" stroke-width="0.5"/>
+</svg>
