@@ -191,12 +191,12 @@ describe("VSI compute parity", () => {
 
       for (const id of covIds) {
         if (!(globalThis as Record<string, unknown>)[id]) {
-          (globalThis as Record<string, unknown>)[id] = {
+          (globalThis as Record<string, unknown>)[id] = Object.assign(() => (globalThis as Record<string, unknown>)[id] as object,
             s: new Proxy({}, { get: () => 0, set: () => true }),
             b: new Proxy({}, { get: () => [0, 0], set: () => true }),
             f: new Proxy({}, { get: () => 0, set: () => true }),
             v: "",
-          };
+          });
         }
       }
 
