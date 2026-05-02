@@ -146,7 +146,25 @@ describe("VSI compute parity", () => {
   });
 
   describe("worker-script source parity", () => {
+    // When Jest runs with --coverage, Istanbul injects `cov_*` variables
+    // into the source. This makes both `computeVSI.toString()` checks and
+    // `eval()` of the worker script invalid. Skip these tests under
+    // instrumentation — the computeVSI ≡ fallbackCompute tests above still
+    // verify correctness; these tests verify source parity which is
+    // impossible when the source has been rewritten.
+    const isInstrumented =
+      typeof (globalThis as Record<string, unknown>).__coverage__ !==
+        "undefined" || computeVSI.toString().includes("cov_");
+
     it("worker script embeds the canonical computeVSI source", () => {
+      if (isInstrumented) {
+        // eslint-disable-next-line no-console
+        console.warn(
+          "[vsi.parity] Skipping source-parity check — Istanbul coverage " +
+            "instrumentation detected. This is expected in CI."
+        );
+        return;
+      }
       // Reach into the module to grab WORKER_SCRIPT — we expose it via a
       // dedicated test-only re-export so this assertion never depends on
       // mutable module internals.
@@ -159,6 +177,14 @@ describe("VSI compute parity", () => {
     });
 
     it("eval'd worker-script computeVSI matches direct invocation", () => {
+      if (isInstrumented) {
+        // eslint-disable-next-line no-console
+        console.warn(
+          "[vsi.parity] Skipping eval-parity check — Istanbul coverage " +
+            "instrumentation detected. This is expected in CI."
+        );
+        return;
+      }
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const mod = require("@/components/useVSIWorker") as {
         readonly __WORKER_SCRIPT_FOR_TESTS: string;
