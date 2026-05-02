@@ -40,6 +40,21 @@ function Probe() {
       <div data-testid="prediction-target">
         {state.predictionTarget ?? 'null'}
       </div>
+      <div data-testid="smoothed">{(state.smoothedVsi ?? 0).toFixed(4)}</div>
+      <div data-testid="slope">{String(state.slopePerSec ?? 0)}</div>
+      <div data-testid="pattern">{state.pattern ?? 'unknown'}</div>
+      <div data-testid="coaching">{state.coachingAction ?? ''}</div>
+      <div data-testid="confidence">{String(state.confidence ?? 0)}</div>
+      <div data-testid="horizons-len">{String((state.horizons ?? []).length)}</div>
+      <div data-testid="horizon-0">
+        {String(state.horizons?.[0]?.horizonMs ?? 0)}
+      </div>
+      <div data-testid="horizon-2">
+        {String(state.horizons?.[2]?.horizonMs ?? 0)}
+      </div>
+      <div data-testid="prob-2">
+        {String(state.horizons?.[2]?.probPoor ?? 0)}
+      </div>
     </div>
   );
 }
@@ -144,6 +159,78 @@ describe('useVSIPredictor', () => {
     expect(screen.getByTestId('trend').textContent).toBe('degrading');
     expect(screen.getByTestId('prediction-target').textContent).toBe('poor');
     expect(parseInt(screen.getByTestId('prediction').textContent ?? '0', 10)).toBeGreaterThan(0);
+  });
+
+  it('exposes a Kalman-smoothed VSI distinct from the raw vsi', async () => {
+    render(<Probe />);
+    const t = performance.now();
+    await act(async () => {
+      __emitShiftForTests(shift({ value: 0.1, startTime: t }));
+    });
+    const raw = parseFloat(screen.getByTestId('vsi').textContent ?? '0');
+    const smoothed = parseFloat(screen.getByTestId('smoothed').textContent ?? '0');
+    expect(raw).toBeCloseTo(0.1, 3);
+    // Kalman with Q=0.001, R=0.1 gives K ≈ 0.0091 on first step → ~0.0009.
+    expect(smoothed).toBeGreaterThan(0);
+    expect(smoothed).toBeLessThan(raw);
+  });
+
+  it('classifies an img-without-dimensions root cause as img-no-dim and emits a fix string', async () => {
+    render(<Probe />);
+    const t = performance.now();
+    await act(async () => {
+      __emitShiftForTests(
+        shift({
+          value: 0.05,
+          startTime: t,
+          source: { tagName: 'img', selector: 'img.hero', heightPx: 0 },
+        }),
+      );
+    });
+    expect(screen.getByTestId('pattern').textContent).toBe('img-no-dim');
+    expect(screen.getByTestId('coaching').textContent).toMatch(/width\/height/i);
+    expect(screen.getByTestId('coaching').textContent).toMatch(/img\.hero/);
+  });
+
+  it('falls back to the unknown pattern with a stable coaching message when idle', () => {
+    render(<Probe />);
+    expect(screen.getByTestId('pattern').textContent).toBe('unknown');
+    expect(screen.getByTestId('coaching').textContent).toMatch(/stable/i);
+  });
+
+  it('returns three monotonically-increasing prediction horizons (5s, 15s, 30s)', () => {
+    render(<Probe />);
+    expect(screen.getByTestId('horizons-len').textContent).toBe('3');
+    expect(screen.getByTestId('horizon-0').textContent).toBe('5000');
+    expect(screen.getByTestId('horizon-2').textContent).toBe('30000');
+  });
+
+  it('reports a confidence score within [0, 1] that grows with sample count', async () => {
+    render(<Probe />);
+    const c0 = parseFloat(screen.getByTestId('confidence').textContent ?? '0');
+    expect(c0).toBeGreaterThanOrEqual(0);
+    expect(c0).toBeLessThanOrEqual(1);
+    const t = performance.now();
+    await act(async () => {
+      for (let i = 0; i < 10; i += 1) {
+        __emitShiftForTests(shift({ value: 0.001, startTime: t + i }));
+      }
+    });
+    const c1 = parseFloat(screen.getByTestId('confidence').textContent ?? '0');
+    expect(c1).toBeGreaterThan(c0);
+    expect(c1).toBeLessThanOrEqual(0.95);
+  });
+
+  it('escalates the 30s horizon probPoor when VSI is already in the ni band', async () => {
+    render(<Probe />);
+    const t = performance.now();
+    await act(async () => {
+      __emitShiftForTests(shift({ value: 0.08, startTime: t - 200 }));
+      __emitShiftForTests(shift({ value: 0.08, startTime: t - 100 }));
+    });
+    const prob30s = parseFloat(screen.getByTestId('prob-2').textContent ?? '0');
+    expect(prob30s).toBeGreaterThan(0);
+    expect(prob30s).toBeLessThanOrEqual(1);
   });
 
   it('returns null prediction target once the session is already poor', async () => {
