@@ -9,18 +9,17 @@
  * They are now all unified behind the canonical `computeVSI` in
  * `src/components/computeVSI.ts`. This test pins that contract:
  *
- *   1. `fallbackCompute` and the canonical `computeVSI` produce
- *      byte-identical results across a deterministic fixture matrix.
- *   2. The worker-script body (a string literal at module-load time)
- *      contains the exact source of `computeVSI.toString()` — proving
- *      that any future change to the canonical implementation
- *      automatically propagates to the worker without a hand-edit.
- *   3. Eval'ing the worker-script body and invoking the embedded
- *      `computeVSI` against the same fixtures yields the same results
- *      as direct invocation. This is the strongest available
- *      cross-context check in jsdom (no real Worker available).
+ *  1. `fallbackCompute` and the canonical `computeVSI` produce
+ *     byte-identical results across a deterministic fixture matrix.
+ *  2. The worker-script body (a string literal at module-load time)
+ *     contains the exact source of `computeVSI.toString()` — proving
+ *     that any future change to the canonical implementation
+ *     automatically propagates to the worker without a hand-edit.
+ *  3. Eval'ing the worker-script body and invoking the embedded
+ *     `computeVSI` against the same fixtures yields the same results
+ *     as direct invocation. This is the strongest available
+ *     cross-context check in jsdom (no real Worker available).
  */
-
 import { computeVSI } from "@/components/computeVSI";
 import { fallbackCompute } from "@/components/useVSIWorker";
 
@@ -146,59 +145,60 @@ describe("VSI compute parity", () => {
   });
 
   describe("worker-script source parity", () => {
-    // When Jest runs with --coverage, Istanbul injects `cov_*` variables
-    // into the source. This makes both `computeVSI.toString()` checks and
-    // `eval()` of the worker script invalid. Skip these tests under
-    // instrumentation — the computeVSI ≡ fallbackCompute tests above still
-    // verify correctness; these tests verify source parity which is
-    // impossible when the source has been rewritten.
-    const isInstrumented =
-      typeof (globalThis as Record<string, unknown>).__coverage__ !==
-        "undefined" || computeVSI.toString().includes("cov_");
-
     it("worker script embeds the canonical computeVSI source", () => {
-      if (isInstrumented) {
-        // eslint-disable-next-line no-console
-        console.warn(
-          "[vsi.parity] Skipping source-parity check — Istanbul coverage " +
-            "instrumentation detected. This is expected in CI."
-        );
-        return;
-      }
-      // Reach into the module to grab WORKER_SCRIPT — we expose it via a
-      // dedicated test-only re-export so this assertion never depends on
-      // mutable module internals.
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const mod = require("@/components/useVSIWorker") as {
         readonly __WORKER_SCRIPT_FOR_TESTS: string;
       };
       const script = mod.__WORKER_SCRIPT_FOR_TESTS;
-      expect(script).toContain(computeVSI.toString());
+
+      // Under --coverage, Istanbul instruments computeVSI.toString() with
+      // cov_* counters. Strip them before the string-containment check so
+      // the assertion compares semantics, not coverage metadata.
+      const canonicalSrc = computeVSI
+        .toString()
+        .replace(/var cov_[\w$]+ = [\s\S]+?(?=\nfunction |\nconst |\nvar )/g, "");
+      const scriptStripped = script.replace(
+        /var cov_[\w$]+ = [\s\S]+?(?=\nfunction |\nconst |\nvar )/g,
+        ""
+      );
+
+      expect(scriptStripped).toContain(canonicalSrc);
     });
 
     it("eval'd worker-script computeVSI matches direct invocation", () => {
-      if (isInstrumented) {
-        // eslint-disable-next-line no-console
-        console.warn(
-          "[vsi.parity] Skipping eval-parity check — Istanbul coverage " +
-            "instrumentation detected. This is expected in CI."
-        );
-        return;
-      }
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const mod = require("@/components/useVSIWorker") as {
         readonly __WORKER_SCRIPT_FOR_TESTS: string;
       };
       const script = mod.__WORKER_SCRIPT_FOR_TESTS;
 
-      // Extract the `computeVSI` function expression literally from the
-      // worker-script source so this test cannot be satisfied by a
-      // direct reference to the imported `computeVSI`. The script's
-      // first non-blank statement is `const computeVSI = <expr>;` —
-      // pull `<expr>` out and eval it in isolation.
+      // Extract the `computeVSI` function expression from the worker-script
+      // source so this test cannot be satisfied by a direct reference to
+      // the imported `computeVSI`. The script's first non-blank statement
+      // is `const computeVSI = <expr>;` — pull `<expr>` out and eval it.
       const match = script.match(/const computeVSI = ([\s\S]+?);\n\nself\.onmessage/);
       expect(match).not.toBeNull();
       const fnSource = match![1];
+
+      // Under --coverage, Istanbul injects `cov_xxxx` variables into the
+      // serialised function body. Those counters don't exist in a clean
+      // eval context and would throw ReferenceError. Inject minimal stubs
+      // so the eval succeeds and we still validate VSI computation semantics.
+      const covIds = [...fnSource.matchAll(/\bcov_[a-zA-Z0-9$_]+\b/g)]
+        .map((m) => m[0])
+        .filter((v, i, a) => a.indexOf(v) === i);
+
+      for (const id of covIds) {
+        if (!(globalThis as Record<string, unknown>)[id]) {
+          (globalThis as Record<string, unknown>)[id] = {
+            s: new Proxy({}, { get: () => 0, set: () => true }),
+            b: new Proxy({}, { get: () => [0, 0], set: () => true }),
+            f: new Proxy({}, { get: () => 0, set: () => true }),
+            v: "",
+          };
+        }
+      }
 
       const evaluated = new Function(`return (${fnSource});`)() as typeof computeVSI;
       expect(typeof evaluated).toBe("function");
