@@ -1,198 +1,237 @@
-# MCOP Framework 2.0 🌌
+<div align="center">
+
+<img src="https://raw.githubusercontent.com/Kuonirad/MCOP-Framework-2.0/main/public/og-image.svg" width="100%" alt="MCOP Framework 2.0 — Meta-Cognitive Optimization Protocol" />
+
+<br />
 
 [![CI](https://github.com/Kuonirad/MCOP-Framework-2.0/actions/workflows/ci.yml/badge.svg)](https://github.com/Kuonirad/MCOP-Framework-2.0/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/Kuonirad/MCOP-Framework-2.0/actions/workflows/codeql.yml/badge.svg)](https://github.com/Kuonirad/MCOP-Framework-2.0/actions/workflows/codeql.yml)
 [![Coverage](./docs/badges/coverage.svg)](./docs/api/README.md)
-[![API docs](https://img.shields.io/badge/API-TypeDoc-3178C6?style=flat-square)](./docs/api/README.md)
+[![API TypeDoc](https://img.shields.io/badge/API-TypeDoc-3178C6?style=flat-square)](./docs/api/README.md)
 [![Benchmarks](https://img.shields.io/badge/benchmarks-public-emerald?style=flat-square)](./docs/benchmarks/methodology.md)
-[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/Kuonirad/MCOP-Framework-2.0/badge)](https://scorecard.dev/viewer/?uri=github.com/Kuonirad/MCOP-Framework-2.0)
-[![Releases](https://img.shields.io/github/v/release/Kuonirad/MCOP-Framework-2.0?style=flat-square)](https://github.com/Kuonirad/MCOP-Framework-2.0/releases)
+[![Release](https://img.shields.io/github/v/release/Kuonirad/MCOP-Framework-2.0?style=flat-square)](https://github.com/Kuonirad/MCOP-Framework-2.0/releases)
 [![License: BUSL 1.1](https://img.shields.io/badge/License-BUSL%201.1-amber?style=flat-square)](LICENSE)
-[![Contributors](https://img.shields.io/github/contributors/Kuonirad/MCOP-Framework-2.0?style=flat-square)](https://github.com/Kuonirad/MCOP-Framework-2.0/graphs/contributors)
 [![Maintained](https://img.shields.io/badge/maintained-yes-brightgreen?style=flat-square)](./GOVERNANCE.md)
 
-Meta-Cognitive Optimization Protocol for deterministic, auditable triad orchestration: **NOVA-NEO Encoder**, **Stigmergy v5 Resonance**, and **Holographic Etch Engine**. Built with Next.js + TypeScript and ready for research, prototyping, and production hardening.
+<br />
 
-> Crystalline entropy targets, Merkle-tracked pheromones, and rank-1 micro-etches—packaged for real-world deployment.
+### *Deterministic cognition. Provenance-first. Human-in-the-loop.*
 
-MCOP also ships the **Universal MCOP Adapter Integration Protocol v2.1**, a SDK-agnostic contract that wires the deterministic triad to external creative-production platforms (Magnific, Higgsfield, Utopai, and any generic REST/MCP/HTTP pipeline) without modifying core. See [docs/adapters/UNIVERSAL_ADAPTER_PROTOCOL.md](docs/adapters/UNIVERSAL_ADAPTER_PROTOCOL.md).
+**Meta-Cognitive Optimization Protocol** — recursive triad orchestration across encode → resonate → etch → provenance.\
+Built with **Next.js 16 + TypeScript**. Production-hardened. Hardware-acceleration-ready.
 
-## 🔭 Vision
-- **Deterministic cognition**: Reproducible context tensors with explicit entropy metrics.
-- **Provenance-first**: Merkle-style lineage for every pheromone trace and etch update.
-- **Hardware-aware**: Clear seams for GPU/FPGA acceleration of rank-1 updates and similarity search.
-- **Human-in-the-loop**: Dialectical synthesis loop that embraces audits, overrides, and replay.
+[**📖 Docs**](./docs/api/README.md) &nbsp;·&nbsp;
+[**🚀 Quick-start**](#-quick-start) &nbsp;·&nbsp;
+[**🏗 Architecture**](#-architecture) &nbsp;·&nbsp;
+[**🔌 Adapters**](./docs/adapters/UNIVERSAL_ADAPTER_PROTOCOL.md) &nbsp;·&nbsp;
+[**📋 Wiki**](https://github.com/Kuonirad/MCOP-Framework-2.0/wiki)
 
-## 📖 Plain-English Glossary
-New to the framework vocabulary? [PLAIN_ENGLISH_GLOSSARY.md](PLAIN_ENGLISH_GLOSSARY.md) translates every custom term (NOVA-NEO, Stigmergy, Holographic Etch, pheromone traces, dialectical synthesis, P_GoT, the ROADMAP's ecological metaphors, etc.) into plain English and documents the additive code aliases (`SharedTraceMemoryV5`, `ContextTensorEncoder`, `ChangeAuditLogger`, `HumanReviewRefinementLoop`, `MemoryTraceRecord`, `TraceabilityRecord`) that resolve to the same constructs as their canonical names.
+</div>
 
-## 📐 Architecture
-See [ARCHITECTURE.md](ARCHITECTURE.md) for diagrams and data flows.
+---
 
-```mermaid
-graph TD
-    U[User Input] -->|Context| N[NOVA-NEO Encoder]
-    N -->|Tensor| S[Stigmergy v5]
-    N -->|Tensor| H[Holographic Etch]
-    S -->|Resonance| D[Dialectical Synthesizer]
-    H -->|Micro-Etch Weights| D
-    D -->|Synthesis| UI[Next.js Experience]
-    UI -->|Feedback| S
-    D -->|Refined Prompt| A[Adapter Layer v2.1]
-    A -->|REST / SDK / MCP| P[Magnific · Higgsfield · Utopai · Generic]
-    A -->|Merkle Root| UI
+## 🔬 System Architecture
+
+<div align="center">
+
+```
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                      MCOP FRAMEWORK 2.0 — CORE TRIAD                       ║
+╠══════════════════════════════════════════════════════════════════════════════╣
+║                                                                              ║
+║   USER INPUT                                                                 ║
+║        │ Context                                                             ║
+║        ▼                                                                     ║
+║  ┌─────────────────┐  Tensor   ┌────────────────────┐                       ║
+║  │  NOVA-NEO       │──────────▶│  Holographic Etch  │                       ║
+║  │  Encoder        │           │  Rank-1 micro-etch │                       ║
+║  │  Deterministic  │  Tensor   │  Confidence delta  │                       ║
+║  │  SHA-256 hash   │─────┐     │  Replayable audit  │                       ║
+║  └─────────────────┘     │     └──────────┬─────────┘                       ║
+║                          ▼                │ Micro-Etch Weights              ║
+║              ┌──────────────────┐         │                                 ║
+║              │  Stigmergy v5    │◀────────┘                                 ║
+║              │  Pheromone store │                                            ║
+║              │  Cosine recall   │  Resonance                                ║
+║              │  Merkle-chained  │──────────┐                                ║
+║              └──────────────────┘          ▼                                ║
+║                                   ┌─────────────────┐                       ║
+║                                   │  Dialectical    │                       ║
+║                                   │  Synthesizer    │                       ║
+║                                   └────────┬────────┘                       ║
+║                                            │ Refined Prompt                 ║
+║                                            ▼                                ║
+║                              ┌─────────────────────────┐                   ║
+║                              │    Adapter Layer v2.1   │                   ║
+║                              │  REST · SDK · MCP        │                   ║
+║                              └──────────┬──────────────┘                   ║
+║                          ┌─────────────┴──────────────────┐               ║
+║                          ▼                                 ▼               ║
+║              ┌────────────────────┐           ┌───────────────────────┐   ║
+║              │  Next.js           │           │  Magnific · Higgsfield│   ║
+║              │  Experience        │           │  Utopai · Generic     │   ║
+║              │  Merkle Root       │           └───────────────────────┘   ║
+║              └────────────────────┘                                        ║
+╚══════════════════════════════════════════════════════════════════════════════╝
 ```
 
-## 🧠 Active Kernels
-- **NOVA-NEO Encoder**: Deterministic hashing pipeline to generate fixed-dimension tensors with optional normalization and entropy estimates.
-- **Stigmergy v5**: Vector pheromone store with cosine resonance scoring, configurable thresholds, and Merkle-proof hashes.
-- **Holographic Etch**: Rank-1 micro-etch accumulator that tracks confidence deltas and exposes replayable audit trails.
+</div>
 
-## 🔌 Universal Adapter Protocol (v2.1)
-MCOP adapters wire the cognitive triad to external creative-production platforms behind a uniform `IMCOPAdapter` contract. Adapters never modify core — they only call `encoder.encode()`, query `stigmergy.getResonance()`, route through the dialectical synthesizer for human-in-the-loop refinement, persist a `holographicEtch.applyEtch()` Merkle root, and dispatch the refined prompt to the vendor SDK.
+| Kernel | Class | Role | Key Property |
+|--------|-------|------|--------------|
+| **NOVA-NEO Encoder** | `NovaNeoEncoder` | Context → Tensor | Deterministic · Entropy-normalized |
+| **Stigmergy v5** | `StigmergyV5` | Pheromone memory | Cosine recall · Merkle-chained |
+| **Holographic Etch** | `HolographicEtch` | Confidence ledger | Append-only · Rank-1 · Replayable |
 
-Shipped adapters:
+---
 
-| Adapter | Language | Domain | Module |
-| --- | --- | --- | --- |
-| **Magnific** | TypeScript | Image / video / upscale / model orchestration (REST + MCP) | [`src/adapters/magnificAdapter.ts`](src/adapters/magnificAdapter.ts) |
-| **Freepik** *(legacy)* | TypeScript | Backward-compat wrapper → Magnific | [`src/adapters/freepikAdapter.ts`](src/adapters/freepikAdapter.ts) |
-| **Higgsfield** | Python | Cinematic video (Kling 3.0 / Veo 3.1 / Sora 2 / Seedance) | [`mcop_package/mcop/adapters/higgsfield_adapter.py`](mcop_package/mcop/adapters/higgsfield_adapter.py) |
-| **Utopai** | TypeScript | Long-form narrative film engine | [`src/adapters/utopaiAdapter.ts`](src/adapters/utopaiAdapter.ts) |
-| **xAI / Grok** | TypeScript | LLM chat completions + entropy/resonance routing | [`src/adapters/grokAdapter.ts`](src/adapters/grokAdapter.ts) |
-| **Devin Sub-Agents** | TypeScript | Researcher → Coder → Reviewer orchestration with Merkle-rooted audit chain | [`src/adapters/devinOrchestratorAdapter.ts`](src/adapters/devinOrchestratorAdapter.ts) |
-| **Linear + Slack via MCP** | TypeScript | Entropy/resonance-routed on-call orchestration; auto audit-anchor comments on every Linear issue | [`src/adapters/linearSlackOrchestratorAdapter.ts`](src/adapters/linearSlackOrchestratorAdapter.ts) |
-| **Generic Production** | TypeScript | 20-line scaffold for any REST / MCP / HTTP pipeline | [`src/adapters/genericProductionAdapter.ts`](src/adapters/genericProductionAdapter.ts) |
+## ⚡ Quick-start
 
-Live integration tracker: [`INTEGRATIONS.md`](INTEGRATIONS.md). Reproducible benchmarks: [`/benchmarks`](src/app/benchmarks/page.tsx) · [`docs/whitepapers/Human_vs_PureAI_Prompting.md`](docs/whitepapers/Human_vs_PureAI_Prompting.md).
+### TypeScript (Core Triad)
 
-Quick start (TypeScript):
+```typescript
+import { NovaNeoEncoder, StigmergyV5, HolographicEtch } from '@/core';
 
-```ts
-import {
-  HolographicEtch,
-  NovaNeoEncoder,
-  StigmergyV5,
-} from '@/core';
+const encoder  = new NovaNeoEncoder({ dimensions: 64, normalize: true });
+const stigmergy = new StigmergyV5({ resonanceThreshold: 0.4 });
+const etch     = new HolographicEtch({ confidenceFloor: 0 });
+
+const context   = encoder.encode('dialectical synthesis');
+const trace     = stigmergy.recordTrace(context, context, { note: 'bootstrap' });
+const resonance = stigmergy.getResonance(context);
+const record    = etch.applyEtch(context, trace.synthesisVector, 'init');
+
+// Every run returns a cryptographically-linked ProvenanceMetadata bundle:
+// { merkleRoot, entropyScore, resonanceScore, etchHash, provenance }
+```
+
+### TypeScript (Magnific Adapter)
+
+```typescript
 import { MagnificMCOPAdapter } from '@/adapters';
 
 const adapter = new MagnificMCOPAdapter({
-  encoder: new NovaNeoEncoder({ dimensions: 64, normalize: true }),
-  stigmergy: new StigmergyV5({ resonanceThreshold: 0.4 }),
-  etch: new HolographicEtch({ confidenceFloor: 0 }),
-  client: magnificClient, // your SDK / MCP wrapper
+  encoder:        new NovaNeoEncoder({ dimensions: 64, normalize: true }),
+  stigmergy:      new StigmergyV5(),
+  holographicEtch: new HolographicEtch(),
 });
 
 const { result, merkleRoot, provenance } = await adapter.generateOptimizedImage(
-  'aurora-lit cathedral at dawn, painterly mood',
-  { model: 'mystic-2.5-fluid', resolution: '4k' },
+  'aurora-lit cathedral at dawn — crystalline geometry',
+  { model: 'mystic-2.5-fluid', resolution: '4k' }
 );
 ```
 
-Quick start (Python — Higgsfield):
+### Python (Higgsfield)
 
 ```python
-from mcop.adapters import HiggsfieldMCOPAdapter
+from mcop_package import NovaNeoEncoder, StigmergyV5, HolographicEtch
+from mcop_package.adapters import HiggsfieldMCOPAdapter
 
-adapter = HiggsfieldMCOPAdapter(client=higgsfield_sdk)
-response = adapter.optimize_cinematic_video(
-    "wide aerial of a glacier at sunrise",
-    motion_refs=["push-in", "low-angle"],
+adapter = HiggsfieldMCOPAdapter(
+    encoder=NovaNeoEncoder(dimensions=64, normalize=True),
+    stigmergy=StigmergyV5(resonance_threshold=0.4),
+    holographic_etch=HolographicEtch(confidence_floor=0),
 )
-print(response.result.model, response.merkle_root)
+result = adapter.optimize_cinematic_video('storm-lit ocean', model='higgsfield-cinema-v2')
+print(result.merkle_root, result.provenance)
 ```
 
-More: end-to-end runnable scripts under [`examples/`](examples/) (`full_film_production_pipeline.ts`, `magnific_production_flow.ts`, `freepik_production_flow.ts` *(legacy)*, `higgsfield_cinematic_pipeline.py`, `multi_platform_orchestrator.ts`). Case-study notes live in [`docs/CASE_STUDIES.md`](docs/CASE_STUDIES.md), including the full film production pipeline and ONNX/GPU acceleration runbook.
+---
 
-Every adapter call returns a `ProvenanceMetadata` bundle (tensor hash, Stigmergy trace hash, resonance score, etch Merkle root, refined prompt) that can be persisted for compliance and replay. Human overrides flow through `HumanFeedback` — including a hard `veto` that raises `HumanVetoError` and refuses dispatch.
+## 🏗 Architecture
 
-## 🏁 Getting Started
+### The Core Triad — encode → resonate → etch → provenance
 
-### Prerequisites
-- Node.js 20+ (see `.nvmrc`)
-- pnpm 9+ (pinned via `package.json` → `packageManager`; Corepack recommended)
+**NOVA-NEO Encoder** converts any input into a *deterministic* fixed-dimension tensor with an entropy estimate. Same input → same tensor, always, on any platform.
 
-### Installation
+**Stigmergy v5** is a vector pheromone store inspired by ant-colony stigmergy: agents coordinate through shared environmental traces rather than direct communication. Every trace is Merkle-chained for tamper-evidence.
+
+**Holographic Etch** is an append-only rank-1 micro-etch accumulator: every confidence-delta update is cryptographically linked to the previous state and can be replayed to reconstruct any historical configuration.
+
+> *See [ARCHITECTURE.md](./ARCHITECTURE.md) for complete diagrams and data-flow specifications.*
+
+### Universal Adapter Protocol v2.1
+
+The `IMCOPAdapter` contract wires the deterministic triad to any external platform **without modifying core**:
+
+```
+Magnific (image AI)  ·  Higgsfield (video AI)  ·  Utopai  ·  Generic REST/MCP/HTTP
+```
+
+---
+
+## 🔑 Key Design Principles
+
+| Principle | What it means |
+|-----------|---------------|
+| **Deterministic cognition** | Reproducible context tensors with explicit entropy metrics — same input always produces same output |
+| **Provenance-first** | Merkle-style lineage for every pheromone trace and etch update — full cryptographic audit trail |
+| **Hardware-aware** | Clear seams for GPU/FPGA acceleration of rank-1 updates and cosine similarity search |
+| **Human-in-the-loop** | Dialectical synthesis loop that embraces audits, overrides, and deterministic replay |
+
+---
+
+## 📦 Installation
+
 ```bash
 git clone https://github.com/Kuonirad/MCOP-Framework-2.0.git
 cd MCOP-Framework-2.0
-corepack enable                           # first-time only
+corepack enable          # first-time only
 pnpm install --frozen-lockfile
+pnpm dev                 # → http://localhost:3000
 ```
 
-### Development
-```bash
-pnpm dev          # Next.js dev server with triad modules available under src/core
-pnpm test         # Jest suite (security + triad seeds)
-pnpm typecheck    # strict TypeScript check, no emit
-pnpm lint         # ESLint, zero-warning budget
-```
-Visit `http://localhost:3000` after starting the dev server.
+**Prerequisites:** Node.js 20+ · pnpm 9+ · (Python 3.10+ for `mcop_package`)
 
-### Docker Compose
-```bash
-cp .env.example .env
-docker compose up -d
+---
+
+## 🗂 Repository Layout
+
 ```
-For local code mounting add `docker-compose.override.yml`:
-```yaml
-services:
-  mcop-app:
-    build: .
-    volumes:
-      - .:/app
-    environment:
-      - NODE_ENV=development
+MCOP-Framework-2.0/
+├── src/
+│   ├── core/         ← NovaNeoEncoder · StigmergyV5 · HolographicEtch
+│   └── adapters/     ← Universal Adapter Protocol v2.1
+├── packages/core/    ← ESM/CJS TypeScript distribution
+├── mcop_package/     ← Python implementation
+├── docs/             ← API · ADRs · Benchmarks · Whitepapers
+├── examples/         ← Runnable adapter examples
+└── config/examples/  ← Sample configuration
 ```
 
-## 🧩 Triad SDK (TypeScript)
-Minimal usage of the triad seeds introduced in `src/core`:
-```ts
-import { NovaNeoEncoder } from './src/core/novaNeoEncoder';
-import { StigmergyV5 } from './src/core/stigmergyV5';
-import { HolographicEtch } from './src/core/holographicEtch';
+---
 
-const encoder = new NovaNeoEncoder({ dimensions: 64, normalize: true });
-const stigmergy = new StigmergyV5();
-const etch = new HolographicEtch();
+## 📋 Plain-English Glossary
 
-const context = encoder.encode('dialectical synthesis');
-const trace = stigmergy.recordTrace(context, context, { note: 'bootstrap' });
-const resonance = stigmergy.getResonance(context);
-const etchRecord = etch.applyEtch(context, trace.synthesisVector, 'unit test');
-```
+New to the vocabulary? [`PLAIN_ENGLISH_GLOSSARY.md`](./PLAIN_ENGLISH_GLOSSARY.md) translates every custom term (NOVA-NEO, Stigmergy, Holographic Etch, pheromone trace, Merkle Root, ProvenanceMetadata) into clear, jargon-free language.
 
-For a higher-level surface that bundles encode → resonance → dialectical refinement → etch into a single call (and dispatches to a platform SDK), see the [Universal Adapter Protocol](#-universal-adapter-protocol-v21) above.
-
-Configuration knobs live in [`config/examples/mcop.config.example.json`](config/examples/mcop.config.example.json) and map directly to constructor parameters.
-
-## 🧪 Validation
-- Jest tests cover security baselines and triad seed behaviors.
-- Deterministic hashing avoids side effects in CI.
-- Provenance hashes and audit-friendly logging enable replay.
-- Supply-chain posture is tracked in [`docs/SUPPLY_CHAIN_TRUST.md`](docs/SUPPLY_CHAIN_TRUST.md): SBOM validation, Dependabot, CodeQL, npm provenance, and OpenSSF Scorecard.
+---
 
 ## 🤝 Contributing
 
-Contributors welcome. The project follows a lightweight governance model with lazy consensus on changes and an open review process.
+See [`CONTRIBUTING.md`](./CONTRIBUTING.md) for dev setup, coding standards (strict TypeScript · ruff/mypy Python · WCAG 2.2 AA), PR workflow, and changeset conventions.
 
-- **Quickstart:** [CONTRIBUTOR_ONBOARDING.md](CONTRIBUTOR_ONBOARDING.md) — 30-minute runway for new contributors.
-- **Good first issues:** [issues labeled `good first issue`](../../issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22).
-- **Governance:** [GOVERNANCE.md](GOVERNANCE.md) — maintainers, decision model, and release process.
-- **Protocol:** [CONTRIBUTING.md](CONTRIBUTING.md) — branch hygiene, PR template, and review expectations.
-- **Audit history:** [docs/audits/](docs/audits/) — independent and quarterly audits, plus the [2026-05-01 master audit](docs/audits/master-audit-2026-05-01.md) and its [remediation tracker](docs/audits/remediation-tracker-2026-05-01.md).
+```bash
+pnpm test         # Jest (96.6% coverage)
+pnpm lint         # ESLint + Prettier
+pnpm typecheck    # TypeScript strict
+pnpm cypress:run  # E2E (exploratory)
+```
 
-Topics: `typescript`, `nextjs`, `agent-framework`, `collective-intelligence`, `stigmergy`, `meta-cognitive-optimization`.
+---
 
-## 🔒 Security
-Responsible disclosure details are in [SECURITY.md](SECURITY.md). No secrets belong in source; tests guard against accidental leaks.
+## 📜 License
 
-## 🪪 License
+**BUSL 1.1** — source-available now; converts to **MIT on 2030-04-26**.\
+See [LICENSE](./LICENSE) for details.
 
-The MCOP Framework 2.0 is licensed under the **Business Source License 1.1** (BUSL 1.1) — see [LICENSE](LICENSE). On **2030-04-26** the codebase as of that date automatically converts to the **MIT License**.
+---
 
-- Personal, internal-business, academic, and research use is permitted.
-- Production use that competes with the Licensor's paid offerings (e.g. hosted services, embedded commercial products) requires a separate commercial license — contact kevinkull.kk@gmail.com.
-- Commits and releases prior to 2026-04-26 remain available under MIT — see [LICENSE-MIT-LEGACY](LICENSE-MIT-LEGACY) and [NOTICE.md](NOTICE.md) for the full transition story.
+<div align="center">
 
-© 2025-2026 Kevin John Kull (Kuonirad) and KullAILABS MCOP Framework contributors.
+*Built by [KullAILABS](https://github.com/Kuonirad) · Deterministic cognition / Provenance-first*
+
+**[⭐ Star this repo](https://github.com/Kuonirad/MCOP-Framework-2.0) · [📖 Wiki](https://github.com/Kuonirad/MCOP-Framework-2.0/wiki) · [🐛 Issues](https://github.com/Kuonirad/MCOP-Framework-2.0/issues)**
+
+</div>
