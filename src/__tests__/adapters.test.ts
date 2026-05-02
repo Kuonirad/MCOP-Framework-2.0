@@ -8,6 +8,7 @@ import {
   DialecticalSynthesizer,
   FreepikClient,
   FreepikMCOPAdapter,
+  estimateFreepikUpscaleCost,
   GenericProductionAdapter,
   GrokClient,
   GrokMCOPAdapter,
@@ -134,6 +135,20 @@ describe('DialecticalSynthesizer', () => {
 });
 
 describe('FreepikMCOPAdapter', () => {
+  /* ---------------------------------------------------------------- */
+  /*  General adapter behaviour                                         */
+  /*  NOTE: Freepik adapter emits a one-time console.warn on first      */
+  /*  construction. We mock it here to avoid jest console noise.      */
+  /* ---------------------------------------------------------------- */
+
+  beforeAll(() => {
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+  });
+
+  afterAll(() => {
+    jest.restoreAllMocks();
+  });
+
   it('rejects empty prompts', async () => {
     const adapter = new FreepikMCOPAdapter({
       ...baseTriad(),
@@ -181,8 +196,10 @@ describe('FreepikMCOPAdapter', () => {
     });
     const caps = await adapter.getCapabilities();
     expect(caps.platform).toBe('freepik');
+    expect(caps.version).toBe('2026-04-27-legacy');
     expect(caps.models.length).toBeGreaterThan(0);
     expect(caps.supportsAudit).toBe(true);
+    expect(caps.notes).toContain('LEGACY WRAPPER');
   });
 
   it('rejects upscale calls without a source asset', async () => {
@@ -201,9 +218,85 @@ describe('FreepikMCOPAdapter', () => {
       client: freepikFixture(),
       defaultEntropyTarget: 0.2,
     });
-    // The configured default must round-trip into request metadata.
     const result = await adapter.generateOptimizedImage('configured target');
     expect(result.provenance.refinedPrompt).toContain('configured target');
+  });
+
+  /* ---------------------------------------------------------------- */
+  /*  Branch-coverage tests (audit remediation 2026-05-01)            */
+  /*  Target: lift freepikAdapter.ts from 35.71% to >=80% branch cov.  */
+  /* ---------------------------------------------------------------- */
+
+  it('reports platformName as freepik', () => {
+    const adapter = new FreepikMCOPAdapter({
+      ...baseTriad(),
+      client: freepikFixture(),
+    });
+    expect(adapter.getCapabilities()).resolves.toMatchObject({
+      platform: 'freepik',
+    });
+  });
+
+  it('upscaleAsset supports legacy 2x scaling', async () => {
+    const client = freepikFixture();
+    const adapter = new FreepikMCOPAdapter({ ...baseTriad(), client });
+    const result = await adapter.upscaleAsset('https://cdn/img.png', {
+      scale: 2,
+    });
+    expect(result.result.kind).toBe('upscale');
+  });
+
+  it('upscaleAsset supports legacy 4x scaling', async () => {
+    const client = freepikFixture();
+    const adapter = new FreepikMCOPAdapter({ ...baseTriad(), client });
+    const result = await adapter.upscaleAsset('https://cdn/img.png', {
+      scale: 4,
+    });
+    expect(result.result.kind).toBe('upscale');
+  });
+
+  it('upscaleAsset defaults to 2x when scale is omitted', async () => {
+    const client = freepikFixture();
+    const adapter = new FreepikMCOPAdapter({ ...baseTriad(), client });
+    const result = await adapter.upscaleAsset('https://cdn/img.png', {});
+    expect(result.result.kind).toBe('upscale');
+  });
+
+  it('upscaleAsset rejects 8× with legacy-specific error', async () => {
+    const adapter = new FreepikMCOPAdapter({
+      ...baseTriad(),
+      client: freepikFixture(),
+    });
+    await expect(
+      adapter.upscaleAsset('https://cdn/img.png', { scale: 8 }),
+    ).rejects.toThrow(/only supports 2/);
+  });
+
+  it('upscaleAsset rejects 16× with legacy-specific error', async () => {
+    const adapter = new FreepikMCOPAdapter({
+      ...baseTriad(),
+      client: freepikFixture(),
+    });
+    await expect(
+      adapter.upscaleAsset('https://cdn/img.png', { scale: 16 }),
+    ).rejects.toThrow(/Use MagnificMCOPAdapter.upscaleImage/);
+  });
+
+  it('estimateFreepikUpscaleCost delegates to Magnific estimator', () => {
+    // 640x480 @ 2x = 0.10 (exact match in volumetric table)
+    expect(
+      estimateFreepikUpscaleCost(640, 480, 2),
+    ).toBe(0.10);
+  });
+
+  it('preserves freepik-specific notes in capabilities even when Magnific has no notes', async () => {
+    const client = freepikFixture();
+    const adapter = new FreepikMCOPAdapter({
+      ...baseTriad(),
+      client,
+    });
+    const caps = await adapter.getCapabilities();
+    expect(caps.notes).toContain('LEGACY WRAPPER');
   });
 });
 

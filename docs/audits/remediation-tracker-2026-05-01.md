@@ -116,6 +116,17 @@ recommendation list. Remediation actions taken on 2026-05-01:
 | 🟡 MEDIUM | Higgsfield adapter timeout/retry — no visible semantics | ✅ Added timeout/retry/circuit-breaker/idempotency documentation to adapter module docstring | `mcop_package/mcop/adapters/higgsfield_adapter.py` |
 | 🟢 LOW | `.agents/` and `.jules/` dirs — add inline README files | ✅ Added `README.md` to both directories explaining purpose, structure, and security constraints | `.agents/README.md`, `.jules/README.md` |
 
+## Part 2 — Second-Round Audit Findings (2026-05-01)
+
+A follow-up audit identified additional actionable gaps:
+
+| Severity | Finding | Action | File |
+|----------|---------|--------|------|
+| 🟠 HIGH | CI green rate 78.6% — Node 20.x timing flake in `useTaskChunker.test.ts` | ✅ Mocked `performance.now()` / `Date.now()` for deterministic budget-exhaustion and abort tests; reduced item counts to avoid jsdom timer resolution issues | `src/__tests__/useTaskChunker.test.ts` |
+| 🟠 HIGH | `freepikAdapter.ts` at 35.71% branch coverage | ✅ Added 10 new test cases covering deprecation warning (once + not twice), `platformName`, `getCapabilities` legacy notes, `upscaleAsset` 2×/4×/default/8×/16×, `estimateFreepikUpscaleCost`, pre-aborted signal | `src/__tests__/adapters.test.ts` |
+| 🟡 MEDIUM | Stale-bot workflow only covers `bolt-*` | ✅ Extended regex to cover `palette-*`, `sentinel-*`, `jules-*`; updated summary messaging | `.github/workflows/delete-stale-bot-branches.yml` |
+| 🟡 MEDIUM | Commit signatures not required on `main` | ✅ Added `verify-commit-signatures.yml` CI workflow (advisory until 2026-06-01, then blocking); documented GPG/SSH setup in `CONTRIBUTING.md` | `.github/workflows/verify-commit-signatures.yml`, `CONTRIBUTING.md` |
+
 ---
 
 *Tracker maintained by the maintainer-of-record. Update on each audit cycle.*
