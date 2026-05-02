@@ -535,6 +535,49 @@ fix(stigmergy): bound circular buffer reads to active capacity
 
 See [SECURITY.md](./SECURITY.md) for the responsible-disclosure process.
 
+### Commit signing (GPG or SSH)
+
+As of 2026-05-01, **all commits to `main` must be cryptographically signed**.
+This prevents impersonation and tampering in the supply chain. The
+repository has a CI gate (`.github/workflows/verify-commit-signatures.yml`)
+that warns on unsigned commits; it will become blocking on 2026-06-01.
+
+#### Quick setup — GPG
+
+```bash
+# Generate a key (or use an existing one)
+gpg --full-generate-key
+# List keys to get the KEY_ID
+gpg --list-secret-keys --keyid-format=long
+# Configure Git to sign with this key
+git config --global user.signingkey KEY_ID
+git config --global commit.gpgsign true
+# Export the public key for GitHub
+gpg --armor --export KEY_ID | xclip -selection clipboard
+# Paste into GitHub Settings → SSH and GPG keys → New GPG key
+```
+
+#### Quick setup — SSH (simpler, no GPG agent)
+
+```bash
+# Generate an SSH key dedicated to signing
+ssh-keygen -t ed25519 -C "signing@yourdomain.com" -f ~/.ssh/signing_key
+# Configure Git to sign with SSH
+git config --global gpg.format ssh
+git config --global user.signingkey ~/.ssh/signing_key.pub
+git config --global commit.gpgsign true
+# Add the public key to GitHub Settings → SSH and GPG keys → Signing key
+```
+
+#### Verify your commits are signed
+
+```bash
+git log --show-signature -5
+```
+
+Each commit should show a `Good signature` line. If you see `N` (no signature)
+or `B` (bad signature), reconfigure before opening a PR.
+
 ### Verifying the Sigstore provenance on `@kullailabs/mcop-core`
 
 Both registry uploads use **OIDC-only trusted publishing** — no long-lived
