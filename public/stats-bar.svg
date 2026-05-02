@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 120" width="1200" height="120">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="50%" r="80%">
+      <stop offset="0%" stop-color="#0a0a1f"/>
+      <stop offset="100%" stop-color="#030308"/>
+    </radialGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <rect width="1200" height="120" fill="url(#bg)"/>
+  <line x1="60" y1="10" x2="1140" y2="10" stroke="#00f0ff" stroke-width="0.5" opacity="0.2"/>
+  <line x1="60" y1="110" x2="1140" y2="110" stroke="#7b2dff" stroke-width="0.5" opacity="0.2"/>
+
+  <!-- Stat 1: Coverage -->
+  <rect x="80" y="25" width="180" height="70" rx="6" fill="#00f0ff" fill-opacity="0.05" stroke="#00f0ff" stroke-width="1" opacity="0.8"/>
+  <text x="170" y="52" text-anchor="middle" fill="#00f0ff" font-family="monospace" font-size="28" font-weight="900" filter="url(#glow)">96.6%</text>
+  <text x="170" y="72" text-anchor="middle" fill="#7799aa" font-family="monospace" font-size="11" letter-spacing="1">TEST COVERAGE</text>
+  <circle cx="115" cy="88" r="4" fill="#00f0ff" opacity="0.6"/>
+  <circle cx="129" cy="88" r="4" fill="#00f0ff" opacity="0.4"/>
+  <circle cx="143" cy="88" r="4" fill="#00f0ff" opacity="0.2"/>
+
+  <!-- Stat 2: Branches -->
+  <rect x="300" y="25" width="180" height="70" rx="6" fill="#7b2dff" fill-opacity="0.05" stroke="#7b2dff" stroke-width="1" opacity="0.8"/>
+  <text x="390" y="52" text-anchor="middle" fill="#c084fc" font-family="monospace" font-size="28" font-weight="900" filter="url(#glow)">47</text>
+  <text x="390" y="72" text-anchor="middle" fill="#7799aa" font-family="monospace" font-size="11" letter-spacing="1">GIT BRANCHES</text>
+  <rect x="330" y="84" width="120" height="3" rx="1" fill="#7b2dff" opacity="0.2"/>
+  <rect x="330" y="84" width="75" height="3" rx="1" fill="#7b2dff" opacity="0.7"/>
+
+  <!-- Stat 3: Commits -->
+  <rect x="520" y="25" width="180" height="70" rx="6" fill="#ff006e" fill-opacity="0.05" stroke="#ff006e" stroke-width="1" opacity="0.8"/>
+  <text x="610" y="52" text-anchor="middle" fill="#ff6eb4" font-family="monospace" font-size="28" font-weight="900" filter="url(#glow)">428+</text>
+  <text x="610" y="72" text-anchor="middle" fill="#7799aa" font-family="monospace" font-size="11" letter-spacing="1">COMMITS</text>
+  <polyline points="535,90 555,85 575,88 595,82 615,87 635,80 655,84 675,79 695,83" fill="none" stroke="#ff006e" stroke-width="1.5" opacity="0.6"/>
+
+  <!-- Stat 4: Version -->
+  <rect x="740" y="25" width="180" height="70" rx="6" fill="#ffd700" fill-opacity="0.05" stroke="#ffd700" stroke-width="1" opacity="0.8"/>
+  <text x="830" y="52" text-anchor="middle" fill="#ffd700" font-family="monospace" font-size="28" font-weight="900" filter="url(#glow)">v2.2.1</text>
+  <text x="830" y="72" text-anchor="middle" fill="#7799aa" font-family="monospace" font-size="11" letter-spacing="1">RELEASE</text>
+  <polygon points="815,82 820,90 830,85 840,90 845,82 830,87" fill="#ffd700" opacity="0.4"/>
+
+  <!-- Stat 5: License -->
+  <rect x="960" y="25" width="180" height="70" rx="6" fill="#00ff88" fill-opacity="0.05" stroke="#00ff88" stroke-width="1" opacity="0.7"/>
+  <text x="1050" y="52" text-anchor="middle" fill="#00ff88" font-family="monospace" font-size="22" font-weight="900">BUSL 1.1</text>
+  <text x="1050" y="72" text-anchor="middle" fill="#7799aa" font-family="monospace" font-size="11" letter-spacing="1">LICENSE</text>
+  <text x="1050" y="94" text-anchor="middle" fill="#334455" font-family="monospace" font-size="9">→ MIT 2030-04-26</text>
+</svg>
