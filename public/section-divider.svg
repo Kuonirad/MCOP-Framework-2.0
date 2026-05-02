@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 60" width="1200" height="60">
+  <defs>
+    <linearGradient id="divGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#000008" stop-opacity="0"/>
+      <stop offset="20%" stop-color="#00f0ff" stop-opacity="0.6"/>
+      <stop offset="50%" stop-color="#ffffff" stop-opacity="0.9"/>
+      <stop offset="80%" stop-color="#7b2dff" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#000008" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="glowGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#000008" stop-opacity="0"/>
+      <stop offset="30%" stop-color="#00f0ff" stop-opacity="0.2"/>
+      <stop offset="50%" stop-color="#ffffff" stop-opacity="0.4"/>
+      <stop offset="70%" stop-color="#7b2dff" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#000008" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="blur">
+      <feGaussianBlur stdDeviation="4"/>
+    </filter>
+  </defs>
+  <rect width="1200" height="60" fill="#050510"/>
+  <!-- Outer glow -->
+  <rect x="0" y="22" width="1200" height="16" fill="url(#glowGrad)" filter="url(#blur)"/>
+  <!-- Main lines -->
+  <line x1="0" y1="28" x2="1200" y2="28" stroke="url(#divGrad)" stroke-width="0.8"/>
+  <line x1="0" y1="32" x2="1200" y2="32" stroke="url(#divGrad)" stroke-width="2"/>
+  <line x1="0" y1="36" x2="1200" y2="36" stroke="url(#divGrad)" stroke-width="0.8"/>
+  <!-- Center diamond -->
+  <polygon points="600,24 608,30 600,36 592,30" fill="#ffffff" opacity="0.9"/>
+  <polygon points="600,26 606,30 600,34 594,30" fill="#00f0ff" opacity="0.7"/>
+  <!-- Side markers -->
+  <rect x="380" y="28" width="4" height="4" fill="#7b2dff" opacity="0.8"/>
+  <rect x="816" y="28" width="4" height="4" fill="#ff006e" opacity="0.8"/>
+</svg>
