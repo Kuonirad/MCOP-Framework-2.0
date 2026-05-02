@@ -1,0 +1,185 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 900" width="1280" height="900">
+  <defs>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#050a12"/>
+      <stop offset="100%" stop-color="#0a0f1e"/>
+    </linearGradient>
+    <filter id="glow-cyan">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="glow-purple">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="glow-gold">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <marker id="arrow-cyan" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#00d4ff"/>
+    </marker>
+    <marker id="arrow-purple" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#a855f7"/>
+    </marker>
+    <marker id="arrow-gold" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#f5a623"/>
+    </marker>
+    <marker id="arrow-cyan-rev" markerWidth="10" markerHeight="7" refX="1" refY="3.5" orient="auto">
+      <polygon points="10 0, 0 3.5, 10 7" fill="#00d4ff"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1280" height="900" fill="url(#bgGrad)"/>
+
+  <!-- Gold outer border -->
+  <rect x="18" y="18" width="1244" height="864" rx="6" ry="6" fill="none" stroke="#c8922a" stroke-width="2" opacity="0.9"/>
+  <rect x="22" y="22" width="1236" height="856" rx="4" ry="4" fill="none" stroke="#c8922a" stroke-width="0.5" opacity="0.4"/>
+
+  <!-- Corner decorations -->
+  <line x1="18" y1="60" x2="18" y2="18" stroke="#f5c842" stroke-width="2"/>
+  <line x1="18" y1="18" x2="60" y2="18" stroke="#f5c842" stroke-width="2"/>
+  <line x1="1262" y1="18" x2="1220" y2="18" stroke="#f5c842" stroke-width="2"/>
+  <line x1="1262" y1="18" x2="1262" y2="60" stroke="#f5c842" stroke-width="2"/>
+  <line x1="18" y1="840" x2="18" y2="882" stroke="#f5c842" stroke-width="2"/>
+  <line x1="18" y1="882" x2="60" y2="882" stroke="#f5c842" stroke-width="2"/>
+  <line x1="1262" y1="882" x2="1220" y2="882" stroke="#f5c842" stroke-width="2"/>
+  <line x1="1262" y1="840" x2="1262" y2="882" stroke="#f5c842" stroke-width="2"/>
+
+  <!-- Small gold dots on borders -->
+  <circle cx="640" cy="18" r="3" fill="#f5c842"/>
+  <circle cx="640" cy="882" r="3" fill="#f5c842"/>
+  <circle cx="18" cy="450" r="3" fill="#f5c842"/>
+  <circle cx="1262" cy="450" r="3" fill="#f5c842"/>
+
+  <!-- Title bar -->
+  <rect x="380" y="38" width="520" height="44" rx="4" fill="none" stroke="#c8922a" stroke-width="1.5"/>
+  <text x="640" y="67" text-anchor="middle" font-family="'Courier New', monospace" font-size="18" font-weight="bold" fill="#f5c842" letter-spacing="4">MCOP FRAMEWORK 2.0 — CORE TRIAD</text>
+
+  <!-- USER INPUT label -->
+  <text x="160" y="128" text-anchor="middle" font-family="'Courier New', monospace" font-size="13" font-weight="bold" fill="#00d4ff" letter-spacing="2">USER INPUT</text>
+  <text x="160" y="148" text-anchor="middle" font-family="'Courier New', monospace" font-size="12" fill="#7ecfea">Context</text>
+
+  <!-- Arrow: USER INPUT down to NOVA-NEO -->
+  <line x1="160" y1="155" x2="160" y2="188" stroke="#00d4ff" stroke-width="2" marker-end="url(#arrow-cyan)"/>
+
+  <!-- NOVA-NEO Encoder box -->
+  <rect x="58" y="192" width="204" height="148" rx="8" fill="#051a2a" stroke="#00d4ff" stroke-width="2" filter="url(#glow-cyan)"/>
+  <!-- Hexagon icon -->
+  <polygon points="160,208 173,216 173,232 160,240 147,232 147,216" fill="none" stroke="#00d4ff" stroke-width="2"/>
+  <circle cx="160" cy="224" r="4" fill="#00d4ff"/>
+  <line x1="160" y1="212" x2="160" y2="218" stroke="#00d4ff" stroke-width="1.5"/>
+  <line x1="165" y1="215" x2="162" y2="220" stroke="#00d4ff" stroke-width="1.5"/>
+  <line x1="155" y1="215" x2="158" y2="220" stroke="#00d4ff" stroke-width="1.5"/>
+  <text x="160" y="258" text-anchor="middle" font-family="'Courier New', monospace" font-size="15" font-weight="bold" fill="#ffffff">NOVA-NEO</text>
+  <text x="160" y="276" text-anchor="middle" font-family="'Courier New', monospace" font-size="15" font-weight="bold" fill="#ffffff">Encoder</text>
+  <text x="160" y="298" text-anchor="middle" font-family="'Courier New', monospace" font-size="11" fill="#7ecfea">Deterministic</text>
+  <text x="160" y="314" text-anchor="middle" font-family="'Courier New', monospace" font-size="11" fill="#7ecfea">SHA-256 hash</text>
+
+  <!-- Arrow: NOVA-NEO right to Holographic Etch (Tensor label) -->
+  <line x1="262" y1="260" x2="730" y2="220" stroke="#00d4ff" stroke-width="2" marker-end="url(#arrow-cyan)"/>
+  <text x="480" y="225" text-anchor="middle" font-family="'Courier New', monospace" font-size="12" fill="#00d4ff">Tensor</text>
+
+  <!-- Arrow: NOVA-NEO down-right to Stigmergy (Tensor label) -->
+  <line x1="262" y1="300" x2="420" y2="440" stroke="#00d4ff" stroke-width="2" marker-end="url(#arrow-cyan)"/>
+
+  <!-- Holographic Etch box -->
+  <rect x="730" y="152" width="240" height="148" rx="8" fill="#1a0a2e" stroke="#a855f7" stroke-width="2" filter="url(#glow-purple)"/>
+  <!-- Orbital rings icon -->
+  <circle cx="850" cy="200" r="18" fill="none" stroke="#a855f7" stroke-width="1.5"/>
+  <circle cx="850" cy="200" r="10" fill="none" stroke="#a855f7" stroke-width="1"/>
+  <circle cx="850" cy="200" r="4" fill="#d946ef"/>
+  <ellipse cx="850" cy="200" rx="24" ry="8" fill="none" stroke="#a855f7" stroke-width="1" transform="rotate(-30,850,200)"/>
+  <text x="850" y="234" text-anchor="middle" font-family="'Courier New', monospace" font-size="15" font-weight="bold" fill="#ffffff">Holographic Etch</text>
+  <text x="850" y="256" text-anchor="middle" font-family="'Courier New', monospace" font-size="11" fill="#c084fc">Rank-1 micro-etch</text>
+  <text x="850" y="273" text-anchor="middle" font-family="'Courier New', monospace" font-size="11" fill="#c084fc">Confidence delta</text>
+  <text x="850" y="290" text-anchor="middle" font-family="'Courier New', monospace" font-size="11" fill="#c084fc">Replayable audit</text>
+
+  <!-- Micro-Etch Weights label and arrow down -->
+  <text x="850" y="325" text-anchor="middle" font-family="'Courier New', monospace" font-size="11" fill="#a855f7">Micro-Etch Weights</text>
+  <line x1="850" y1="300" x2="850" y2="418" stroke="#a855f7" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arrow-purple)"/>
+
+  <!-- Stigmergy v5 box -->
+  <rect x="310" y="422" width="240" height="148" rx="8" fill="#051a2a" stroke="#00d4ff" stroke-width="2" filter="url(#glow-cyan)"/>
+  <!-- Molecular network icon -->
+  <circle cx="430" cy="462" r="6" fill="#00d4ff"/>
+  <circle cx="418" cy="478" r="4" fill="#00d4ff"/>
+  <circle cx="442" cy="478" r="4" fill="#00d4ff"/>
+  <circle cx="412" cy="494" r="4" fill="#00d4ff"/>
+  <circle cx="430" cy="494" r="4" fill="#00d4ff"/>
+  <circle cx="448" cy="494" r="4" fill="#00d4ff"/>
+  <line x1="430" y1="462" x2="418" y2="478" stroke="#00d4ff" stroke-width="1.5"/>
+  <line x1="430" y1="462" x2="442" y2="478" stroke="#00d4ff" stroke-width="1.5"/>
+  <line x1="418" y1="478" x2="412" y2="494" stroke="#00d4ff" stroke-width="1.5"/>
+  <line x1="418" y1="478" x2="430" y2="494" stroke="#00d4ff" stroke-width="1.5"/>
+  <line x1="442" y1="478" x2="430" y2="494" stroke="#00d4ff" stroke-width="1.5"/>
+  <line x1="442" y1="478" x2="448" y2="494" stroke="#00d4ff" stroke-width="1.5"/>
+  <text x="430" y="520" text-anchor="middle" font-family="'Courier New', monospace" font-size="15" font-weight="bold" fill="#ffffff">Stigmergy v5</text>
+  <text x="430" y="540" text-anchor="middle" font-family="'Courier New', monospace" font-size="11" fill="#7ecfea">Pheromone store</text>
+  <text x="430" y="556" text-anchor="middle" font-family="'Courier New', monospace" font-size="11" fill="#7ecfea">Cosine recall</text>
+  <text x="430" y="572" text-anchor="middle" font-family="'Courier New', monospace" font-size="11" fill="#7ecfea">Merkle-chained</text>
+
+  <!-- Dialectical Synthesizer box -->
+  <rect x="720" y="422" width="260" height="148" rx="8" fill="#1a0a2e" stroke="#a855f7" stroke-width="2" filter="url(#glow-purple)"/>
+  <!-- Diamond/gem icon -->
+  <polygon points="850,448 870,468 850,494 830,468" fill="none" stroke="#a855f7" stroke-width="2"/>
+  <line x1="830" y1="468" x2="870" y2="468" stroke="#a855f7" stroke-width="1"/>
+  <line x1="850" y1="448" x2="840" y2="468" stroke="#a855f7" stroke-width="1"/>
+  <line x1="850" y1="448" x2="860" y2="468" stroke="#a855f7" stroke-width="1"/>
+  <text x="850" y="516" text-anchor="middle" font-family="'Courier New', monospace" font-size="15" font-weight="bold" fill="#ffffff">Dialectical</text>
+  <text x="850" y="535" text-anchor="middle" font-family="'Courier New', monospace" font-size="15" font-weight="bold" fill="#ffffff">Synthesizer</text>
+
+  <!-- Arrow: Dialectical left to Stigmergy (double arrow - Resonance) -->
+  <line x1="720" y1="494" x2="554" y2="494" stroke="#a855f7" stroke-width="1.5" marker-end="url(#arrow-purple)" marker-start="url(#arrow-cyan-rev)"/>
+  <text x="636" y="514" text-anchor="middle" font-family="'Courier New', monospace" font-size="12" fill="#a855f7">Resonance</text>
+
+  <!-- Arrow: Stigmergy up to Dialectical (second arrow showing feedback) -->
+  <line x1="554" y1="490" x2="720" y2="480" stroke="#00d4ff" stroke-width="1.5" marker-end="url(#arrow-cyan)"/>
+
+  <!-- Arrow: Dialectical → Etch (Micro-Etch Weights going up-right already drawn) -->
+  <!-- Arrow from Etch down to Dialectical -->
+
+  <!-- Refined Prompt label + arrow down from Dialectical -->
+  <text x="850" y="592" text-anchor="middle" font-family="'Courier New', monospace" font-size="11" fill="#a855f7">Refined Prompt</text>
+  <line x1="850" y1="570" x2="850" y2="638" stroke="#a855f7" stroke-width="1.5" marker-end="url(#arrow-purple)"/>
+
+  <!-- Adapter Layer v2.1 box -->
+  <rect x="640" y="642" width="420" height="80" rx="8" fill="#1a110a" stroke="#f5a623" stroke-width="2" filter="url(#glow-gold)"/>
+  <!-- Network icon -->
+  <circle cx="680" cy="682" r="10" fill="none" stroke="#f5a623" stroke-width="2"/>
+  <circle cx="680" cy="682" r="3" fill="#f5a623"/>
+  <line x1="668" y1="670" x2="660" y2="662" stroke="#f5a623" stroke-width="1.5"/>
+  <circle cx="657" cy="659" r="4" fill="none" stroke="#f5a623" stroke-width="1.5"/>
+  <line x1="692" y1="670" x2="700" y2="662" stroke="#f5a623" stroke-width="1.5"/>
+  <circle cx="703" cy="659" r="4" fill="none" stroke="#f5a623" stroke-width="1.5"/>
+  <line x1="668" y1="694" x2="660" y2="702" stroke="#f5a623" stroke-width="1.5"/>
+  <circle cx="657" cy="705" r="4" fill="none" stroke="#f5a623" stroke-width="1.5"/>
+  <line x1="692" y1="694" x2="700" y2="702" stroke="#f5a623" stroke-width="1.5"/>
+  <circle cx="703" cy="705" r="4" fill="none" stroke="#f5a623" stroke-width="1.5"/>
+  <text x="850" y="676" text-anchor="middle" font-family="'Courier New', monospace" font-size="16" font-weight="bold" fill="#f5c842">Adapter Layer v2.1</text>
+  <text x="850" y="698" text-anchor="middle" font-family="'Courier New', monospace" font-size="12" fill="#e0a050">REST · SDK · MCP</text>
+
+  <!-- Arrows from Adapter Layer down to Next.js and Platform targets -->
+  <line x1="760" y1="722" x2="500" y2="780" stroke="#f5a623" stroke-width="2" marker-end="url(#arrow-gold)"/>
+  <line x1="940" y1="722" x2="1060" y2="780" stroke="#f5a623" stroke-width="2" marker-end="url(#arrow-gold)"/>
+
+  <!-- Next.js Experience box -->
+  <rect x="340" y="784" width="320" height="88" rx="8" fill="#051a2a" stroke="#00d4ff" stroke-width="2"/>
+  <!-- Code icon -->
+  <rect x="368" y="802" width="44" height="52" rx="4" fill="none" stroke="#00d4ff" stroke-width="1.5"/>
+  <text x="390" y="834" text-anchor="middle" font-family="monospace" font-size="14" fill="#00d4ff">&lt;/&gt;</text>
+  <text x="500" y="816" text-anchor="middle" font-family="'Courier New', monospace" font-size="15" font-weight="bold" fill="#ffffff">Next.js</text>
+  <text x="500" y="836" text-anchor="middle" font-family="'Courier New', monospace" font-size="15" font-weight="bold" fill="#ffffff">Experience</text>
+  <text x="500" y="856" text-anchor="middle" font-family="'Courier New', monospace" font-size="11" fill="#7ecfea">Merkle Root</text>
+
+  <!-- Platform targets box -->
+  <rect x="900" y="784" width="320" height="88" rx="8" fill="#051a2a" stroke="#00d4ff" stroke-width="2"/>
+  <!-- Star/asterisk icon -->
+  <line x1="928" y1="828" x2="952" y2="828" stroke="#00d4ff" stroke-width="2"/>
+  <line x1="940" y1="816" x2="940" y2="840" stroke="#00d4ff" stroke-width="2"/>
+  <line x1="931" y1="819" x2="949" y2="837" stroke="#00d4ff" stroke-width="1.5"/>
+  <line x1="949" y1="819" x2="931" y2="837" stroke="#00d4ff" stroke-width="1.5"/>
+  <text x="1080" y="810" text-anchor="middle" font-family="'Courier New', monospace" font-size="13" fill="#ffffff">Magnific · Higgsfield</text>
+  <text x="1080" y="832" text-anchor="middle" font-family="'Courier New', monospace" font-size="13" fill="#ffffff">Utopai · Generic</text>
+</svg>
