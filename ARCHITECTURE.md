@@ -44,6 +44,32 @@ The **MCOP (Meta-Cognitive Optimization Protocol) Framework** implements collect
 - Distributed verification
 - Minimal overhead (SHA-256)
 
+## Long-Form Video Generation
+
+`LongFormVideoOrchestrator` (`src/core/longFormVideoOrchestrator.ts`) extends
+the triad to coherent video sequences beyond per-call provider ceilings
+(PAI 3 min, Veo ~2 min, Sora ~1 min) by treating generation as a recurrent
+process over the existing memory substrate:
+
+- **Short-term memory** ↔ recent stigmergy traces (FramePack analogue).
+- **Long-term retrieval** ↔ `StigmergyV5.getResonance` against the embedded
+  narrative prompt (SemanticPack analogue).
+- **Direct Forcing** ↔ each clip's *generated* fingerprint — not the prompt
+  embedding — is fed back into the bank, closing the train/inference gap
+  described in arXiv 2510.01784.
+- **Provenance** ↔ one `SynthesisProvenanceTracer.synthesize` event per clip,
+  Merkle-chained.
+
+A self-contained Python reference of MemoryPack + Direct Forcing on a
+minimal video DiT lives at `examples/memorypack_direct_forcing.py`; an
+end-to-end TypeScript demo wiring the orchestrator around a stub adapter
+lives at `examples/long_form_video_pipeline.ts`.
+
+The orchestrator does not bundle a diffusion backbone. Production
+deployments inject a `VideoClipAdapter` backed by `MagnificMCOPAdapter`
+(`veo-3.1` / `seeddance-2.0` / `kling-v3`) or an in-house Wan/CogVideoX
+runner.
+
 ---
 
 **See full architecture details in codebase comments and tests**
