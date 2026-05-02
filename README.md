@@ -223,8 +223,8 @@ pnpm cypress:run  # E2E (exploratory)
 
 ## 📜 License
 
-**BUSL 1.1** — source-available now; converts to **MIT on 2030-04-26**.\
-See [LICENSE](./LICENSE) for details.
+**BUSL 1.1** (Business Source License 1.1) — source-available now; converts to **MIT on 2030-04-26**.\
+See [LICENSE](./LICENSE) for full terms, [LICENSE-MIT-LEGACY](./LICENSE-MIT-LEGACY) for pre-2026-04-26 MIT commits, and [NOTICE.md](./NOTICE.md) for the transition notice.
 
 ---
 
