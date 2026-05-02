@@ -25,6 +25,7 @@ import { useCallback, useEffect, useRef } from "react";
  */
 
 import type { VSIPredictionState, UseVSIPredictorOptions } from "./useVSIPredictor";
+import { computeVSI } from "./computeVSI";
 
 interface ComputePayload {
   readonly type: "compute";
@@ -46,99 +47,44 @@ interface ComputeResult {
   readonly state: VSIPredictionState;
 }
 
-// The worker script is inlined so it works in any bundler / test
-// environment without special plugin configuration.
-const WORKER_SCRIPT = `
+// VSI thresholds align with the web.dev CLS rubric and `MCOP_CONFIG.VSI`
+// (good ≤ 0.1, poor > 0.25). They are hard-coded here because the worker
+// script is stringified at module-load time and cannot reach the config
+// module across the Worker boundary.
 const VSI_GOOD = 0.1;
 const VSI_POOR = 0.25;
 
-function classify(vsi, count) {
-  if (count === 0) return "idle";
-  if (vsi <= VSI_GOOD) return "good";
-  if (vsi <= VSI_POOR) return "ni";
-  return "poor";
-}
+// The worker script is inlined so it works in any bundler / test
+// environment without special plugin configuration. The compute body is
+// injected via `computeVSI.toString()` so the worker shares the exact
+// canonical source as the synchronous fallback below — no hand-maintained
+// second copy that could drift.
+const WORKER_SCRIPT = `
+const computeVSI = ${computeVSI.toString()};
 
 self.onmessage = function(e) {
   const { type, samples, now, opts } = e.data;
   if (type !== "compute") return;
 
-  const cutoff = now - opts.windowMs;
-  const recentCutoff = now - opts.recentMs;
-
-  let vsi = 0;
-  let recentVsi = 0;
-  let olderVsi = 0;
-  let count = 0;
-  let rootCause = null;
-  const sparkline = [];
-
-  for (const s of samples) {
-    if (s.startTime < cutoff) continue;
-    vsi += s.value;
-    count += 1;
-    sparkline.push(s.value);
-    if (s.startTime >= recentCutoff) {
-      recentVsi += s.value;
-    } else {
-      olderVsi += s.value;
-    }
-    if (s.source) rootCause = s.source;
-  }
-
-  const olderSliceMs = Math.max(1, opts.windowMs - opts.recentMs);
-  let trend = "stable";
-  if (recentVsi > 0 && olderVsi > 0) {
-    const recentRate = recentVsi / (opts.recentMs / 1000);
-    const olderRate = olderVsi / (olderSliceMs / 1000);
-    if (recentRate > olderRate * 1.25) trend = "degrading";
-    else if (recentRate < olderRate * 0.75) trend = "improving";
-  } else if (recentVsi > 0 && olderVsi === 0) {
-    trend = "degrading";
-  } else if (recentVsi === 0 && olderVsi > 0) {
-    trend = "improving";
-  }
-
-  let predictionMs = null;
-  let predictionTarget = null;
-  if (trend === "degrading") {
-    let nextThreshold = null;
-    if (vsi < VSI_GOOD) {
-      nextThreshold = VSI_GOOD;
-      predictionTarget = "ni";
-    } else if (vsi < VSI_POOR) {
-      nextThreshold = VSI_POOR;
-      predictionTarget = "poor";
-    }
-    if (nextThreshold !== null) {
-      const ratePerMs = recentVsi / opts.recentMs;
-      if (ratePerMs > 0) {
-        predictionMs = Math.max(0, Math.round((nextThreshold - vsi) / ratePerMs));
-      } else {
-        predictionTarget = null;
-      }
-    }
-  }
-
-  const cappedSparkline =
-    sparkline.length > opts.sparklineCap
-      ? sparkline.slice(-opts.sparklineCap)
-      : sparkline;
-
-  const state = {
-    vsi,
-    status: classify(vsi, count),
-    trend,
-    predictionMs,
-    predictionTarget,
-    shiftCount: count,
-    rootCause,
-    sparkline: cappedSparkline,
-  };
+  const state = computeVSI(samples, now, {
+    windowMs: opts.windowMs,
+    recentMs: opts.recentMs,
+    sparklineCap: opts.sparklineCap,
+    goodThreshold: ${VSI_GOOD},
+    poorThreshold: ${VSI_POOR},
+  });
 
   self.postMessage({ type: "result", state });
 };
 `;
+
+/**
+ * Test-only handle on the inlined worker script source. The
+ * `vsi.parity.test.ts` parity guardian asserts that this string
+ * literally embeds `computeVSI.toString()` so any future change to the
+ * canonical implementation propagates to the worker without a hand-edit.
+ */
+export const __WORKER_SCRIPT_FOR_TESTS: string = WORKER_SCRIPT;
 
 function createWorker(): Worker | null {
   if (typeof window === "undefined") return null;
@@ -200,79 +146,19 @@ export function useVSIWorker(): {
   return { compute };
 }
 
-/** Synchronous fallback when the worker is unavailable. */
+/**
+ * Synchronous fallback when the worker is unavailable.
+ *
+ * Delegates to the canonical `computeVSI` so this path and the worker
+ * path are byte-equivalent — the worker script literally embeds
+ * `computeVSI.toString()` at module load time.
+ */
 export function fallbackCompute(payload: ComputePayload): VSIPredictionState {
-  const { samples, now, opts } = payload;
-  const cutoff = now - opts.windowMs;
-  const recentCutoff = now - opts.recentMs;
-
-  let vsi = 0;
-  let recentVsi = 0;
-  let olderVsi = 0;
-  let count = 0;
-  let rootCause: VSIPredictionState["rootCause"] = null;
-  const sparkline: number[] = [];
-
-  for (const s of samples) {
-    if (s.startTime < cutoff) continue;
-    vsi += s.value;
-    count += 1;
-    sparkline.push(s.value);
-    if (s.startTime >= recentCutoff) {
-      recentVsi += s.value;
-    } else {
-      olderVsi += s.value;
-    }
-    if (s.source) rootCause = s.source;
-  }
-
-  const olderSliceMs = Math.max(1, opts.windowMs - opts.recentMs);
-  let trend: VSIPredictionState["trend"] = "stable";
-  if (recentVsi > 0 && olderVsi > 0) {
-    const recentRate = recentVsi / (opts.recentMs / 1000);
-    const olderRate = olderVsi / (olderSliceMs / 1000);
-    if (recentRate > olderRate * 1.25) trend = "degrading";
-    else if (recentRate < olderRate * 0.75) trend = "improving";
-  } else if (recentVsi > 0 && olderVsi === 0) {
-    trend = "degrading";
-  } else if (recentVsi === 0 && olderVsi > 0) {
-    trend = "improving";
-  }
-
-  let predictionMs: number | null = null;
-  let predictionTarget: VSIPredictionState["predictionTarget"] = null;
-  if (trend === "degrading") {
-    let nextThreshold: number | null = null;
-    if (vsi < 0.1) {
-      nextThreshold = 0.1;
-      predictionTarget = "ni";
-    } else if (vsi < 0.25) {
-      nextThreshold = 0.25;
-      predictionTarget = "poor";
-    }
-    if (nextThreshold !== null) {
-      const ratePerMs = recentVsi / opts.recentMs;
-      if (ratePerMs > 0) {
-        predictionMs = Math.max(0, Math.round((nextThreshold - vsi) / ratePerMs));
-      } else {
-        predictionTarget = null;
-      }
-    }
-  }
-
-  const cappedSparkline =
-    sparkline.length > opts.sparklineCap
-      ? sparkline.slice(-opts.sparklineCap)
-      : sparkline;
-
-  return {
-    vsi,
-    status: count === 0 ? "idle" : vsi <= 0.1 ? "good" : vsi <= 0.25 ? "ni" : "poor",
-    trend,
-    predictionMs,
-    predictionTarget,
-    shiftCount: count,
-    rootCause,
-    sparkline: cappedSparkline,
-  };
+  return computeVSI(payload.samples, payload.now, {
+    windowMs: payload.opts.windowMs,
+    recentMs: payload.opts.recentMs,
+    sparklineCap: payload.opts.sparklineCap,
+    goodThreshold: VSI_GOOD,
+    poorThreshold: VSI_POOR,
+  });
 }
