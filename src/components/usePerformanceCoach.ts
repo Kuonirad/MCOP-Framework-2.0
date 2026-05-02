@@ -12,6 +12,7 @@ import {
   type VSIShiftSample,
   type VSIShiftSource,
 } from "@/app/_components/vsiBus";
+import { computeVSI as computeVSICore } from "./computeVSI";
 
 /**
  * `usePerformanceCoach` — Unified performance intelligence hook.
@@ -208,82 +209,32 @@ interface InternalVSISample {
   source: VSIShiftSource | null;
 }
 
+/**
+ * Build a coach-facing `VSIState` from the canonical `computeVSI`
+ * implementation in `./computeVSI`. The shared core also returns a
+ * `sparkline` field; this wrapper drops it because the perf-coach
+ * aggregator does not surface a sparkline (the dedicated `useVSIPredictor`
+ * hook owns that surface).
+ */
 function computeVSI(
   samples: ReadonlyArray<InternalVSISample>,
   now: number,
 ): VSIState {
-  const windowMs = MCOP_CONFIG.VSI.windowMs;
-  const recentMs = MCOP_CONFIG.VSI.recentMs;
-  const cutoff = now - windowMs;
-  const recentCutoff = now - recentMs;
-
-  let vsi = 0;
-  let recentVsi = 0;
-  let olderVsi = 0;
-  let count = 0;
-  let rootCause: VSIShiftSource | null = null;
-
-  for (const s of samples) {
-    if (s.startTime < cutoff) continue;
-    vsi += s.value;
-    count += 1;
-    if (s.startTime >= recentCutoff) {
-      recentVsi += s.value;
-    } else {
-      olderVsi += s.value;
-    }
-    if (s.source) rootCause = s.source;
-  }
-
-  let status: MetricStatus = "idle";
-  if (count > 0) {
-    if (vsi <= MCOP_CONFIG.VSI.good) status = "good";
-    else if (vsi <= MCOP_CONFIG.VSI.poor) status = "ni";
-    else status = "poor";
-  }
-
-  const olderSliceMs = Math.max(1, windowMs - recentMs);
-  let trend: Trend = "stable";
-  if (recentVsi > 0 && olderVsi > 0) {
-    const recentRate = recentVsi / (recentMs / 1000);
-    const olderRate = olderVsi / (olderSliceMs / 1000);
-    if (recentRate > olderRate * 1.25) trend = "degrading";
-    else if (recentRate < olderRate * 0.75) trend = "improving";
-  } else if (recentVsi > 0 && olderVsi === 0) {
-    trend = "degrading";
-  } else if (recentVsi === 0 && olderVsi > 0) {
-    trend = "improving";
-  }
-
-  let predictionMs: number | null = null;
-  let predictionTarget: MetricStatus | null = null;
-  if (trend === "degrading") {
-    let nextThreshold: number | null = null;
-    if (vsi < MCOP_CONFIG.VSI.good) {
-      nextThreshold = MCOP_CONFIG.VSI.good;
-      predictionTarget = "ni";
-    } else if (vsi < MCOP_CONFIG.VSI.poor) {
-      nextThreshold = MCOP_CONFIG.VSI.poor;
-      predictionTarget = "poor";
-    }
-    if (nextThreshold !== null) {
-      const ratePerMs = recentVsi / recentMs;
-      if (ratePerMs > 0) {
-        predictionMs = Math.max(0, Math.round((nextThreshold - vsi) / ratePerMs));
-      } else {
-        predictionTarget = null;
-      }
-    }
-  }
-
+  const result = computeVSICore(samples, now, {
+    windowMs: MCOP_CONFIG.VSI.windowMs,
+    recentMs: MCOP_CONFIG.VSI.recentMs,
+    sparklineCap: MCOP_CONFIG.VSI.sparklineCap,
+    goodThreshold: MCOP_CONFIG.VSI.good,
+    poorThreshold: MCOP_CONFIG.VSI.poor,
+  });
   return {
-    vsi,
-    status,
-    trend,
-    shiftCount: count,
-    rootCause,
-    predictionMs,
-    predictionTarget,
+    vsi: result.vsi,
+    status: result.status,
+    trend: result.trend,
+    shiftCount: result.shiftCount,
+    rootCause: result.rootCause,
+    predictionMs: result.predictionMs,
+    predictionTarget: result.predictionTarget,
   };
 }
 
