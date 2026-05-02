@@ -197,9 +197,9 @@ MCOP-Framework-2.0/
 
 ## 📜 License
 
-**BUSL 1.1** — source-available. Converts automatically to **MIT** on **2030-04-26**.
+This project is licensed under the **Business Source License 1.1** (BUSL 1.1) — source-available. Converts automatically to **MIT** on **2030-04-26**.
 
-See [LICENSE](./LICENSE) for full terms.
+See [LICENSE](./LICENSE) for full terms &middot; [LICENSE-MIT-LEGACY](./LICENSE-MIT-LEGACY) &middot; [NOTICE.md](./NOTICE.md)
 
 <div align="center">
 <img src="https://raw.githubusercontent.com/Kuonirad/MCOP-Framework-2.0/cinematic-homepage-upgrade/public/footer-brand.svg" width="100%" alt="KullAILABS — Deterministic Cognition · Provenance-First" />
