@@ -395,11 +395,17 @@ def test_grok_strategy_snaps_disallowed_action(caplog: Any) -> None:
     assert len(snap_warnings) == 1
 
 
-def test_grok_strategy_system_prompt_lists_allowed_actions() -> None:
-    """The stricter system prompt must explicitly tell the model that any
-    action outside the user message's `Available actions` list will be
-    rejected -- otherwise we're back to relying on the model's default
-    interpretation of "ACTION1..7"."""
+def test_grok_strategy_system_prompt_constrains_to_available_actions() -> None:
+    """The system prompt must point the model at the user message's
+    `Available actions` list and give it a concrete action-name example,
+    so it doesn't fall back to its default interpretation of "ACTION1..7".
+
+    Phrasing must NOT use commanding tone ("ONLY", "rejected", "No prose"),
+    angle-bracket placeholders ("<one of the allowed names>"), or persona
+    framing ("You play ARC-AGI-3"). Those wordings tripped Grok-4's
+    safety filter on 2026-05-04, producing a refusal response of "I must
+    decline this request as it appears to be an attempt to create a
+    restricted persona or alter ego" instead of a JSON action choice."""
     strat = GrokStrategy(api_key="x")
     fake_client = mock.Mock()
     fake_client.chat.completions.create.return_value = _make_completion(
@@ -415,5 +421,42 @@ def test_grok_strategy_system_prompt_lists_allowed_actions() -> None:
     system_msg = next(
         m["content"] for m in kwargs["messages"] if m["role"] == "system"
     )
+    # Constraint reference + concrete example must be present.
     assert "Available actions" in system_msg
-    assert "rejected" in system_msg
+    assert "ACTION3" in system_msg
+    # Lock out the wordings that tripped the safety filter.
+    assert "ONLY" not in system_msg
+    assert "rejected" not in system_msg
+    assert "No prose" not in system_msg
+    assert "<" not in system_msg
+
+
+def test_mapping_grok_system_prompt_constrains_to_available_actions() -> None:
+    """Same regression guard for MappingGrokStrategy._exploit's prompt.
+    Both strategies share the safety-filter risk because they share the
+    same xAI endpoint and roughly the same prompt shape."""
+    strat = MappingGrokStrategy(api_key="x")
+    strat._initialized = True
+    strat._mapping_queue = []
+    strat.action_effects = {}
+
+    fake_client = mock.Mock()
+    fake_client.chat.completions.create.return_value = _make_completion(
+        '{"action": "ACTION1"}'
+    )
+    strat.grok._client = fake_client
+
+    strat._exploit(
+        _FakeFrame(), {"resonance": 0.0, "recent": []}, ALLOWED_4
+    )
+
+    args, kwargs = fake_client.chat.completions.create.call_args
+    system_msg = next(
+        m["content"] for m in kwargs["messages"] if m["role"] == "system"
+    )
+    assert "Available actions" in system_msg
+    assert "ACTION3" in system_msg
+    assert "ONLY" not in system_msg
+    assert "rejected" not in system_msg
+    assert "No prose" not in system_msg
+    assert "<" not in system_msg

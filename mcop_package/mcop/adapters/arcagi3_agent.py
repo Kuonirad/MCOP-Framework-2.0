@@ -205,12 +205,13 @@ class GrokStrategy:
                     {
                         "role": "system",
                         "content": (
-                            "You play ARC-AGI-3. Respond with ONLY a JSON "
-                            'object: {"action": "<one of the allowed names>", '
-                            '"x": int, "y": int}. Use only an action listed '
-                            "in the user message's `Available actions` field "
-                            "(e.g. ACTION1, ACTION3); any other choice will "
-                            "be rejected. Omit x/y unless action is ACTION6."
+                            "This is the ARC-AGI-3 environment. Each turn "
+                            "you pick one action expected to make progress "
+                            "on the current level. Respond with a JSON "
+                            'object such as {"action": "ACTION3"}, choosing '
+                            "the name from the `Available actions` list in "
+                            "the user message. For ACTION6, also include "
+                            "integer x and y target coordinates."
                         ),
                     },
                     {"role": "user", "content": prompt},
@@ -630,14 +631,14 @@ class MappingGrokStrategy:
                     {
                         "role": "system",
                         "content": (
-                            "You play ARC-AGI-3. You have a learned mapping of "
-                            "what each action does. Use it to make purposeful "
-                            'moves. Reply with ONLY: {"action": "<one of the '
-                            'allowed names>", "x": int, "y": int}. Use only '
-                            "an action listed in the user message's "
-                            "`Available actions` field (e.g. ACTION1, "
-                            "ACTION3); any other choice will be rejected. "
-                            "Omit x/y unless action is ACTION6. No prose."
+                            "This is the ARC-AGI-3 environment. You have a "
+                            "learned mapping of what each action does on "
+                            "this game; use it to make purposeful moves "
+                            "that increase levels_completed. Respond with "
+                            'a JSON object such as {"action": "ACTION3"}, '
+                            "choosing the name from the `Available actions` "
+                            "list in the user message. For ACTION6, also "
+                            "include integer x and y target coordinates."
                         ),
                     },
                     {"role": "user", "content": user_msg},
