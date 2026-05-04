@@ -229,7 +229,7 @@ def _build_prompt(
         f"Available actions: {available_action_names}\n"
         f"Memory: resonance_score={memory_summary.get('resonance', 0):.3f}, "
         f"recent_actions={memory_summary.get('recent', [])}\n"
-        f"Grid (truncated): {json.dumps(grid)[:2000]}\n"
+        f"Grid (truncated): {json.dumps(grid, default=_json_default)[:2000]}\n"
         "Choose the next action."
     )
 
@@ -264,15 +264,29 @@ def _grid_as_list(frame: Any) -> List[Any]:
     """Return frame.frame as plain nested lists.
 
     The arcengine SDK annotates ``FrameData.frame`` as
-    ``list[list[list[int]]]`` but actually returns a numpy ndarray at
-    runtime, which json.dumps cannot serialise. Normalise here.
+    ``list[list[list[int]]]`` but at runtime returns either a numpy
+    ndarray *or* a python list of ndarray layers. Normalise both shapes
+    so json.dumps can handle the result. Falls back to a recursive
+    walk that calls ``.tolist()`` on any ndarray it finds.
     """
     grid = getattr(frame, "frame", None)
     if grid is None:
         return []
     if hasattr(grid, "tolist"):
         return grid.tolist()
-    return list(grid)
+    return [
+        item.tolist() if hasattr(item, "tolist") else item
+        for item in grid
+    ]
+
+
+def _json_default(obj: Any) -> Any:
+    """json.dumps default= hook for stray ndarrays / numpy scalars."""
+    if hasattr(obj, "tolist"):
+        return obj.tolist()
+    raise TypeError(
+        f"Object of type {type(obj).__name__} is not JSON serializable"
+    )
 
 
 def _frame_to_features(frame: Any) -> str:
@@ -280,7 +294,10 @@ def _frame_to_features(frame: Any) -> str:
     grid = _grid_as_list(frame)
     state = getattr(getattr(frame, "state", None), "value", "?")
     levels = getattr(frame, "levels_completed", 0)
-    return f"state={state}|levels={levels}|grid={json.dumps(grid)}"
+    return (
+        f"state={state}|levels={levels}|"
+        f"grid={json.dumps(grid, default=_json_default)}"
+    )
 
 
 def _frame_diff(prev: Any, curr: Any, max_samples: int = 12) -> Dict[str, Any]:
@@ -419,7 +436,7 @@ class MappingGrokStrategy:
             + last_block
             + f"Memory: resonance={memory_summary.get('resonance', 0):.3f}, "
             f"recent={memory_summary.get('recent', [])}\n"
-            f"Grid (truncated): {json.dumps(grid)[:1500]}\n"
+            f"Grid (truncated): {json.dumps(grid, default=_json_default)[:1500]}\n"
             "Pick the next action. Goal: increase levels_completed."
         )
         try:
