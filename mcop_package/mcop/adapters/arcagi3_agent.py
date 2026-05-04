@@ -158,7 +158,16 @@ class GrokStrategy:
             or os.environ.get("GROK_BASE_URL")
             or "https://api.x.ai/v1"
         )
-        self.model = model or os.environ.get("GROK_MODEL", "grok-4-latest")
+        # Default flipped from `grok-4-latest` to `grok-4-fast-reasoning`
+        # after observing 1m45s+ first-call latency on `grok-4-latest`
+        # against ls20 -- the fast variant returns equivalent JSON-action
+        # quality at roughly 5-10x the throughput, which keeps full runs
+        # well inside the workflow's 30-minute cap. Override via the
+        # `GROK_MODEL` env var (workflow input or local export) or the
+        # `model=` constructor kwarg.
+        self.model = model or os.environ.get(
+            "GROK_MODEL", "grok-4-fast-reasoning"
+        )
         self.fallback = fallback or RandomStrategy()
         self._client: Any = None
 
@@ -729,101 +738,135 @@ class MCOPArcAgi3Agent:
         result = GameResult(game_id=game_id, scorecard_id=scorecard_id)
         env = arcade.make(game_id, scorecard_id=scorecard_id)
         if env is None:
+            try:
+                arcade.close_scorecard(scorecard_id)
+            except Exception:  # pragma: no cover -- best-effort cleanup
+                pass
             raise RuntimeError(f"Arcade.make returned None for {game_id!r}")
 
-        frame = env.reset()
-        recent: List[str] = []
-        for step in range(self.max_actions):
-            if frame is None:
-                logger.warning("Null frame at step %d; stopping", step)
-                break
-
-            tensor = nova_neo_encode(
-                _frame_to_features(frame), self.encoder_dims, normalize=True
-            )
-            resonance = self.stigmergy.get_resonance(tensor)
-            memory_summary = {
-                "resonance": resonance.score,
-                "recent": recent[-5:],
-            }
-            # GameAction is a compound enum keyed by (int, action_class)
-            # tuples, so GameAction(int_value) raises ValueError. Resolve
-            # via a value->member scan instead.
-            value_to_member = {m.value: m for m in GameAction}
-            allowed = [
-                value_to_member[code].name
-                for code in (frame.available_actions or [])
-                if code in value_to_member and value_to_member[code].name != "RESET"
-            ] or [a.name for a in GameAction if a.name != "RESET"]
-
-            action_name, action_data = self.strategy.choose(
-                frame, tensor, memory_summary, allowed
-            )
-            try:
-                action = GameAction[action_name]
-            except KeyError:
-                action = GameAction.ACTION1
-                action_name = "ACTION1"
-
-            next_frame = env.step(action, data=action_data or None)
-
-            observe = getattr(self.strategy, "observe", None)
-            if callable(observe):
-                try:
-                    observe(frame, action_name, next_frame)
-                except Exception as exc:  # pragma: no cover -- defensive
-                    logger.warning("strategy.observe raised: %s", exc)
-
-            self.etch.apply_etch(
-                tensor, tensor, note=f"arcagi3:{game_id}:{action_name}"
-            )
-            self.stigmergy.record_trace(
-                tensor,
-                tensor,
-                metadata={
-                    "game_id": game_id,
-                    "action": action_name,
-                    "step": step,
-                },
-            )
-
-            state_name = (
-                next_frame.state.value
-                if next_frame and next_frame.state
-                else "UNKNOWN"
-            )
-            levels = next_frame.levels_completed if next_frame else 0
-            result.steps.append(
-                StepRecord(
-                    step=step,
-                    action=action_name,
-                    state=state_name,
-                    levels_completed=levels,
-                    score=float(levels),
-                )
-            )
-            recent.append(action_name)
-            frame = next_frame
-
-            if next_frame is None:
-                break
-            if next_frame.state == GameState.WIN:
-                break
-            if next_frame.state == GameState.GAME_OVER:
-                # Level reset only — competition rules forbid full reset.
-                frame = env.reset()
-
-        if frame is not None:
-            result.final_state = (
-                frame.state.value if frame.state else "UNKNOWN"
-            )
-            result.levels_completed = frame.levels_completed
-            result.win_levels = frame.win_levels
-
+        frame: Optional[Any] = None
+        interrupted = False
         try:
-            arcade.close_scorecard(scorecard_id)
-        except Exception as exc:  # pragma: no cover -- network path
-            logger.warning("close_scorecard failed: %s", exc)
+            frame = env.reset()
+            recent: List[str] = []
+            for step in range(self.max_actions):
+                if frame is None:
+                    logger.warning("Null frame at step %d; stopping", step)
+                    break
+
+                tensor = nova_neo_encode(
+                    _frame_to_features(frame),
+                    self.encoder_dims,
+                    normalize=True,
+                )
+                resonance = self.stigmergy.get_resonance(tensor)
+                memory_summary = {
+                    "resonance": resonance.score,
+                    "recent": recent[-5:],
+                }
+                # GameAction is a compound enum keyed by (int, action_class)
+                # tuples, so GameAction(int_value) raises ValueError. Resolve
+                # via a value->member scan instead.
+                value_to_member = {m.value: m for m in GameAction}
+                allowed = [
+                    value_to_member[code].name
+                    for code in (frame.available_actions or [])
+                    if code in value_to_member
+                    and value_to_member[code].name != "RESET"
+                ] or [a.name for a in GameAction if a.name != "RESET"]
+
+                action_name, action_data = self.strategy.choose(
+                    frame, tensor, memory_summary, allowed
+                )
+                try:
+                    action = GameAction[action_name]
+                except KeyError:
+                    action = GameAction.ACTION1
+                    action_name = "ACTION1"
+
+                next_frame = env.step(action, data=action_data or None)
+
+                observe = getattr(self.strategy, "observe", None)
+                if callable(observe):
+                    try:
+                        observe(frame, action_name, next_frame)
+                    except Exception as exc:  # pragma: no cover -- defensive
+                        logger.warning("strategy.observe raised: %s", exc)
+
+                self.etch.apply_etch(
+                    tensor, tensor, note=f"arcagi3:{game_id}:{action_name}"
+                )
+                self.stigmergy.record_trace(
+                    tensor,
+                    tensor,
+                    metadata={
+                        "game_id": game_id,
+                        "action": action_name,
+                        "step": step,
+                    },
+                )
+
+                state_name = (
+                    next_frame.state.value
+                    if next_frame and next_frame.state
+                    else "UNKNOWN"
+                )
+                levels = next_frame.levels_completed if next_frame else 0
+                result.steps.append(
+                    StepRecord(
+                        step=step,
+                        action=action_name,
+                        state=state_name,
+                        levels_completed=levels,
+                        score=float(levels),
+                    )
+                )
+                recent.append(action_name)
+                frame = next_frame
+
+                if next_frame is None:
+                    break
+                if next_frame.state == GameState.WIN:
+                    break
+                if next_frame.state == GameState.GAME_OVER:
+                    # Level reset only -- competition rules forbid full reset.
+                    frame = env.reset()
+        except KeyboardInterrupt:
+            # Triggered both by Ctrl-C and by the SIGTERM-to-KeyboardInterrupt
+            # bridge installed by run_arcagi3_agent.main(). The whole point of
+            # this branch is that GitHub Actions cancellations and xAI capacity
+            # drops used to lose every step we'd taken; now we flush whatever
+            # we have so the workflow's `result.json` artefact still answers
+            # "what action sequence did the agent run?".
+            interrupted = True
+            logger.warning(
+                "play(%s) interrupted at step %d/%d; flushing partial result",
+                game_id,
+                len(result.steps),
+                self.max_actions,
+            )
+        finally:
+            if frame is not None:
+                try:
+                    result.final_state = (
+                        frame.state.value if frame.state else "UNKNOWN"
+                    )
+                    result.levels_completed = frame.levels_completed
+                    result.win_levels = frame.win_levels
+                except Exception as exc:  # pragma: no cover -- defensive
+                    logger.warning(
+                        "could not snapshot frame on play() exit: %s", exc
+                    )
+            if interrupted:
+                # Overwrites whatever transient state the env was in --
+                # callers should be able to grep for INTERRUPTED to spot
+                # cancelled runs without parsing logs.
+                result.final_state = "INTERRUPTED"
+
+            try:
+                arcade.close_scorecard(scorecard_id)
+            except Exception as exc:  # pragma: no cover -- network path
+                logger.warning("close_scorecard failed: %s", exc)
 
         return result
 
