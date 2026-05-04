@@ -460,3 +460,243 @@ def test_mapping_grok_system_prompt_constrains_to_available_actions() -> None:
     assert "rejected" not in system_msg
     assert "No prose" not in system_msg
     assert "<" not in system_msg
+
+
+# ---- Configurable Grok model ----------------------------------------------
+
+def test_grok_strategy_default_model_is_fast_variant(
+    monkeypatch: Any,
+) -> None:
+    """The library default must be a `*-fast-*` variant. The original
+    `grok-4-latest` showed 1m45s+ first-call latency on `ls20`, which
+    pushed real runs over the workflow's 30-minute cap and caused
+    cancellations that wiped scorecards. Swapping to a fast-reasoning
+    default keeps the same JSON-action quality at ~5-10x throughput."""
+    monkeypatch.delenv("GROK_MODEL", raising=False)
+    strat = GrokStrategy(api_key="x")
+    assert "fast" in strat.model
+    assert strat.model != "grok-4-latest"
+
+
+def test_grok_strategy_env_var_overrides_default(monkeypatch: Any) -> None:
+    monkeypatch.setenv("GROK_MODEL", "grok-3-mini")
+    assert GrokStrategy(api_key="x").model == "grok-3-mini"
+
+
+def test_grok_strategy_explicit_model_overrides_env_var(
+    monkeypatch: Any,
+) -> None:
+    """Explicit `model=` kwarg wins over the env var so the CLI's
+    `--grok-model` flag (which forwards to this kwarg) reliably picks
+    the model regardless of what the workflow exported."""
+    monkeypatch.setenv("GROK_MODEL", "grok-3-mini")
+    strat = GrokStrategy(api_key="x", model="grok-4-latest")
+    assert strat.model == "grok-4-latest"
+
+
+def test_mapping_grok_strategy_forwards_model_kwarg() -> None:
+    """`MappingGrokStrategy(model=...)` must thread through to the inner
+    `GrokStrategy` so the CLI's `--grok-model` flag works for both
+    strategies. Otherwise the flag would silently no-op for
+    mapping-grok."""
+    strat = MappingGrokStrategy(api_key="x", model="grok-3-mini")
+    assert strat.grok.model == "grok-3-mini"
+
+
+# ---- play() cancellation handling -----------------------------------------
+
+class _FakeGameAction:
+    """Minimal stand-in for one member of the `arcengine.GameAction`
+    enum -- just enough for `play()` to use as the value of a
+    dict-of-name-to-member lookup."""
+
+    def __init__(self, name: str, value: int) -> None:
+        self.name = name
+        self.value = value
+
+    def __repr__(self) -> str:  # pragma: no cover -- test helper only
+        return f"<_FakeGameAction {self.name}>"
+
+
+class _FakeGameActionMeta(type):
+    """Metaclass so the class itself is iterable like a real `Enum`
+    (`for m in GameAction:`) and supports `GameAction[name]`."""
+
+    def __iter__(cls):
+        return iter(cls._members.values())
+
+    def __getitem__(cls, name: str) -> _FakeGameAction:
+        return cls._members[name]
+
+
+class _FakeGameActionEnum(metaclass=_FakeGameActionMeta):
+    _members: Dict[str, _FakeGameAction] = {
+        "RESET": _FakeGameAction("RESET", 0),
+        "ACTION1": _FakeGameAction("ACTION1", 1),
+        "ACTION2": _FakeGameAction("ACTION2", 2),
+        "ACTION3": _FakeGameAction("ACTION3", 3),
+        "ACTION4": _FakeGameAction("ACTION4", 4),
+    }
+
+
+# Mirror real-Enum attribute access (`GameAction.ACTION1`).
+for _name, _member in _FakeGameActionEnum._members.items():
+    setattr(_FakeGameActionEnum, _name, _member)
+
+
+class _FakeState:
+    PLAYING = mock.Mock(value="PLAYING", name="PLAYING")
+    WIN = mock.Mock(value="WIN", name="WIN")
+    GAME_OVER = mock.Mock(value="GAME_OVER", name="GAME_OVER")
+
+
+class _PlayFakeFrame:
+    """A `FrameData`-shaped stand-in suitable for the `play()` loop.
+    Carries `available_actions`, `frame`, `state`, and the level
+    counters that `play()` reads on each step."""
+
+    def __init__(
+        self,
+        state: Any = _FakeState.PLAYING,
+        levels_completed: int = 0,
+    ) -> None:
+        self.frame: List[List[List[int]]] = [[[0]]]
+        self.available_actions = [1, 2, 3, 4]
+        self.state = state
+        self.levels_completed = levels_completed
+        self.win_levels = 0
+
+
+class _FakeEnv:
+    """Stand-in for `arcade.make()` output, with a knob to raise
+    `KeyboardInterrupt` mid-run so we can prove the cancellation path
+    flushes a partial result."""
+
+    def __init__(
+        self,
+        steps_until_interrupt: Optional[int] = None,
+        steps_until_win: Optional[int] = None,
+    ) -> None:
+        self._steps_taken = 0
+        self._steps_until_interrupt = steps_until_interrupt
+        self._steps_until_win = steps_until_win
+
+    def reset(self) -> _PlayFakeFrame:
+        return _PlayFakeFrame()
+
+    def step(self, action: Any, data: Any = None) -> _PlayFakeFrame:
+        self._steps_taken += 1
+        if (
+            self._steps_until_interrupt is not None
+            and self._steps_taken >= self._steps_until_interrupt
+        ):
+            raise KeyboardInterrupt()
+        if (
+            self._steps_until_win is not None
+            and self._steps_taken >= self._steps_until_win
+        ):
+            return _PlayFakeFrame(
+                state=_FakeState.WIN, levels_completed=1
+            )
+        return _PlayFakeFrame()
+
+
+class _FakeArcade:
+    """Stand-in for `arc_agi.Arcade`. Records `close_scorecard` calls
+    so tests can assert the scorecard is closed exactly once even on
+    cancellation."""
+
+    def __init__(self, env: Optional[_FakeEnv] = None) -> None:
+        self._env = env
+        self.api_key: Optional[str] = None
+        self.base_url: Optional[str] = None
+        self.close_scorecard_calls: List[str] = []
+
+    def open_scorecard(self, tags: List[str]) -> str:
+        return "scorecard-test-id"
+
+    def make(self, game_id: str, scorecard_id: str) -> _FakeEnv:
+        return self._env if self._env is not None else _FakeEnv()
+
+    def close_scorecard(self, scorecard_id: str) -> None:
+        self.close_scorecard_calls.append(scorecard_id)
+
+
+def _patch_sdk_with(monkeypatch: Any, fake_arcade: _FakeArcade) -> None:
+    def _factory(*, arc_api_key: str, arc_base_url: str) -> _FakeArcade:
+        # Capture the args play() passed for assertion-friendliness, then
+        # return the same fake_arcade so `close_scorecard_calls` can be
+        # inspected after `play()` returns.
+        fake_arcade.api_key = arc_api_key
+        fake_arcade.base_url = arc_base_url
+        return fake_arcade
+
+    def _fake_load_sdk() -> Tuple[Any, Any, Any, Any]:
+        return _factory, object, _FakeGameActionEnum, _FakeState
+
+    monkeypatch.setattr(
+        "mcop.adapters.arcagi3_agent._load_sdk", _fake_load_sdk
+    )
+
+
+def test_play_flushes_partial_result_on_keyboard_interrupt(
+    monkeypatch: Any, caplog: Any
+) -> None:
+    """KeyboardInterrupt mid-loop (Ctrl-C, or SIGTERM bridged from a
+    workflow cancel) used to drop every step the agent had taken --
+    no scorecard, no `levels_completed`, no log artefact. The fix is
+    a try/except/finally in `play()` that turns the cancellation into
+    a `final_state="INTERRUPTED"` partial result with the steps it had
+    completed so far AND closes the scorecard before returning."""
+    from mcop.adapters.arcagi3_agent import MCOPArcAgi3Agent
+
+    env = _FakeEnv(steps_until_interrupt=3)
+    arcade = _FakeArcade(env=env)
+    _patch_sdk_with(monkeypatch, arcade)
+
+    agent = MCOPArcAgi3Agent(
+        strategy=RandomStrategy(seed=42),
+        api_key="x",
+        max_actions=80,
+    )
+    caplog.set_level(logging.WARNING, logger="mcop.adapters.arcagi3_agent")
+    result = agent.play("ls20")
+
+    # Partial result: at least the two steps that completed before
+    # step 3's env.step() raised.
+    assert result.final_state == "INTERRUPTED"
+    assert len(result.steps) >= 2
+    assert all(s.action.startswith("ACTION") for s in result.steps)
+    # Scorecard was closed exactly once.
+    assert arcade.close_scorecard_calls == ["scorecard-test-id"]
+    # The interrupted-flush log fires so operators can spot cancelled
+    # runs without parsing JSON.
+    interrupted_logs = [
+        rec.getMessage()
+        for rec in caplog.records
+        if "interrupted" in rec.getMessage()
+    ]
+    assert interrupted_logs, "expected an `interrupted` log"
+
+
+def test_play_normal_completion_still_works(monkeypatch: Any) -> None:
+    """Regression guard: the new try/except/finally must not change the
+    happy path. A run that hits WIN after a couple of steps should still
+    produce a real `final_state`, real `levels_completed`, and a single
+    `close_scorecard` call."""
+    from mcop.adapters.arcagi3_agent import MCOPArcAgi3Agent
+
+    env = _FakeEnv(steps_until_win=2)
+    arcade = _FakeArcade(env=env)
+    _patch_sdk_with(monkeypatch, arcade)
+
+    agent = MCOPArcAgi3Agent(
+        strategy=RandomStrategy(seed=42),
+        api_key="x",
+        max_actions=80,
+    )
+    result = agent.play("ls20")
+
+    assert result.final_state == "WIN"
+    assert result.levels_completed == 1
+    assert arcade.close_scorecard_calls == ["scorecard-test-id"]
