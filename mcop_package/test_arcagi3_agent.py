@@ -17,6 +17,7 @@ from mcop.adapters.arcagi3_agent import (
     GrokStrategy,
     MappingGrokStrategy,
     RandomStrategy,
+    _StuckDetector,
     _decide_action,
     _parse_action,
     _snap_to_allowed,
@@ -699,4 +700,220 @@ def test_play_normal_completion_still_works(monkeypatch: Any) -> None:
 
     assert result.final_state == "WIN"
     assert result.levels_completed == 1
+
+
+# ---- Per-step INFO log + stuck-detector ------------------------------------
+
+class _ScriptedStrategy:
+    """Deterministic strategy that replays a pre-baked action sequence.
+
+    Lets the play()-loop tests pin the exact action sequence the agent
+    takes, which is what `_StuckDetector` watches. Cycles through the
+    list when it runs out, so the same script can drive longer runs."""
+
+    def __init__(self, actions: List[str]) -> None:
+        self._actions = list(actions)
+        self._i = 0
+
+    def choose(
+        self,
+        frame: Any,
+        tensor: Any,
+        memory_summary: Dict[str, Any],
+        available_action_names: List[str],
+    ) -> Tuple[str, Dict[str, Any]]:
+        name = self._actions[self._i % len(self._actions)]
+        self._i += 1
+        return (name, {})
+
+
+def test_play_emits_per_step_info_log_with_levels_and_step_counter(
+    monkeypatch: Any, caplog: Any
+) -> None:
+    """Each step must emit exactly one INFO line of the form
+    `play(<game>) step <i>/<MAX>: <ACTION> levels=<k> state=<STATE>`.
+
+    Pre-fix the only per-step signal was `mapping-grok pick: ACTIONn`,
+    which had no level counter, no step index, and no max-actions
+    reference -- so during a long run you couldn't tell whether the
+    agent had advanced any levels or how close it was to its budget
+    cap without parsing `result.json` post-hoc.
+    """
+    from mcop.adapters.arcagi3_agent import MCOPArcAgi3Agent
+
+    env = _FakeEnv(steps_until_win=4)
+    arcade = _FakeArcade(env=env)
+    _patch_sdk_with(monkeypatch, arcade)
+
+    agent = MCOPArcAgi3Agent(
+        strategy=_ScriptedStrategy(["ACTION1", "ACTION2", "ACTION3", "ACTION4"]),
+        api_key="x",
+        max_actions=80,
+    )
+    caplog.set_level(logging.INFO, logger="mcop.adapters.arcagi3_agent")
+    agent.play("ls20")
+
+    step_logs = [
+        rec.getMessage()
+        for rec in caplog.records
+        if rec.levelno == logging.INFO and "play(ls20) step" in rec.getMessage()
+    ]
+    assert len(step_logs) == 4, step_logs
+    # First three steps before WIN: PLAYING, levels=0.
+    assert "step 1/80: ACTION1 levels=0 state=PLAYING" in step_logs[0]
+    assert "step 2/80: ACTION2 levels=0 state=PLAYING" in step_logs[1]
+    assert "step 3/80: ACTION3 levels=0 state=PLAYING" in step_logs[2]
+    # Fourth step lands on WIN -- env reports levels=1.
+    assert "step 4/80: ACTION4 levels=1 state=WIN" in step_logs[3]
+
+
+# ---- _StuckDetector unit tests ---------------------------------------------
+
+def test_stuck_detector_silent_below_window() -> None:
+    """No warning until the detector has at least _WINDOW (=6) samples."""
+    det = _StuckDetector()
+    for action in ("ACTION3", "ACTION1", "ACTION3", "ACTION1", "ACTION3"):
+        assert det.observe(action, levels=0) is None
+
+
+def test_stuck_detector_period_2_loop_warns_once() -> None:
+    """The 31313 / 13131 pattern that motivated this work: once the
+    detector sees 6 steps of period-2 cycling at level 0, it warns
+    exactly once -- not on every subsequent step."""
+    det = _StuckDetector()
+    seq = ("ACTION3", "ACTION1") * 3  # 6 steps
+    warnings: List[Optional[str]] = [det.observe(a, levels=0) for a in seq]
+    # First five returns are None (not enough data for a full window
+    # match until step 6), step 6 returns the warning.
+    assert warnings[:5] == [None, None, None, None, None]
+    assert warnings[5] is not None
+    assert "period-2" in warnings[5]
+    assert "ACTION3" in warnings[5] and "ACTION1" in warnings[5]
+    assert "levels=0" in warnings[5]
+    # Continuing the same loop must NOT re-warn.
+    assert det.observe("ACTION3", levels=0) is None
+    assert det.observe("ACTION1", levels=0) is None
+
+
+def test_stuck_detector_period_3_loop_warns_once() -> None:
+    """ACTION1, ACTION2, ACTION3, ACTION1, ACTION2, ACTION3 -> single warn."""
+    det = _StuckDetector()
+    seq = ("ACTION1", "ACTION2", "ACTION3") * 2  # 6 steps
+    warnings = [det.observe(a, levels=0) for a in seq]
+    assert warnings[:5] == [None, None, None, None, None]
+    assert warnings[5] is not None
+    assert "period-3" in warnings[5]
+
+
+def test_stuck_detector_silent_when_levels_advance() -> None:
+    """Same period-2 action sequence but with levels advancing partway
+    through the window -- the agent is making progress, just doing it
+    via repeated action toggles. NOT stuck."""
+    det = _StuckDetector()
+    seq = ("ACTION3", "ACTION1") * 3
+    levels = [0, 0, 0, 1, 1, 1]  # level advanced at step 4
+    warnings = [det.observe(a, lvl) for a, lvl in zip(seq, levels)]
+    assert all(w is None for w in warnings)
+
+
+def test_stuck_detector_silent_on_flat_repeat() -> None:
+    """ACTION2 x 6 is the OLD `--strategy grok` collapse-on-ACTION2
+    failure mode. Intentionally NOT flagged by this detector -- the
+    per-step INFO log already shows the same action repeating, so
+    flagging here would be redundant. Flat repeats need their own
+    detector if we want one later."""
+    det = _StuckDetector()
+    warnings = [det.observe("ACTION2", levels=0) for _ in range(6)]
+    assert all(w is None for w in warnings)
+
+
+def test_stuck_detector_re_warns_after_break_and_re_loop() -> None:
+    """If the agent breaks out of one loop, falls into a different
+    one, the new pattern warns again -- so a long run with multiple
+    distinct stuck-states surfaces all of them, not just the first."""
+    det = _StuckDetector()
+    # First loop: 3,1,3,1,3,1 -> warn.
+    for a in ("ACTION3", "ACTION1") * 3:
+        det.observe(a, levels=0)
+    # Break out with two distinct actions.
+    assert det.observe("ACTION4", levels=0) is None
+    assert det.observe("ACTION2", levels=0) is None
+    # Now fall into a different period-2 loop: 4,2,4,2,4,2.
+    new_warnings = [
+        det.observe(a, levels=0) for a in ("ACTION4", "ACTION2") * 3
+    ]
+    # Within those 6 calls, the window will eventually contain
+    # exactly 4,2,4,2,4,2 and warn. (The exact step is implementation
+    # detail; assert at least one warning fired with the new cycle.)
+    fired = [w for w in new_warnings if w is not None]
+    assert len(fired) >= 1
+    assert "ACTION4" in fired[0] and "ACTION2" in fired[0]
+
+
+def test_play_emits_stuck_warning_on_period_2_loop(
+    monkeypatch: Any, caplog: Any
+) -> None:
+    """End-to-end through play(): a scripted ACTION3,ACTION1 loop
+    should produce the per-step INFO logs AND a single
+    `play(ls20) appears stuck: period-2 ...` WARNING within the first
+    handful of steps."""
+    from mcop.adapters.arcagi3_agent import MCOPArcAgi3Agent
+
+    # Env never terminates within 10 steps so the loop runs.
+    env = _FakeEnv()  # no interrupt, no win
+    arcade = _FakeArcade(env=env)
+    _patch_sdk_with(monkeypatch, arcade)
+
+    agent = MCOPArcAgi3Agent(
+        strategy=_ScriptedStrategy(["ACTION3", "ACTION1"]),
+        api_key="x",
+        max_actions=10,
+    )
+    caplog.set_level(logging.WARNING, logger="mcop.adapters.arcagi3_agent")
+    agent.play("ls20")
+
+    stuck_warnings = [
+        rec.getMessage()
+        for rec in caplog.records
+        if rec.levelno == logging.WARNING and "appears stuck" in rec.getMessage()
+    ]
+    assert len(stuck_warnings) == 1, stuck_warnings
+    msg = stuck_warnings[0]
+    assert "play(ls20)" in msg
+    assert "period-2" in msg
+    assert "ACTION3" in msg and "ACTION1" in msg
+    assert "levels=0" in msg
+
+
+def test_play_no_stuck_warning_on_diverse_actions(
+    monkeypatch: Any, caplog: Any
+) -> None:
+    """Regression guard: a non-looping action sequence (rotating
+    through all 4 actions) MUST NOT trigger the stuck warning even
+    when levels never advance. Without this guard the detector would
+    flag any long random run as `stuck`."""
+    from mcop.adapters.arcagi3_agent import MCOPArcAgi3Agent
+
+    env = _FakeEnv()
+    arcade = _FakeArcade(env=env)
+    _patch_sdk_with(monkeypatch, arcade)
+
+    agent = MCOPArcAgi3Agent(
+        strategy=_ScriptedStrategy(
+            ["ACTION1", "ACTION2", "ACTION3", "ACTION4"]
+        ),
+        api_key="x",
+        max_actions=12,
+    )
+    caplog.set_level(logging.WARNING, logger="mcop.adapters.arcagi3_agent")
+    agent.play("ls20")
+
+    stuck_warnings = [
+        rec.getMessage()
+        for rec in caplog.records
+        if rec.levelno == logging.WARNING and "appears stuck" in rec.getMessage()
+    ]
+    # Period-4 is not detected (we only check period-2 and period-3),
+    # so a clean rotation across 4 actions must not fire.
+    assert stuck_warnings == []
     assert arcade.close_scorecard_calls == ["scorecard-test-id"]
