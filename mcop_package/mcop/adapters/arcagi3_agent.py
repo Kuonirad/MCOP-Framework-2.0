@@ -443,6 +443,92 @@ def _log_parse_failure(
         )
 
 
+class _StuckDetector:
+    """Periodicity-based loop detector for the ``play()`` action stream.
+
+    Watches the last ``_WINDOW`` (action, levels_completed) pairs and
+    emits a one-line description when *all* of the following are true:
+
+    * the level counter never advances within the window (so the agent
+      isn't actually solving anything), AND
+    * the action sequence is exactly a period-2 cycle repeated 3 times
+      (e.g. ``ACTION3, ACTION1, ACTION3, ACTION1, ACTION3, ACTION1``)
+      OR a period-3 cycle repeated 2 times
+      (e.g. ``ACTION1, ACTION2, ACTION3, ACTION1, ACTION2, ACTION3``),
+      with the cycle containing at least two distinct actions. A
+      single-action repeat (``ACTION2, ACTION2, ...``) is its own
+      pathology and intentionally NOT flagged here -- that one shows up
+      directly in the per-step log.
+
+    The detector emits each unique stuck-signature exactly once, so a
+    long-running loop produces a single warning rather than a per-step
+    flood. The signature includes the levels value, so re-entering the
+    same cycle at a different level (very rare) re-warns. If the agent
+    breaks out (level advances OR action sequence changes), the
+    next time it falls back into a loop will warn again.
+    """
+
+    _WINDOW = 6
+
+    def __init__(self) -> None:
+        self._actions: List[str] = []
+        self._levels: List[int] = []
+        self._last_warned: Optional[str] = None
+
+    def observe(self, action: str, levels: int) -> Optional[str]:
+        """Append (action, levels) and return a warning string if a NEW
+        stuck pattern crystallised on this step. Returns ``None`` when
+        no warning is due (insufficient data, no loop, or already-warned
+        loop)."""
+        self._actions.append(action)
+        self._levels.append(levels)
+        if len(self._actions) < self._WINDOW:
+            return None
+        window_actions = self._actions[-self._WINDOW:]
+        window_levels = self._levels[-self._WINDOW:]
+        # Any level change in the window means progress -- not stuck.
+        if len(set(window_levels)) > 1:
+            self._last_warned = None
+            return None
+        for period in (2, 3):
+            if self._WINDOW % period != 0:
+                continue  # pragma: no cover -- _WINDOW=6 covers both
+            cycles = self._WINDOW // period
+            cycle = window_actions[:period]
+            if len(set(cycle)) < 2:
+                # Flat repeat (all same action) -- not what this detector
+                # targets. The per-step log already shows the action name
+                # repeating; we don't want to double-flag that case.
+                continue
+            if window_actions != cycle * cycles:
+                continue
+            # Rotation-invariant signature: sliding the window by one
+            # step produces the same cycle in a different order
+            # (e.g. ``[3,1]`` vs ``[1,3]``), so signing on the raw
+            # cycle would re-warn every step. Sort the unique elements
+            # to collapse all rotations of the same loop into one
+            # signature.
+            sig_parts = ",".join(sorted(set(cycle)))
+            signature = f"period-{period}:{sig_parts}@{window_levels[0]}"
+            if signature == self._last_warned:
+                return None
+            self._last_warned = signature
+            return (
+                f"period-{period} loop {cycle} repeated "
+                f"{cycles}x with no levels_delta "
+                f"(levels={window_levels[0]})"
+            )
+        # No periodic loop matched -- if the agent has clearly moved on
+        # (last action different from the one before), forget the warned
+        # signature so a future stuck-state can re-warn.
+        if (
+            len(window_actions) >= 2
+            and window_actions[-1] != window_actions[-2]
+        ):
+            self._last_warned = None
+        return None
+
+
 def _grid_as_list(frame: Any) -> List[Any]:
     """Return frame.frame as plain nested lists.
 
@@ -746,6 +832,12 @@ class MCOPArcAgi3Agent:
 
         frame: Optional[Any] = None
         interrupted = False
+        # Stuck-detector watches the (action, levels) stream for period-2 /
+        # period-3 cycles with no level progress -- the failure mode where
+        # Grok bounces between "ACTION3, ACTION1, ACTION3, ACTION1, ..."
+        # without solving the puzzle. Without this an 80-action cancellation
+        # window can be wasted entirely before anyone notices.
+        stuck = _StuckDetector()
         try:
             frame = env.reset()
             recent: List[str] = []
@@ -822,6 +914,30 @@ class MCOPArcAgi3Agent:
                     )
                 )
                 recent.append(action_name)
+                # One INFO line per step so the action sequence + level
+                # counter are both visible in real-time, without needing to
+                # parse the eventual `result.json` to learn whether the
+                # agent ever advanced. The format is intentionally
+                # grep-friendly: `play(<game>) step <i>/<MAX>: <ACTION>
+                # levels=<k> state=<STATE>[ data=<dict>]`.
+                data_repr = f" data={action_data}" if action_data else ""
+                logger.info(
+                    "play(%s) step %d/%d: %s levels=%d state=%s%s",
+                    game_id,
+                    step + 1,
+                    self.max_actions,
+                    action_name,
+                    levels,
+                    state_name,
+                    data_repr,
+                )
+                stuck_msg = stuck.observe(action_name, levels)
+                if stuck_msg is not None:
+                    logger.warning(
+                        "play(%s) appears stuck: %s",
+                        game_id,
+                        stuck_msg,
+                    )
                 frame = next_frame
 
                 if next_frame is None:
