@@ -246,6 +246,34 @@ class GrokStrategy:
             )
 
 
+def _format_history(actions: List[str], levels: List[int]) -> str:
+    """Render recent action history as a prominent, action-aligned block.
+
+    The pre-fix prompt buried recent actions inside a `Memory:` line as
+    `recent=[...]`, which Grok routinely ignored -- on `ls20` the model
+    cycled `[ACTION1, ACTION3]` for 50+ steps because each turn it picked
+    fresh from the current grid with no awareness of what it had just
+    tried. Pairing each action with the levels_completed it produced and
+    naming the field explicitly gives the model a chance to notice
+    oscillation and break out of it.
+    """
+    if not actions:
+        return "Your recent actions: (none yet, this is the first pick)\n"
+    pairs: List[str] = []
+    for i, name in enumerate(actions):
+        if i < len(levels):
+            pairs.append(f"{name}->lvl{levels[i]}")
+        else:
+            pairs.append(name)
+    return (
+        f"Your last {len(actions)} actions (oldest to newest): "
+        f"{', '.join(pairs)}. "
+        "If your recent picks are oscillating between the same actions "
+        "and levels are not advancing, try a different action that "
+        "you have not just tried.\n"
+    )
+
+
 def _build_prompt(
     frame: Any,
     memory_summary: Dict[str, Any],
@@ -254,12 +282,15 @@ def _build_prompt(
     grid = _grid_as_list(frame)
     levels = getattr(frame, "levels_completed", 0)
     state = getattr(getattr(frame, "state", None), "value", str(frame))
+    recent_actions = list(memory_summary.get("recent", []) or [])
+    recent_levels = list(memory_summary.get("recent_levels", []) or [])
     return (
         f"State: {state}\n"
         f"Levels completed: {levels}\n"
         f"Available actions: {available_action_names}\n"
-        f"Memory: resonance_score={memory_summary.get('resonance', 0):.3f}, "
-        f"recent_actions={memory_summary.get('recent', [])}\n"
+        + _format_history(recent_actions, recent_levels)
+        + f"Memory resonance score: "
+        f"{memory_summary.get('resonance', 0):.3f}\n"
         f"Grid (truncated): {json.dumps(grid, default=_json_default)[:2000]}\n"
         "Choose the next action."
     )
@@ -706,6 +737,8 @@ class MappingGrokStrategy:
             if self._last_action and self._last_diff
             else "Last action: (none)\n"
         )
+        recent_actions = list(memory_summary.get("recent", []) or [])
+        recent_levels = list(memory_summary.get("recent_levels", []) or [])
         user_msg = (
             f"State: {state}\n"
             f"Levels completed: {levels}\n"
@@ -714,8 +747,9 @@ class MappingGrokStrategy:
             + "\n".join(mapping_lines)
             + "\n"
             + last_block
-            + f"Memory: resonance={memory_summary.get('resonance', 0):.3f}, "
-            f"recent={memory_summary.get('recent', [])}\n"
+            + _format_history(recent_actions, recent_levels)
+            + f"Memory resonance score: "
+            f"{memory_summary.get('resonance', 0):.3f}\n"
             f"Grid (truncated): {json.dumps(grid, default=_json_default)[:1500]}\n"
             "Pick the next action. Goal: increase levels_completed."
         )
@@ -841,6 +875,7 @@ class MCOPArcAgi3Agent:
         try:
             frame = env.reset()
             recent: List[str] = []
+            recent_levels: List[int] = []
             for step in range(self.max_actions):
                 if frame is None:
                     logger.warning("Null frame at step %d; stopping", step)
@@ -854,7 +889,13 @@ class MCOPArcAgi3Agent:
                 resonance = self.stigmergy.get_resonance(tensor)
                 memory_summary = {
                     "resonance": resonance.score,
-                    "recent": recent[-5:],
+                    # `recent_levels` is paired index-wise with `recent`
+                    # downstream so each action shows its post-step level
+                    # in the prompt -- giving Grok the visibility it
+                    # needs to detect "I keep picking the same two
+                    # actions and levels stays at 0".
+                    "recent": recent[-8:],
+                    "recent_levels": recent_levels[-8:],
                 }
                 # GameAction is a compound enum keyed by (int, action_class)
                 # tuples, so GameAction(int_value) raises ValueError. Resolve
@@ -914,6 +955,7 @@ class MCOPArcAgi3Agent:
                     )
                 )
                 recent.append(action_name)
+                recent_levels.append(levels)
                 # One INFO line per step so the action sequence + level
                 # counter are both visible in real-time, without needing to
                 # parse the eventual `result.json` to learn whether the
