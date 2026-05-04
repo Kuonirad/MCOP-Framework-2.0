@@ -17,11 +17,12 @@
  * This is required for replayability of audit trails.
  */
 
-import { createHash, randomUUID } from 'node:crypto';
+import { createHash } from 'node:crypto';
 
 import type { ContextTensor } from '../types';
 import { NovaNeoEncoder } from '../novaNeoEncoder';
 import { StigmergyV5 } from '../stigmergyV5';
+import { randomUuidV4 } from '../uuid';
 import { HolographicEtch } from '../holographicEtch';
 import { canonicalDigest } from '../canonicalEncoding';
 import { UCB1Bandit } from './mab';
@@ -212,7 +213,7 @@ export class MCOPMCTSPlanner {
   ): InternalNode {
     const tensor = this.encoder.encode(pathText);
     const tensorHash = hashTensor(tensor);
-    const id = randomUUID();
+    const id = randomUuidV4();
     const merkleHash = computeNodeMerkleHash({
       id,
       action,

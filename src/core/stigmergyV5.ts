@@ -1,8 +1,8 @@
-import { randomUUID } from 'node:crypto';
 import { ContextTensor, PheromoneTrace, ResonanceResult } from './types';
 import { cosineWithMagnitudes, magnitude, padVector } from './vectorMath';
 import { CircularBuffer } from './circularBuffer';
 import { canonicalDigest } from './canonicalEncoding';
+import { randomUuidV4 } from './uuid';
 
 export interface StigmergyConfig {
   resonanceThreshold?: number;
@@ -42,7 +42,7 @@ export class StigmergyV5 {
     metadata?: Record<string, unknown>,
   ): PheromoneTrace {
     const parentHash = this.traces.last()?.hash;
-    const id = randomUUID();
+    const id = randomUuidV4();
 
     const contextMag = magnitude(context);
     const synthesisMag = magnitude(synthesisVector);

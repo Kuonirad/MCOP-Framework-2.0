@@ -1,8 +1,8 @@
-import { randomUUID } from 'node:crypto';
 import { ContextTensor, EtchRecord, PheromoneTrace, ResonanceResult } from './types';
 import { HolographicEtch } from './holographicEtch';
 import { NovaNeoEncoder } from './novaNeoEncoder';
 import { StigmergyV5 } from './stigmergyV5';
+import { randomUuidV4 } from './uuid';
 import {
   PGoTConfig,
   PGoTGraph,
@@ -39,7 +39,7 @@ export class PGoT {
 
   addThought(text: string, synthesisVector: number[], label?: string, metadata?: Record<string, unknown>): ThoughtNode {
     const context = this.encoder.encode(text);
-    const id = randomUUID();
+    const id = randomUuidV4();
     const node: ThoughtNode = {
       id,
       label,
