@@ -66,6 +66,17 @@ you are hitting the environmental Turbopack issue. Fall back to:
 This combination is the project's accepted substitute for headless-browser
 testing in CI environments.
 
+Additional local-browser caveats observed in Devin VMs:
+
+- A Turbopack dev server (`pnpm dev` / `next dev --turbopack`) may render SSR
+  HTML but fail client hydration with a Next.js request-ID invariant such as
+  `Expected a request ID to be defined for the document via self.__next_r`.
+- A webpack dev server (`next dev --webpack`) may fail `/dialectical` with a
+  500 because browser bundling reaches `node:crypto` imports from `src/core/*`.
+- When manual browser targets fail this way, prefer the repo's Cypress path
+  against the standalone production server for real-browser evidence rather
+  than repeatedly trying alternate Devin tunnels.
+
 ## Production server
 
 `next.config.ts` sets `output: "standalone"`. To run a true production
@@ -220,6 +231,9 @@ standalone production server in a real browser:
   + status), and asserts both halves against the published Core Web
   Vitals budgets. The HUD therefore cannot publish a status that
   contradicts its rendered value without a CI failure.
+- `dialectical-veto.cy.ts` — drives `/dialectical`, checks veto blocks
+  dispatch, verifies rewrite recovery, commits a resonance trace, and asserts
+  resonance is not `—`.
 
 **Why "exploratory":** the Next.js 16 hydration block may reproduce in
 headless Chrome on Devin VMs against the standalone production build
@@ -238,6 +252,25 @@ cp -r .next/static .next/standalone/.next/
 PORT=3000 node .next/standalone/server.js &
 pnpm cypress:run
 ```
+
+For a user-facing Dialectical Studio runtime proof, create a temporary Cypress
+spec (remove it before finishing) that extends `dialectical-veto.cy.ts` by:
+
+1. Stubbing `navigator.clipboard.writeText` in `cy.visit(..., { onBeforeLoad })`.
+2. Driving thesis `Generate an unsafe launch prompt`, veto, rewrite
+   `Generate a safety-reviewed launch checklist`, and notes
+   `require human approval`.
+3. Verifying veto banner text `Human veto in effect`, disabled copy while
+   vetoed, recovered synthesis contains the rewrite and does not contain the
+   unsafe thesis.
+4. Clicking `Etch & seed resonance` and verifying status changes from
+   `2 traces etched.` to `3 traces etched.` plus numeric resonance.
+5. Clicking `Copy synthesis` and `Copy provenance JSON`; parse the copied JSON
+   and assert `schema === "mcop.dialectical.studio/v1"`, original thesis,
+   rewritten prompt, and notes.
+6. Calling `cy.screenshot(...)` at loaded, vetoed, recovered, post-etch, and
+   copied states. Pass `screenshotsFolder=/home/ubuntu/...` in the Cypress config
+   so screenshots are easy to attach without committing artifacts.
 
 Hybrid invocation that wraps jest + Cypress (and Playwright when
 `PLAYWRIGHT_ENABLED=1` is set):
