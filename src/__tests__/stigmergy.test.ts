@@ -26,4 +26,29 @@ describe('StigmergyV5 Security & Functionality', () => {
      // We check for general randomness/length
      expect(trace.id.length).toBeGreaterThan(10);
   });
+
+  test('calibrates resonance threshold from recent trace distribution', () => {
+    const adaptive = new StigmergyV5({
+      resonanceThreshold: 0.9,
+      hysteresisBand: 0,
+      calibrationWindow: 8,
+    });
+
+    adaptive.recordTrace([1, 0], [1, 0]);
+    adaptive.recordTrace([1, 0], [1, 0]);
+    adaptive.recordTrace([0, 1], [1, 0]);
+
+    const threshold = adaptive.getAdaptiveResonanceThreshold();
+    expect(threshold).toBeGreaterThan(0);
+    expect(threshold).toBeLessThan(0.9);
+  });
+
+  test('pads ragged vectors before resonance scoring', () => {
+    const adaptive = new StigmergyV5({ resonanceThreshold: 0.1 });
+    const trace = adaptive.recordTrace([1, 0], [1, 0, 0]);
+    const resonance = adaptive.getResonance([1, 0, 0]);
+
+    expect(trace.weight).toBeCloseTo(1);
+    expect(resonance.trace?.id).toBe(trace.id);
+  });
 });

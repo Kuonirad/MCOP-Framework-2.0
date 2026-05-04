@@ -7,11 +7,13 @@
  */
 
 import {
+  assertSameLength,
   cosine,
   cosineWithMagnitudes,
   dot,
   magnitude,
   normalizeInPlace,
+  padVector,
   variance,
 } from '../core/vectorMath';
 
@@ -54,6 +56,13 @@ describe('VectorMath — magnitude', () => {
 describe('VectorMath — dot & cosine', () => {
   it('dot tolerates ragged inputs using the shorter length', () => {
     expect(dot([1, 2, 3, 4], [1, 1])).toBe(3);
+  });
+
+  it('exposes dimensionality guards and deterministic padding', () => {
+    expect(() => assertSameLength([1, 2], [1], 'cosine')).toThrow(
+      /cosine requires equal vector dimensions/,
+    );
+    expect(padVector([1, 2], 4)).toEqual([1, 2, 0, 0]);
   });
 
   it('cosine of identical vectors is 1, orthogonal is 0', () => {

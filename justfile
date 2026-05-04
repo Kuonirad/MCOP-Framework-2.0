@@ -10,45 +10,45 @@ reproduce:
     @echo ""
     @echo "1. Environment Information:"
     node --version
-    npm --version
+    pnpm --version
     @echo ""
     @echo "2. Installing Dependencies:"
-    npm ci
+    pnpm install --frozen-lockfile
     @echo ""
     @echo "3. Running Linter:"
-    npm run lint
+    pnpm lint
     @echo ""
     @echo "4. Building Project:"
-    npm run build
+    pnpm build
     @echo ""
     @echo "5. Running Tests:"
-    npm test || true
+    pnpm test || true
     @echo ""
     @echo "=== Q.E.D. - Build Reproduced Successfully ==="
 
 # Install dependencies
 install:
-    npm ci
+    pnpm install
 
 # Run development server
 dev:
-    npm run dev
+    pnpm dev
 
 # Build for production
 build:
-    npm run build
+    pnpm build
 
 # Run tests
 test:
-    npm test
+    pnpm test
 
 # Run linter
 lint:
-    npm run lint
+    pnpm lint
 
 # Run security audit
 audit:
-    npm audit --audit-level=moderate
+    pnpm audit --audit-level=moderate
 
 # Run all CI checks locally
 ci: lint build test audit
@@ -90,11 +90,11 @@ scan-trojan:
 
 # Format code (if prettier is installed)
 format:
-    npx prettier --write "src/**/*.{ts,tsx,js,jsx,json,css,md}"
+    pnpm exec prettier --write "src/**/*.{ts,tsx,js,jsx,json,css,md}"
 
 # Check types
 typecheck:
-    npx tsc --noEmit
+    pnpm exec tsc --noEmit
 
 # Full quality check
 quality: lint typecheck scan-trojan security-test

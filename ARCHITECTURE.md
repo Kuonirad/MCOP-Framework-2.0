@@ -32,6 +32,88 @@ The **MCOP (Meta-Cognitive Optimization Protocol) Framework** implements collect
 
 ---
 
+## C4 Model
+
+### Context
+
+MCOP sits between human operators, agent runtimes, and external model providers.
+Operators submit prompts, vetoes, and refinement feedback. Agent runtimes call
+the triad APIs directly. Provider adapters translate optimized synthesis
+requests into model-specific REST, SSE, or local inference calls. The framework
+returns cryptographically linked traces so downstream systems can replay why a
+decision was accepted, rejected, or routed.
+
+### Containers
+
+| Container | Path | Responsibility |
+|:---|:---|:---|
+| Next.js app | `src/app` | Browser/server UI, API routes, and observability endpoints. |
+| TypeScript triad | `src/core` | Encoder, stigmergy memory, etch ledger, provenance tracer, vector math. |
+| Adapter layer | `src/adapters` | Provider-specific integration behind a common request/result contract. |
+| npm core package | `packages/core` | Publishable ESM/CJS core surface for consumers outside the app. |
+| Python package | `mcop_package` | Cross-runtime canonical encoding and CLI/reference implementation. |
+| Automation | `.github/workflows`, `scripts` | CI, supply-chain checks, SBOM, parity guards, publishing. |
+
+### Components
+
+| Component | Primary contract | Notes |
+|:---|:---|:---|
+| `NovaNeoEncoder` | text → `ContextTensor` | Deterministic SHA-256/hash-trick vectorization with optional normalization. |
+| `StigmergyV5` | context/synthesis → `PheromoneTrace` | Circular-buffer retention, adaptive resonance thresholding, Merkle root tracking. |
+| `HolographicEtch` | context/synthesis → `EtchRecord` | Confidence-gated append ledger plus rejection audit ring. |
+| `SynthesisProvenanceTracer` | synthesis request → chained event | Composes encoder, memory, and etch into a replayable lineage. |
+| `vectorMath` | numeric primitives | Shared magnitude, cosine, padding, and dimensionality guard utilities. |
+| Adapter implementations | `AdapterRequest` → provider result | Isolate auth, retries, attribution, and provider-specific payloads. |
+
+### Code-level invariants
+
+- Canonical hashes use RFC 8785 JSON serialization via `canonicalDigest`.
+- Bounded memory uses `CircularBuffer` to avoid O(n) overflow shifts.
+- Resonance scans remain O(n × d), where `n` is retained trace count and `d`
+  is comparable vector dimensionality.
+- Ragged vectors are deterministically zero-padded at MCOP boundaries rather
+  than silently changing tensor magnitudes.
+- Low-confidence etches are retained in a dedicated audit ring, not committed
+  into the accepted etch stream.
+
+## Stigmergic Coordination and Feedback Control
+
+`StigmergyV5` is intentionally decentralized: local trace writes and local
+resonance reads produce system-level continuity without a central planner. The
+adaptive resonance threshold samples recent trace weights, estimates the local
+mean and dispersion, then applies a hysteresis band before changing acceptance
+behavior. This creates negative feedback against high-entropy domains that would
+otherwise miss useful traces, while damping oscillation when the trace
+distribution is stable.
+
+Memory pressure is bounded by `CircularBuffer`. Eviction is deterministic,
+oldest-first, and observable through buffer statistics. This keeps the memory
+substrate homeostatic under bursty agent traffic while preserving the latest
+coordination traces for self-organization.
+
+## Boundary Contracts
+
+- **TypeScript ↔ Python:** canonical fixtures under `tests/parity` must hash
+  byte-identically across runtimes.
+- **Browser ↔ server:** Next.js API routes own network boundaries; core modules
+  remain deterministic and side-effect-light except for UUID/timestamp capture
+  during trace creation.
+- **Framework ↔ consumer:** public exports in `src/core/index.ts` and
+  `packages/core/src/index.ts` are additive; breaking protocol changes require
+  docs and tests.
+- **Provider adapters:** external APIs must be isolated behind typed clients so
+  tests can inject deterministic mocks.
+
+## ADR Index
+
+| Decision | Location |
+|:---|:---|
+| Testing strategy | [`docs/adr/2026-04-25-testing-strategy.md`](./docs/adr/2026-04-25-testing-strategy.md) |
+| Meta-layer integration | [`docs/adr/2026-04-28-meta-layer-integration.md`](./docs/adr/2026-04-28-meta-layer-integration.md) |
+| Resonance-indexed Merkle forest preregistration | [`docs/preregistrations/RESONANCE_INDEXED_MERKLE_FOREST.md`](./docs/preregistrations/RESONANCE_INDEXED_MERKLE_FOREST.md) |
+
+---
+
 ## Key Design Decisions
 
 ### Why Cosine Similarity?

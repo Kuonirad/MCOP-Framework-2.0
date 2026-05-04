@@ -76,8 +76,9 @@ The framework rewards small, traceable interventions:
 ## 🛠️ Development setup
 
 The repository uses **pnpm@9.15.0** (pinned via `packageManager` in
-`package.json`) and **Node.js 20.11.0** (pinned via `.nvmrc`). The Python
-surface targets **3.11+**.
+`package.json`) and **Node.js 22.12.0** (pinned via `.nvmrc`). CI also accepts
+modern Node 20 releases that satisfy `^20.17.0`. The Python surface targets
+**3.11+**.
 
 ```bash
 # Clone your fork
@@ -85,7 +86,7 @@ git clone https://github.com/<YOUR_USER>/MCOP-Framework-2.0.git
 cd MCOP-Framework-2.0
 
 # Activate the pinned Node version (recommended: nvm or Volta)
-nvm use                              # picks 20.11.0 from .nvmrc
+nvm use                              # picks 22.12.0 from .nvmrc
 
 # Activate pnpm via corepack (first time only)
 corepack enable

@@ -87,14 +87,19 @@
 git clone https://github.com/Kuonirad/MCOP-Framework-2.0.git
 cd MCOP-Framework-2.0
 
+# Activate the repo toolchain
+nvm use
+corepack enable
+corepack prepare pnpm@9.15.0 --activate
+
 # Install dependencies
-npm install
+pnpm install
 
 # Run the full test suite (96.6% coverage)
-npm test
+pnpm test
 
 # Launch production server
-npm run build && npm start
+pnpm build && pnpm start
 ```
 
 ```typescript
@@ -115,6 +120,30 @@ const result = await mcop.optimize(context, {
   merkleChained: true
 });
 ```
+
+---
+
+## 🗺️ Documentation Map
+
+| Need | Start here |
+|:---|:---|
+| Public API and coverage surface | [`docs/api/README.md`](./docs/api/README.md) |
+| SBOM generation and validation | [`docs/sbom/README.md`](./docs/sbom/README.md) |
+| Architecture overview | [`ARCHITECTURE.md`](./ARCHITECTURE.md) |
+| Supply-chain controls | [`docs/SUPPLY_CHAIN_TRUST.md`](./docs/SUPPLY_CHAIN_TRUST.md) |
+| Universal Adapter Protocol | [`docs/adapters/UNIVERSAL_ADAPTER_PROTOCOL.md`](./docs/adapters/UNIVERSAL_ADAPTER_PROTOCOL.md) |
+| Contributor workflow | [`CONTRIBUTING.md`](./CONTRIBUTING.md) |
+
+## 🏷️ Badge Legend
+
+| Badge | Meaning |
+|:---|:---|
+| Build and Test | Merge-blocking lint, typecheck, test, build, security, and package checks. |
+| CodeQL | Static analysis for JavaScript/TypeScript and security query suites. |
+| Coverage | Jest coverage snapshot for the documented API surface. |
+| Release | Latest GitHub release tag. |
+| License | BUSL-1.1 license with scheduled MIT conversion noted in `LICENSE`. |
+| Maintained | Governance and maintainer process are documented. |
 
 ---
 
