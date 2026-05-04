@@ -27,6 +27,7 @@ export interface PheromoneTrace {
 export interface ResonanceResult {
   score: number;
   trace?: PheromoneTrace;
+  thresholdUsed?: number;
 }
 
 export interface EtchRecord {
