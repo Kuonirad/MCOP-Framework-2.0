@@ -35,6 +35,12 @@ on:
 permissions:
   contents: read
 
+env:
+  # Opt into Node 24 ahead of the June 2026 default flip so the
+  # checkout/setup-python/upload-artifact actions stop emitting Node 20
+  # deprecation warnings. Safe today; required after Sept 2026.
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
 concurrency:
   group: arcagi3-${{ github.ref }}-${{ github.event.inputs.game_id }}
   cancel-in-progress: false
