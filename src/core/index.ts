@@ -12,6 +12,7 @@ export * from './planning';
 export * from './canonicalEncoding';
 export * from './embeddingEngine';
 export * from './longFormVideoOrchestrator';
+export * from './observability';
 
 /**
  * Plain-English aliases — additive, non-breaking.

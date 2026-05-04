@@ -3,6 +3,12 @@ import { ContextTensor, NovaNeoConfig } from './types';
 import logger from '../utils/logger';
 import { variance as vecVariance } from './vectorMath';
 import { defaultEmbeddingBackend, HashingTrickBackend } from './embeddingEngine';
+import {
+  failTriadSpan,
+  finishTriadSpan,
+  isTriadTelemetryEnabled,
+  startTriadSpan,
+} from './observability';
 
 export class NovaNeoEncoder {
   private readonly dimensions: number;
@@ -23,27 +29,44 @@ export class NovaNeoEncoder {
   }
 
   encode(text: string): ContextTensor {
-    const values = this.backend === 'embedding'
-      ? this.embedder.encode(text, this.dimensions, this.normalize)
-      : this.encodeHash(text);
+    const span = startTriadSpan('mcop.triad.encode', {
+      'mcop.encoder.backend': this.backend,
+      'mcop.encoder.dimensions': this.dimensions,
+      'mcop.encoder.normalize': this.normalize,
+      'mcop.input.length': text.length,
+    });
+    try {
+      const values = this.backend === 'embedding'
+        ? this.embedder.encode(text, this.dimensions, this.normalize)
+        : this.encodeHash(text);
 
-    // Observability: Log provenance data for auditability
-    // Optimization: Only compute expensive provenance data if debug logging is enabled
-    if (typeof logger.isLevelEnabled === 'function' && logger.isLevelEnabled('debug')) {
-      logger.debug({
-        msg: 'NOVA-NEO Encoding complete',
-        provenance: {
-          inputLength: text.length,
-          dimensions: this.dimensions,
-          backend: this.backend,
-          entropy: this.estimateEntropy(values),
-          // Optimization: Use Float64Array for hashing to avoid slow JSON.stringify overhead on large arrays
-          tensorHash: crypto.createHash('sha256').update(new Float64Array(values)).digest('hex').substring(0, 8)
-        }
+      // Observability: Log provenance data for auditability
+      // Optimization: Only compute expensive provenance data if debug logging is enabled
+      if (typeof logger.isLevelEnabled === 'function' && logger.isLevelEnabled('debug')) {
+        logger.debug({
+          msg: 'NOVA-NEO Encoding complete',
+          provenance: {
+            inputLength: text.length,
+            dimensions: this.dimensions,
+            backend: this.backend,
+            entropy: this.estimateEntropy(values),
+            // Optimization: Use Float64Array for hashing to avoid slow JSON.stringify overhead on large arrays
+            tensorHash: crypto.createHash('sha256').update(new Float64Array(values)).digest('hex').substring(0, 8)
+          }
+        });
+      }
+
+      finishTriadSpan(span, {
+        'mcop.tensor.dimensions': values.length,
+        'mcop.tensor.entropy': isTriadTelemetryEnabled()
+          ? this.estimateEntropy(values)
+          : undefined,
       });
+      return values;
+    } catch (error) {
+      failTriadSpan(span, error);
+      throw error;
     }
-
-    return values;
   }
 
   /**
