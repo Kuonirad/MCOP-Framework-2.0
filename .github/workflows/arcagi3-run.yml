@@ -26,11 +26,6 @@ on:
         required: false
         default: "80"
         type: string
-      grok_model:
-        description: "xAI model name for grok / mapping-grok strategies"
-        required: false
-        default: "grok-4-fast-reasoning"
-        type: string
       verbose:
         description: "Verbose logging"
         required: false
@@ -83,31 +78,17 @@ jobs:
           ARC_API_KEY: ${{ secrets.ARC_API_KEY }}
           GROK_API_KEY: ${{ secrets.GROK_API_KEY }}
           GROK_BASE_URL: https://api.x.ai/v1
-          GROK_MODEL: ${{ inputs.grok_model }}
-        # GitHub Actions' default shell is `bash --noprofile --norc -eo
-        # pipefail`, which aborts the step the moment the pipeline
-        # fails. We need the post-pipe branch to run anyway so we can
-        # treat exit 130 (cancellation-flush from the SIGTERM handler in
-        # run_arcagi3_agent) as a warning instead of a hard failure --
-        # the artefact upload step depends on `result.json` always
-        # being on disk. The `|| status=...` idiom gates the failure
-        # without disabling `-e` for the rest of the script.
+          GROK_MODEL: grok-4-latest
         run: |
-          status=0
           python -m mcop_package.run_arcagi3_agent \
             "${{ inputs.game_id }}" \
             --strategy "${{ inputs.strategy }}" \
             --max-actions "${{ inputs.max_actions }}" \
             ${{ inputs.verbose && '--verbose' || '' }} \
-            | tee result.json || status=${PIPESTATUS[0]}
-          if [ "$status" -eq 130 ]; then
-            echo "::warning::agent flushed a partial result after cancellation (exit 130)"
-            exit 0
-          fi
-          exit "$status"
+            | tee result.json
 
       - name: Upload result artifact
-        if: ${{ always() && inputs.game_id != '' }}
+        if: ${{ inputs.game_id != '' }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: arcagi3-${{ inputs.game_id }}-${{ inputs.strategy }}-${{ github.run_id }}
