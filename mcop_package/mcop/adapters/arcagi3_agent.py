@@ -171,6 +171,11 @@ class GrokStrategy:
             )
             return None
         self._client = OpenAI(api_key=self.api_key, base_url=self.base_url)
+        logger.info(
+            "Grok client initialised: model=%s base_url=%s",
+            self.model,
+            self.base_url,
+        )
         return self._client
 
     def choose(
@@ -205,7 +210,15 @@ class GrokStrategy:
                 max_tokens=64,
             )
             text = completion.choices[0].message.content or ""
-            return _parse_action(text, available_action_names) or self.fallback.choose(
+            parsed = _parse_action(text, available_action_names)
+            if parsed is not None:
+                logger.info("grok pick: %s", parsed[0])
+                return parsed
+            logger.warning(
+                "grok response unparseable, falling back. Raw: %r",
+                text[:200],
+            )
+            return self.fallback.choose(
                 frame, tensor, memory_summary, available_action_names
             )
         except Exception as exc:  # pragma: no cover -- network path
@@ -461,7 +474,12 @@ class MappingGrokStrategy:
             text = completion.choices[0].message.content or ""
             parsed = _parse_action(text, available_action_names)
             if parsed is not None:
+                logger.info("mapping-grok pick: %s", parsed[0])
                 return parsed
+            logger.warning(
+                "mapping-grok response unparseable, falling back. Raw: %r",
+                text[:200],
+            )
         except Exception as exc:  # pragma: no cover -- network path
             logger.warning("Grok exploit call failed: %s", exc)
         return self.fallback.choose(
