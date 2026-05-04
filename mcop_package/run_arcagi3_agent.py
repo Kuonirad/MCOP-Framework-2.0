@@ -18,6 +18,7 @@ import sys
 from mcop.adapters.arcagi3_agent import (
     GrokStrategy,
     MCOPArcAgi3Agent,
+    MappingGrokStrategy,
     RandomStrategy,
     SDKUnavailable,
 )
@@ -33,7 +34,7 @@ def main() -> int:
     )
     parser.add_argument(
         "--strategy",
-        choices=["random", "grok"],
+        choices=["random", "grok", "mapping-grok"],
         default="random",
     )
     parser.add_argument("--max-actions", type=int, default=80)
@@ -50,9 +51,12 @@ def main() -> int:
         print("ERROR: ARC_API_KEY not set", file=sys.stderr)
         return 2
 
-    strategy = (
-        GrokStrategy() if args.strategy == "grok" else RandomStrategy(seed=args.seed)
-    )
+    if args.strategy == "grok":
+        strategy = GrokStrategy()
+    elif args.strategy == "mapping-grok":
+        strategy = MappingGrokStrategy()
+    else:
+        strategy = RandomStrategy(seed=args.seed)
 
     try:
         agent = MCOPArcAgi3Agent(strategy=strategy, max_actions=args.max_actions)
