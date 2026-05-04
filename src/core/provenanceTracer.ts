@@ -4,6 +4,7 @@ import { NovaNeoEncoder } from './novaNeoEncoder';
 import { StigmergyV5 } from './stigmergyV5';
 import { HolographicEtch } from './holographicEtch';
 import { canonicalDigest } from './canonicalEncoding';
+import { failTriadSpan, finishTriadSpan, startTriadSpan } from './observability';
 
 /**
  * Full Synthesis Provenance Tracer — composes the MCOP triad and emits a
@@ -40,45 +41,60 @@ export class SynthesisProvenanceTracer {
 
   /** Run the triad on `input` and return a provenance-tracked synthesis. */
   synthesize(input: string, metadata?: Record<string, unknown>): SynthesisResult {
-    const tensor = this.encoder.encode(input);
-    const entropy = this.encoder.estimateEntropy(tensor);
-    const encodeEvt = this.append('encode', {
-      inputHash: sha256(input).slice(0, 16),
-      dimensions: tensor.length,
-      entropy,
+    const span = startTriadSpan('mcop.triad.synthesize', {
+      'mcop.input.length': input.length,
+      'mcop.synthesis.has_metadata': metadata !== undefined,
     });
+    try {
+      const tensor = this.encoder.encode(input);
+      const entropy = this.encoder.estimateEntropy(tensor);
+      const encodeEvt = this.append('encode', {
+        inputHash: sha256(input).slice(0, 16),
+        dimensions: tensor.length,
+        entropy,
+      });
 
-    const trace = this.stigmergy.recordTrace(tensor, tensor, metadata);
-    const resonance = this.stigmergy.getResonance(tensor);
-    const traceEvt = this.append('trace', {
-      traceId: trace.id,
-      resonance: resonance.score,
-      merkleRoot: this.stigmergy.getMerkleRoot(),
-    });
+      const trace = this.stigmergy.recordTrace(tensor, tensor, metadata);
+      const resonance = this.stigmergy.getResonance(tensor);
+      const traceEvt = this.append('trace', {
+        traceId: trace.id,
+        resonance: resonance.score,
+        merkleRoot: this.stigmergy.getMerkleRoot(),
+      });
 
-    const etchRecord = this.etch.applyEtch(tensor, tensor, metadata?.note as string | undefined);
-    const etchEvt = this.append('etch', {
-      etchHash: etchRecord.hash,
-      deltaWeight: etchRecord.deltaWeight,
-      note: etchRecord.note,
-    });
+      const etchRecord = this.etch.applyEtch(tensor, tensor, metadata?.note as string | undefined);
+      const etchEvt = this.append('etch', {
+        etchHash: etchRecord.hash,
+        deltaWeight: etchRecord.deltaWeight,
+        note: etchRecord.note,
+      });
 
-    const synthEvt = this.append('synthesize', {
-      encodeHash: encodeEvt.hash,
-      traceHash: traceEvt.hash,
-      etchHash: etchEvt.hash,
-    });
+      const synthEvt = this.append('synthesize', {
+        encodeHash: encodeEvt.hash,
+        traceHash: traceEvt.hash,
+        etchHash: etchEvt.hash,
+      });
 
-    return {
-      input,
-      tensor,
-      entropy,
-      resonance: { score: resonance.score, traceId: resonance.trace?.id },
-      etchHash: etchRecord.hash,
-      etchDelta: etchRecord.deltaWeight,
-      events: [encodeEvt, traceEvt, etchEvt, synthEvt],
-      root: synthEvt.hash,
-    };
+      finishTriadSpan(span, {
+        'mcop.tensor.dimensions': tensor.length,
+        'mcop.tensor.entropy': entropy,
+        'mcop.resonance.score': resonance.score,
+        'mcop.etch.delta_weight': etchRecord.deltaWeight,
+      });
+      return {
+        input,
+        tensor,
+        entropy,
+        resonance: { score: resonance.score, traceId: resonance.trace?.id },
+        etchHash: etchRecord.hash,
+        etchDelta: etchRecord.deltaWeight,
+        events: [encodeEvt, traceEvt, etchEvt, synthEvt],
+        root: synthEvt.hash,
+      };
+    } catch (error) {
+      failTriadSpan(span, error);
+      throw error;
+    }
   }
 
   /** Merkle root of all events seen so far, or `undefined` when empty. */

@@ -3,6 +3,7 @@ import { cosineWithMagnitudes, magnitude, padVector } from './vectorMath';
 import { CircularBuffer } from './circularBuffer';
 import { canonicalDigest } from './canonicalEncoding';
 import { randomUuidV4 } from './uuid';
+import { failTriadSpan, finishTriadSpan, startTriadSpan } from './observability';
 
 export interface StigmergyConfig {
   resonanceThreshold?: number;
@@ -41,84 +42,123 @@ export class StigmergyV5 {
     synthesisVector: number[],
     metadata?: Record<string, unknown>,
   ): PheromoneTrace {
-    const parentHash = this.traces.last()?.hash;
-    const id = randomUuidV4();
+    const span = startTriadSpan('mcop.triad.trace.record', {
+      'mcop.tensor.context_dimensions': context.length,
+      'mcop.tensor.synthesis_dimensions': synthesisVector.length,
+      'mcop.trace.has_metadata': metadata !== undefined,
+    });
+    try {
+      const parentHash = this.traces.last()?.hash;
+      const id = randomUuidV4();
 
-    const contextMag = magnitude(context);
-    const synthesisMag = magnitude(synthesisVector);
-    const { a: comparableContext, b: comparableSynthesis } =
-      alignVectors(context, synthesisVector);
-    const comparableContextMag = comparableContext === context
-      ? contextMag
-      : magnitude(comparableContext);
-    const comparableSynthesisMag = comparableSynthesis === synthesisVector
-      ? synthesisMag
-      : magnitude(comparableSynthesis);
-    const weight = cosineWithMagnitudes(
-      comparableContext,
-      comparableSynthesis,
-      comparableContextMag,
-      comparableSynthesisMag,
-    );
+      const contextMag = magnitude(context);
+      const synthesisMag = magnitude(synthesisVector);
+      const { a: comparableContext, b: comparableSynthesis } =
+        alignVectors(context, synthesisVector);
+      const comparableContextMag = comparableContext === context
+        ? contextMag
+        : magnitude(comparableContext);
+      const comparableSynthesisMag = comparableSynthesis === synthesisVector
+        ? synthesisMag
+        : magnitude(comparableSynthesis);
+      const weight = cosineWithMagnitudes(
+        comparableContext,
+        comparableSynthesis,
+        comparableContextMag,
+        comparableSynthesisMag,
+      );
 
-    const payload = { id, context, synthesisVector, metadata, weight };
-    const hash = this.merkleHash(payload, parentHash);
+      const payload = { id, context, synthesisVector, metadata, weight };
+      const hash = this.merkleHash(payload, parentHash);
 
-    const trace: PheromoneTrace = {
-      id,
-      hash,
-      parentHash,
-      context,
-      magnitude: contextMag,
-      synthesisVector,
-      weight,
-      metadata,
-      timestamp: new Date().toISOString(),
-    };
+      const trace: PheromoneTrace = {
+        id,
+        hash,
+        parentHash,
+        context,
+        magnitude: contextMag,
+        synthesisVector,
+        weight,
+        metadata,
+        timestamp: new Date().toISOString(),
+      };
 
-    // O(1): CircularBuffer replaces the previous O(n) Array.shift() pattern.
-    this.traces.push(trace);
+      // O(1): CircularBuffer replaces the previous O(n) Array.shift() pattern.
+      this.traces.push(trace);
 
-    return trace;
+      finishTriadSpan(span, {
+        'mcop.trace.weight': trace.weight,
+        'mcop.trace.has_parent': parentHash !== undefined,
+        'mcop.trace.buffer_size': this.traces.size,
+      });
+      return trace;
+    } catch (error) {
+      failTriadSpan(span, error);
+      throw error;
+    }
   }
 
   getResonance(context: ContextTensor): ResonanceResult {
-    const queryMag = magnitude(context);
-    if (queryMag === 0) return { score: 0 };
-
-    let bestScore = 0;
-    let bestTrace: PheromoneTrace | undefined;
-
-    this.traces.forEach((trace) => {
-      const { a: comparableContext, b: comparableTraceContext } =
-        alignVectors(context, trace.context);
-      const comparableQueryMag = comparableContext === context
-        ? queryMag
-        : magnitude(comparableContext);
-      const traceMag = comparableTraceContext === trace.context
-        ? trace.magnitude ?? magnitude(trace.context)
-        : magnitude(comparableTraceContext);
-      if (traceMag === 0 || comparableQueryMag === 0) return;
-
-      const score = cosineWithMagnitudes(
-        comparableContext,
-        comparableTraceContext,
-        comparableQueryMag,
-        traceMag,
-      );
-      if (score > bestScore) {
-        bestScore = score;
-        bestTrace = trace;
-      }
+    const span = startTriadSpan('mcop.triad.resonance.query', {
+      'mcop.tensor.context_dimensions': context.length,
     });
+    try {
+      const queryMag = magnitude(context);
+      if (queryMag === 0) {
+        finishTriadSpan(span, {
+          'mcop.resonance.score': 0,
+          'mcop.resonance.matched': false,
+        });
+        return { score: 0 };
+      }
 
-    const threshold = this.getAdaptiveResonanceThreshold();
-    if (bestTrace && bestScore >= threshold) {
-      this.lastAcceptedThreshold = threshold;
-      return { score: bestScore, trace: bestTrace };
+      let bestScore = 0;
+      let bestTrace: PheromoneTrace | undefined;
+
+      this.traces.forEach((trace) => {
+        const { a: comparableContext, b: comparableTraceContext } =
+          alignVectors(context, trace.context);
+        const comparableQueryMag = comparableContext === context
+          ? queryMag
+          : magnitude(comparableContext);
+        const traceMag = comparableTraceContext === trace.context
+          ? trace.magnitude ?? magnitude(trace.context)
+          : magnitude(comparableTraceContext);
+        if (traceMag === 0 || comparableQueryMag === 0) return;
+
+        const score = cosineWithMagnitudes(
+          comparableContext,
+          comparableTraceContext,
+          comparableQueryMag,
+          traceMag,
+        );
+        if (score > bestScore) {
+          bestScore = score;
+          bestTrace = trace;
+        }
+      });
+
+      const threshold = this.getAdaptiveResonanceThreshold();
+      if (bestTrace && bestScore >= threshold) {
+        this.lastAcceptedThreshold = threshold;
+        finishTriadSpan(span, {
+          'mcop.resonance.score': bestScore,
+          'mcop.resonance.threshold': threshold,
+          'mcop.resonance.matched': true,
+        });
+        return { score: bestScore, trace: bestTrace };
+      }
+
+      finishTriadSpan(span, {
+        'mcop.resonance.score': 0,
+        'mcop.resonance.threshold': threshold,
+        'mcop.resonance.matched': false,
+      });
+      return { score: 0 };
+    } catch (error) {
+      failTriadSpan(span, error);
+      throw error;
     }
-
-    return { score: 0 };
   }
 
   getMerkleRoot(): string | undefined {

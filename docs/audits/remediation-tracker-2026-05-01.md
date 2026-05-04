@@ -94,7 +94,9 @@ table. Each row was verified against the repository:
 
 1. Wire a GitHub Pages (or equivalent) deploy for the `docs/api/` TypeDoc
    output — a workflow only, no source changes required.
-2. ADR + implementation for OpenTelemetry instrumentation of the triad.
+2. OpenTelemetry instrumentation seam for the triad — dependency-free span
+   observer landed in `src/core/observability.ts`; a deployment-specific
+   collector/exporter remains future app-level work.
 3. Choose between Stryker (mutation) and fast-check (property-based) for
    the core encoder; land an initial run.
 4. Decide whether to defer i18n until concrete non-English contributor
@@ -126,6 +128,13 @@ A follow-up audit identified additional actionable gaps:
 | 🟠 HIGH | `freepikAdapter.ts` at 35.71% branch coverage | ✅ Added 10 new test cases covering deprecation warning (once + not twice), `platformName`, `getCapabilities` legacy notes, `upscaleAsset` 2×/4×/default/8×/16×, `estimateFreepikUpscaleCost`, pre-aborted signal | `src/__tests__/adapters.test.ts` |
 | 🟡 MEDIUM | Stale-bot workflow only covers `bolt-*` | ✅ Extended regex to cover `palette-*`, `sentinel-*`, `jules-*`; updated summary messaging | `.github/workflows/delete-stale-bot-branches.yml` |
 | 🟡 MEDIUM | Commit signatures not required on `main` | ✅ Added `verify-commit-signatures.yml` CI workflow (advisory until 2026-06-01, then blocking); documented GPG/SSH setup in `CONTRIBUTING.md` | `.github/workflows/verify-commit-signatures.yml`, `CONTRIBUTING.md` |
+
+## Part 3 — Follow-up audit remediation (2026-05-04)
+
+| Severity | Finding | Action | File |
+|----------|---------|--------|------|
+| 🟠 HIGH | Mutation / fuzz-testing track required an initial deterministic property run | ✅ Added seeded property/fuzz coverage for `NovaNeoEncoder`, `TensorGuard`, and `canonicalDigest`; moved helper outside Jest discovery | `src/__tests__/auditPropertyFuzz.test.ts`, `src/test-utils/propertyTesting.ts` |
+| 🟠 HIGH | OpenTelemetry instrumentation for the triad remained planned | ✅ Added dependency-free telemetry span hooks for encode, trace record, resonance query, etch score/apply, and synthesis; documented collector/exporter deferral in ADR | `src/core/observability.ts`, `docs/adr/2026-05-04-triad-observability.md` |
 
 ---
 

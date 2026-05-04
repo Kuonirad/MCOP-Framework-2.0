@@ -2,6 +2,7 @@ import { ContextTensor, EtchRecord } from './types';
 import { CircularBuffer } from './circularBuffer';
 import { cosineWithMagnitudes, magnitude } from './vectorMath';
 import { canonicalDigest } from './canonicalEncoding';
+import { failTriadSpan, finishTriadSpan, startTriadSpan } from './observability';
 
 export interface HolographicEtchConfig {
   /**
@@ -67,43 +68,56 @@ export class HolographicEtch {
     context: ContextTensor,
     synthesisVector: number[],
   ): AdaptiveConfidenceBreakdown {
-    const ctxMag = magnitude(context);
-    const synMag = magnitude(synthesisVector);
-    const alignment = Math.max(
-      0,
-      cosineWithMagnitudes(context, synthesisVector, ctxMag, synMag),
-    );
-    const magnitudeHealth = clamp01(Math.min(ctxMag, synMag));
+    const span = startTriadSpan('mcop.triad.etch.score', {
+      'mcop.tensor.context_dimensions': context.length,
+      'mcop.tensor.synthesis_dimensions': synthesisVector.length,
+    });
+    try {
+      const ctxMag = magnitude(context);
+      const synMag = magnitude(synthesisVector);
+      const alignment = Math.max(
+        0,
+        cosineWithMagnitudes(context, synthesisVector, ctxMag, synMag),
+      );
+      const magnitudeHealth = clamp01(Math.min(ctxMag, synMag));
 
-    const minLen = Math.min(context.length, synthesisVector.length);
-    let dotAcc = 0;
-    for (let i = 0; i < minLen; i++) {
-      dotAcc += context[i] * synthesisVector[i];
+      const minLen = Math.min(context.length, synthesisVector.length);
+      let dotAcc = 0;
+      for (let i = 0; i < minLen; i++) {
+        dotAcc += context[i] * synthesisVector[i];
+      }
+      const normalizedDelta = dotAcc / (minLen || 1);
+      const staticFloorMargin = clamp01(normalizedDelta - this.confidenceFloor + 1) / 2;
+
+      const recencyStability = this.computeRecencyStability();
+
+      const adaptiveWeight = 1 - this.staticFloorWeight;
+      const adaptive =
+        0.5 * alignment +
+        0.2 * magnitudeHealth +
+        0.3 * recencyStability;
+      const score = clamp01(
+        this.staticFloorWeight * staticFloorMargin + adaptiveWeight * adaptive,
+      );
+
+      const accepted = normalizedDelta >= this.confidenceFloor;
+
+      finishTriadSpan(span, {
+        'mcop.etch.score': score,
+        'mcop.etch.accepted': accepted,
+      });
+      return {
+        alignment,
+        magnitudeHealth,
+        staticFloorMargin,
+        recencyStability,
+        score,
+        accepted,
+      };
+    } catch (error) {
+      failTriadSpan(span, error);
+      throw error;
     }
-    const normalizedDelta = dotAcc / (minLen || 1);
-    const staticFloorMargin = clamp01(normalizedDelta - this.confidenceFloor + 1) / 2;
-
-    const recencyStability = this.computeRecencyStability();
-
-    const adaptiveWeight = 1 - this.staticFloorWeight;
-    const adaptive =
-      0.5 * alignment +
-      0.2 * magnitudeHealth +
-      0.3 * recencyStability;
-    const score = clamp01(
-      this.staticFloorWeight * staticFloorMargin + adaptiveWeight * adaptive,
-    );
-
-    const accepted = normalizedDelta >= this.confidenceFloor;
-
-    return {
-      alignment,
-      magnitudeHealth,
-      staticFloorMargin,
-      recencyStability,
-      score,
-      accepted,
-    };
   }
 
   applyEtch(
@@ -111,40 +125,60 @@ export class HolographicEtch {
     synthesisVector: number[],
     note?: string,
   ): EtchRecord {
-    const minLen = Math.min(context.length, synthesisVector.length);
-    let deltaWeight = 0;
-    for (let i = 0; i < minLen; i++) {
-      deltaWeight += context[i] * synthesisVector[i];
-    }
-    const normalizedDelta = deltaWeight / (minLen || 1);
+    const span = startTriadSpan('mcop.triad.etch.apply', {
+      'mcop.tensor.context_dimensions': context.length,
+      'mcop.tensor.synthesis_dimensions': synthesisVector.length,
+      'mcop.etch.has_note': note !== undefined,
+    });
+    try {
+      const minLen = Math.min(context.length, synthesisVector.length);
+      let deltaWeight = 0;
+      for (let i = 0; i < minLen; i++) {
+        deltaWeight += context[i] * synthesisVector[i];
+      }
+      const normalizedDelta = deltaWeight / (minLen || 1);
 
-    if (normalizedDelta < this.confidenceFloor) {
-      const skipped: EtchRecord = {
-        hash: '',
-        deltaWeight: 0,
-        note: 'skipped-low-confidence',
+      if (normalizedDelta < this.confidenceFloor) {
+        const skipped: EtchRecord = {
+          hash: '',
+          deltaWeight: 0,
+          note: 'skipped-low-confidence',
+          timestamp: new Date().toISOString(),
+        };
+        // Audit trail: retain skip records on the dedicated audit ring so
+        // downstream replay can distinguish "rejected" from "never seen"
+        // without polluting committed-etch consumers.
+        if (this.auditLog) this.audit.push(skipped);
+        finishTriadSpan(span, {
+          'mcop.etch.accepted': false,
+          'mcop.etch.delta_weight': 0,
+          'mcop.etch.memory_size': this.etches.size,
+        });
+        return skipped;
+      }
+
+      const payload = { context, synthesisVector, normalizedDelta, note };
+      // RFC 8785 canonical JSON: byte-identical with the Python parity etch.
+      const hash = canonicalDigest(payload);
+      const record: EtchRecord = {
+        hash,
+        deltaWeight: normalizedDelta,
+        note,
         timestamp: new Date().toISOString(),
       };
-      // Audit trail: retain skip records on the dedicated audit ring so
-      // downstream replay can distinguish "rejected" from "never seen"
-      // without polluting committed-etch consumers.
-      if (this.auditLog) this.audit.push(skipped);
-      return skipped;
+
+      this.etches.push(record);
+      if (this.auditLog) this.audit.push(record);
+      finishTriadSpan(span, {
+        'mcop.etch.accepted': true,
+        'mcop.etch.delta_weight': normalizedDelta,
+        'mcop.etch.memory_size': this.etches.size,
+      });
+      return record;
+    } catch (error) {
+      failTriadSpan(span, error);
+      throw error;
     }
-
-    const payload = { context, synthesisVector, normalizedDelta, note };
-    // RFC 8785 canonical JSON: byte-identical with the Python parity etch.
-    const hash = canonicalDigest(payload);
-    const record: EtchRecord = {
-      hash,
-      deltaWeight: normalizedDelta,
-      note,
-      timestamp: new Date().toISOString(),
-    };
-
-    this.etches.push(record);
-    if (this.auditLog) this.audit.push(record);
-    return record;
   }
 
   recent(limit = 5): EtchRecord[] {
