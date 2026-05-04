@@ -7,17 +7,27 @@ the MCOP triad — :func:`mcop.triad.nova_neo_encode` for tensorisation,
 :class:`mcop.adapters.base_adapter.StigmergyStore` for cross-frame
 memory, and :class:`EtchLedger` for confidence accounting.
 
-Two strategies ship in-box:
+Three strategies ship in-box:
 
 ``RandomStrategy``
     Picks uniformly from ``available_actions``. Useful as a smoke test
-    and as the lower bound the LLM strategy must beat.
+    and as the lower bound LLM strategies must beat.
 
 ``GrokStrategy``
     Calls xAI's OpenAI-compatible Grok endpoint with the encoded frame
     plus a short stigmergic memory summary, then parses an action name
     out of the response. Falls back to ``RandomStrategy`` when the
     response cannot be parsed so the agent keeps making progress.
+
+``MappingGrokStrategy``
+    Two-phase. **Phase A** (mapping) cycles through every available
+    action once, observing the resulting frame diff so each action's
+    in-game semantics ("ACTION1 moves cursor up", "ACTION6 places at
+    click") become explicit. **Phase B** (exploit) hands Grok the
+    learned mapping plus the diff produced by the previous action, so
+    the LLM picks moves with grounded semantics instead of re-deriving
+    them every turn. Strategies optionally implement ``observe`` and
+    the agent loop calls it after each step.
 
 The SDK requires Python >= 3.12; this module guards the import so the
 rest of ``mcop_package`` stays importable on 3.11.
@@ -258,6 +268,196 @@ def _frame_to_features(frame: Any) -> str:
     return f"state={state}|levels={levels}|grid={json.dumps(grid)}"
 
 
+def _frame_diff(prev: Any, curr: Any, max_samples: int = 12) -> Dict[str, Any]:
+    """Compact diff between two frames suitable for an LLM prompt."""
+    p = getattr(prev, "frame", None) or []
+    c = getattr(curr, "frame", None) or []
+    n_changed = 0
+    samples: List[Dict[str, int]] = []
+    for li, (pl, cl) in enumerate(zip(p, c)):
+        for ri, (pr, cr) in enumerate(zip(pl, cl)):
+            for ci, (pv, cv) in enumerate(zip(pr, cr)):
+                if pv != cv:
+                    n_changed += 1
+                    if len(samples) < max_samples:
+                        samples.append(
+                            {
+                                "layer": li,
+                                "row": ri,
+                                "col": ci,
+                                "from": int(pv),
+                                "to": int(cv),
+                            }
+                        )
+    prev_levels = getattr(prev, "levels_completed", 0)
+    curr_levels = getattr(curr, "levels_completed", 0)
+    prev_state = getattr(getattr(prev, "state", None), "value", "")
+    curr_state = getattr(getattr(curr, "state", None), "value", "")
+    return {
+        "n_changed": n_changed,
+        "samples": samples,
+        "levels_delta": curr_levels - prev_levels,
+        "state_change": prev_state != curr_state,
+        "curr_state": curr_state,
+    }
+
+
+class MappingGrokStrategy:
+    """Map action semantics, then exploit them via Grok.
+
+    Phase A: queue every available simple action (then complex actions)
+    and play them once, recording the resulting :func:`_frame_diff`.
+    Phase B: prompt Grok with the action->effect map plus the diff from
+    the previous action, asking for the next move.
+    """
+
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        base_url: Optional[str] = None,
+        model: Optional[str] = None,
+        fallback: Optional[Strategy] = None,
+        complex_action_default: Tuple[int, int] = (32, 32),
+    ) -> None:
+        self.grok = GrokStrategy(
+            api_key=api_key, base_url=base_url, model=model, fallback=fallback
+        )
+        self.fallback = self.grok.fallback
+        self.action_effects: Dict[str, Dict[str, Any]] = {}
+        self._mapping_queue: List[str] = []
+        self._initialized = False
+        self._last_action: Optional[str] = None
+        self._last_diff: Optional[Dict[str, Any]] = None
+        self._pending_mapping_action: Optional[str] = None
+        self._complex_default = complex_action_default
+
+    def _init_queue(self, available: List[str]) -> None:
+        simple = [a for a in available if a not in COMPLEX_ACTIONS]
+        complex_a = [a for a in available if a in COMPLEX_ACTIONS]
+        self._mapping_queue = simple + complex_a
+        self._initialized = True
+
+    def choose(
+        self,
+        frame: Any,
+        tensor: Sequence[float],
+        memory_summary: Dict[str, Any],
+        available_action_names: List[str],
+    ) -> Tuple[str, Dict[str, Any]]:
+        if not available_action_names:
+            return ("ACTION1", {})
+        if not self._initialized:
+            self._init_queue(available_action_names)
+
+        # Phase A: mapping. Skip already-mapped or unavailable entries.
+        while self._mapping_queue:
+            candidate = self._mapping_queue[0]
+            if candidate in self.action_effects or candidate not in available_action_names:
+                self._mapping_queue.pop(0)
+                continue
+            self._pending_mapping_action = candidate
+            data: Dict[str, Any] = {}
+            if candidate in COMPLEX_ACTIONS:
+                x, y = self._complex_default
+                data = {"x": x, "y": y}
+            return (candidate, data)
+
+        # Phase B: exploit.
+        self._pending_mapping_action = None
+        return self._exploit(frame, memory_summary, available_action_names)
+
+    def _exploit(
+        self,
+        frame: Any,
+        memory_summary: Dict[str, Any],
+        available_action_names: List[str],
+    ) -> Tuple[str, Dict[str, Any]]:
+        client = self.grok._ensure_client()
+        if client is None:
+            return self.fallback.choose(
+                frame, [], memory_summary, available_action_names
+            )
+
+        grid = getattr(frame, "frame", None) or []
+        levels = getattr(frame, "levels_completed", 0)
+        state = getattr(getattr(frame, "state", None), "value", "?")
+        mapping_lines = [
+            f"  {name}: changed={eff['n_changed']} cells, "
+            f"levels_delta={eff['levels_delta']}, "
+            f"samples={eff['samples'][:3]}"
+            for name, eff in self.action_effects.items()
+        ]
+        last_block = (
+            f"Last action: {self._last_action} -> "
+            f"changed={self._last_diff['n_changed']} cells, "
+            f"levels_delta={self._last_diff['levels_delta']}\n"
+            if self._last_action and self._last_diff
+            else "Last action: (none)\n"
+        )
+        user_msg = (
+            f"State: {state}\n"
+            f"Levels completed: {levels}\n"
+            f"Available actions: {available_action_names}\n"
+            f"Action mapping (action -> effect on grid):\n"
+            + "\n".join(mapping_lines)
+            + "\n"
+            + last_block
+            + f"Memory: resonance={memory_summary.get('resonance', 0):.3f}, "
+            f"recent={memory_summary.get('recent', [])}\n"
+            f"Grid (truncated): {json.dumps(grid)[:1500]}\n"
+            "Pick the next action. Goal: increase levels_completed."
+        )
+        try:
+            completion = client.chat.completions.create(
+                model=self.grok.model,
+                messages=[
+                    {
+                        "role": "system",
+                        "content": (
+                            "You play ARC-AGI-3. You have a learned mapping of "
+                            "what each action does. Use it to make purposeful "
+                            'moves. Reply with ONLY: {"action": "ACTION1..7", '
+                            '"x": int, "y": int}. Omit x/y unless action is '
+                            "ACTION6. No prose."
+                        ),
+                    },
+                    {"role": "user", "content": user_msg},
+                ],
+                temperature=0.2,
+                max_tokens=80,
+            )
+            text = completion.choices[0].message.content or ""
+            parsed = _parse_action(text, available_action_names)
+            if parsed is not None:
+                return parsed
+        except Exception as exc:  # pragma: no cover -- network path
+            logger.warning("Grok exploit call failed: %s", exc)
+        return self.fallback.choose(
+            frame, [], memory_summary, available_action_names
+        )
+
+    def observe(
+        self,
+        prev_frame: Any,
+        action_name: str,
+        next_frame: Any,
+    ) -> None:
+        """Called by the agent after each step. Records the diff."""
+        if next_frame is None or prev_frame is None:
+            return
+        diff = _frame_diff(prev_frame, next_frame)
+        self._last_action = action_name
+        self._last_diff = diff
+        if (
+            self._pending_mapping_action is not None
+            and action_name == self._pending_mapping_action
+        ):
+            self.action_effects[action_name] = diff
+            if self._mapping_queue and self._mapping_queue[0] == action_name:
+                self._mapping_queue.pop(0)
+            self._pending_mapping_action = None
+
+
 @dataclass
 class MCOPArcAgi3Agent:
     """MCOP-instrumented ARC-AGI-3 agent.
@@ -333,6 +533,13 @@ class MCOPArcAgi3Agent:
 
             next_frame = env.step(action, data=action_data or None)
 
+            observe = getattr(self.strategy, "observe", None)
+            if callable(observe):
+                try:
+                    observe(frame, action_name, next_frame)
+                except Exception as exc:  # pragma: no cover -- defensive
+                    logger.warning("strategy.observe raised: %s", exc)
+
             self.etch.apply_etch(
                 tensor, tensor, note=f"arcagi3:{game_id}:{action_name}"
             )
@@ -392,6 +599,7 @@ __all__ = [
     "GameResult",
     "GrokStrategy",
     "MCOPArcAgi3Agent",
+    "MappingGrokStrategy",
     "RandomStrategy",
     "SDKUnavailable",
     "StepRecord",
