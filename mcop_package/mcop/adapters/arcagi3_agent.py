@@ -39,6 +39,7 @@ import json
 import logging
 import os
 import random
+import re
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Protocol, Sequence, Tuple
 
@@ -51,6 +52,11 @@ logger = logging.getLogger(__name__)
 # convention: ACTION6 is the click/place action; everything else is a
 # directional / button press.
 COMPLEX_ACTIONS = frozenset({"ACTION6"})
+
+# Pulls the integer suffix out of names like "ACTION5" / "Action 5" / "action5".
+# Used by snap-to-allowed when the model picks a forbidden action so we can
+# fall to the closest neighbour by numeric distance instead of going random.
+_ACTION_NUM_RE = re.compile(r"ACTION\s*(\d+)", re.IGNORECASE)
 
 
 class SDKUnavailable(RuntimeError):
@@ -200,8 +206,11 @@ class GrokStrategy:
                         "role": "system",
                         "content": (
                             "You play ARC-AGI-3. Respond with ONLY a JSON "
-                            'object: {"action": "ACTION1..7", "x": int, "y": int}. '
-                            "Omit x/y unless action is ACTION6."
+                            'object: {"action": "<one of the allowed names>", '
+                            '"x": int, "y": int}. Use only an action listed '
+                            "in the user message's `Available actions` field "
+                            "(e.g. ACTION1, ACTION3); any other choice will "
+                            "be rejected. Omit x/y unless action is ACTION6."
                         ),
                     },
                     {"role": "user", "content": prompt},
@@ -210,13 +219,12 @@ class GrokStrategy:
                 max_tokens=64,
             )
             text = completion.choices[0].message.content or ""
-            parsed = _parse_action(text, available_action_names)
+            parsed, outcome = _decide_action(text, available_action_names)
             if parsed is not None:
-                logger.info("grok pick: %s", parsed[0])
+                _log_parse_outcome("grok", outcome, parsed[0])
                 return parsed
-            logger.warning(
-                "grok response unparseable, falling back. Raw: %r",
-                text[:200],
+            _log_parse_failure(
+                "grok", outcome, text, available_action_names
             )
             return self.fallback.choose(
                 frame, tensor, memory_summary, available_action_names
@@ -247,30 +255,182 @@ def _build_prompt(
     )
 
 
-def _parse_action(
-    text: str, allowed: List[str]
-) -> Optional[Tuple[str, Dict[str, Any]]]:
+@dataclass
+class _ParseOutcome:
+    """Why an LLM action selection succeeded, was salvaged, or failed.
+
+    Kinds:
+      ``ok``                  -- model picked an allowed action.
+      ``snapped``              -- model picked a disallowed action but we
+                                  snapped to the closest allowed neighbour.
+      ``disallowed_no_snap``   -- disallowed action and no numeric neighbour;
+                                  caller should random-fall-back.
+      ``no_braces``            -- no ``{...}`` in the response.
+      ``invalid_json``         -- braces present but JSON parse failed.
+      ``missing_action``       -- JSON parsed but had no ``action`` field.
+    """
+
+    kind: str
+    raw_action: Optional[str] = None
+    snapped_to: Optional[str] = None
+
+
+def _snap_to_allowed(raw_action: str, allowed: List[str]) -> Optional[str]:
+    """Return the allowed action whose numeric suffix is closest to ``raw``.
+
+    Ties prefer the lower number (deterministic). Returns ``None`` when
+    either ``raw_action`` has no ACTIONn-style suffix or no allowed action
+    does — in that case the caller should fall back to its random strategy.
+    """
+    m = _ACTION_NUM_RE.search(raw_action or "")
+    if not m:
+        return None
+    target = int(m.group(1))
+    candidates: List[Tuple[int, int, str]] = []
+    for name in allowed:
+        cm = _ACTION_NUM_RE.search(name)
+        if not cm:
+            continue
+        num = int(cm.group(1))
+        candidates.append((abs(num - target), num, name))
+    if not candidates:
+        return None
+    candidates.sort()
+    return candidates[0][2]
+
+
+def _data_for_action(
+    name: str,
+    obj: Dict[str, Any],
+    complex_default: Tuple[int, int] = (0, 0),
+) -> Dict[str, Any]:
+    if name not in COMPLEX_ACTIONS:
+        return {}
+    x = obj.get("x", complex_default[0])
+    y = obj.get("y", complex_default[1])
+    try:
+        return {"x": int(x) % 64, "y": int(y) % 64}
+    except (TypeError, ValueError):
+        return {"x": complex_default[0], "y": complex_default[1]}
+
+
+def _decide_action(
+    text: str,
+    allowed: List[str],
+    complex_default: Tuple[int, int] = (0, 0),
+) -> Tuple[Optional[Tuple[str, Dict[str, Any]]], _ParseOutcome]:
+    """Parse an LLM response into ``(name, data)`` with a diagnostic.
+
+    On exact match: ``(parsed, kind="ok")``.
+    On disallowed-but-snappable: ``(snapped, kind="snapped")`` so the agent
+    keeps making intentional moves instead of silently going random.
+    All other paths return ``(None, kind=...)`` and the caller logs + falls
+    back to its random strategy.
+    """
     text = text.strip()
     start = text.find("{")
     end = text.rfind("}")
     if start < 0 or end <= start:
-        return None
+        return None, _ParseOutcome(kind="no_braces")
     try:
         obj = json.loads(text[start : end + 1])
     except json.JSONDecodeError:
-        return None
-    name = str(obj.get("action", "")).upper()
-    if name not in allowed:
-        return None
-    data: Dict[str, Any] = {}
-    if name in COMPLEX_ACTIONS:
-        x = obj.get("x", 0)
-        y = obj.get("y", 0)
-        try:
-            data = {"x": int(x) % 64, "y": int(y) % 64}
-        except (TypeError, ValueError):
-            data = {"x": 0, "y": 0}
-    return (name, data)
+        return None, _ParseOutcome(kind="invalid_json")
+    raw = obj.get("action")
+    if raw is None:
+        return None, _ParseOutcome(kind="missing_action")
+    name = str(raw).upper().strip()
+    if name in allowed:
+        return (
+            (name, _data_for_action(name, obj, complex_default)),
+            _ParseOutcome(kind="ok"),
+        )
+    snapped = _snap_to_allowed(name, allowed)
+    if snapped is not None:
+        return (
+            (snapped, _data_for_action(snapped, obj, complex_default)),
+            _ParseOutcome(kind="snapped", raw_action=name, snapped_to=snapped),
+        )
+    return None, _ParseOutcome(kind="disallowed_no_snap", raw_action=name)
+
+
+def _parse_action(
+    text: str, allowed: List[str]
+) -> Optional[Tuple[str, Dict[str, Any]]]:
+    """Backward-compatible wrapper: returns the action only on exact match.
+
+    Disallowed / snap-to-allowed paths are handled by callers that want the
+    diagnostic; this helper preserves the original strict semantics for any
+    external users of the module.
+    """
+    parsed, outcome = _decide_action(text, allowed)
+    if outcome.kind == "ok":
+        return parsed
+    return None
+
+
+def _log_parse_outcome(tag: str, outcome: _ParseOutcome, action: str) -> None:
+    """Log a successful pick (``ok`` or ``snapped``)."""
+    if outcome.kind == "snapped":
+        logger.warning(
+            "%s picked disallowed action %s; snapping to nearest "
+            "allowed %s",
+            tag,
+            outcome.raw_action,
+            outcome.snapped_to,
+        )
+    else:
+        logger.info("%s pick: %s", tag, action)
+
+
+def _log_parse_failure(
+    tag: str,
+    outcome: _ParseOutcome,
+    raw_text: str,
+    allowed: List[str],
+) -> None:
+    """Log a parse failure with a kind-specific message before falling back.
+
+    The pre-existing log was a single ``response unparseable`` warning that
+    conflated four very different conditions, so a Grok response of
+    ``{"action": "ACTION5"}`` (perfectly valid JSON, just not in the
+    allowed list) was indistinguishable from genuine garbage. Each branch
+    now emits a distinct message so the failure mode is unambiguous.
+    """
+    snippet = raw_text[:200]
+    if outcome.kind == "disallowed_no_snap":
+        logger.warning(
+            "%s picked disallowed action %r (allowed=%s, no numeric "
+            "neighbour to snap to); falling back to random",
+            tag,
+            outcome.raw_action,
+            allowed,
+        )
+    elif outcome.kind == "no_braces":
+        logger.warning(
+            "%s response had no JSON object, falling back. Raw: %r",
+            tag,
+            snippet,
+        )
+    elif outcome.kind == "invalid_json":
+        logger.warning(
+            "%s response was not valid JSON, falling back. Raw: %r",
+            tag,
+            snippet,
+        )
+    elif outcome.kind == "missing_action":
+        logger.warning(
+            "%s response had no `action` field, falling back. Raw: %r",
+            tag,
+            snippet,
+        )
+    else:  # pragma: no cover -- defensive: unknown kind
+        logger.warning(
+            "%s response unparseable (%s), falling back. Raw: %r",
+            tag,
+            outcome.kind,
+            snippet,
+        )
 
 
 def _grid_as_list(frame: Any) -> List[Any]:
@@ -405,6 +565,17 @@ class MappingGrokStrategy:
             if candidate in COMPLEX_ACTIONS:
                 x, y = self._complex_default
                 data = {"x": x, "y": y}
+            # Surface the deterministic mapping pick at INFO so the full
+            # action sequence is visible without --verbose. Without this
+            # the only Phase A signal in the log was the eventual jump to
+            # Phase B's first Grok call, making it impossible to confirm
+            # the mapping queue was actually consumed in order.
+            logger.info(
+                "mapping-grok phase-A pick: %s (learned=%d/%d)",
+                candidate,
+                len(self.action_effects),
+                len(self.action_effects) + len(self._mapping_queue),
+            )
             return (candidate, data)
 
         # Phase B: exploit.
@@ -461,9 +632,12 @@ class MappingGrokStrategy:
                         "content": (
                             "You play ARC-AGI-3. You have a learned mapping of "
                             "what each action does. Use it to make purposeful "
-                            'moves. Reply with ONLY: {"action": "ACTION1..7", '
-                            '"x": int, "y": int}. Omit x/y unless action is '
-                            "ACTION6. No prose."
+                            'moves. Reply with ONLY: {"action": "<one of the '
+                            'allowed names>", "x": int, "y": int}. Use only '
+                            "an action listed in the user message's "
+                            "`Available actions` field (e.g. ACTION1, "
+                            "ACTION3); any other choice will be rejected. "
+                            "Omit x/y unless action is ACTION6. No prose."
                         ),
                     },
                     {"role": "user", "content": user_msg},
@@ -472,13 +646,16 @@ class MappingGrokStrategy:
                 max_tokens=80,
             )
             text = completion.choices[0].message.content or ""
-            parsed = _parse_action(text, available_action_names)
+            parsed, outcome = _decide_action(
+                text,
+                available_action_names,
+                complex_default=self._complex_default,
+            )
             if parsed is not None:
-                logger.info("mapping-grok pick: %s", parsed[0])
+                _log_parse_outcome("mapping-grok", outcome, parsed[0])
                 return parsed
-            logger.warning(
-                "mapping-grok response unparseable, falling back. Raw: %r",
-                text[:200],
+            _log_parse_failure(
+                "mapping-grok", outcome, text, available_action_names
             )
         except Exception as exc:  # pragma: no cover -- network path
             logger.warning("Grok exploit call failed: %s", exc)
