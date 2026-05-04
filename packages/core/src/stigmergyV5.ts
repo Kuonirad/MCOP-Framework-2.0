@@ -6,6 +6,7 @@ import { CircularBuffer } from './circularBuffer';
 
 export interface StigmergyConfig {
   resonanceThreshold?: number;
+  adaptiveThreshold?: number; // 2026-05-03 audit → v2.2.1
   maxTraces?: number;
 }
 
@@ -14,7 +15,7 @@ export class StigmergyV5 {
   private readonly traces: CircularBuffer<PheromoneTrace>;
 
   constructor(config: StigmergyConfig = {}) {
-    this.resonanceThreshold = config.resonanceThreshold ?? 0.5;
+    this.resonanceThreshold = config.adaptiveThreshold ?? config.resonanceThreshold ?? 0.65;
     this.traces = new CircularBuffer<PheromoneTrace>(config.maxTraces ?? 2048);
   }
 
@@ -60,7 +61,7 @@ export class StigmergyV5 {
 
   getResonance(context: ContextTensor): ResonanceResult {
     const queryMag = magnitude(context);
-    if (queryMag === 0) return { score: 0 };
+    if (queryMag === 0) return { score: 0, thresholdUsed: this.resonanceThreshold };
 
     let bestScore = 0;
     let bestTrace: PheromoneTrace | undefined;
@@ -77,10 +78,10 @@ export class StigmergyV5 {
     }
 
     if (bestTrace && bestScore >= this.resonanceThreshold) {
-      return { score: bestScore, trace: bestTrace };
+      return { score: bestScore, trace: bestTrace, thresholdUsed: this.resonanceThreshold };
     }
 
-    return { score: 0 };
+    return { score: 0, thresholdUsed: this.resonanceThreshold };
   }
 
   getMerkleRoot(): string | undefined {

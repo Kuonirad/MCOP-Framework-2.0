@@ -28,6 +28,7 @@ export interface HolographicEtchConfig {
    * Higher = closer to the legacy static behaviour. Range [0, 1].
    */
   staticFloorWeight?: number;
+  curiosityBonus?: number; // 2026-05-03 audit → v2.2.1 Phoenix-DNA
 }
 
 export interface AdaptiveConfidenceBreakdown {
@@ -43,11 +44,13 @@ export class HolographicEtch {
   private readonly confidenceFloor: number;
   private readonly auditLog: boolean;
   private readonly staticFloorWeight: number;
+  private readonly curiosityBonus: number;
   private readonly etches: CircularBuffer<EtchRecord>;
   private readonly audit: CircularBuffer<EtchRecord>;
 
   constructor(config: HolographicEtchConfig = {}) {
-    this.confidenceFloor = config.confidenceFloor ?? 0.8;
+    this.confidenceFloor = config.confidenceFloor ?? 0.65; // 2026-05-03 audit → v2.2.1
+    this.curiosityBonus = config.curiosityBonus ?? 0.15;
     this.auditLog = config.auditLog ?? true;
     this.staticFloorWeight = clamp01(config.staticFloorWeight ?? 0.4);
     const cap = config.maxEtches ?? 4096;
@@ -99,11 +102,13 @@ export class HolographicEtch {
       const score = clamp01(
         this.staticFloorWeight * staticFloorMargin + adaptiveWeight * adaptive,
       );
+      const curiosity = this.curiosityBonus * 0.5; // stub → v2.2.1
+      const finalScore = clamp01(score + curiosity);
 
       const accepted = normalizedDelta >= this.confidenceFloor;
 
       finishTriadSpan(span, {
-        'mcop.etch.score': score,
+        'mcop.etch.score': finalScore,
         'mcop.etch.accepted': accepted,
       });
       return {
@@ -111,7 +116,7 @@ export class HolographicEtch {
         magnitudeHealth,
         staticFloorMargin,
         recencyStability,
-        score,
+        score: finalScore,
         accepted,
       };
     } catch (error) {

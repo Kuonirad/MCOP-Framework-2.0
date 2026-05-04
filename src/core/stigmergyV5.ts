@@ -8,7 +8,7 @@ import { failTriadSpan, finishTriadSpan, startTriadSpan } from './observability'
 export interface StigmergyConfig {
   resonanceThreshold?: number;
   maxTraces?: number;
-  adaptiveThreshold?: boolean;
+  adaptiveThreshold?: number | boolean; // 2026-05-03 audit → v2.2.1 (numeric override or boolean toggle)
   hysteresisBand?: number;
   calibrationWindow?: number;
 }
@@ -22,9 +22,11 @@ export class StigmergyV5 {
   private lastAcceptedThreshold: number;
 
   constructor(config: StigmergyConfig = {}) {
-    this.resonanceThreshold = clamp01(config.resonanceThreshold ?? 0.5);
+    const adaptive = config.adaptiveThreshold;
+    const numericAdaptive = typeof adaptive === 'number' ? adaptive : undefined;
+    this.resonanceThreshold = clamp01(numericAdaptive ?? config.resonanceThreshold ?? 0.65);
     this.traces = new CircularBuffer<PheromoneTrace>(config.maxTraces ?? 2048);
-    this.adaptiveThreshold = config.adaptiveThreshold ?? true;
+    this.adaptiveThreshold = typeof adaptive === 'boolean' ? adaptive : true;
     this.hysteresisBand = Math.max(0, config.hysteresisBand ?? 0.05);
     this.calibrationWindow = Math.max(2, config.calibrationWindow ?? 32);
     this.lastAcceptedThreshold = this.resonanceThreshold;
@@ -109,7 +111,7 @@ export class StigmergyV5 {
           'mcop.resonance.score': 0,
           'mcop.resonance.matched': false,
         });
-        return { score: 0 };
+        return { score: 0, thresholdUsed: this.resonanceThreshold };
       }
 
       let bestScore = 0;
@@ -146,7 +148,7 @@ export class StigmergyV5 {
           'mcop.resonance.threshold': threshold,
           'mcop.resonance.matched': true,
         });
-        return { score: bestScore, trace: bestTrace };
+        return { score: bestScore, trace: bestTrace, thresholdUsed: threshold };
       }
 
       finishTriadSpan(span, {
@@ -154,7 +156,7 @@ export class StigmergyV5 {
         'mcop.resonance.threshold': threshold,
         'mcop.resonance.matched': false,
       });
-      return { score: 0 };
+      return { score: 0, thresholdUsed: threshold };
     } catch (error) {
       failTriadSpan(span, error);
       throw error;
