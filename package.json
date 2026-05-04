@@ -51,7 +51,7 @@
     "web-vitals": "^5.2.0"
   },
   "devDependencies": {
-    "@cyclonedx/cdxgen": "^12.3.0",
+    "@cyclonedx/cdxgen": "^12.3.2",
     "@cyclonedx/cyclonedx-library": "^10",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.9.1",
@@ -64,7 +64,7 @@
     "ajv-formats": "^3",
     "ajv-formats-draft2019": "^1",
     "concurrently": "^9.2.1",
-    "cypress": "^15.14.1",
+    "cypress": "^15.14.2",
     "eslint": "^9",
     "eslint-config-next": "16.2.4",
     "jest": "^30.3.0",
