@@ -550,8 +550,14 @@ class MCOPArcAgi3Agent:
                 "resonance": resonance.score,
                 "recent": recent[-5:],
             }
+            # GameAction is a compound enum keyed by (int, action_class)
+            # tuples, so GameAction(int_value) raises ValueError. Resolve
+            # via a value->member scan instead.
+            value_to_member = {m.value: m for m in GameAction}
             allowed = [
-                GameAction(code).name for code in (frame.available_actions or [])
+                value_to_member[code].name
+                for code in (frame.available_actions or [])
+                if code in value_to_member and value_to_member[code].name != "RESET"
             ] or [a.name for a in GameAction if a.name != "RESET"]
 
             action_name, action_data = self.strategy.choose(
