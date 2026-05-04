@@ -18,7 +18,9 @@ from mcop.adapters.arcagi3_agent import (
     MappingGrokStrategy,
     RandomStrategy,
     _StuckDetector,
+    _build_prompt,
     _decide_action,
+    _format_history,
     _parse_action,
     _snap_to_allowed,
 )
@@ -917,3 +919,190 @@ def test_play_no_stuck_warning_on_diverse_actions(
     # so a clean rotation across 4 actions must not fire.
     assert stuck_warnings == []
     assert arcade.close_scorecard_calls == ["scorecard-test-id"]
+
+
+# ---- _format_history (action-history prompt block) ------------------------
+
+
+def test_format_history_empty_says_first_pick() -> None:
+    """First call has no history; the block must not look like Grok
+    has 'forgotten' previous actions, just say none yet."""
+    out = _format_history([], [])
+    assert "(none yet" in out
+    assert "first pick" in out
+
+
+def test_format_history_pairs_actions_with_levels() -> None:
+    """The whole point of the new block: each action shows the level
+    counter it produced, so Grok can see at a glance whether picks are
+    advancing or stagnating."""
+    out = _format_history(
+        ["ACTION1", "ACTION3", "ACTION1", "ACTION3"],
+        [0, 0, 0, 0],
+    )
+    assert "ACTION1->lvl0" in out
+    assert "ACTION3->lvl0" in out
+    # All four actions are listed in order.
+    assert out.index("ACTION1->lvl0") < out.index("ACTION3->lvl0")
+
+
+def test_format_history_includes_oscillation_nudge() -> None:
+    """The model needs an explicit instruction or it ignores the
+    history. The exact wording matters less than that it tells the
+    model what to do when picks are oscillating with no progress."""
+    out = _format_history(["ACTION1", "ACTION3"], [0, 0])
+    assert "oscillating" in out
+    assert "different action" in out
+
+
+def test_format_history_handles_levels_shorter_than_actions() -> None:
+    """Defensive: if play() is mid-step and the levels list lags by one,
+    the helper must still produce sensible output for every action --
+    the trailing actions just show without a level suffix."""
+    out = _format_history(
+        ["ACTION1", "ACTION3", "ACTION1"],
+        [0, 0],  # one short
+    )
+    assert "ACTION1->lvl0" in out
+    # Trailing action without paired level still appears in the list.
+    assert out.count("ACTION1") == 2
+
+
+def test_format_history_emits_oldest_to_newest_label() -> None:
+    """The order is meaningful (you can detect a loop in 1,3,1,3 but
+    not in {1, 3}), so the label must say which end is latest."""
+    out = _format_history(["ACTION1", "ACTION3"], [0, 0])
+    assert "oldest to newest" in out
+
+
+# ---- Prompt integration: history block visible in user message ------------
+
+
+def test_build_prompt_includes_history_block() -> None:
+    """`GrokStrategy._build_prompt` must surface the new block so the
+    standalone --strategy grok run also benefits from history-aware
+    picks."""
+    prompt = _build_prompt(
+        _FakeFrame(),
+        {
+            "resonance": 0.0,
+            "recent": ["ACTION1", "ACTION3", "ACTION1"],
+            "recent_levels": [0, 0, 0],
+        },
+        ALLOWED_4,
+    )
+    assert "Your last 3 actions" in prompt
+    assert "ACTION1->lvl0" in prompt
+    assert "ACTION3->lvl0" in prompt
+    # The old `Memory: ... recent=[...]` shape MUST NOT come back, or
+    # we'd be sending the history twice and confusing the model.
+    assert "recent_actions=" not in prompt
+    assert "recent=[" not in prompt
+
+
+def test_mapping_grok_exploit_user_msg_includes_history_block() -> None:
+    """`MappingGrokStrategy._exploit` must inject the same block. This
+    is the one that mattered for the ls20 run since mapping-grok was
+    the strategy stuck in the [ACTION1, ACTION3] loop."""
+    strat = MappingGrokStrategy(api_key="x")
+    strat._initialized = True
+    strat._mapping_queue = []
+    strat.action_effects = {}
+
+    fake_client = mock.Mock()
+    fake_client.chat.completions.create.return_value = _make_completion(
+        '{"action": "ACTION2"}'
+    )
+    strat.grok._client = fake_client
+
+    strat._exploit(
+        _FakeFrame(),
+        {
+            "resonance": 0.0,
+            "recent": ["ACTION1", "ACTION3", "ACTION1", "ACTION3"],
+            "recent_levels": [0, 0, 0, 0],
+        },
+        ALLOWED_4,
+    )
+
+    args, kwargs = fake_client.chat.completions.create.call_args
+    user_msg = next(
+        m["content"] for m in kwargs["messages"] if m["role"] == "user"
+    )
+    assert "Your last 4 actions" in user_msg
+    assert "ACTION1->lvl0" in user_msg
+    assert "ACTION3->lvl0" in user_msg
+    assert "oscillating" in user_msg
+    # Old buried-in-Memory shape is gone.
+    assert "recent=[" not in user_msg
+
+
+def test_build_prompt_no_history_says_first_pick() -> None:
+    """First step of a run: history is empty. The block must still be
+    present (so Grok learns to look there) but say so honestly."""
+    prompt = _build_prompt(
+        _FakeFrame(),
+        {"resonance": 0.0, "recent": [], "recent_levels": []},
+        ALLOWED_4,
+    )
+    assert "Your recent actions" in prompt
+    assert "(none yet" in prompt
+
+
+# ---- play() wires history through to the strategy --------------------------
+
+
+def test_play_passes_recent_levels_alongside_actions(
+    monkeypatch: Any,
+) -> None:
+    """End-to-end: play() must populate `memory_summary['recent_levels']`
+    paired index-wise with `recent`, so the strategy's prompt-builder
+    can render the action->level pairs the helper expects.
+
+    Without this wiring the history block would still render but every
+    action would lose its level suffix, defeating the point of giving
+    Grok visibility into 'levels stayed at 0 for the last 8 picks'."""
+    from mcop.adapters.arcagi3_agent import MCOPArcAgi3Agent
+
+    captured: List[Dict[str, Any]] = []
+
+    class _CapturingStrategy:
+        def choose(
+            self,
+            frame: Any,
+            tensor: Any,
+            memory_summary: Dict[str, Any],
+            available_action_names: List[str],
+        ) -> Tuple[str, Dict[str, Any]]:
+            captured.append(
+                {
+                    "recent": list(memory_summary.get("recent", [])),
+                    "recent_levels": list(
+                        memory_summary.get("recent_levels", [])
+                    ),
+                }
+            )
+            return ("ACTION1", {})
+
+    env = _FakeEnv()  # never wins, never interrupts
+    arcade = _FakeArcade(env=env)
+    _patch_sdk_with(monkeypatch, arcade)
+
+    agent = MCOPArcAgi3Agent(
+        strategy=_CapturingStrategy(),
+        api_key="x",
+        max_actions=4,
+    )
+    agent.play("ls20")
+
+    # Step 0: empty history.
+    assert captured[0]["recent"] == []
+    assert captured[0]["recent_levels"] == []
+    # Step 1: one prior action paired with one prior level.
+    assert captured[1]["recent"] == ["ACTION1"]
+    assert captured[1]["recent_levels"] == [0]
+    # Step 3: three priors, lengths must match for the prompt block to
+    # render `ACTION1->lvl0, ACTION1->lvl0, ACTION1->lvl0`.
+    assert len(captured[3]["recent"]) == 3
+    assert len(captured[3]["recent_levels"]) == 3
+    assert captured[3]["recent_levels"] == [0, 0, 0]
