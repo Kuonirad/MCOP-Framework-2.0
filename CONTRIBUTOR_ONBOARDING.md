@@ -9,7 +9,8 @@ This guide helps new contributors become productive members of our **collective 
 ## Quick Start (30 minutes to first contribution)
 
 ### Prerequisites
-- Node.js 18+ (check with `node --version`)
+- Node.js 22.12.0 from `.nvmrc` (or Node.js `^20.17.0`; check with `node --version`)
+- pnpm 9.15.0 via Corepack
 - Git basics
 - TypeScript familiarity (not required, but helpful)
 
@@ -19,14 +20,19 @@ This guide helps new contributors become productive members of our **collective 
 git clone https://github.com/YOUR_USERNAME/MCOP-Framework-2.0
 cd MCOP-Framework-2.0
 
-# 2. Install dependencies
-npm install
+# 2. Activate the repo toolchain
+nvm use
+corepack enable
+corepack prepare pnpm@9.15.0 --activate
 
-# 3. Run tests (should see 24 passing)
-npm test
+# 3. Install dependencies
+pnpm install
 
-# 4. Start dev server
-npm run dev
+# 4. Run tests
+pnpm test
+
+# 5. Start dev server
+pnpm dev
 ```
 
 Visit `http://localhost:3000` - if you see the Next.js welcome page, you're ready!
@@ -60,8 +66,8 @@ User Input → NovaNeoEncoder → ContextTensor → StigmergyV5.recordTrace()
 **Good First Issues:** Check [Issues labeled "good first issue"](../../issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
 
 ### Path B: Improve Tests (30 min)
-**Current coverage:** 30% (see `npm run test:coverage`)
-**Target:** 60%
+**Current coverage:** see `pnpm test:coverage`
+**Target:** maintain the repository badge target for critical paths.
 
 **Quick Win:** Add tests for edge cases in `stigmergyV5.ts`:
 - What happens if `context` is an empty array?
@@ -96,10 +102,10 @@ Example:
 git checkout -b fix/stigmergy-empty-context
 
 # 2. Make changes, run tests often
-npm test -- --watch
+pnpm test -- --watch
 
 # 3. Lint before committing
-npm run lint
+pnpm lint
 
 # 4. Commit with clear message
 git commit -m "Fix: Handle empty context arrays in StigmergyV5"
@@ -111,7 +117,7 @@ git push origin fix/stigmergy-empty-context
 ### PR Guidelines
 - **Title:** Use conventional commits format (`feat:`, `fix:`, `docs:`, `test:`)
 - **Description:** Explain *why* (not just *what*)
-- **Tests:** All PRs must pass CI (24/24 tests)
+- **Tests:** All PRs must pass CI
 - **Review:** Expect feedback within 48 hours
 
 ---
@@ -216,16 +222,16 @@ Report violations to: [MAINTAINER_EMAIL]
 
 ```bash
 # Run specific test file
-npm test -- src/__tests__/stigmergy.test.ts
+pnpm test -- src/__tests__/stigmergy.test.ts
 
 # Check dependency health
-npm run deps:check
+pnpm deps:check
 
 # Build production bundle
-npm run build
+pnpm build
 
 # Analyze bundle size
-npm run build && du -sh .next/
+pnpm build && du -sh .next/
 
 # Find TODOs in codebase
 grep -r "TODO" src/

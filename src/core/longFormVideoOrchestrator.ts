@@ -157,7 +157,8 @@ export class LongFormVideoOrchestrator {
         priorResonance: resonance.score,
       });
 
-      const trace = this.stigmergy.recordTrace(fingerprint, fingerprint, {
+      const memoryContext = blendFingerprints(queryEmbedding, fingerprint);
+      const trace = this.stigmergy.recordTrace(memoryContext, fingerprint, {
         clipIndex: i,
         assetUrl: output.assetUrl,
         provenanceRoot: provenance.root,
@@ -201,4 +202,13 @@ export class LongFormVideoOrchestrator {
         : `continuation of clip ${clipIndex} of ${totalClips} (prior coherence ${priorResonance.toFixed(3)})`;
     return `[${continuity}] ${narrative}`;
   }
+}
+
+function blendFingerprints(a: ContextTensor, b: ContextTensor): ContextTensor {
+  const len = Math.max(a.length, b.length);
+  const out = new Array<number>(len);
+  for (let i = 0; i < len; i++) {
+    out[i] = ((a[i] ?? 0) + (b[i] ?? 0)) / 2;
+  }
+  return out;
 }

@@ -1,21 +1,32 @@
 import { randomUUID } from 'node:crypto';
 import { ContextTensor, PheromoneTrace, ResonanceResult } from './types';
-import { cosineWithMagnitudes, magnitude } from './vectorMath';
+import { cosineWithMagnitudes, magnitude, padVector } from './vectorMath';
 import { CircularBuffer } from './circularBuffer';
 import { canonicalDigest } from './canonicalEncoding';
 
 export interface StigmergyConfig {
   resonanceThreshold?: number;
   maxTraces?: number;
+  adaptiveThreshold?: boolean;
+  hysteresisBand?: number;
+  calibrationWindow?: number;
 }
 
 export class StigmergyV5 {
   private readonly resonanceThreshold: number;
   private readonly traces: CircularBuffer<PheromoneTrace>;
+  private readonly adaptiveThreshold: boolean;
+  private readonly hysteresisBand: number;
+  private readonly calibrationWindow: number;
+  private lastAcceptedThreshold: number;
 
   constructor(config: StigmergyConfig = {}) {
-    this.resonanceThreshold = config.resonanceThreshold ?? 0.5;
+    this.resonanceThreshold = clamp01(config.resonanceThreshold ?? 0.5);
     this.traces = new CircularBuffer<PheromoneTrace>(config.maxTraces ?? 2048);
+    this.adaptiveThreshold = config.adaptiveThreshold ?? true;
+    this.hysteresisBand = Math.max(0, config.hysteresisBand ?? 0.05);
+    this.calibrationWindow = Math.max(2, config.calibrationWindow ?? 32);
+    this.lastAcceptedThreshold = this.resonanceThreshold;
   }
 
   private merkleHash(payload: unknown, parentHash?: string): string {
@@ -35,7 +46,20 @@ export class StigmergyV5 {
 
     const contextMag = magnitude(context);
     const synthesisMag = magnitude(synthesisVector);
-    const weight = cosineWithMagnitudes(context, synthesisVector, contextMag, synthesisMag);
+    const { a: comparableContext, b: comparableSynthesis } =
+      alignVectors(context, synthesisVector);
+    const comparableContextMag = comparableContext === context
+      ? contextMag
+      : magnitude(comparableContext);
+    const comparableSynthesisMag = comparableSynthesis === synthesisVector
+      ? synthesisMag
+      : magnitude(comparableSynthesis);
+    const weight = cosineWithMagnitudes(
+      comparableContext,
+      comparableSynthesis,
+      comparableContextMag,
+      comparableSynthesisMag,
+    );
 
     const payload = { id, context, synthesisVector, metadata, weight };
     const hash = this.merkleHash(payload, parentHash);
@@ -66,17 +90,31 @@ export class StigmergyV5 {
     let bestTrace: PheromoneTrace | undefined;
 
     this.traces.forEach((trace) => {
-      const traceMag = trace.magnitude ?? magnitude(trace.context);
-      if (traceMag === 0) return;
+      const { a: comparableContext, b: comparableTraceContext } =
+        alignVectors(context, trace.context);
+      const comparableQueryMag = comparableContext === context
+        ? queryMag
+        : magnitude(comparableContext);
+      const traceMag = comparableTraceContext === trace.context
+        ? trace.magnitude ?? magnitude(trace.context)
+        : magnitude(comparableTraceContext);
+      if (traceMag === 0 || comparableQueryMag === 0) return;
 
-      const score = cosineWithMagnitudes(context, trace.context, queryMag, traceMag);
+      const score = cosineWithMagnitudes(
+        comparableContext,
+        comparableTraceContext,
+        comparableQueryMag,
+        traceMag,
+      );
       if (score > bestScore) {
         bestScore = score;
         bestTrace = trace;
       }
     });
 
-    if (bestTrace && bestScore >= this.resonanceThreshold) {
+    const threshold = this.getAdaptiveResonanceThreshold();
+    if (bestTrace && bestScore >= threshold) {
+      this.lastAcceptedThreshold = threshold;
       return { score: bestScore, trace: bestTrace };
     }
 
@@ -99,4 +137,44 @@ export class StigmergyV5 {
       lifetimePushes: this.traces.lifetimePushes,
     };
   }
+
+  getAdaptiveResonanceThreshold(): number {
+    if (!this.adaptiveThreshold) return this.resonanceThreshold;
+    const recentWeights = this.traces
+      .recent(this.calibrationWindow)
+      .map((trace) => Math.max(0, trace.weight))
+      .filter(Number.isFinite);
+    if (recentWeights.length < 3) return this.resonanceThreshold;
+
+    let sum = 0;
+    for (const weight of recentWeights) sum += weight;
+    const mean = sum / recentWeights.length;
+    let variance = 0;
+    for (const weight of recentWeights) {
+      const delta = weight - mean;
+      variance += delta * delta;
+    }
+    const stddev = Math.sqrt(variance / recentWeights.length);
+    const calibrated = clamp01(mean - stddev * 0.5);
+    if (Math.abs(calibrated - this.lastAcceptedThreshold) < this.hysteresisBand) {
+      return this.lastAcceptedThreshold;
+    }
+    return calibrated;
+  }
+}
+
+function alignVectors(a: ContextTensor, b: number[]): { a: number[] | ContextTensor; b: number[] } {
+  if (a.length === b.length) return { a, b };
+  const length = Math.max(a.length, b.length);
+  return {
+    a: padVector(a, length),
+    b: padVector(b, length),
+  };
+}
+
+function clamp01(x: number): number {
+  if (!Number.isFinite(x)) return 0;
+  if (x < 0) return 0;
+  if (x > 1) return 1;
+  return x;
 }
