@@ -220,7 +220,7 @@ def _build_prompt(
     memory_summary: Dict[str, Any],
     available_action_names: List[str],
 ) -> str:
-    grid = getattr(frame, "frame", None) or []
+    grid = _grid_as_list(frame)
     levels = getattr(frame, "levels_completed", 0)
     state = getattr(getattr(frame, "state", None), "value", str(frame))
     return (
@@ -260,9 +260,24 @@ def _parse_action(
     return (name, data)
 
 
+def _grid_as_list(frame: Any) -> List[Any]:
+    """Return frame.frame as plain nested lists.
+
+    The arcengine SDK annotates ``FrameData.frame`` as
+    ``list[list[list[int]]]`` but actually returns a numpy ndarray at
+    runtime, which json.dumps cannot serialise. Normalise here.
+    """
+    grid = getattr(frame, "frame", None)
+    if grid is None:
+        return []
+    if hasattr(grid, "tolist"):
+        return grid.tolist()
+    return list(grid)
+
+
 def _frame_to_features(frame: Any) -> str:
     """Stable text encoding of a frame for the NOVA-NEO encoder."""
-    grid = getattr(frame, "frame", None) or []
+    grid = _grid_as_list(frame)
     state = getattr(getattr(frame, "state", None), "value", "?")
     levels = getattr(frame, "levels_completed", 0)
     return f"state={state}|levels={levels}|grid={json.dumps(grid)}"
@@ -270,8 +285,8 @@ def _frame_to_features(frame: Any) -> str:
 
 def _frame_diff(prev: Any, curr: Any, max_samples: int = 12) -> Dict[str, Any]:
     """Compact diff between two frames suitable for an LLM prompt."""
-    p = getattr(prev, "frame", None) or []
-    c = getattr(curr, "frame", None) or []
+    p = _grid_as_list(prev)
+    c = _grid_as_list(curr)
     n_changed = 0
     samples: List[Dict[str, int]] = []
     for li, (pl, cl) in enumerate(zip(p, c)):
@@ -378,7 +393,7 @@ class MappingGrokStrategy:
                 frame, [], memory_summary, available_action_names
             )
 
-        grid = getattr(frame, "frame", None) or []
+        grid = _grid_as_list(frame)
         levels = getattr(frame, "levels_completed", 0)
         state = getattr(getattr(frame, "state", None), "value", "?")
         mapping_lines = [
