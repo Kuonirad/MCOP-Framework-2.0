@@ -1,3 +1,7 @@
+---
+name: testing-frontend
+description: Test the MCOP-Framework-2.0 frontend, production SSR/API surface, and local core telemetry flows.
+---
 # Testing the MCOP-Framework-2.0 frontend
 
 This repo is a Next.js 16 + React 19 + Turbopack app with a jsdom-based jest
@@ -86,6 +90,43 @@ and verify:
 - `Universal Adapter Protocol v2.1` appears in the page copy.
 - The `Health endpoint` link opens `/api/health` and returns JSON with
   `"status":"ok"` plus a `timestamp` field.
+
+## Triad observability runtime smoke
+
+For changes touching `src/core/observability.ts`, `NovaNeoEncoder`,
+`StigmergyV5`, `HolographicEtch`, or `SynthesisProvenanceTracer`, prioritize a
+runtime telemetry harness over browser clicks. The observability seam is a core
+API and may have no visible UI surface.
+
+Minimum proof:
+
+```bash
+pnpm test -- observability --runInBand
+```
+
+For stronger runtime evidence, create a temporary Jest spec (remove it before
+finishing) that:
+
+1. Calls `configureTriadTelemetry((span) => spans.push(span))`.
+2. Runs `new SynthesisProvenanceTracer(new NovaNeoEncoder({ dimensions: 8, normalize: true }), new StigmergyV5({ resonanceThreshold: 0 }), new HolographicEtch({ confidenceFloor: -1 })).synthesize('observability audit', { note: 'otel' })`.
+3. Asserts the exact span sequence:
+   - `mcop.triad.encode`
+   - `mcop.triad.trace.record`
+   - `mcop.triad.resonance.query`
+   - `mcop.triad.etch.apply`
+   - `mcop.triad.synthesize`
+4. Asserts required attributes: `mcop.encoder.backend === 'hash'`,
+   `mcop.tensor.dimensions === 8`, `mcop.trace.has_metadata === true`,
+   `mcop.resonance.matched === true`, `mcop.etch.accepted === true`, and
+   `mcop.etch.delta_weight` equals the synthesis result delta.
+5. Configures an observer that throws and verifies encoding still returns the
+   configured tensor length (fail-closed observer behavior).
+6. Runs a rejected etch and verifies empty hash, zero accepted records,
+   `skipped-low-confidence` in the audit log, and `mcop.etch.accepted === false`.
+
+Prefer Jest/ts-jest for this harness. Direct `pnpm dlx tsx` execution against
+repo internals may hit `canonicalize` package export resolution issues that Jest
+does not hit.
 
 ## Automated SSR validation (LCP preload contract)
 
