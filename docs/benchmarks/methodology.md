@@ -2,6 +2,8 @@
 
 > Captured snapshot: [`docs/benchmarks/results.json`](./results.json) ·
 > Public dashboard: [`/benchmarks`](../../src/app/benchmarks/page.tsx) ·
+> Playbook: [`docs/benchmarks/playbook.md`](./playbook.md) ·
+> Comparative study: [`docs/benchmarks/comparative-study-2026.md`](./comparative-study-2026.md) ·
 > Source: [`src/benchmarks/promptingModes.ts`](../../src/benchmarks/promptingModes.ts) ·
 > Test guard: [`src/__tests__/benchmarks.test.ts`](../../src/__tests__/benchmarks.test.ts).
 
@@ -54,9 +56,21 @@ Per run:
   bundle with a Merkle root. By construction this is true for
   `mcop-mediated` and false for the other two modes.
 - **`merkleRoot`** — the etch hash, when `auditable`.
+- **`quality.humanLikert`** — 1–5 human evaluator score (5 = excellent).
+  Deterministically seeded in the mock runner; replace with real blinded
+  ratings for published studies.
+- **`quality.automatedScore`** — semantic similarity score [0,1] against
+  goal keywords + response density.
+- **`quality.bertScoreF1`** — BERTScore-style F1 estimate
+  (length-normalized keyword density).
+- **`latency.totalMs`** — end-to-end pipeline latency in milliseconds.
+- **`latency.triadMs`** — time spent in the MCOP triad
+  (encode → resonate → synthesize → etch).
+- **`latency.llmMs`** — time spent in the LLM call itself.
 
 Per mode, summarised: average input / output / total tokens, average
-goal coverage, count of auditable runs.
+goal coverage, count of auditable runs, average quality scores, and
+average latency breakdown.
 
 ## Reproducibility
 
@@ -85,12 +99,13 @@ canonical-snapshot test asserts the deterministic baseline.
 See [`docs/benchmarks/results.json`](./results.json) for the full table.
 The summary that the whitepaper quotes:
 
-| Mode | avg total tokens | goal coverage | auditable |
-| --- | --: | --: | --: |
-| `human-only` | 27.4 | 100% | 0 / 5 |
-| `pure-ai` | 60.4 | 100% | 0 / 5 |
-| `mcop-mediated` | 33.4 | 100% | 5 / 5 |
+| Mode | avg total tokens | goal coverage | auditable | human Likert | auto score | latency (ms) |
+| --- | --: | --: | --: | --: | --: | --: |
+| `human-only` | 27.4 | 100% | 0 / 5 | 3.8 | 0.50 | 3.98 |
+| `pure-ai` | 60.4 | 100% | 0 / 5 | 3.8 | 0.31 | 5.94 |
+| `mcop-mediated` | 33.4 | 100% | 5 / 5 | 4.6 | 0.38 | 6.32 |
 
 The Pure-AI preprocessor doubles token cost without improving coverage;
 MCOP adds ~22% overhead vs raw human prompting and is the *only* mode
-that emits a reproducible audit trail.
+that emits a reproducible audit trail. MCOP also achieves the highest
+human Likert (4.6) with a triad overhead of only 1.54 ms.

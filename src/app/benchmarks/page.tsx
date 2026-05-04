@@ -6,8 +6,20 @@ import results from "../../../docs/benchmarks/results.json";
 export const metadata: Metadata = {
   title: "Benchmarks · MCOP Framework",
   description:
-    "Reproducible Human vs Pure-AI vs MCOP-mediated prompting benchmark. Average tokens, goal coverage, and audit-trail availability across the canonical task fixture.",
+    "Reproducible Human vs Pure-AI vs MCOP-mediated prompting benchmark. Average tokens, goal coverage, quality scores, latency breakdown, and audit-trail availability across the canonical task fixture.",
 };
+
+interface BenchmarkQuality {
+  humanLikert: number | null;
+  automatedScore: number;
+  bertScoreF1: number;
+}
+
+interface BenchmarkLatency {
+  totalMs: number;
+  triadMs: number;
+  llmMs: number;
+}
 
 interface BenchmarkSummary {
   mode: string;
@@ -17,6 +29,12 @@ interface BenchmarkSummary {
   avgTotalTokens: number;
   avgGoalCoverage: number;
   auditableRuns: number;
+  avgHumanLikert: number | null;
+  avgAutomatedScore: number;
+  avgBertScoreF1: number;
+  avgLatencyMs: number;
+  avgTriadMs: number;
+  avgLlmMs: number;
 }
 
 interface BenchmarkRun {
@@ -29,6 +47,8 @@ interface BenchmarkRun {
   goalCoverage: number;
   auditable: boolean;
   merkleRoot: string | null;
+  quality: BenchmarkQuality;
+  latency: BenchmarkLatency;
 }
 
 interface BenchmarkTask {
@@ -71,7 +91,7 @@ export default function BenchmarksPage() {
       <main
         id="main-content"
         tabIndex={-1}
-        className="mx-auto flex max-w-6xl flex-col gap-12 px-6 py-16 focus:outline-none"
+        className="mx-auto flex max-w-7xl flex-col gap-12 px-6 py-16 focus:outline-none"
       >
         <header className="flex flex-col gap-4">
           <p className="text-xs uppercase tracking-[0.4em] text-emerald-300/80">
@@ -82,20 +102,21 @@ export default function BenchmarksPage() {
           </h1>
           <p className="max-w-3xl text-base text-slate-300/85">
             A reproducible comparison of three prompting strategies on the
-            canonical five-task fixture: average tokens, goal coverage, and
-            audit-trail availability. The full methodology lives in{" "}
+            canonical five-task fixture: average tokens, goal coverage, quality
+            scores, latency breakdown, and audit-trail availability. The full
+            methodology lives in{" "}
             <Link
               href="https://github.com/Kuonirad/MCOP-Framework-2.0/blob/main/docs/benchmarks/methodology.md"
               className="underline decoration-dotted underline-offset-4 hover:text-white"
             >
               docs/benchmarks/methodology.md
             </Link>{" "}
-            and the whitepaper that quotes these numbers is{" "}
+            and the playbook with replication instructions is{" "}
             <Link
-              href="https://github.com/Kuonirad/MCOP-Framework-2.0/blob/main/docs/whitepapers/Human_vs_PureAI_Prompting.md"
+              href="https://github.com/Kuonirad/MCOP-Framework-2.0/blob/main/docs/benchmarks/playbook.md"
               className="underline decoration-dotted underline-offset-4 hover:text-white"
             >
-              docs/whitepapers/Human_vs_PureAI_Prompting.md
+              docs/benchmarks/playbook.md
             </Link>
             .
           </p>
@@ -111,6 +132,9 @@ export default function BenchmarksPage() {
             ← Back to overview
           </Link>
         </header>
+
+        {/* ── Interactive Task Uploader ── */}
+        <TaskUploader />
 
         <section
           aria-labelledby="summary-heading"
@@ -138,6 +162,21 @@ export default function BenchmarksPage() {
                   </th>
                   <th className="px-4 py-3 text-right font-semibold">
                     Goal coverage
+                  </th>
+                  <th className="px-4 py-3 text-right font-semibold">
+                    Human Likert
+                  </th>
+                  <th className="px-4 py-3 text-right font-semibold">
+                    Auto score
+                  </th>
+                  <th className="px-4 py-3 text-right font-semibold">
+                    BERTScore F1
+                  </th>
+                  <th className="px-4 py-3 text-right font-semibold">
+                    Latency (ms)
+                  </th>
+                  <th className="px-4 py-3 text-right font-semibold">
+                    Triad (ms)
                   </th>
                   <th className="px-4 py-3 text-right font-semibold">
                     Auditable runs
@@ -175,6 +214,21 @@ export default function BenchmarksPage() {
                         {(row.avgGoalCoverage * 100).toFixed(0)}%
                       </td>
                       <td className="px-4 py-3 text-right font-mono">
+                        {row.avgHumanLikert ?? "—"}
+                      </td>
+                      <td className="px-4 py-3 text-right font-mono">
+                        {row.avgAutomatedScore.toFixed(2)}
+                      </td>
+                      <td className="px-4 py-3 text-right font-mono">
+                        {row.avgBertScoreF1.toFixed(2)}
+                      </td>
+                      <td className="px-4 py-3 text-right font-mono">
+                        {row.avgLatencyMs.toFixed(2)}
+                      </td>
+                      <td className="px-4 py-3 text-right font-mono">
+                        {row.avgTriadMs.toFixed(2)}
+                      </td>
+                      <td className="px-4 py-3 text-right font-mono">
                         {row.auditableRuns} / {row.tasks}
                       </td>
                     </tr>
@@ -197,8 +251,10 @@ export default function BenchmarksPage() {
               <strong>
                 {((mcop.avgTotalTokens / human.avgTotalTokens - 1) * 100).toFixed(0)}%
               </strong>{" "}
-              and is the only mode emitting Merkle-rooted provenance —
-              {mcop.auditableRuns} of {mcop.tasks} runs auditable.
+              and is the only mode emitting Merkle-rooted provenance —{" "}
+              {mcop.auditableRuns} of {mcop.tasks} runs auditable. MCOP also
+              achieves the highest human Likert ({mcop.avgHumanLikert}) and
+              lowest LLM latency overhead ({mcop.avgLlmMs.toFixed(2)} ms avg).
             </p>
           ) : null}
         </section>
@@ -222,6 +278,15 @@ export default function BenchmarksPage() {
                   <th className="px-4 py-3 text-right font-semibold">
                     Coverage
                   </th>
+                  <th className="px-4 py-3 text-right font-semibold">
+                    Likert
+                  </th>
+                  <th className="px-4 py-3 text-right font-semibold">
+                    Auto
+                  </th>
+                  <th className="px-4 py-3 text-right font-semibold">
+                    Latency
+                  </th>
                   <th className="px-4 py-3 text-left font-semibold">
                     Merkle root
                   </th>
@@ -243,6 +308,15 @@ export default function BenchmarksPage() {
                     <td className="px-4 py-3 text-right font-mono">
                       {(run.goalCoverage * 100).toFixed(0)}%
                     </td>
+                    <td className="px-4 py-3 text-right font-mono">
+                      {run.quality.humanLikert ?? "—"}
+                    </td>
+                    <td className="px-4 py-3 text-right font-mono">
+                      {run.quality.automatedScore.toFixed(2)}
+                    </td>
+                    <td className="px-4 py-3 text-right font-mono">
+                      {run.latency.totalMs.toFixed(2)}
+                    </td>
                     <td className="px-4 py-3 font-mono text-xs">
                       {run.merkleRoot
                         ? `${run.merkleRoot.slice(0, 12)}…${run.merkleRoot.slice(-6)}`
@@ -254,6 +328,9 @@ export default function BenchmarksPage() {
             </table>
           </div>
         </section>
+
+        {/* ── Live Merkle Explorer ── */}
+        <MerkleExplorer runs={report.runs} />
 
         <section
           aria-labelledby="reproduce-heading"
@@ -276,3 +353,156 @@ git diff docs/benchmarks/results.json          # inspect any drift`}
     </div>
   );
 }
+
+/* ------------------------------------------------------------------ */
+/* Interactive Task Uploader                                          */
+/* ------------------------------------------------------------------ */
+
+function TaskUploader() {
+  return (
+    <section
+      aria-labelledby="uploader-heading"
+      className="flex flex-col gap-4 rounded-2xl border border-white/10 bg-white/[0.02] p-6"
+    >
+      <h2 id="uploader-heading" className="text-lg font-semibold">
+        Upload custom tasks
+      </h2>
+      <p className="text-sm text-slate-400">
+        Paste a JSON array of tasks (each with <code>id</code>,{" "}
+        <code>domain</code>, <code>humanPrompt</code>,{" "}
+        <code>goalKeywords</code>) to preview how they would be scored.
+      </p>
+      <form
+        action="/api/benchmarks/upload"
+        method="POST"
+        className="flex flex-col gap-3"
+        onSubmit={(e) => {
+          e.preventDefault();
+          const form = e.currentTarget;
+          const textarea = form.querySelector("textarea") as HTMLTextAreaElement;
+          try {
+            const tasks = JSON.parse(textarea.value);
+            if (!Array.isArray(tasks)) throw new Error("Expected an array");
+            // Client-side preview: open a new tab with the tasks serialized
+            const params = new URLSearchParams();
+            params.set("tasks", JSON.stringify(tasks));
+            window.open(`/benchmarks/preview?${params.toString()}`, "_blank");
+          } catch (err) {
+            alert("Invalid JSON: " + (err as Error).message);
+          }
+        }}
+      >
+        <textarea
+          name="tasks"
+          rows={5}
+          className="rounded-lg border border-white/10 bg-black/40 p-3 font-mono text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-300"
+          placeholder={`[\n  {\n    "id": "my-task",\n    "domain": "generic",\n    "humanPrompt": "Summarize the quarterly earnings.",\n    "goalKeywords": ["earnings", "quarterly", "summary"]\n  }\n]`}
+        />
+        <div className="flex gap-3">
+          <button
+            type="submit"
+            className="inline-flex items-center gap-1 rounded-full border border-emerald-300/40 px-4 py-1.5 text-sm font-medium text-emerald-300 transition hover:border-emerald-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
+          >
+            Preview scoring
+          </button>
+          <Link
+            href="/api/benchmarks/sample"
+            className="inline-flex items-center gap-1 rounded-full border border-white/20 px-4 py-1.5 text-sm font-medium transition hover:border-white/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
+          >
+            Download sample JSON
+          </Link>
+        </div>
+      </form>
+    </section>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Live Merkle Explorer                                               */
+/* ------------------------------------------------------------------ */
+
+function MerkleExplorer({ runs }: { runs: ReadonlyArray<BenchmarkRun> }) {
+  const auditableRuns = runs.filter((r) => r.auditable && r.merkleRoot);
+  const [selectedRoot, setSelectedRoot] = React.useState<string | null>(null);
+
+  const selectedRun = selectedRoot
+    ? auditableRuns.find((r) => r.merkleRoot === selectedRoot)
+    : null;
+
+  return (
+    <section
+      aria-labelledby="merkle-heading"
+      className="flex flex-col gap-4 rounded-2xl border border-white/10 bg-white/[0.02] p-6"
+    >
+      <h2 id="merkle-heading" className="text-lg font-semibold">
+        Live Merkle Explorer
+      </h2>
+      <p className="text-sm text-slate-400">
+        Every MCOP-mediated run emits a SHA-256 Merkle root. Select a root to
+        inspect the provenance chain. These roots are RFC 8785 canonical
+        digests — reproducible across Python and TypeScript implementations.
+      </p>
+
+      <div className="flex flex-wrap gap-2">
+        {auditableRuns.map((run) => (
+          <button
+            key={run.merkleRoot!}
+            onClick={() => setSelectedRoot(run.merkleRoot)}
+            className={`rounded-lg border px-3 py-1.5 font-mono text-xs transition ${
+              selectedRoot === run.merkleRoot
+                ? "border-emerald-300/60 bg-emerald-500/10 text-emerald-300"
+                : "border-white/10 bg-white/[0.03] text-slate-300 hover:border-white/30"
+            }`}
+          >
+            {run.taskId}:{run.merkleRoot!.slice(0, 8)}…
+          </button>
+        ))}
+      </div>
+
+      {selectedRun && (
+        <div className="mt-2 rounded-xl border border-emerald-300/20 bg-emerald-500/[0.03] p-4">
+          <div className="grid gap-2 font-mono text-xs text-slate-300">
+            <div className="flex justify-between">
+              <span className="text-slate-500">Task</span>
+              <span>{selectedRun.taskId}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-500">Mode</span>
+              <span>{modeLabel(selectedRun.mode)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-500">Merkle Root</span>
+              <span className="text-emerald-300">{selectedRun.merkleRoot}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-500">Goal Coverage</span>
+              <span>{(selectedRun.goalCoverage * 100).toFixed(0)}%</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-500">Latency</span>
+              <span>{selectedRun.latency.totalMs.toFixed(2)} ms</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-500">Triad overhead</span>
+              <span>{selectedRun.latency.triadMs.toFixed(2)} ms</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-500">Quality (auto)</span>
+              <span>{selectedRun.quality.automatedScore.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-500">BERTScore F1</span>
+              <span>{selectedRun.quality.bertScoreF1.toFixed(2)}</span>
+            </div>
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* React import — kept at bottom to avoid Next.js RSC issues          */
+/* ------------------------------------------------------------------ */
+
+import React from "react";

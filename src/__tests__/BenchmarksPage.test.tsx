@@ -18,9 +18,11 @@ describe('BenchmarksPage', () => {
     const headline = screen.getByTestId('benchmark-headline');
     expect(headline.textContent).toMatch(/more tokens than human-only/);
     expect(headline.textContent).toMatch(/Merkle-rooted provenance/);
+    expect(headline.textContent).toMatch(/human Likert/);
+    expect(headline.textContent).toMatch(/latency/);
   });
 
-  it('links to the methodology and whitepaper docs', () => {
+  it('links to the methodology and playbook docs', () => {
     render(<BenchmarksPage />);
     const methodology = screen.getByRole('link', {
       name: /docs\/benchmarks\/methodology\.md/i,
@@ -29,12 +31,38 @@ describe('BenchmarksPage', () => {
       'href',
       expect.stringContaining('docs/benchmarks/methodology.md'),
     );
-    const whitepaper = screen.getByRole('link', {
-      name: /docs\/whitepapers\/Human_vs_PureAI_Prompting\.md/i,
+    const playbook = screen.getByRole('link', {
+      name: /docs\/benchmarks\/playbook\.md/i,
     });
-    expect(whitepaper).toHaveAttribute(
+    expect(playbook).toHaveAttribute(
       'href',
-      expect.stringContaining('docs/whitepapers/Human_vs_PureAI_Prompting.md'),
+      expect.stringContaining('docs/benchmarks/playbook.md'),
     );
+  });
+
+  it('renders the task uploader section', () => {
+    render(<BenchmarksPage />);
+    expect(
+      screen.getByRole('heading', { name: /upload custom tasks/i }),
+    ).toBeInTheDocument();
+  });
+
+  it('renders the live merkle explorer', () => {
+    render(<BenchmarksPage />);
+    expect(
+      screen.getByRole('heading', { name: /live merkle explorer/i }),
+    ).toBeInTheDocument();
+    // Should have buttons for each auditable run (5 canonical tasks)
+    const merkleButtons = screen.getAllByRole('button');
+    expect(merkleButtons.length).toBeGreaterThanOrEqual(5);
+  });
+
+  it('renders per-task detail with quality and latency columns', () => {
+    render(<BenchmarksPage />);
+    const headers = screen.getAllByRole('columnheader');
+    const headerTexts = headers.map((h) => h.textContent ?? '');
+    expect(headerTexts.some((t) => /likert/i.test(t))).toBe(true);
+    expect(headerTexts.some((t) => /auto/i.test(t))).toBe(true);
+    expect(headerTexts.some((t) => /latency/i.test(t))).toBe(true);
   });
 });
