@@ -39,7 +39,7 @@ jobs:
       # in package.json (ERR_PNPM_BAD_PM_VERSION). The action will
       # auto-detect pnpm@9.15.0 from package.json's `packageManager`.
       - name: Setup pnpm
-        uses: pnpm/action-setup@26f6d4f2c533a43e6b5da0b4a5dd983f98f7b49a # v6.0.4
+        uses: pnpm/action-setup@8912a9102ac27614460f54aedde9e1e7f9aec20d # v6.0.5
 
       - name: Setup Node.js
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
