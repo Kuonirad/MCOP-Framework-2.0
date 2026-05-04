@@ -1,7 +1,7 @@
 import { canonicalDigest } from '../core/canonicalEncoding';
 import { NovaNeoEncoder } from '../core/novaNeoEncoder';
 import { validateTensor } from '../core/tensorGuard';
-import { randomJsonValue, randomText, randomVector, seeded } from './propertyTesting';
+import { randomJsonValue, randomText, randomVector, seeded } from '../test-utils/propertyTesting';
 
 describe('Audit property fuzz — NovaNeoEncoder', () => {
   it('keeps hash encoding deterministic, finite, bounded, and dimension-stable', () => {

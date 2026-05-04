@@ -16,7 +16,7 @@ import {
   padVector,
   variance,
 } from '../core/vectorMath';
-import { randomVector, seeded } from './propertyTesting';
+import { randomVector, seeded } from '../test-utils/propertyTesting';
 
 describe('VectorMath — magnitude', () => {
   it('returns 0 for the empty and zero vectors', () => {
