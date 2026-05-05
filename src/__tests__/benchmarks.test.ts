@@ -4,9 +4,11 @@ import * as path from 'node:path';
 import {
   approximateTokens,
   CANONICAL_BENCHMARK_TASKS,
+  EXPANDED_BENCHMARK_TASKS,
   goalCoverage,
   pureAIRewrite,
   runPromptingBenchmark,
+  automatedQuality,
   type BenchmarkTask,
   type MockLlmCompletion,
 } from '../benchmarks/promptingModes';
@@ -37,6 +39,18 @@ describe('benchmark utilities', () => {
     });
     it('returns 1 when no keywords are required', () => {
       expect(goalCoverage('anything', [])).toBe(1);
+    });
+  });
+
+  describe('automatedQuality', () => {
+    it('returns high scores for keyword-dense responses', () => {
+      const q = automatedQuality('alpha beta gamma delta', ['alpha', 'beta', 'gamma']);
+      expect(q.automatedScore).toBeGreaterThan(0.5);
+      expect(q.bertScoreF1).toBeGreaterThan(0.5);
+    });
+    it('returns low scores for off-topic responses', () => {
+      const q = automatedQuality('nothing relevant here', ['alpha', 'beta']);
+      expect(q.automatedScore).toBeLessThan(0.5);
     });
   });
 
@@ -121,6 +135,39 @@ describe('runPromptingBenchmark', () => {
     expect(summary['mcop-mediated']).toBe(CANONICAL_BENCHMARK_TASKS.length);
   });
 
+  it('populates quality + latency fields for every run', async () => {
+    const report = await runPromptingBenchmark({
+      tasks: CANONICAL_BENCHMARK_TASKS,
+      capturedAt: '2026-04-27T22:30:00.000Z',
+    });
+    report.runs.forEach((r) => {
+      expect(r.quality).toBeDefined();
+      expect(typeof r.quality.automatedScore).toBe('number');
+      expect(typeof r.quality.bertScoreF1).toBe('number');
+      expect(r.latency).toBeDefined();
+      expect(typeof r.latency.totalMs).toBe('number');
+      expect(typeof r.latency.llmMs).toBe('number');
+      expect(r.latency.totalMs).toBeGreaterThanOrEqual(0);
+    });
+    report.summary.forEach((s) => {
+      expect(typeof s.avgAutomatedScore).toBe('number');
+      expect(typeof s.avgBertScoreF1).toBe('number');
+      expect(typeof s.avgLatencyMs).toBe('number');
+    });
+  });
+
+  it('reports deterministic latency across runs', async () => {
+    const r1 = await runPromptingBenchmark({
+      tasks: CANONICAL_BENCHMARK_TASKS,
+      capturedAt: '2026-04-27T22:30:00.000Z',
+    });
+    const r2 = await runPromptingBenchmark({
+      tasks: CANONICAL_BENCHMARK_TASKS,
+      capturedAt: '2026-04-27T22:30:00.000Z',
+    });
+    expect(r1.runs.map((r) => r.latency)).toEqual(r2.runs.map((r) => r.latency));
+  });
+
   /* ── Branch coverage extensions ── */
 
   it('uses the default capturedAt when none is supplied', async () => {
@@ -176,6 +223,17 @@ describe('runPromptingBenchmark', () => {
       expect(Number.isFinite(s.avgInputTokens)).toBe(true);
       expect(Number.isFinite(s.avgOutputTokens)).toBe(true);
       expect(Number.isFinite(s.avgTotalTokens)).toBe(true);
+      expect(Number.isFinite(s.avgLatencyMs)).toBe(true);
+      expect(Number.isFinite(s.avgAutomatedScore)).toBe(true);
     });
+  });
+
+  it('runs the expanded 25-task fixture without error', async () => {
+    const report = await runPromptingBenchmark({
+      tasks: EXPANDED_BENCHMARK_TASKS,
+      capturedAt: '2026-04-27T22:30:00.000Z',
+    });
+    expect(report.runs).toHaveLength(EXPANDED_BENCHMARK_TASKS.length * 3);
+    expect(report.summary).toHaveLength(3);
   });
 });

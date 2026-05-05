@@ -1,5 +1,5 @@
 {
-  "version": "mcop-benchmark/1.0",
+  "version": "mcop-benchmark/2.0",
   "capturedAt": "2026-04-27T22:30:00.000Z",
   "tasks": [
     {
@@ -68,7 +68,17 @@
       "dispatchedPromptLength": 79,
       "goalCoverage": 1,
       "auditable": false,
-      "merkleRoot": null
+      "merkleRoot": null,
+      "quality": {
+        "humanLikert": 4,
+        "automatedScore": 0.53,
+        "bertScoreF1": 1
+      },
+      "latency": {
+        "totalMs": 3.62,
+        "triadMs": 0,
+        "llmMs": 3.62
+      }
     },
     {
       "mode": "pure-ai",
@@ -79,7 +89,17 @@
       "dispatchedPromptLength": 276,
       "goalCoverage": 1,
       "auditable": false,
-      "merkleRoot": null
+      "merkleRoot": null,
+      "quality": {
+        "humanLikert": 4,
+        "automatedScore": 0.32,
+        "bertScoreF1": 1
+      },
+      "latency": {
+        "totalMs": 5.58,
+        "triadMs": 0,
+        "llmMs": 5.58
+      }
     },
     {
       "mode": "mcop-mediated",
@@ -90,7 +110,17 @@
       "dispatchedPromptLength": 79,
       "goalCoverage": 1,
       "auditable": true,
-      "merkleRoot": "4b0e712e434d884dbdcb043dcac795541383fe507d44bf4f59b6004459508811"
+      "merkleRoot": "4b0e712e434d884dbdcb043dcac795541383fe507d44bf4f59b6004459508811",
+      "quality": {
+        "humanLikert": 4,
+        "automatedScore": 0.4,
+        "bertScoreF1": 1
+      },
+      "latency": {
+        "totalMs": 6.22,
+        "triadMs": 1.54,
+        "llmMs": 4.68
+      }
     },
     {
       "mode": "human-only",
@@ -101,7 +131,17 @@
       "dispatchedPromptLength": 80,
       "goalCoverage": 1,
       "auditable": false,
-      "merkleRoot": null
+      "merkleRoot": null,
+      "quality": {
+        "humanLikert": 4,
+        "automatedScore": 0.5,
+        "bertScoreF1": 1
+      },
+      "latency": {
+        "totalMs": 4.32,
+        "triadMs": 0,
+        "llmMs": 4.32
+      }
     },
     {
       "mode": "pure-ai",
@@ -112,7 +152,17 @@
       "dispatchedPromptLength": 277,
       "goalCoverage": 1,
       "auditable": false,
-      "merkleRoot": null
+      "merkleRoot": null,
+      "quality": {
+        "humanLikert": 4,
+        "automatedScore": 0.31,
+        "bertScoreF1": 1
+      },
+      "latency": {
+        "totalMs": 6.28,
+        "triadMs": 0,
+        "llmMs": 6.28
+      }
     },
     {
       "mode": "mcop-mediated",
@@ -123,7 +173,17 @@
       "dispatchedPromptLength": 80,
       "goalCoverage": 1,
       "auditable": true,
-      "merkleRoot": "72a0b9341d5145461e29cc0c8b94a4e458595c509529eb833804cc886e0e30a5"
+      "merkleRoot": "72a0b9341d5145461e29cc0c8b94a4e458595c509529eb833804cc886e0e30a5",
+      "quality": {
+        "humanLikert": 5,
+        "automatedScore": 0.38,
+        "bertScoreF1": 1
+      },
+      "latency": {
+        "totalMs": 6.92,
+        "triadMs": 1.54,
+        "llmMs": 5.38
+      }
     },
     {
       "mode": "human-only",
@@ -134,7 +194,17 @@
       "dispatchedPromptLength": 104,
       "goalCoverage": 1,
       "auditable": false,
-      "merkleRoot": null
+      "merkleRoot": null,
+      "quality": {
+        "humanLikert": 4,
+        "automatedScore": 0.44,
+        "bertScoreF1": 1
+      },
+      "latency": {
+        "totalMs": 3.72,
+        "triadMs": 0,
+        "llmMs": 3.72
+      }
     },
     {
       "mode": "pure-ai",
@@ -145,7 +215,17 @@
       "dispatchedPromptLength": 301,
       "goalCoverage": 1,
       "auditable": false,
-      "merkleRoot": null
+      "merkleRoot": null,
+      "quality": {
+        "humanLikert": 4,
+        "automatedScore": 0.29,
+        "bertScoreF1": 1
+      },
+      "latency": {
+        "totalMs": 5.68,
+        "triadMs": 0,
+        "llmMs": 5.68
+      }
     },
     {
       "mode": "mcop-mediated",
@@ -156,7 +236,17 @@
       "dispatchedPromptLength": 104,
       "goalCoverage": 1,
       "auditable": true,
-      "merkleRoot": "6ef5482099d5afbb04144374e6372d14d3d0d3ccef4923ad1cf55fa2804a9566"
+      "merkleRoot": "6ef5482099d5afbb04144374e6372d14d3d0d3ccef4923ad1cf55fa2804a9566",
+      "quality": {
+        "humanLikert": 4,
+        "automatedScore": 0.35,
+        "bertScoreF1": 1
+      },
+      "latency": {
+        "totalMs": 6.32,
+        "triadMs": 1.54,
+        "llmMs": 4.78
+      }
     },
     {
       "mode": "human-only",
@@ -167,7 +257,17 @@
       "dispatchedPromptLength": 79,
       "goalCoverage": 1,
       "auditable": false,
-      "merkleRoot": null
+      "merkleRoot": null,
+      "quality": {
+        "humanLikert": 4,
+        "automatedScore": 0.53,
+        "bertScoreF1": 1
+      },
+      "latency": {
+        "totalMs": 4.42,
+        "triadMs": 0,
+        "llmMs": 4.42
+      }
     },
     {
       "mode": "pure-ai",
@@ -178,7 +278,17 @@
       "dispatchedPromptLength": 276,
       "goalCoverage": 1,
       "auditable": false,
-      "merkleRoot": null
+      "merkleRoot": null,
+      "quality": {
+        "humanLikert": 4,
+        "automatedScore": 0.32,
+        "bertScoreF1": 1
+      },
+      "latency": {
+        "totalMs": 6.38,
+        "triadMs": 0,
+        "llmMs": 6.38
+      }
     },
     {
       "mode": "mcop-mediated",
@@ -189,7 +299,17 @@
       "dispatchedPromptLength": 79,
       "goalCoverage": 1,
       "auditable": true,
-      "merkleRoot": "1e7c70ab6289fc080e6360e802a2241a6eb6cb45c974a0823fd7f517cf590162"
+      "merkleRoot": "1e7c70ab6289fc080e6360e802a2241a6eb6cb45c974a0823fd7f517cf590162",
+      "quality": {
+        "humanLikert": 5,
+        "automatedScore": 0.4,
+        "bertScoreF1": 1
+      },
+      "latency": {
+        "totalMs": 5.72,
+        "triadMs": 1.54,
+        "llmMs": 4.18
+      }
     },
     {
       "mode": "human-only",
@@ -200,7 +320,17 @@
       "dispatchedPromptLength": 86,
       "goalCoverage": 1,
       "auditable": false,
-      "merkleRoot": null
+      "merkleRoot": null,
+      "quality": {
+        "humanLikert": 3,
+        "automatedScore": 0.5,
+        "bertScoreF1": 1
+      },
+      "latency": {
+        "totalMs": 3.82,
+        "triadMs": 0,
+        "llmMs": 3.82
+      }
     },
     {
       "mode": "pure-ai",
@@ -211,7 +341,17 @@
       "dispatchedPromptLength": 283,
       "goalCoverage": 1,
       "auditable": false,
-      "merkleRoot": null
+      "merkleRoot": null,
+      "quality": {
+        "humanLikert": 3,
+        "automatedScore": 0.31,
+        "bertScoreF1": 1
+      },
+      "latency": {
+        "totalMs": 5.78,
+        "triadMs": 0,
+        "llmMs": 5.78
+      }
     },
     {
       "mode": "mcop-mediated",
@@ -222,7 +362,17 @@
       "dispatchedPromptLength": 86,
       "goalCoverage": 1,
       "auditable": true,
-      "merkleRoot": "ff2990717e293234fe23b4dc64040e2bd5eef8403720b5c38afd0af536002e4a"
+      "merkleRoot": "ff2990717e293234fe23b4dc64040e2bd5eef8403720b5c38afd0af536002e4a",
+      "quality": {
+        "humanLikert": 5,
+        "automatedScore": 0.38,
+        "bertScoreF1": 1
+      },
+      "latency": {
+        "totalMs": 6.42,
+        "triadMs": 1.54,
+        "llmMs": 4.88
+      }
     }
   ],
   "summary": [
@@ -233,7 +383,13 @@
       "avgOutputTokens": 12.6,
       "avgTotalTokens": 27.4,
       "avgGoalCoverage": 1,
-      "auditableRuns": 0
+      "auditableRuns": 0,
+      "avgHumanLikert": 3.8,
+      "avgAutomatedScore": 0.5,
+      "avgBertScoreF1": 1,
+      "avgLatencyMs": 3.98,
+      "avgTriadMs": 0,
+      "avgLlmMs": 3.98
     },
     {
       "mode": "pure-ai",
@@ -242,7 +398,13 @@
       "avgOutputTokens": 22.6,
       "avgTotalTokens": 60.4,
       "avgGoalCoverage": 1,
-      "auditableRuns": 0
+      "auditableRuns": 0,
+      "avgHumanLikert": 3.8,
+      "avgAutomatedScore": 0.31,
+      "avgBertScoreF1": 1,
+      "avgLatencyMs": 5.94,
+      "avgTriadMs": 0,
+      "avgLlmMs": 5.94
     },
     {
       "mode": "mcop-mediated",
@@ -251,7 +413,13 @@
       "avgOutputTokens": 17.6,
       "avgTotalTokens": 33.4,
       "avgGoalCoverage": 1,
-      "auditableRuns": 5
+      "auditableRuns": 5,
+      "avgHumanLikert": 4.6,
+      "avgAutomatedScore": 0.38,
+      "avgBertScoreF1": 1,
+      "avgLatencyMs": 6.32,
+      "avgTriadMs": 1.54,
+      "avgLlmMs": 4.78
     }
   ]
 }

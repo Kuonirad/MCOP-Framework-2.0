@@ -2,12 +2,14 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import results from "../../../docs/benchmarks/results.json";
+import BenchmarksClient, { MerkleExplorer, type BenchmarkRun } from "./BenchmarksClient";
 
 export const metadata: Metadata = {
   title: "Benchmarks · MCOP Framework",
   description:
-    "Reproducible Human vs Pure-AI vs MCOP-mediated prompting benchmark. Average tokens, goal coverage, and audit-trail availability across the canonical task fixture.",
+    "Reproducible Human vs Pure-AI vs MCOP-mediated prompting benchmark. Average tokens, goal coverage, quality scores, latency breakdown, and audit-trail availability across the canonical task fixture.",
 };
+
 
 interface BenchmarkSummary {
   mode: string;
@@ -17,18 +19,12 @@ interface BenchmarkSummary {
   avgTotalTokens: number;
   avgGoalCoverage: number;
   auditableRuns: number;
-}
-
-interface BenchmarkRun {
-  mode: string;
-  taskId: string;
-  inputTokens: number;
-  outputTokens: number;
-  totalTokens: number;
-  dispatchedPromptLength: number;
-  goalCoverage: number;
-  auditable: boolean;
-  merkleRoot: string | null;
+  avgHumanLikert: number | null;
+  avgAutomatedScore: number;
+  avgBertScoreF1: number;
+  avgLatencyMs: number;
+  avgTriadMs: number;
+  avgLlmMs: number;
 }
 
 interface BenchmarkTask {
@@ -71,7 +67,7 @@ export default function BenchmarksPage() {
       <main
         id="main-content"
         tabIndex={-1}
-        className="mx-auto flex max-w-6xl flex-col gap-12 px-6 py-16 focus:outline-none"
+        className="mx-auto flex max-w-7xl flex-col gap-12 px-6 py-16 focus:outline-none"
       >
         <header className="flex flex-col gap-4">
           <p className="text-xs uppercase tracking-[0.4em] text-emerald-300/80">
@@ -82,20 +78,21 @@ export default function BenchmarksPage() {
           </h1>
           <p className="max-w-3xl text-base text-slate-300/85">
             A reproducible comparison of three prompting strategies on the
-            canonical five-task fixture: average tokens, goal coverage, and
-            audit-trail availability. The full methodology lives in{" "}
+            canonical five-task fixture: average tokens, goal coverage, quality
+            scores, latency breakdown, and audit-trail availability. The full
+            methodology lives in{" "}
             <Link
               href="https://github.com/Kuonirad/MCOP-Framework-2.0/blob/main/docs/benchmarks/methodology.md"
               className="underline decoration-dotted underline-offset-4 hover:text-white"
             >
               docs/benchmarks/methodology.md
             </Link>{" "}
-            and the whitepaper that quotes these numbers is{" "}
+            and the playbook with replication instructions is{" "}
             <Link
-              href="https://github.com/Kuonirad/MCOP-Framework-2.0/blob/main/docs/whitepapers/Human_vs_PureAI_Prompting.md"
+              href="https://github.com/Kuonirad/MCOP-Framework-2.0/blob/main/docs/benchmarks/playbook.md"
               className="underline decoration-dotted underline-offset-4 hover:text-white"
             >
-              docs/whitepapers/Human_vs_PureAI_Prompting.md
+              docs/benchmarks/playbook.md
             </Link>
             .
           </p>
@@ -111,6 +108,9 @@ export default function BenchmarksPage() {
             ← Back to overview
           </Link>
         </header>
+
+        {/* ── Interactive Task Uploader (Client Component) ── */}
+        <BenchmarksClient />
 
         <section
           aria-labelledby="summary-heading"
@@ -138,6 +138,21 @@ export default function BenchmarksPage() {
                   </th>
                   <th className="px-4 py-3 text-right font-semibold">
                     Goal coverage
+                  </th>
+                  <th className="px-4 py-3 text-right font-semibold">
+                    Human Likert
+                  </th>
+                  <th className="px-4 py-3 text-right font-semibold">
+                    Auto score
+                  </th>
+                  <th className="px-4 py-3 text-right font-semibold">
+                    BERTScore F1
+                  </th>
+                  <th className="px-4 py-3 text-right font-semibold">
+                    Latency (ms)
+                  </th>
+                  <th className="px-4 py-3 text-right font-semibold">
+                    Triad (ms)
                   </th>
                   <th className="px-4 py-3 text-right font-semibold">
                     Auditable runs
@@ -175,6 +190,21 @@ export default function BenchmarksPage() {
                         {(row.avgGoalCoverage * 100).toFixed(0)}%
                       </td>
                       <td className="px-4 py-3 text-right font-mono">
+                        {row.avgHumanLikert ?? "—"}
+                      </td>
+                      <td className="px-4 py-3 text-right font-mono">
+                        {row.avgAutomatedScore.toFixed(2)}
+                      </td>
+                      <td className="px-4 py-3 text-right font-mono">
+                        {row.avgBertScoreF1.toFixed(2)}
+                      </td>
+                      <td className="px-4 py-3 text-right font-mono">
+                        {row.avgLatencyMs.toFixed(2)}
+                      </td>
+                      <td className="px-4 py-3 text-right font-mono">
+                        {row.avgTriadMs.toFixed(2)}
+                      </td>
+                      <td className="px-4 py-3 text-right font-mono">
                         {row.auditableRuns} / {row.tasks}
                       </td>
                     </tr>
@@ -197,8 +227,10 @@ export default function BenchmarksPage() {
               <strong>
                 {((mcop.avgTotalTokens / human.avgTotalTokens - 1) * 100).toFixed(0)}%
               </strong>{" "}
-              and is the only mode emitting Merkle-rooted provenance —
-              {mcop.auditableRuns} of {mcop.tasks} runs auditable.
+              and is the only mode emitting Merkle-rooted provenance —{" "}
+              {mcop.auditableRuns} of {mcop.tasks} runs auditable. MCOP also
+              achieves the highest human Likert ({mcop.avgHumanLikert}) and
+              lowest LLM latency overhead ({mcop.avgLlmMs.toFixed(2)} ms avg).
             </p>
           ) : null}
         </section>
@@ -222,6 +254,15 @@ export default function BenchmarksPage() {
                   <th className="px-4 py-3 text-right font-semibold">
                     Coverage
                   </th>
+                  <th className="px-4 py-3 text-right font-semibold">
+                    Likert
+                  </th>
+                  <th className="px-4 py-3 text-right font-semibold">
+                    Auto
+                  </th>
+                  <th className="px-4 py-3 text-right font-semibold">
+                    Latency
+                  </th>
                   <th className="px-4 py-3 text-left font-semibold">
                     Merkle root
                   </th>
@@ -243,6 +284,15 @@ export default function BenchmarksPage() {
                     <td className="px-4 py-3 text-right font-mono">
                       {(run.goalCoverage * 100).toFixed(0)}%
                     </td>
+                    <td className="px-4 py-3 text-right font-mono">
+                      {run.quality.humanLikert ?? "—"}
+                    </td>
+                    <td className="px-4 py-3 text-right font-mono">
+                      {run.quality.automatedScore.toFixed(2)}
+                    </td>
+                    <td className="px-4 py-3 text-right font-mono">
+                      {run.latency.totalMs.toFixed(2)}
+                    </td>
                     <td className="px-4 py-3 font-mono text-xs">
                       {run.merkleRoot
                         ? `${run.merkleRoot.slice(0, 12)}…${run.merkleRoot.slice(-6)}`
@@ -254,6 +304,9 @@ export default function BenchmarksPage() {
             </table>
           </div>
         </section>
+
+        {/* ── Live Merkle Explorer (Client Component) ── */}
+        <MerkleExplorer runs={report.runs} />
 
         <section
           aria-labelledby="reproduce-heading"
