@@ -10,17 +10,6 @@ export const metadata: Metadata = {
     "Reproducible Human vs Pure-AI vs MCOP-mediated prompting benchmark. Average tokens, goal coverage, quality scores, latency breakdown, and audit-trail availability across the canonical task fixture.",
 };
 
-interface BenchmarkQuality {
-  humanLikert: number | null;
-  automatedScore: number;
-  bertScoreF1: number;
-}
-
-interface BenchmarkLatency {
-  totalMs: number;
-  triadMs: number;
-  llmMs: number;
-}
 
 interface BenchmarkSummary {
   mode: string;
