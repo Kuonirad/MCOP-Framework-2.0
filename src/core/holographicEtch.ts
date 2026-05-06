@@ -2,6 +2,12 @@ import { ContextTensor, EtchRecord } from './types';
 import { CircularBuffer } from './circularBuffer';
 import { cosineWithMagnitudes, magnitude } from './vectorMath';
 import { canonicalDigest } from './canonicalEncoding';
+import {
+  PositiveGrowthEvent,
+  PositiveGrowthEventInput,
+  PositiveImpactMetrics,
+  PositiveResonanceAmplifier,
+} from './positiveResonanceAmplifier';
 import { failTriadSpan, finishTriadSpan, startTriadSpan } from './observability';
 
 export interface HolographicEtchConfig {
@@ -29,6 +35,18 @@ export interface HolographicEtchConfig {
    */
   staticFloorWeight?: number;
   curiosityBonus?: number; // 2026-05-03 audit → v2.2.1 Phoenix-DNA
+  flourishingAmplifier?: number;
+  /** Optional append-only growth ledger for human-celebrated positive audit work. */
+  growthLedger?: PositiveResonanceAmplifier | boolean;
+  maxGrowthEvents?: number;
+  humanCelebrationEnabled?: boolean;
+}
+
+
+export interface EudaimonicEtchSummary {
+  flourishingScore: number;
+  propagationHint: 'seed' | 'bloom' | 'radiate';
+  positiveResonance: number;
 }
 
 export interface AdaptiveConfidenceBreakdown {
@@ -45,17 +63,28 @@ export class HolographicEtch {
   private readonly auditLog: boolean;
   private readonly staticFloorWeight: number;
   private readonly curiosityBonus: number;
+  private readonly flourishingAmplifier: number;
   private readonly etches: CircularBuffer<EtchRecord>;
   private readonly audit: CircularBuffer<EtchRecord>;
+  private readonly growthLedger?: PositiveResonanceAmplifier;
 
   constructor(config: HolographicEtchConfig = {}) {
     this.confidenceFloor = config.confidenceFloor ?? 0.65; // 2026-05-03 audit → v2.2.1
     this.curiosityBonus = config.curiosityBonus ?? 0.15;
+    this.flourishingAmplifier = clamp01(config.flourishingAmplifier ?? 0.2);
     this.auditLog = config.auditLog ?? true;
     this.staticFloorWeight = clamp01(config.staticFloorWeight ?? 0.4);
     const cap = config.maxEtches ?? 4096;
     this.etches = new CircularBuffer<EtchRecord>(cap);
     this.audit = new CircularBuffer<EtchRecord>(cap);
+    this.growthLedger = config.growthLedger instanceof PositiveResonanceAmplifier
+      ? config.growthLedger
+      : config.growthLedger === true
+        ? new PositiveResonanceAmplifier({
+          maxEvents: config.maxGrowthEvents ?? cap,
+          humanCelebrationEnabled: config.humanCelebrationEnabled,
+        })
+        : undefined;
   }
 
   /**
@@ -162,6 +191,7 @@ export class HolographicEtch {
         return skipped;
       }
 
+      const eudaimonic = this.scoreEudaimonicEtch(context, synthesisVector, normalizedDelta);
       const payload = { context, synthesisVector, normalizedDelta, note };
       // RFC 8785 canonical JSON: byte-identical with the Python parity etch.
       const hash = canonicalDigest(payload);
@@ -170,10 +200,23 @@ export class HolographicEtch {
         deltaWeight: normalizedDelta,
         note,
         timestamp: new Date().toISOString(),
+        flourishingScore: eudaimonic.flourishingScore,
+        propagationHint: eudaimonic.propagationHint,
       };
 
       this.etches.push(record);
       if (this.auditLog) this.audit.push(record);
+      this.growthLedger?.recordGrowthEvent({
+        domain: 'joy',
+        title: note ?? 'holographic-etch-growth',
+        positiveBuilding: 'Positive Building of EudaimonicEtch propagation metadata',
+        resonanceDelta: eudaimonic.flourishingScore - 0.5,
+        evidence: {
+          etchHash: hash,
+          propagationHint: eudaimonic.propagationHint,
+          positiveResonance: eudaimonic.positiveResonance,
+        },
+      });
       finishTriadSpan(span, {
         'mcop.etch.accepted': true,
         'mcop.etch.delta_weight': normalizedDelta,
@@ -186,6 +229,37 @@ export class HolographicEtch {
     }
   }
 
+
+  /**
+   * EudaimonicEtch turns accepted confidence deltas into flourishing signals.
+   * It preserves the canonical etch hash while adding non-hash metadata that
+   * helps downstream schedulers propagate high-resonance, high-confidence traces.
+   */
+  scoreEudaimonicEtch(
+    context: ContextTensor,
+    synthesisVector: number[],
+    normalizedDelta?: number,
+  ): EudaimonicEtchSummary {
+    const ctxMag = magnitude(context);
+    const synMag = magnitude(synthesisVector);
+    const positiveResonance = Math.max(
+      0,
+      cosineWithMagnitudes(context, synthesisVector, ctxMag, synMag),
+    );
+    const delta = normalizedDelta ?? computeNormalizedDelta(context, synthesisVector);
+    const base = clamp01(Math.max(0, delta));
+    const flourishingScore = clamp01(
+      base * (1 + this.flourishingAmplifier * positiveResonance) +
+        this.curiosityBonus * 0.1,
+    );
+    const propagationHint = flourishingScore >= 0.9
+      ? 'radiate'
+      : flourishingScore >= 0.5
+        ? 'bloom'
+        : 'seed';
+    return { flourishingScore, propagationHint, positiveResonance };
+  }
+
   recent(limit = 5): EtchRecord[] {
     return this.etches.recent(limit);
   }
@@ -196,6 +270,19 @@ export class HolographicEtch {
    */
   recentAudit(limit = 5): EtchRecord[] {
     return this.audit.recent(limit);
+  }
+
+
+  recordPositiveGrowthEvent(input: PositiveGrowthEventInput): PositiveGrowthEvent | undefined {
+    return this.growthLedger?.recordGrowthEvent(input);
+  }
+
+  recentPositiveGrowth(limit = 8): PositiveGrowthEvent[] {
+    return this.growthLedger?.recentGrowthEvents(limit) ?? [];
+  }
+
+  getPositiveImpactMetrics(): PositiveImpactMetrics | undefined {
+    return this.growthLedger?.getPositiveImpactMetrics();
   }
 
   /** Memory Guardian: current fill statistics, for dashboards/alerts. */
@@ -232,6 +319,15 @@ export class HolographicEtch {
     const variance = Math.max(0, sumSq / count - mean * mean);
     return clamp01(1 - Math.min(1, Math.sqrt(variance)));
   }
+}
+
+function computeNormalizedDelta(context: ContextTensor, synthesisVector: number[]): number {
+  const minLen = Math.min(context.length, synthesisVector.length);
+  let deltaWeight = 0;
+  for (let i = 0; i < minLen; i++) {
+    deltaWeight += context[i] * synthesisVector[i];
+  }
+  return deltaWeight / (minLen || 1);
 }
 
 function clamp01(x: number): number {

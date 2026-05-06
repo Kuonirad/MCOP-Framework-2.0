@@ -1,4 +1,7 @@
-import { NovaNeoEncoder } from '../core/novaNeoEncoder';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+
+import { NovaNeoEncoder, UniversalEncoder, NovaNeoWeb, getUniversalCryptoRuntime, sha256Hex } from '../core';
 import { HashingTrickBackend, defaultEmbeddingBackend } from '../core/embeddingEngine';
 import logger from '../utils/logger';
 
@@ -165,5 +168,58 @@ describe('HashingTrickBackend standalone', () => {
     const vec = defaultEmbeddingBackend.encode('singleton reuse', 16, false);
     expect(vec).toHaveLength(16);
     expect(vec.every((v) => Number.isFinite(v))).toBe(true);
+  });
+});
+
+describe('UniversalEncoder and NovaNeoWeb portability', () => {
+  it('keeps NovaNeoWeb byte-identical to hash backend without node crypto imports', () => {
+    const hashEnc = new NovaNeoEncoder({ dimensions: 32, normalize: true, backend: 'hash' });
+    const webEnc = new NovaNeoEncoder({ dimensions: 32, normalize: true, backend: 'novaNeoWeb' });
+    expect(webEnc.encode('edge-native flourishing')).toEqual(hashEnc.encode('edge-native flourishing'));
+  });
+
+  it('UniversalEncoder exposes the browser/edge facade as first-class API', () => {
+    const web = new UniversalEncoder({ dimensions: 16, normalize: true });
+    const alias = new NovaNeoWeb({ dimensions: 16, normalize: true });
+    expect(web.encode('universal mcop')).toEqual(alias.encode('universal mcop'));
+    expect(getUniversalCryptoRuntime()).toMatch(/node|web|portable/);
+  });
+
+  it('HashingTrickBackend self-heals dimension=0 to a safe power-of-2', () => {
+    const backend = new HashingTrickBackend();
+    const vec = backend.encode('dimension bloom', 0, true);
+    expect(vec).toHaveLength(1);
+    expect(vec.every((v) => Number.isFinite(v))).toBe(true);
+    expect(backend.getLastDimensionHealing()).toMatchObject({
+      requestedDimensions: 0,
+      healedDimensions: 1,
+      reason: 'non-positive',
+    });
+  });
+
+  it('NovaNeoEncoder can opt into SelfHealingDimension for invalid configs', () => {
+    const encoder = new NovaNeoEncoder({ dimensions: 0, backend: 'novaNeoWeb', selfHealDimensions: true });
+    expect(encoder.encode('self healing dimension')).toHaveLength(1);
+  });
+});
+
+describe('portable SHA-256 substrate', () => {
+  it('matches the SHA-256 reference digest for abc', () => {
+    expect(sha256Hex('abc')).toBe('ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad');
+  });
+});
+
+
+describe('browser bundle guardrails', () => {
+  it('keeps encoder and embedding sources free of static node crypto and Buffer usage', () => {
+    const files = [
+      path.join(__dirname, '..', 'core', 'novaNeoEncoder.ts'),
+      path.join(__dirname, '..', 'core', 'embeddingEngine.ts'),
+    ];
+    for (const file of files) {
+      const source = fs.readFileSync(file, 'utf8');
+      expect(source).not.toMatch(/from ['"]node:crypto['"]|from ['"]crypto['"]/);
+      expect(source).not.toMatch(/\bBuffer\b/);
+    }
   });
 });

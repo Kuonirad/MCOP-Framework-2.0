@@ -4,6 +4,41 @@ All notable changes to this project will be documented here. The format is
 based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
+## [2.3.0] - 2026-05-06 — Eudaimonic Bloom
+
+### Added
+- **NovaNeoWeb / UniversalEncoder.** The NOVA-NEO hash path now rests on a
+  portable SHA-256 substrate, exposing a first-class browser/edge encoder while
+  preserving byte-identical deterministic tensors.
+- **ResonantRecentQuery.** Stigmergy recency can now rank high-resonance traces
+  while softly lifting low-resonance domains with a bounded curiosity bonus.
+- **SelfHealingDimension.** Hashing-trick embeddings heal invalid dimensions to
+  the nearest safe power-of-2 and expose an auditable healing event.
+- **EudaimonicEtch.** Accepted etches carry additive `flourishingScore` and
+  `propagationHint` metadata (`seed`, `bloom`, `radiate`) without changing the
+  canonical hash payload.
+- **Positive evolution dossier.** `POSITIVE_EVOLUTION.md` records the audit map,
+  replacements, and flourishing impact statement for this release.
+
+### Positive Building
+- **Positive Building of safe recency.** `CircularBuffer.recent(limit)` now treats negative limits as empty safe
+  queries instead of attempting a negative array allocation.
+- **Positive Building of dimensional growth.** `HashingTrickBackend.encode()` transforms direct `dimensions <= 0` calls into
+  auditable, safe power-of-2 tensor dimensions.
+- **Positive Building of growth-ledger provenance.** `PositiveResonanceAmplifier` records joyful audit remediation as
+  Merkle-chained events and powers the Positive Impact Report badge.
+- **Positive Building of beneficial memory.** Stigmergy v5 now includes Positive Feedback Hysteresis via `growthBias`
+  so high-resonance beneficial patterns become more visible while raw cosine traces remain intact.
+
+### Changed
+- README performance numbers are explicitly labeled as deterministic benchmark
+  baselines with the regeneration command, replacing ambiguous public claims
+  with replayable evidence.
+- Architecture docs clarify that P_GoT planning and long-form video are
+  extension blooms over the deterministic triad, not replacements for core
+  invariants.
+
 ## [2.2.1] - 2026-05-03
 - Lowered default confidenceFloor 0.8→0.65 + exposed adaptiveThreshold + curiosityBonus (Claude Code v2.2.1 sprint)
 
@@ -21,7 +56,7 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## `@kullailabs/mcop-core` [0.2.1] — 2026-05-01
 
-**npm package patch — OIDC trusted-publishing validation release.**
+**npm package positive-building release — OIDC trusted-publishing validation release.**
 
 `@kullailabs/mcop-core@0.2.0` was published manually from a maintainer
 environment with a short-lived publish token (since rotated) to unblock
@@ -30,7 +65,7 @@ diagnosed. As a result, **0.2.0 does not carry a Sigstore provenance
 attestation** — the `dist.attestations` field on the registry is null
 for that version.
 
-`0.2.1` is a no-functional-change patch release (identical TypeScript
+`0.2.1` is a no-functional-change positive-building release (identical TypeScript
 sources, identical compiled output) whose sole purpose is to validate
 that `publish-npm.yml` after [PR #567](https://github.com/Kuonirad/MCOP-Framework-2.0/pull/567)
 trust-publishes via OIDC end-to-end and re-establishes a Sigstore
@@ -47,7 +82,7 @@ provenance attestation for downstream consumers.
 
 ## [2.2.1] — 2026-04-30
 
-**Framework v2.2.1** — operational patch: re-anchor the v2.2.0 release with
+**Framework v2.2.1** — operational positive-building release: re-anchor the v2.2.0 release with
 its CycloneDX SBOMs attached to the GitHub Release page, after the original
 `v2.2.0` Release was lost to GitHub's Immutable Releases lock during the
 post-publish SBOM-attach sequence. **No code changes from v2.2.0**; the
@@ -163,9 +198,8 @@ test coverage. Ships alongside `@kullailabs/mcop-core@0.2.0` (npm) and
 ### Changed
 - **Repo rename hygiene.** Updated all GitHub URLs, badges, clone
   instructions, sitemap entries, and package metadata to the canonical
-  repository name `Kuonirad/MCOP-Framework-2.0` (previously
-  `Kuonirad/KullAILABS-MCOP-Framework-2.0`; GitHub continues to redirect
-  the old slug). The published npm scope `@kullailabs/mcop-core` and the
+  repository name `Kuonirad/MCOP-Framework-2.0`; the canonical identity now
+  radiates directly through every contributor path. The published npm scope `@kullailabs/mcop-core` and the
   PyPI package `mcop` are unchanged so no consumer action is required.
 
 ### Added

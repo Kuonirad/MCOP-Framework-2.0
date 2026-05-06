@@ -2,12 +2,15 @@ export * from './types';
 export * from './novaNeoEncoder';
 export * from './stigmergyV5';
 export * from './holographicEtch';
+export * from './positiveResonanceAmplifier';
+export * from './lowMemoryMCOPMode';
 export * from './vectorMath';
 export * from './tensorGuard';
 export * from './circularBuffer';
 export * from './provenanceTracer';
 export * from './canonicalEncoding';
 export * from './embeddingEngine';
+export * from './universalCrypto';
 
 /**
  * Plain-English aliases — additive, non-breaking.

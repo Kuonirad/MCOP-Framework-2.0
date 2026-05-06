@@ -26,6 +26,11 @@ import {
   AdapterCapabilities,
   AdapterRequest,
 } from './types';
+import {
+  GROK_4_3_LOW_MEMORY_MCOP_PRESET,
+  LowMemoryMCOPMode,
+  LowMemoryMCOPModeConfig,
+} from '../core/lowMemoryMCOPMode';
 
 /** Names of the xAI hosted Grok models known at the time of writing. */
 export type GrokModel =
@@ -51,6 +56,8 @@ export interface GrokCompletionOptions {
   systemPrompt?: string;
   /** Stop sequences forwarded verbatim to the vendor. */
   stop?: ReadonlyArray<string>;
+  /** Optional deterministic prompt pruning for high-capability model routing. */
+  lowMemory?: LowMemoryMCOPModeConfig | boolean;
 }
 
 export interface GrokRequest extends AdapterRequest {
@@ -138,6 +145,7 @@ export class GrokMCOPAdapter extends BaseAdapter<
         'mcop-triad-refinement',
         'human-veto',
         'entropy-resonance-routing',
+        'low-memory-prompt-pruning',
       ],
       notes:
         "OpenAI-compatible Chat Completions on https://api.x.ai/v1. " +
@@ -161,8 +169,15 @@ export class GrokMCOPAdapter extends BaseAdapter<
       'styleContext' | 'humanFeedback' | 'metadata' | 'entropyTarget'
     > = {},
   ) {
+    const { lowMemory, ...platformOptions } = options;
+    const lowMemoryConfig = lowMemory === true
+      ? GROK_4_3_LOW_MEMORY_MCOP_PRESET
+      : lowMemory;
+    const effectivePrompt = lowMemoryConfig
+      ? new LowMemoryMCOPMode(lowMemoryConfig).prunePrompt(prompt)
+      : prompt;
     return this.generate({
-      prompt,
+      prompt: effectivePrompt,
       domain: 'narrative',
       entropyTarget: extras.entropyTarget ?? this.defaultEntropyTarget,
       styleContext: extras.styleContext,
@@ -170,9 +185,16 @@ export class GrokMCOPAdapter extends BaseAdapter<
       metadata: {
         ...(extras.metadata ?? {}),
         assetKind: 'completion',
-        model: options.model ?? this.defaultModel,
+        model: platformOptions.model ?? this.defaultModel,
+        ...(lowMemoryConfig
+          ? {
+            lowMemory: true,
+            originalPromptLength: prompt.length,
+            prunedPromptLength: effectivePrompt.length,
+          }
+          : {}),
       },
-      payload: { options },
+      payload: { options: platformOptions },
     });
   }
 

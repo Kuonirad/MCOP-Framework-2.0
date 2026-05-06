@@ -1,4 +1,9 @@
-import { HolographicEtch, NovaNeoEncoder, StigmergyV5 } from '../core';
+import {
+  HolographicEtch,
+  LowMemoryMCOPMode,
+  NovaNeoEncoder,
+  StigmergyV5,
+} from '../core';
 import {
   AdapterRequest,
   chooseLinearSlackAction,
@@ -638,6 +643,34 @@ const grokFixture = (
   })),
 });
 
+describe('LowMemoryMCOPMode', () => {
+  it('builds compact MCOP defaults and prunes prompts deterministically', () => {
+    const mode = new LowMemoryMCOPMode({
+      promptTokenBudget: 6,
+      preservePromptHeadTokens: 2,
+      preservePromptTailTokens: 2,
+      tensorDim: 16,
+      maxTraces: 8,
+    });
+
+    const profile = mode.buildProfile();
+    expect(profile.encoderConfig.dimensions).toBe(16);
+    expect(profile.stigmergyConfig.maxTraces).toBe(8);
+    expect(profile.estimatedTraceBytes).toBe(8 * 16 * Float32Array.BYTES_PER_ELEMENT);
+
+    const pruned = mode.prunePrompt('one two three four five six seven eight');
+    expect(pruned).toBe('one two [mcop-low-memory-pruned:4-tokens] seven eight');
+  });
+
+  it('round-trips compact tensors back to canonical array form', () => {
+    const mode = new LowMemoryMCOPMode({ tensorDim: 8 });
+    const compact = mode.encodeCompact('compact resonance');
+
+    expect(compact).toBeInstanceOf(Float32Array);
+    expect(mode.toCanonicalTensor(compact)).toHaveLength(8);
+  });
+});
+
 describe('GrokMCOPAdapter', () => {
   it('rejects empty prompts', async () => {
     const adapter = new GrokMCOPAdapter({
@@ -677,6 +710,35 @@ describe('GrokMCOPAdapter', () => {
     expect(call.messages[call.messages.length - 1].content).toBe(
       response.provenance.refinedPrompt,
     );
+  });
+
+  it('prunes low-memory prompts before dispatch and strips routing-only options', async () => {
+    const client = grokFixture();
+    const adapter = new GrokMCOPAdapter({ ...baseTriad(), client });
+
+    const response = await adapter.generateOptimizedCompletion(
+      'one two three four five six seven eight',
+      {
+        model: 'grok-4',
+        lowMemory: {
+          promptTokenBudget: 6,
+          preservePromptHeadTokens: 2,
+          preservePromptTailTokens: 2,
+        },
+      },
+    );
+
+    expect(response.provenance.refinedPrompt).toContain(
+      '[mcop-low-memory-pruned:4-tokens]',
+    );
+    const call = (client.createCompletion as jest.Mock).mock.calls[0][0] as {
+      messages: ReadonlyArray<{ role: string; content: string }>;
+      options: Record<string, unknown>;
+    };
+    expect(call.messages[call.messages.length - 1].content).toContain(
+      '[mcop-low-memory-pruned:4-tokens]',
+    );
+    expect(call.options).toEqual({ model: 'grok-4' });
   });
 
   it('prepends the system prompt when supplied', async () => {

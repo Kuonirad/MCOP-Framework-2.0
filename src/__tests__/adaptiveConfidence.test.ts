@@ -79,3 +79,21 @@ describe('Etch Memory Guardian', () => {
     expect(audit[0].note).toBe('skipped-low-confidence');
   });
 });
+
+describe('EudaimonicEtch', () => {
+  it('adds flourishing metadata to accepted etches without changing hash semantics', () => {
+    const etch = new HolographicEtch({ confidenceFloor: 0, flourishingAmplifier: 0.5 });
+    const record = etch.applyEtch([1, 1, 1, 1], [1, 1, 1, 1], 'flourish');
+    expect(record.hash).toBeTruthy();
+    expect(record.flourishingScore).toBeGreaterThan(0.9);
+    expect(record.propagationHint).toBe('radiate');
+  });
+
+  it('scores eudaimonic summaries deterministically in the safe range', () => {
+    const etch = new HolographicEtch({ confidenceFloor: 0 });
+    const summary = etch.scoreEudaimonicEtch([1, 0], [1, 0]);
+    expect(summary.flourishingScore).toBeGreaterThan(0);
+    expect(summary.flourishingScore).toBeLessThanOrEqual(1);
+    expect(summary.positiveResonance).toBeCloseTo(1);
+  });
+});

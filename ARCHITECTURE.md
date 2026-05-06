@@ -58,23 +58,48 @@ decision was accepted, rejected, or routed.
 
 | Component | Primary contract | Notes |
 |:---|:---|:---|
-| `NovaNeoEncoder` | text → `ContextTensor` | Deterministic SHA-256/hash-trick vectorization with optional normalization. |
-| `StigmergyV5` | context/synthesis → `PheromoneTrace` | Circular-buffer retention, adaptive resonance thresholding, Merkle root tracking. |
-| `HolographicEtch` | context/synthesis → `EtchRecord` | Confidence-gated append ledger plus rejection audit ring. |
+| `NovaNeoEncoder` / `UniversalEncoder` (`NovaNeoWeb`) | text → `ContextTensor` | Deterministic portable SHA-256/hash-trick vectorization with optional normalization; no Node `crypto`/`Buffer` required on the encoder path. |
+| `StigmergyV5` | context/synthesis → `PheromoneTrace` | Circular-buffer retention, adaptive resonance thresholding, Merkle root tracking, and ResonantRecentQuery for curiosity-lifted recency. |
+| `HolographicEtch` | context/synthesis → `EtchRecord` | Confidence-gated append ledger plus rejection audit ring, EudaimonicEtch flourishing metadata, and optional PositiveResonanceAmplifier growth ledger. |
 | `SynthesisProvenanceTracer` | synthesis request → chained event | Composes encoder, memory, and etch into a replayable lineage. |
+| `PositiveResonanceAmplifier` | audit growth event → Merkle-linked joy ledger | Records Positive Building events and reports contributor joy, adoption velocity, and beneficial outcome amplification. |
 | `vectorMath` | numeric primitives | Shared magnitude, cosine, padding, and dimensionality guard utilities. |
 | Adapter implementations | `AdapterRequest` → provider result | Isolate auth, retries, attribution, and provider-specific payloads. |
 
 ### Code-level invariants
 
 - Canonical hashes use RFC 8785 JSON serialization via `canonicalDigest`.
-- Bounded memory uses `CircularBuffer` to avoid O(n) overflow shifts.
+- Bounded memory uses `CircularBuffer` to avoid O(n) overflow shifts; negative recency limits are normalized to empty safe queries.
 - Resonance scans remain O(n × d), where `n` is retained trace count and `d`
   is comparable vector dimensionality.
 - Ragged vectors are deterministically zero-padded at MCOP boundaries rather
   than silently changing tensor magnitudes.
 - Low-confidence etches are retained in a dedicated audit ring, not committed
-  into the accepted etch stream.
+  into the accepted etch stream. Accepted etch hashes exclude additive
+  flourishing metadata so canonical parity remains stable.
+
+
+## Positive Identity Resonance
+
+Positive Building of identity resonance keeps the human pathway as coherent as
+the tensor pathway. The canonical repository identity is `MCOP-Framework-2.0`;
+badges, clone commands, package metadata, and provenance links are aligned to
+that identity so contributors encounter one welcoming name across documentation,
+release automation, and source metadata.
+
+## Positive Building Feedback Layer
+
+`PositiveResonanceAmplifier` is an additive, append-only growth ledger. It
+Merkle-chains each Positive Building event with a resonance delta, optional
+human celebration, and evidence payload. `HolographicEtch` can receive this
+ledger through `growthLedger: true` or an injected amplifier instance, preserving
+backward-compatible etch behavior while letting teams surface replayable
+contributor joy, adoption velocity, and beneficial outcome amplification.
+
+`StigmergyV5` includes Positive Feedback Hysteresis through `growthBias`
+(default `0.15`). Raw cosine trace weights remain intact; high-resonance
+beneficial scores receive a bounded lift at query time so useful patterns become
+more visible without dissolving deterministic provenance.
 
 ## Stigmergic Coordination and Feedback Control
 
@@ -87,9 +112,13 @@ otherwise miss useful traces, while damping oscillation when the trace
 distribution is stable.
 
 Memory pressure is bounded by `CircularBuffer`. Eviction is deterministic,
-oldest-first, and observable through buffer statistics. This keeps the memory
-substrate homeostatic under bursty agent traffic while preserving the latest
-coordination traces for self-organization.
+oldest-first, and observable through buffer statistics. Negative recency
+requests return an empty result instead of allocating unsafe arrays.
+`getResonantRecent()` then turns recency into a positive attention primitive:
+high-resonance traces rank first, while low-resonance traces receive a bounded
+curiosity lift when exploration is requested. This keeps the memory substrate
+homeostatic under bursty agent traffic while preserving the latest coordination
+traces for self-organization.
 
 ## Boundary Contracts
 
@@ -97,7 +126,9 @@ coordination traces for self-organization.
   byte-identically across runtimes.
 - **Browser ↔ server:** Next.js API routes own network boundaries; core modules
   remain deterministic and side-effect-light except for UUID/timestamp capture
-  during trace creation.
+  during trace creation. Encoder paths use portable SHA-256 through
+  `UniversalEncoder` / `NovaNeoWeb` so client and edge runtimes do not require
+  Node `crypto` or `Buffer`.
 - **Framework ↔ consumer:** public exports in `src/core/index.ts` and
   `packages/core/src/index.ts` are additive; breaking protocol changes require
   docs and tests.
@@ -125,6 +156,14 @@ coordination traces for self-organization.
 - Tamper-evident history
 - Distributed verification
 - Minimal overhead (SHA-256)
+
+## Extension Scope: P_GoT and Long-Form Video
+
+P_GoT planning (`src/core/pGoT_*` and `src/core/planning`) and video orchestration
+(`src/core/longFormVideoOrchestrator.ts`) are extension layers over the triad.
+They may consume tensors, traces, and provenance events, but they do not redefine
+the core encoder-memory-etch invariants documented above. This keeps MCOP's
+center small while allowing domain-specific blooms at the edge.
 
 ## Long-Form Video Generation
 

@@ -1,6 +1,6 @@
 {
   "name": "@kuonirad/mcop-framework",
-  "version": "2.2.1",
+  "version": "2.3.0",
   "private": true,
   "license": "BUSL-1.1",
   "publishConfig": {
@@ -35,7 +35,8 @@
     "coverage:badge": "node scripts/coverage-badge.mjs",
     "benchmark:refresh": "BENCHMARK_GENERATE=1 jest --testPathPatterns=src/__tests__/benchmarks.test.ts",
     "sbom": "node scripts/generate-sbom.mjs",
-    "sbom:validate": "node scripts/validate-sbom.mjs"
+    "sbom:validate": "node scripts/validate-sbom.mjs",
+    "positive:audit": "node scripts/positive-audit.mjs"
   },
   "engines": {
     "node": "^20.17.0 || >=22.9.0",
