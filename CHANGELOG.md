@@ -30,6 +30,11 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Merkle-chained events and powers the Positive Impact Report badge.
 - **Positive Building of beneficial memory.** Stigmergy v5 now includes Positive Feedback Hysteresis via `growthBias`
   so high-resonance beneficial patterns become more visible while raw cosine traces remain intact.
+### Fixed
+- `CircularBuffer.recent(limit)` now treats negative limits as empty safe
+  queries instead of attempting a negative array allocation.
+- `HashingTrickBackend.encode()` no longer risks modulo-zero bucket selection
+  when called directly with `dimensions <= 0`.
 
 ### Changed
 - README performance numbers are explicitly labeled as deterministic benchmark
