@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { readUInt32LE, sha256Bytes } from './universalCrypto';
 import type { ContextTensor } from './types';
 
 /**
@@ -13,7 +13,7 @@ import type { ContextTensor } from './types';
  *
  * How it works:
  *   1. Tokenise text into word-unigrams and character n-grams (n = 2..4).
- *   2. Each n-gram is hashed (SHA-256) → two bucket indices + signed weight.
+ *   2. Each n-gram is hashed (portable SHA-256) → two bucket indices + signed weight.
  *   3. Accumulate weights into a dense Float64 vector of `dimensions` length.
  *   4. L2-normalise if requested.
  *
@@ -25,8 +25,16 @@ import type { ContextTensor } from './types';
  * `IEmbeddingBackend` interface and be swapped in via NovaNeoConfig.
  */
 
+export interface DimensionHealingEvent {
+  requestedDimensions: number;
+  healedDimensions: number;
+  reason: 'non-positive' | 'non-integer' | 'unsafe';
+  timestamp: string;
+}
+
 export interface IEmbeddingBackend {
   encode(text: string, dimensions: number, normalize: boolean): ContextTensor;
+  getLastDimensionHealing?(): DimensionHealingEvent | undefined;
 }
 
 /** Tokenisation constants — tuned for short prompts typical in MCOP flows. */
@@ -66,21 +74,6 @@ function extractFeatures(text: string): string[] {
 }
 
 /**
- * Read a little-endian uint32 from the first `buf.length` bytes.
- * Falls back safely if buf is short.
- */
-function readUInt32LE(buf: Buffer, offset: number): number {
-  if (offset + 4 <= buf.length) {
-    return buf.readUInt32LE(offset);
-  }
-  let val = 0;
-  for (let i = 0; i < Math.min(4, buf.length - offset); i++) {
-    val |= buf[offset + i] << (i * 8);
-  }
-  return val >>> 0; // force unsigned
-}
-
-/**
  * Deterministic n-gram feature hashing with dual-projection signing.
  *
  * Each feature hashes to:
@@ -92,15 +85,26 @@ function readUInt32LE(buf: Buffer, offset: number): number {
  * instead of 1/√dimensions). Signed weights preserve directional meaning.
  */
 export class HashingTrickBackend implements IEmbeddingBackend {
+  private lastHealing: DimensionHealingEvent | undefined;
+
   encode(text: string, dimensions: number, normalize: boolean): ContextTensor {
+    const safeDimensions = healDimensions(dimensions);
+    this.lastHealing = safeDimensions === dimensions
+      ? undefined
+      : {
+        requestedDimensions: dimensions,
+        healedDimensions: safeDimensions,
+        reason: Number.isInteger(dimensions) ? 'non-positive' : 'non-integer',
+        timestamp: new Date().toISOString(),
+      };
     const features = extractFeatures(text);
-    const vec = new Float64Array(dimensions);
+    const vec = new Float64Array(safeDimensions);
 
     for (const feature of features) {
-      const hash = createHash('sha256').update(feature).digest();
+      const hash = sha256Bytes(feature);
 
-      const primary = readUInt32LE(hash, 0) % dimensions;
-      const secondary = readUInt32LE(hash, 4) % dimensions;
+      const primary = readUInt32LE(hash, 0) % safeDimensions;
+      const secondary = readUInt32LE(hash, 4) % safeDimensions;
       const weight = (hash[8] / 255) * 2 - 1;
 
       // Distribute weight across two buckets to reduce single-bucket collisions
@@ -112,13 +116,31 @@ export class HashingTrickBackend implements IEmbeddingBackend {
 
     if (normalize) {
       const norm = Math.sqrt(values.reduce((acc, v) => acc + v * v, 0)) || 1;
-      for (let i = 0; i < dimensions; i++) {
+      for (let i = 0; i < safeDimensions; i++) {
         values[i] /= norm;
       }
     }
 
     return values;
   }
+
+  getLastDimensionHealing(): DimensionHealingEvent | undefined {
+    return this.lastHealing;
+  }
+}
+
+export function healDimensions(dimensions: number): number {
+  if (Number.isInteger(dimensions) && dimensions > 0) return dimensions;
+  const base = Number.isFinite(dimensions) && dimensions > 0
+    ? Math.ceil(dimensions)
+    : 1;
+  return nearestSafePowerOfTwo(base);
+}
+
+function nearestSafePowerOfTwo(value: number): number {
+  let power = 1;
+  while (power < value && power < 2 ** 30) power *= 2;
+  return power;
 }
 
 /** Singleton instance — stateless, safe to reuse. */

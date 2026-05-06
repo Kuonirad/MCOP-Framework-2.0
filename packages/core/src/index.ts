@@ -8,6 +8,7 @@ export * from './circularBuffer';
 export * from './provenanceTracer';
 export * from './canonicalEncoding';
 export * from './embeddingEngine';
+export * from './universalCrypto';
 
 /**
  * Plain-English aliases — additive, non-breaking.

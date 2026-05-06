@@ -27,6 +27,12 @@ describe('CircularBuffer', () => {
     expect(buf.toArray()).toEqual([3, 4, 5]);
   });
 
+  it('recent(limit) turns negative requests into an empty, safe query', () => {
+    const buf = new CircularBuffer<number>(4);
+    [10, 20, 30].forEach((v) => buf.push(v));
+    expect(buf.recent(-1)).toEqual([]);
+  });
+
   it('recent(limit) returns newest first up to size', () => {
     const buf = new CircularBuffer<number>(4);
     [10, 20, 30, 40, 50].forEach((v) => buf.push(v));
