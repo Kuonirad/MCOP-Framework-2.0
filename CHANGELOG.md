@@ -4,6 +4,37 @@ All notable changes to this project will be documented here. The format is
 based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
+## [2.3.0] - 2026-05-06 — Eudaimonic Bloom
+
+### Added
+- **NovaNeoWeb / UniversalEncoder.** The NOVA-NEO hash path now rests on a
+  portable SHA-256 substrate, exposing a first-class browser/edge encoder while
+  preserving byte-identical deterministic tensors.
+- **ResonantRecentQuery.** Stigmergy recency can now rank high-resonance traces
+  while softly lifting low-resonance domains with a bounded curiosity bonus.
+- **SelfHealingDimension.** Hashing-trick embeddings heal invalid dimensions to
+  the nearest safe power-of-2 and expose an auditable healing event.
+- **EudaimonicEtch.** Accepted etches carry additive `flourishingScore` and
+  `propagationHint` metadata (`seed`, `bloom`, `radiate`) without changing the
+  canonical hash payload.
+- **Positive evolution dossier.** `POSITIVE_EVOLUTION.md` records the audit map,
+  replacements, and flourishing impact statement for this release.
+
+### Fixed
+- `CircularBuffer.recent(limit)` now treats negative limits as empty safe
+  queries instead of attempting a negative array allocation.
+- `HashingTrickBackend.encode()` no longer risks modulo-zero bucket selection
+  when called directly with `dimensions <= 0`.
+
+### Changed
+- README performance numbers are explicitly labeled as deterministic benchmark
+  baselines with the regeneration command, replacing ambiguous public claims
+  with replayable evidence.
+- Architecture docs clarify that P_GoT planning and long-form video are
+  extension blooms over the deterministic triad, not replacements for core
+  invariants.
+
 ## [2.2.1] - 2026-05-03
 - Lowered default confidenceFloor 0.8→0.65 + exposed adaptiveThreshold + curiosityBonus (Claude Code v2.2.1 sprint)
 

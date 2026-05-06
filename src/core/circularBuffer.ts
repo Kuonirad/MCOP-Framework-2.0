@@ -64,7 +64,8 @@ export class CircularBuffer<T> {
    * `min(limit, size)` entries.
    */
   recent(limit: number): T[] {
-    const take = Math.min(limit, this.count);
+    const safeLimit = Number.isFinite(limit) ? Math.max(0, Math.floor(limit)) : this.count;
+    const take = Math.min(safeLimit, this.count);
     const out: T[] = new Array(take);
     let idx = (this.head - 1 + this.cap) % this.cap;
     for (let i = 0; i < take; i++) {

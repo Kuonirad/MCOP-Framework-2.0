@@ -28,6 +28,14 @@ export interface HolographicEtchConfig {
    */
   staticFloorWeight?: number;
   curiosityBonus?: number; // 2026-05-03 audit → v2.2.1 Phoenix-DNA
+  flourishingAmplifier?: number;
+}
+
+
+export interface EudaimonicEtchSummary {
+  flourishingScore: number;
+  propagationHint: 'seed' | 'bloom' | 'radiate';
+  positiveResonance: number;
 }
 
 export interface AdaptiveConfidenceBreakdown {
@@ -44,12 +52,14 @@ export class HolographicEtch {
   private readonly auditLog: boolean;
   private readonly staticFloorWeight: number;
   private readonly curiosityBonus: number;
+  private readonly flourishingAmplifier: number;
   private readonly etches: CircularBuffer<EtchRecord>;
   private readonly audit: CircularBuffer<EtchRecord>;
 
   constructor(config: HolographicEtchConfig = {}) {
     this.confidenceFloor = config.confidenceFloor ?? 0.65; // 2026-05-03 audit → v2.2.1
     this.curiosityBonus = config.curiosityBonus ?? 0.15;
+    this.flourishingAmplifier = clamp01(config.flourishingAmplifier ?? 0.2);
     this.auditLog = config.auditLog ?? true;
     this.staticFloorWeight = clamp01(config.staticFloorWeight ?? 0.4);
     const cap = config.maxEtches ?? 4096;
@@ -137,6 +147,7 @@ export class HolographicEtch {
       return skipped;
     }
 
+    const eudaimonic = this.scoreEudaimonicEtch(context, synthesisVector, normalizedDelta);
     const payload = { context, synthesisVector, normalizedDelta, note };
     // RFC 8785 canonical JSON: byte-identical with the Python parity etch.
     const hash = canonicalDigest(payload);
@@ -145,11 +156,44 @@ export class HolographicEtch {
       deltaWeight: normalizedDelta,
       note,
       timestamp: new Date().toISOString(),
+      flourishingScore: eudaimonic.flourishingScore,
+      propagationHint: eudaimonic.propagationHint,
     };
 
     this.etches.push(record);
     if (this.auditLog) this.audit.push(record);
     return record;
+  }
+
+
+  /**
+   * EudaimonicEtch turns accepted confidence deltas into flourishing signals.
+   * It preserves the canonical etch hash while adding non-hash metadata that
+   * helps downstream schedulers propagate high-resonance, high-confidence traces.
+   */
+  scoreEudaimonicEtch(
+    context: ContextTensor,
+    synthesisVector: number[],
+    normalizedDelta?: number,
+  ): EudaimonicEtchSummary {
+    const ctxMag = magnitude(context);
+    const synMag = magnitude(synthesisVector);
+    const positiveResonance = Math.max(
+      0,
+      cosineWithMagnitudes(context, synthesisVector, ctxMag, synMag),
+    );
+    const delta = normalizedDelta ?? computeNormalizedDelta(context, synthesisVector);
+    const base = clamp01(Math.max(0, delta));
+    const flourishingScore = clamp01(
+      base * (1 + this.flourishingAmplifier * positiveResonance) +
+        this.curiosityBonus * 0.1,
+    );
+    const propagationHint = flourishingScore >= 0.9
+      ? 'radiate'
+      : flourishingScore >= 0.5
+        ? 'bloom'
+        : 'seed';
+    return { flourishingScore, propagationHint, positiveResonance };
   }
 
   recent(limit = 5): EtchRecord[] {
@@ -198,6 +242,15 @@ export class HolographicEtch {
     const variance = Math.max(0, sumSq / count - mean * mean);
     return clamp01(1 - Math.min(1, Math.sqrt(variance)));
   }
+}
+
+function computeNormalizedDelta(context: ContextTensor, synthesisVector: number[]): number {
+  const minLen = Math.min(context.length, synthesisVector.length);
+  let deltaWeight = 0;
+  for (let i = 0; i < minLen; i++) {
+    deltaWeight += context[i] * synthesisVector[i];
+  }
+  return deltaWeight / (minLen || 1);
 }
 
 function clamp01(x: number): number {

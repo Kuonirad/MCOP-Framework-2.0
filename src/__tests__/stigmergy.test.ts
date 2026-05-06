@@ -52,3 +52,23 @@ describe('StigmergyV5 Security & Functionality', () => {
     expect(resonance.trace?.id).toBe(trace.id);
   });
 });
+describe('ResonantRecentQuery', () => {
+  it('ranks high-resonance traces while safely expanding low-resonance domains', () => {
+    const stig = new StigmergyV5({ resonanceThreshold: 0.5, curiosityBonus: 0.2 });
+    const aligned = stig.recordTrace([1, 0], [1, 0], { domain: 'proven' });
+    stig.recordTrace([0, 1], [1, 0], { domain: 'curious' });
+
+    const recent = stig.getResonantRecent(2, { context: [1, 0], includeLowResonance: true });
+
+    expect(recent).toHaveLength(2);
+    expect(recent[0].id).toBe(aligned.id);
+    expect(recent[0].resonanceScore).toBeGreaterThanOrEqual(recent[1].resonanceScore);
+    expect(recent[1].curiosityLift).toBeGreaterThan(0);
+  });
+
+  it('returns an empty resonant query for negative limits', () => {
+    const stig = new StigmergyV5();
+    stig.recordTrace([1, 0], [1, 0]);
+    expect(stig.getResonantRecent(-5)).toEqual([]);
+  });
+});

@@ -9,7 +9,9 @@ export interface NovaNeoConfig {
    * (default, fully backward-compatible). `'embedding'` = n-gram
    * feature-hashing backend that captures semantic overlap.
    */
-  backend?: 'hash' | 'embedding';
+  backend?: 'hash' | 'embedding' | 'novaNeoWeb';
+  /** Enable graceful dimension growth to the nearest safe power-of-2. */
+  selfHealDimensions?: boolean;
 }
 
 export interface PheromoneTrace {
@@ -30,9 +32,22 @@ export interface ResonanceResult {
   thresholdUsed?: number;
 }
 
+export interface ResonantRecentQueryOptions {
+  context?: ContextTensor;
+  curiosityBonus?: number;
+  includeLowResonance?: boolean;
+}
+
+export interface ResonantRecentTrace extends PheromoneTrace {
+  resonanceScore: number;
+  curiosityLift: number;
+}
+
 export interface EtchRecord {
   hash: string;
   deltaWeight: number;
   note?: string;
   timestamp: string;
+  flourishingScore?: number;
+  propagationHint?: 'seed' | 'bloom' | 'radiate';
 }
