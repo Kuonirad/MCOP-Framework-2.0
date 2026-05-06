@@ -24,9 +24,10 @@ Works in Node.js 18+ (ESM and CommonJS).
 
 | Class | Purpose |
 |---|---|
-| `NovaNeoEncoder` | SHA-256 → fixed-dimension `Float64` context tensor. Deterministic, optional L2 normalization. |
-| `StigmergyV5` | Cosine-similarity pheromone store with Merkle-chained trace hashes. |
-| `HolographicEtch` | Rank-1 micro-updates with configurable confidence floor and audit log. |
+| `NovaNeoEncoder` / `UniversalEncoder` | Portable SHA-256 → fixed-dimension `Float64` context tensor. Deterministic, optional L2 normalization. |
+| `StigmergyV5` | Cosine-similarity pheromone store with Merkle-chained trace hashes and Positive Feedback Hysteresis. |
+| `HolographicEtch` | Rank-1 micro-updates with configurable confidence floor, audit log, and optional growth ledger. |
+| `PositiveResonanceAmplifier` | Merkle-chained Positive Building event ledger with contributor joy metrics. |
 
 ## Quick start
 
@@ -35,11 +36,13 @@ import {
   NovaNeoEncoder,
   StigmergyV5,
   HolographicEtch,
+  PositiveResonanceAmplifier,
 } from '@kullailabs/mcop-core';
 
 const encoder = new NovaNeoEncoder({ dimensions: 256, normalize: true });
 const stigmergy = new StigmergyV5({ resonanceThreshold: 0.5 });
-const etch = new HolographicEtch({ confidenceFloor: 0.8 });
+const growth = new PositiveResonanceAmplifier();
+const etch = new HolographicEtch({ confidenceFloor: 0.8, growthLedger: growth });
 
 const context = encoder.encode('user asked about GDPR Article 17');
 const synthesis = encoder.encode('right-to-erasure procedure');
@@ -52,6 +55,7 @@ console.log('Resonance score:', resonance.score);
 
 const record = etch.applyEtch(context, synthesis, 'reinforce GDPR pathway');
 console.log('Etch hash:', record.hash);
+console.log('Positive impact:', growth.getPositiveImpactMetrics());
 ```
 
 ## Optional debug hook
@@ -74,6 +78,7 @@ All primitives are fully typed. Key exports:
 - `PheromoneTrace` — Merkle-chained trace record
 - `ResonanceResult` — `{ score, trace? }`
 - `EtchRecord` — audit log entry
+- `PositiveGrowthEvent`, `PositiveImpactMetrics` — growth-ledger records
 - `NovaNeoConfig`, `StigmergyConfig`, `HolographicEtchConfig`
 
 ## Supply-chain posture

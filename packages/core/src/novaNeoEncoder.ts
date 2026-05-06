@@ -1,6 +1,6 @@
-import crypto from 'crypto';
+import { getUniversalCryptoRuntime, sha256Bytes, sha256Hex } from './universalCrypto';
 import { ContextTensor, NovaNeoConfig } from './types';
-import { defaultEmbeddingBackend, HashingTrickBackend } from './embeddingEngine';
+import { defaultEmbeddingBackend, HashingTrickBackend, healDimensions } from './embeddingEngine';
 
 /**
  * Minimal, opt-in debug hook. Consumers may wire this to any logger
@@ -12,7 +12,8 @@ export type NovaNeoDebugHook = (event: {
   provenance: {
     inputLength: number;
     dimensions: number;
-    backend: 'hash' | 'embedding';
+    backend: 'hash' | 'embedding' | 'novaNeoWeb';
+    runtime: string;
     entropy: number;
     tensorHash: string;
   };
@@ -28,14 +29,16 @@ export class NovaNeoEncoder {
   private readonly dimensions: number;
   private readonly normalize: boolean;
   private readonly entropyFloor: number;
-  private readonly backend: 'hash' | 'embedding';
+  private readonly backend: 'hash' | 'embedding' | 'novaNeoWeb';
   private readonly embedder: HashingTrickBackend;
 
   constructor(config: NovaNeoConfig) {
-    if (config.dimensions <= 0) {
-      throw new Error('dimensions must be positive');
+    this.dimensions = config.selfHealDimensions === true
+      ? healDimensions(config.dimensions)
+      : config.dimensions;
+    if (this.dimensions <= 0 || !Number.isInteger(this.dimensions)) {
+      throw new Error('dimensions must be a positive integer');
     }
-    this.dimensions = config.dimensions;
     this.normalize = config.normalize ?? false;
     this.entropyFloor = config.entropyFloor ?? 0.0;
     this.backend = config.backend ?? 'hash';
@@ -56,9 +59,10 @@ export class NovaNeoEncoder {
           inputLength: text.length,
           dimensions: this.dimensions,
           backend: this.backend,
+          runtime: getUniversalCryptoRuntime(),
           entropy: this.estimateEntropy(values),
           // Optimization: Use Float64Array for hashing to avoid slow JSON.stringify overhead on large arrays
-          tensorHash: crypto.createHash('sha256').update(new Float64Array(values)).digest('hex').substring(0, 8)
+          tensorHash: sha256Hex(new Float64Array(values)).substring(0, 8)
         }
       });
     }
@@ -72,7 +76,7 @@ export class NovaNeoEncoder {
    * and the hash path remains byte-identical to v1.x.
    */
   private encodeHash(text: string): ContextTensor {
-    const hash = crypto.createHash('sha256').update(text).digest();
+    const hash = sha256Bytes(text);
 
     // Optimization 1: Pre-calculate signed hash values
     // This avoids recalculating (byte / 255) * 2 - 1 repeatedly in the loop
@@ -152,3 +156,17 @@ export class NovaNeoEncoder {
     return Math.max(entropy, this.entropyFloor);
   }
 }
+/**
+ * UniversalEncoder — first-class edge/browser facade.
+ *
+ * `NovaNeoWeb` is intentionally byte-identical to the legacy hash backend but
+ * routes through the portable SHA-256 substrate, so browser, edge, and Node
+ * clients can share deterministic tensors without Node-only globals.
+ */
+export class UniversalEncoder extends NovaNeoEncoder {
+  constructor(config: Omit<NovaNeoConfig, 'backend'>) {
+    super({ ...config, backend: 'novaNeoWeb' });
+  }
+}
+
+export const NovaNeoWeb = UniversalEncoder;
