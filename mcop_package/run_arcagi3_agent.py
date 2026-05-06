@@ -22,6 +22,8 @@ from mcop.adapters.arcagi3_agent import (
     MCOPArcAgi3Agent,
     MappingGrokStrategy,
     RandomStrategy,
+    DEFAULT_GROK_MODEL,
+    LOW_MEMORY_ENCODER_DIMS,
     SDKUnavailable,
 )
 
@@ -79,7 +81,7 @@ def main() -> int:
         help=(
             "xAI model name for grok / mapping-grok strategies. "
             "Defaults to the GROK_MODEL env var, then to the "
-            "library default ('grok-4-fast-reasoning')."
+            f"library default ({DEFAULT_GROK_MODEL!r})."
         ),
     )
     parser.add_argument("--verbose", action="store_true")
@@ -103,7 +105,9 @@ def main() -> int:
 
     try:
         agent = MCOPArcAgi3Agent(
-            strategy=strategy, max_actions=args.max_actions
+            strategy=strategy,
+            max_actions=args.max_actions,
+            encoder_dims=LOW_MEMORY_ENCODER_DIMS,
         )
     except SDKUnavailable as exc:
         print(f"ERROR: {exc}", file=sys.stderr)

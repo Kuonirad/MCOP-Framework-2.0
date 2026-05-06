@@ -29,7 +29,7 @@ on:
       grok_model:
         description: "xAI model name for grok / mapping-grok strategies"
         required: false
-        default: "grok-4-fast-reasoning"
+        default: "grok-4.3"
         type: string
       verbose:
         description: "Verbose logging"
@@ -84,6 +84,9 @@ jobs:
           GROK_API_KEY: ${{ secrets.GROK_API_KEY }}
           GROK_BASE_URL: https://api.x.ai/v1
           GROK_MODEL: ${{ inputs.grok_model }}
+          MCOP_LOW_MEMORY_MODE: "grok-4.3"
+          MCOP_ENCODER_DIMS: "32"
+          MCOP_MAX_TRACES: "256"
         # GitHub Actions' default shell is `bash --noprofile --norc -eo
         # pipefail`, which aborts the step the moment the pipeline
         # fails. We need the post-pipe branch to run anyway so we can
