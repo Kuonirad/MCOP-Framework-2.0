@@ -44,17 +44,6 @@ export interface ResonantRecentTrace extends PheromoneTrace {
   curiosityLift: number;
 }
 
-export interface ResonantRecentQueryOptions {
-  context?: ContextTensor;
-  curiosityBonus?: number;
-  includeLowResonance?: boolean;
-}
-
-export interface ResonantRecentTrace extends PheromoneTrace {
-  resonanceScore: number;
-  curiosityLift: number;
-}
-
 export interface EtchRecord {
   hash: string;
   deltaWeight: number;

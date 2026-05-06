@@ -3,6 +3,7 @@ export * from './novaNeoEncoder';
 export * from './stigmergyV5';
 export * from './holographicEtch';
 export * from './positiveResonanceAmplifier';
+export * from './lowMemoryMCOPMode';
 export * from './vectorMath';
 export * from './tensorGuard';
 export * from './circularBuffer';
