@@ -10,6 +10,8 @@ import {
   FreepikMCOPAdapter,
   estimateFreepikUpscaleCost,
   GenericProductionAdapter,
+  RegulatedProvenanceAdapter,
+  mapProvenanceToFHIR,
   GrokClient,
   GrokMCOPAdapter,
   HumanFeedback,
@@ -1288,5 +1290,62 @@ describe('LinearSlackOrchestratorAdapter', () => {
     expect(args.title).toBe('Custom incident title');
     expect(args.labels).toEqual(['oncall', 'p1']);
     expect(args.teamKey).toBe('MCOP');
+  });
+});
+
+describe('RegulatedProvenanceAdapter', () => {
+  it('emits FHIR and ISO 20022 provenance mappings with human-primacy scope notes', async () => {
+    const adapter = new RegulatedProvenanceAdapter({
+      ...baseTriad(),
+      custodianOrg: 'KULLAI-LABS',
+    });
+
+    const response = await adapter.generate({
+      prompt: 'risk-review decision support trace',
+      domain: 'finance',
+      payload: {
+        target: 'both',
+        subjectId: 'case-123',
+        operatorId: 'human-reviewer-7',
+        sourceInstitutionId: 'BANK-A',
+        receiverInstitutionId: 'AUDITOR-B',
+      },
+    });
+
+    expect(response.result.verificationStatus).toBe('SEALED');
+    expect(response.result.fhir?.resourceType).toBe('Provenance');
+    expect(response.result.fhir?.target[0].reference).toBe('DocumentReference/case-123');
+    expect(response.result.fhir?.entity.map((entry) => entry.what.identifier.system)).toEqual(
+      expect.arrayContaining([
+        'https://github.com/Kuonirad/MCOP-Framework-2.0/provenance/tensorHash',
+        'https://github.com/Kuonirad/MCOP-Framework-2.0/provenance/etchHash',
+      ]),
+    );
+    expect(response.result.iso20022?.AppHdr.Fr.FIId.FinInstnId.Othr.Id).toBe('BANK-A');
+    expect(response.result.iso20022?.Document.MCOPrvnc.PrvcRoot).toBe(response.merkleRoot);
+    expect(response.result.disclaimer).toContain('process integrity');
+    expect(response.result.disclaimer).toContain('do not certify clinical correctness');
+  });
+
+  it('maps standalone provenance metadata to a FHIR-only UNVERIFIED resource', () => {
+    const fhir = mapProvenanceToFHIR(
+      {
+        tensorHash: 'not-a-hex-root',
+        resonanceScore: 0.4,
+        etchHash: 'missing-root',
+        etchDelta: 0,
+        refinedPrompt: 'review only',
+        timestamp: '2026-05-06T00:00:00.000Z',
+      },
+      { subjectId: 'patient/with/slashes' },
+    );
+
+    expect(fhir.id).toBe('mcop-missing-root');
+    expect(fhir.target[0].reference).toBe('DocumentReference/patient-with-slashes');
+    expect(fhir.extension).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ valueCode: 'UNVERIFIED' }),
+      ]),
+    );
   });
 });

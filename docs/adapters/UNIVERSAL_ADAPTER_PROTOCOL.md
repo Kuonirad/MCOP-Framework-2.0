@@ -30,7 +30,8 @@ src/
     ├── magnificAdapter.ts          # Magnific image/video/upscale adapter (ex-Freepik)
     ├── freepikAdapter.ts           # Legacy backward-compat wrapper → magnificAdapter
     ├── utopaiAdapter.ts            # Long-form narrative adapter
-    └── genericProductionAdapter.ts # 20-line scaffold for new platforms
+    ├── genericProductionAdapter.ts # 20-line scaffold for new platforms
+    └── regulatedProvenanceAdapter.ts # v0.3 FHIR + ISO 20022 lineage mappings
 
 mcop_package/mcop/adapters/         # Python adapters
     ├── base_adapter.py             # BaseMCOPAdapter + parity stigmergy/etch
@@ -95,6 +96,16 @@ interface ProvenanceMetadata {
 Adapters MUST be lightweight (no heavy dependency footprint) and MUST
 NOT modify the MCOP core. Stateful concerns (rate-limit caching,
 long-form stitching, …) live inside the adapter.
+
+## Regulated Provenance v0.3
+
+`RegulatedProvenanceAdapter` maps the standard `ProvenanceMetadata` bundle into
+FHIR `Provenance` and ISO 20022-style business envelopes for finance and
+healthcare pilots. The adapter is deliberately scoped to lineage: it proves
+process integrity, replayability, and Merkle-root continuity, but it does not
+certify clinical correctness, financial suitability, HIPAA compliance, FDA
+clearance, or model-risk approval. See
+`docs/adapters/REGULATED_PROVENANCE_ADAPTER.md` for field-level mappings.
 
 ## Example: Magnific (TypeScript)
 

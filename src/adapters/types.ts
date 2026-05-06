@@ -16,6 +16,8 @@ export type AdapterDomain =
   | 'cinematic'
   | 'narrative'
   | 'audio'
+  | 'healthcare'
+  | 'finance'
   | 'generic';
 
 /** Inbound request shape for any platform adapter. */

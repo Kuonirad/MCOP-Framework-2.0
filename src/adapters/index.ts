@@ -14,6 +14,7 @@ export * from './magnificAdapter';
 export * from './freepikAdapter';
 export * from './utopaiAdapter';
 export * from './genericProductionAdapter';
+export * from './regulatedProvenanceAdapter';
 export * from './grokAdapter';
 export * from './devinOrchestratorAdapter';
 export * from './linearSlackOrchestratorAdapter';
