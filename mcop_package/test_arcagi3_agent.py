@@ -14,6 +14,9 @@ from typing import Any, Dict, List, Optional, Tuple
 from unittest import mock
 
 from mcop.adapters.arcagi3_agent import (
+    DEFAULT_GROK_MODEL,
+    LOW_MEMORY_ENCODER_DIMS,
+    LOW_MEMORY_MAX_TRACES,
     GrokStrategy,
     MappingGrokStrategy,
     RandomStrategy,
@@ -467,18 +470,38 @@ def test_mapping_grok_system_prompt_constrains_to_available_actions() -> None:
 
 # ---- Configurable Grok model ----------------------------------------------
 
-def test_grok_strategy_default_model_is_fast_variant(
+def test_grok_strategy_default_model_is_grok_4_3(
     monkeypatch: Any,
 ) -> None:
-    """The library default must be a `*-fast-*` variant. The original
-    `grok-4-latest` showed 1m45s+ first-call latency on `ls20`, which
-    pushed real runs over the workflow's 30-minute cap and caused
-    cancellations that wiped scorecards. Swapping to a fast-reasoning
-    default keeps the same JSON-action quality at ~5-10x throughput."""
+    """ARC runs should default to the requested Grok 4.3 model unless
+    an operator explicitly overrides GROK_MODEL or passes model=."""
     monkeypatch.delenv("GROK_MODEL", raising=False)
     strat = GrokStrategy(api_key="x")
-    assert "fast" in strat.model
-    assert strat.model != "grok-4-latest"
+    assert strat.model == DEFAULT_GROK_MODEL == "grok-4.3"
+
+
+def test_arc_agent_defaults_to_low_memory_profile(monkeypatch: Any) -> None:
+    """Python ARC instrumentation mirrors the TS low-memory preset: 32
+    encoder dims and a 256-trace stigmergy ring by default."""
+    from mcop.adapters.arcagi3_agent import MCOPArcAgi3Agent
+
+    monkeypatch.delenv("MCOP_ENCODER_DIMS", raising=False)
+    monkeypatch.delenv("MCOP_MAX_TRACES", raising=False)
+    agent = MCOPArcAgi3Agent(api_key="x")
+
+    assert agent.encoder_dims == LOW_MEMORY_ENCODER_DIMS == 32
+    assert agent.stigmergy._capacity == LOW_MEMORY_MAX_TRACES == 256
+
+
+def test_arc_agent_low_memory_env_overrides(monkeypatch: Any) -> None:
+    from mcop.adapters.arcagi3_agent import MCOPArcAgi3Agent
+
+    monkeypatch.setenv("MCOP_ENCODER_DIMS", "16")
+    monkeypatch.setenv("MCOP_MAX_TRACES", "8")
+    agent = MCOPArcAgi3Agent(api_key="x")
+
+    assert agent.encoder_dims == 16
+    assert agent.stigmergy._capacity == 8
 
 
 def test_grok_strategy_env_var_overrides_default(monkeypatch: Any) -> None:
@@ -493,8 +516,8 @@ def test_grok_strategy_explicit_model_overrides_env_var(
     `--grok-model` flag (which forwards to this kwarg) reliably picks
     the model regardless of what the workflow exported."""
     monkeypatch.setenv("GROK_MODEL", "grok-3-mini")
-    strat = GrokStrategy(api_key="x", model="grok-4-latest")
-    assert strat.model == "grok-4-latest"
+    strat = GrokStrategy(api_key="x", model="custom-arc-model")
+    assert strat.model == "custom-arc-model"
 
 
 def test_mapping_grok_strategy_forwards_model_kwarg() -> None:

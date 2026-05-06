@@ -53,6 +53,35 @@ logger = logging.getLogger(__name__)
 # directional / button press.
 COMPLEX_ACTIONS = frozenset({"ACTION6"})
 
+# Production ARC-Grok defaults: route through the requested Grok 4.3 model
+# while keeping the adapter-side MCOP memory footprint aligned with the
+# TypeScript GROK_4_3_LOW_MEMORY_MCOP_PRESET (32-dim tensors, 256 traces).
+DEFAULT_GROK_MODEL = "grok-4.3"
+LOW_MEMORY_ENCODER_DIMS = 32
+LOW_MEMORY_MAX_TRACES = 256
+
+
+def _positive_int_env(name: str, fallback: int) -> int:
+    raw = os.environ.get(name)
+    if raw is None:
+        return fallback
+    try:
+        value = int(raw)
+    except ValueError:
+        logger.warning("Ignoring non-integer %s=%r; using %d", name, raw, fallback)
+        return fallback
+    if value <= 0:
+        logger.warning("Ignoring non-positive %s=%r; using %d", name, raw, fallback)
+        return fallback
+    return value
+
+
+def _low_memory_stigmergy_store() -> StigmergyStore:
+    return StigmergyStore(
+        max_traces=_positive_int_env("MCOP_MAX_TRACES", LOW_MEMORY_MAX_TRACES)
+    )
+
+
 # Pulls the integer suffix out of names like "ACTION5" / "Action 5" / "action5".
 # Used by snap-to-allowed when the model picks a forbidden action so we can
 # fall to the closest neighbour by numeric distance instead of going random.
@@ -158,16 +187,10 @@ class GrokStrategy:
             or os.environ.get("GROK_BASE_URL")
             or "https://api.x.ai/v1"
         )
-        # Default flipped from `grok-4-latest` to `grok-4-fast-reasoning`
-        # after observing 1m45s+ first-call latency on `grok-4-latest`
-        # against ls20 -- the fast variant returns equivalent JSON-action
-        # quality at roughly 5-10x the throughput, which keeps full runs
-        # well inside the workflow's 30-minute cap. Override via the
-        # `GROK_MODEL` env var (workflow input or local export) or the
-        # `model=` constructor kwarg.
-        self.model = model or os.environ.get(
-            "GROK_MODEL", "grok-4-fast-reasoning"
-        )
+        # Default ARC-Grok dispatch now targets Grok 4.3. Override via
+        # the `GROK_MODEL` env var (workflow input or local export) or
+        # the `model=` constructor kwarg for local experiments.
+        self.model = model or os.environ.get("GROK_MODEL", DEFAULT_GROK_MODEL)
         self.fallback = fallback or RandomStrategy()
         self._client: Any = None
 
@@ -827,8 +850,12 @@ class MCOPArcAgi3Agent:
     api_key: Optional[str] = None
     base_url: Optional[str] = None
     max_actions: int = 80
-    encoder_dims: int = 64
-    stigmergy: StigmergyStore = field(default_factory=StigmergyStore)
+    encoder_dims: int = field(
+        default_factory=lambda: _positive_int_env(
+            "MCOP_ENCODER_DIMS", LOW_MEMORY_ENCODER_DIMS
+        )
+    )
+    stigmergy: StigmergyStore = field(default_factory=_low_memory_stigmergy_store)
     etch: EtchLedger = field(default_factory=EtchLedger)
 
     def __post_init__(self) -> None:
