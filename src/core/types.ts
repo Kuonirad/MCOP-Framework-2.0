@@ -30,6 +30,18 @@ export interface ResonanceResult {
   score: number;
   trace?: PheromoneTrace;
   thresholdUsed?: number;
+  positiveFeedbackScore?: number;
+}
+
+export interface ResonantRecentQueryOptions {
+  context?: ContextTensor;
+  curiosityBonus?: number;
+  includeLowResonance?: boolean;
+}
+
+export interface ResonantRecentTrace extends PheromoneTrace {
+  resonanceScore: number;
+  curiosityLift: number;
 }
 
 export interface ResonantRecentQueryOptions {

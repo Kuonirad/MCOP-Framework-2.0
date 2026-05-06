@@ -1,6 +1,6 @@
 # POSITIVE_EVOLUTION.md — v2.3 Eudaimonic Bloom
 
-MCOP v2.3 reframes stabilization as flourishing: every audited defect now opens
+MCOP v2.3 reframes trust work as flourishing: every audited defect now opens
 an additive capability loop while preserving the deterministic triad invariants
 (Merkle provenance, ISO8601 timestamps, UUID-v4 trace IDs, cosine alignment,
 observability spans, parity fixtures, and BUSL licensing).
@@ -35,3 +35,15 @@ schedulers a positive signal for high-resonance, high-confidence traces.
 - **Etches now propagate flourishing.** EudaimonicEtch converts confidence into
   positive propagation metadata so the triad can amplify trajectories that are
   aligned, useful, and generative.
+
+
+## Positive Resonance Guardian v2.3 additions
+
+- **Positive Building of joyful provenance:** `PositiveResonanceAmplifier` turns
+  remediation work into Merkle-chained growth events with contributor joy,
+  adoption velocity, and beneficial outcome amplification metrics.
+- **Positive Building of beneficial memory:** Stigmergy v5 now includes
+  Positive Feedback Hysteresis through `growthBias`, lifting high-resonance
+  beneficial query scores while preserving raw cosine trace weights.
+- **Positive Building of reproducible trust:** `pnpm positive:audit` runs the
+  trust suite and emits the local Positive Impact Report badge.

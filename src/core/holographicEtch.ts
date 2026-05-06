@@ -2,6 +2,12 @@ import { ContextTensor, EtchRecord } from './types';
 import { CircularBuffer } from './circularBuffer';
 import { cosineWithMagnitudes, magnitude } from './vectorMath';
 import { canonicalDigest } from './canonicalEncoding';
+import {
+  PositiveGrowthEvent,
+  PositiveGrowthEventInput,
+  PositiveImpactMetrics,
+  PositiveResonanceAmplifier,
+} from './positiveResonanceAmplifier';
 import { failTriadSpan, finishTriadSpan, startTriadSpan } from './observability';
 
 export interface HolographicEtchConfig {
@@ -30,6 +36,10 @@ export interface HolographicEtchConfig {
   staticFloorWeight?: number;
   curiosityBonus?: number; // 2026-05-03 audit → v2.2.1 Phoenix-DNA
   flourishingAmplifier?: number;
+  /** Optional append-only growth ledger for human-celebrated positive audit work. */
+  growthLedger?: PositiveResonanceAmplifier | boolean;
+  maxGrowthEvents?: number;
+  humanCelebrationEnabled?: boolean;
 }
 
 
@@ -56,6 +66,7 @@ export class HolographicEtch {
   private readonly flourishingAmplifier: number;
   private readonly etches: CircularBuffer<EtchRecord>;
   private readonly audit: CircularBuffer<EtchRecord>;
+  private readonly growthLedger?: PositiveResonanceAmplifier;
 
   constructor(config: HolographicEtchConfig = {}) {
     this.confidenceFloor = config.confidenceFloor ?? 0.65; // 2026-05-03 audit → v2.2.1
@@ -66,6 +77,14 @@ export class HolographicEtch {
     const cap = config.maxEtches ?? 4096;
     this.etches = new CircularBuffer<EtchRecord>(cap);
     this.audit = new CircularBuffer<EtchRecord>(cap);
+    this.growthLedger = config.growthLedger instanceof PositiveResonanceAmplifier
+      ? config.growthLedger
+      : config.growthLedger === true
+        ? new PositiveResonanceAmplifier({
+          maxEvents: config.maxGrowthEvents ?? cap,
+          humanCelebrationEnabled: config.humanCelebrationEnabled,
+        })
+        : undefined;
   }
 
   /**
@@ -187,6 +206,17 @@ export class HolographicEtch {
 
       this.etches.push(record);
       if (this.auditLog) this.audit.push(record);
+      this.growthLedger?.recordGrowthEvent({
+        domain: 'joy',
+        title: note ?? 'holographic-etch-growth',
+        positiveBuilding: 'Positive Building of EudaimonicEtch propagation metadata',
+        resonanceDelta: eudaimonic.flourishingScore - 0.5,
+        evidence: {
+          etchHash: hash,
+          propagationHint: eudaimonic.propagationHint,
+          positiveResonance: eudaimonic.positiveResonance,
+        },
+      });
       finishTriadSpan(span, {
         'mcop.etch.accepted': true,
         'mcop.etch.delta_weight': normalizedDelta,
@@ -240,6 +270,19 @@ export class HolographicEtch {
    */
   recentAudit(limit = 5): EtchRecord[] {
     return this.audit.recent(limit);
+  }
+
+
+  recordPositiveGrowthEvent(input: PositiveGrowthEventInput): PositiveGrowthEvent | undefined {
+    return this.growthLedger?.recordGrowthEvent(input);
+  }
+
+  recentPositiveGrowth(limit = 8): PositiveGrowthEvent[] {
+    return this.growthLedger?.recentGrowthEvents(limit) ?? [];
+  }
+
+  getPositiveImpactMetrics(): PositiveImpactMetrics | undefined {
+    return this.growthLedger?.getPositiveImpactMetrics();
   }
 
   /** Memory Guardian: current fill statistics, for dashboards/alerts. */

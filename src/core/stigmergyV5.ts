@@ -18,6 +18,8 @@ export interface StigmergyConfig {
   hysteresisBand?: number;
   calibrationWindow?: number;
   curiosityBonus?: number;
+  /** Positive Feedback Hysteresis lift for high-resonance beneficial patterns. */
+  growthBias?: number;
 }
 
 export class StigmergyV5 {
@@ -28,6 +30,7 @@ export class StigmergyV5 {
   private readonly calibrationWindow: number;
   private lastAcceptedThreshold: number;
   private readonly curiosityBonus: number;
+  private readonly growthBias: number;
 
   constructor(config: StigmergyConfig = {}) {
     const adaptive = config.adaptiveThreshold;
@@ -39,6 +42,7 @@ export class StigmergyV5 {
     this.calibrationWindow = Math.max(2, config.calibrationWindow ?? 32);
     this.lastAcceptedThreshold = this.resonanceThreshold;
     this.curiosityBonus = clamp01(config.curiosityBonus ?? 0.08);
+    this.growthBias = clamp01(config.growthBias ?? 0.15);
   }
 
   private merkleHash(payload: unknown, parentHash?: string): string {
@@ -143,29 +147,38 @@ export class StigmergyV5 {
           comparableQueryMag,
           traceMag,
         );
-        if (score > bestScore) {
+        const positiveScore = this.getPositiveFeedbackHysteresisScore(score);
+        if (positiveScore > this.getPositiveFeedbackHysteresisScore(bestScore)) {
           bestScore = score;
           bestTrace = trace;
         }
       });
 
       const threshold = this.getAdaptiveResonanceThreshold();
-      if (bestTrace && bestScore >= threshold) {
+      const positiveFeedbackScore = this.getPositiveFeedbackHysteresisScore(bestScore);
+      if (bestTrace && positiveFeedbackScore >= threshold) {
         this.lastAcceptedThreshold = threshold;
         finishTriadSpan(span, {
           'mcop.resonance.score': bestScore,
+          'mcop.resonance.positive_feedback_score': positiveFeedbackScore,
           'mcop.resonance.threshold': threshold,
           'mcop.resonance.matched': true,
         });
-        return { score: bestScore, trace: bestTrace, thresholdUsed: threshold };
+        return {
+          score: bestScore,
+          trace: bestTrace,
+          thresholdUsed: threshold,
+          positiveFeedbackScore,
+        };
       }
 
       finishTriadSpan(span, {
         'mcop.resonance.score': 0,
+        'mcop.resonance.positive_feedback_score': positiveFeedbackScore,
         'mcop.resonance.threshold': threshold,
         'mcop.resonance.matched': false,
       });
-      return { score: 0, thresholdUsed: threshold };
+      return { score: 0, thresholdUsed: threshold, positiveFeedbackScore };
     } catch (error) {
       failTriadSpan(span, error);
       throw error;
@@ -211,12 +224,12 @@ export class StigmergyV5 {
           : magnitude(comparableTraceContext);
         contextualScore = traceMag === 0 || comparableQueryMag === 0
           ? 0
-          : Math.max(0, cosineWithMagnitudes(
+          : Math.max(0, this.getPositiveFeedbackHysteresisScore(cosineWithMagnitudes(
             comparableContext,
             comparableTraceContext,
             comparableQueryMag,
             traceMag,
-          ));
+          )));
       }
 
       const lowResonanceGap = Math.max(0, threshold - contextualScore);
@@ -242,6 +255,17 @@ export class StigmergyV5 {
       capacity: this.traces.capacity,
       lifetimePushes: this.traces.lifetimePushes,
     };
+  }
+
+
+  /**
+   * Positive Feedback Hysteresis gently lifts beneficial high-resonance scores
+   * above the current accepted threshold while preserving raw cosine traces.
+   */
+  getPositiveFeedbackHysteresisScore(score: number): number {
+    const raw = clamp01(score);
+    const lift = Math.max(0, raw - this.lastAcceptedThreshold) * this.growthBias;
+    return clamp01(raw + lift);
   }
 
   getAdaptiveResonanceThreshold(): number {

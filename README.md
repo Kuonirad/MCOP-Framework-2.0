@@ -7,10 +7,11 @@
 
 [![Build and Test](https://github.com/Kuonirad/MCOP-Framework-2.0/actions/workflows/ci.yml/badge.svg)](https://github.com/Kuonirad/MCOP-Framework-2.0/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/Kuonirad/MCOP-Framework-2.0/actions/workflows/codeql.yml/badge.svg)](https://github.com/Kuonirad/MCOP-Framework-2.0/actions/workflows/codeql.yml)
-[![Coverage](https://img.shields.io/badge/coverage-96.6%25-00f0ff?style=flat-square&logo=jest)](./docs/api/README.md)
+[![Coverage](./docs/badges/coverage.svg)](./docs/badges/coverage.svg)
 [![Release](https://img.shields.io/github/v/release/Kuonirad/MCOP-Framework-2.0?style=flat-square&color=7b2dff)](https://github.com/Kuonirad/MCOP-Framework-2.0/releases)
 [![License: BUSL 1.1](https://img.shields.io/badge/License-BUSL%201.1-ffd700?style=flat-square)](LICENSE)
 [![Maintained](https://img.shields.io/badge/maintained-yes-00ff88?style=flat-square)](./GOVERNANCE.md)
+[![Positive Impact](./docs/badges/positive-impact.svg)](./docs/POSITIVE_IMPACT_REPORT.md)
 
 ---
 
@@ -25,7 +26,7 @@
   ██    ██║ ╚═╝ ██║╚██████╗╚██████╔╝██║                  ██
   ██    ╚═╝     ╚═╝ ╚═════╝ ╚═════╝ ╚═╝                  ██
   ██                                                      ██
-  ██    FRAMEWORK 2.0  ◆  v2.2.1  ◆  PRODUCTION-READY    ██
+  ██    FRAMEWORK 2.0  ◆  v2.3.0  ◆  POSITIVE-RESONANCE    ██
   ██                                                      ██
   ██████████████████████████████████████████████████████████
 
@@ -49,6 +50,23 @@
 [![📖 Wiki](https://img.shields.io/badge/📖_WIKI-0d1117?style=for-the-badge&labelColor=00ff88&color=0d1117)](https://github.com/Kuonirad/MCOP-Framework-2.0/wiki)
 
 </div>
+
+---
+
+
+## 🌱 Positive Identity Resonance
+
+MCOP-Framework-2.0 now treats repository identity as a contributor welcome
+surface: every canonical URL, badge, clone instruction, package pointer, and
+provenance note converges on `MCOP-Framework-2.0`. This is Positive Building of
+unbreakable link resonance — less friction for new contributors, clearer trust
+for adopters, and a more joyful path from first clone to first meaningful
+contribution.
+
+- **Canonical home:** `https://github.com/Kuonirad/MCOP-Framework-2.0`
+- **Canonical local path:** `MCOP-Framework-2.0`
+- **Positive audit command:** `pnpm positive:audit`
+- **Positive impact report:** [`docs/POSITIVE_IMPACT_REPORT.md`](./docs/POSITIVE_IMPACT_REPORT.md)
 
 ---
 
@@ -97,6 +115,9 @@ pnpm install
 
 # Run the full test suite (96.6% coverage)
 pnpm test
+
+# Generate the Positive Impact Report and badge
+pnpm positive:audit
 
 # Launch production server
 pnpm build && pnpm start

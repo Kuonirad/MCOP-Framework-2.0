@@ -2,6 +2,7 @@ export * from './types';
 export * from './novaNeoEncoder';
 export * from './stigmergyV5';
 export * from './holographicEtch';
+export * from './positiveResonanceAmplifier';
 export * from './vectorMath';
 export * from './tensorGuard';
 export * from './circularBuffer';
