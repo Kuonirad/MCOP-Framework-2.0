@@ -16,6 +16,7 @@ export * from './embeddingEngine';
 export * from './universalCrypto';
 export * from './longFormVideoOrchestrator';
 export * from './observability';
+export * from './novaEvolveTuner';
 
 /**
  * Plain-English aliases — additive, non-breaking.
