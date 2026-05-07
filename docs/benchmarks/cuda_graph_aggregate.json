@@ -1,0 +1,40 @@
+{
+  "schema": "mcop-cuda-bench/1.0",
+  "capturedAt": "2026-05-07T20:30:00.000Z",
+  "mode": "smoke",
+  "seed": "0xC0FFEE",
+  "fixture": {
+    "nodeCount": 1024,
+    "edgeCount": 12252,
+    "avgDegree": 12,
+    "lowMemory": false
+  },
+  "iterations": {
+    "warmup": 2,
+    "timed": 8
+  },
+  "host": null,
+  "cpu": {
+    "provider": "CUDAAccelerator:cpu-fallback",
+    "mode": "cpu",
+    "verifiedDevice": "cpu",
+    "summary": {
+      "samples": 8,
+      "meanMs": null,
+      "p50Ms": null,
+      "p95Ms": null,
+      "minMs": null,
+      "maxMs": null
+    },
+    "outputFingerprint": "0c13d5c9571620b7636b79bf00e10f51f98a833b378f70509fd444da138656c4"
+  },
+  "cuda": {
+    "skipped": "enableCuda=false"
+  },
+  "speedup": null,
+  "targets": {
+    "phi2GoalSpeedup": 3,
+    "phi2Met": false
+  },
+  "merkleRoot": "a81689e1d6d8c45ca0e1f6be9875ae81707ae180285de6f4e1405cf12b1d9912"
+}

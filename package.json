@@ -38,6 +38,8 @@
     "sbom:validate": "node scripts/validate-sbom.mjs",
     "positive:audit": "node scripts/positive-audit.mjs",
     "benchmark:arc-evo": "node scripts/benchmark-arc-evo.mjs",
+    "benchmark:cuda-graph": "node scripts/benchmark-cuda-graph.mjs --mode=full",
+    "benchmark:cuda-graph:smoke": "node scripts/benchmark-cuda-graph.mjs --mode=smoke",
     "cuda:serve": "python -m mcop_cuda_server --port 8765 --device cuda:0",
     "dev:cuda": "concurrently \"pnpm dev\" \"pnpm cuda:serve\""
   },
