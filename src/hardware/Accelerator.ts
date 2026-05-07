@@ -1,9 +1,4 @@
-import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
-
 import { canonicalDigest } from '../core/canonicalEncoding';
-
-const execFileAsync = promisify(execFile);
 
 export type AcceleratorMode = 'cpu' | 'cuda';
 
@@ -67,7 +62,7 @@ export class CPUFallback implements Accelerator {
   }
 
   async accelerate<T>(op: AcceleratedOperation, input: unknown): Promise<AcceleratedResult<T>> {
-    return attachAcceleratorProvenance<T>(input as T, {
+    return attachAcceleratorProvenance(input as T, {
       op,
       mode: this.mode,
       device: this.device,
@@ -116,7 +111,7 @@ export class CUDAProvider implements Accelerator {
       });
       if (!response.ok) throw new Error(`CUDA provider returned HTTP ${response.status}`);
       const payload = await response.json() as T;
-      return attachAcceleratorProvenance<T>(payload, {
+      return attachAcceleratorProvenance(payload, {
         op,
         mode: this.mode,
         device: this.device,
@@ -125,7 +120,7 @@ export class CUDAProvider implements Accelerator {
       });
     } catch (error) {
       const fallback = await this.fallback.accelerate<T>(op, input);
-      return attachAcceleratorProvenance<T>(stripAcceleratorFields(fallback) as T, {
+      return attachAcceleratorProvenance(stripAcceleratorFields(fallback) as T, {
         op,
         mode: this.fallback.mode,
         device: this.fallback.device,
@@ -153,8 +148,11 @@ export async function detectCUDA(device = process.env.MCOP_CUDA_DEVICE ?? 'cuda:
       device: 'cpu',
     };
   }
-
   try {
+    // Dynamic import keeps node:child_process out of the client bundle.
+    const { execFile } = await import('node:child_process');
+    const { promisify } = await import('node:util');
+    const execFileAsync = promisify(execFile);
     const { stdout } = await execFileAsync('nvidia-smi', [
       '--query-gpu=name,compute_cap',
       '--format=csv,noheader',
@@ -211,11 +209,9 @@ export function attachAcceleratorProvenance<T>(
   };
   const merkleRoot = canonicalDigest({ type: 'MCOP_ACCELERATOR_PROVENANCE', provenance: provenanceWithoutRoot, payload });
   const provenance: AcceleratorProvenance = { ...provenanceWithoutRoot, merkleRoot };
-
   if (payload !== null && typeof payload === 'object' && !Array.isArray(payload)) {
     return { ...(payload as Record<string, unknown>), _device: options.device, _provenance: provenance } as AcceleratedResult<T>;
   }
-
   return { value: payload, _device: options.device, _provenance: provenance } as unknown as AcceleratedResult<T>;
 }
 
