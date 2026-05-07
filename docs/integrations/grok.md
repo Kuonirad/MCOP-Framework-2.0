@@ -29,6 +29,19 @@ prints the entropy/resonance signals, the routing decision, the Grok
 completion, and the full Merkle-rooted `ProvenanceMetadata` bundle so a
 reader can replay or audit any call end-to-end.
 
+
+## mapping_grok production profile
+
+`mapping_grok` is now the default production profile for Grok-backed MCOP orchestration. The profile maps the default model to `grok-4-mini`, keeps `grok-3-mini` as a compatibility fallback, injects the last 10 Stigmergy v5 traces when requested, retries xAI 429/5xx responses with `Retry-After` awareness, and exposes `beforeDispatch`, `afterDispatch`, and `onRateLimit` hooks for queueing/telemetry.
+
+For public reproducibility, run the ARC-EVO validation split benchmark:
+
+```bash
+pnpm benchmark:arc-evo
+```
+
+The script prints each 25-task validation step, the selected NOVA-EVOLVE kernel, meta-tuning genome mutations, Merkle roots, and a final latency trace.
+
 ## How to reproduce
 
 ```bash
