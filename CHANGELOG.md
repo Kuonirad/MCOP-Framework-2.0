@@ -5,6 +5,17 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [2.3.1] - 2026-05-07 — mapping_grok Production Patch
+
+### Added
+- Promoted `mapping_grok` to the default xAI/Grok production profile with model mappings, rate-limit retry metadata, and MCOP dispatch hooks.
+- Added `pnpm benchmark:arc-evo` for the public 25-task ARC-style NOVA-EVOLVE + meta-tuning validation split.
+- Added a copy-ready public demo/discussion draft for the near-zero-latency ARC-EVO run.
+
+### Changed
+- Default orchestrator config now enables the NOVA-EVOLVE-TUNER and pins the 25-task validation split for v2.3.1 reproducibility.
+- Repository/package discovery metadata now includes `arc-agi`, `meta-cognitive`, and `evolutionary-ai`.
+
 ## [2.3.0] - 2026-05-06 — Eudaimonic Bloom
 
 ### Added

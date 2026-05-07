@@ -57,6 +57,9 @@ gh repo edit "$REPO" \
   --add-topic collective-intelligence \
   --add-topic stigmergy \
   --add-topic meta-cognitive-optimization \
+  --add-topic arc-agi \
+  --add-topic meta-cognitive \
+  --add-topic evolutionary-ai \
   --add-topic research
 
 # STEP 5: Trigger bot-PR cleanup workflow and wait for completion

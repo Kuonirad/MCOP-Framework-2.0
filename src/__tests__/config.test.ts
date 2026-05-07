@@ -1,5 +1,5 @@
 import nextConfig from '../../next.config';
-import { MCOP_CONFIG, classifyMetric, classifyVSI } from '@/config/mcop.config';
+import { MCOP_CONFIG, MCOP_DEFAULT_ORCHESTRATOR, classifyMetric, classifyVSI } from '@/config/mcop.config';
 
 describe('next.config.ts', () => {
   it('should have output set to standalone', () => {
@@ -27,6 +27,14 @@ describe('mcop.config.ts', () => {
     expect(Object.isFrozen(MCOP_CONFIG)).toBe(true);
     expect(Object.isFrozen(MCOP_CONFIG.LCP)).toBe(true);
     expect(Object.isFrozen(MCOP_CONFIG.VSI)).toBe(true);
+  });
+
+  it('ships mapping_grok as the default orchestrator profile with NOVA-EVOLVE-TUNER enabled', () => {
+    expect(Object.isFrozen(MCOP_DEFAULT_ORCHESTRATOR)).toBe(true);
+    expect(MCOP_DEFAULT_ORCHESTRATOR.productionProfile.id).toBe('mapping_grok');
+    expect(MCOP_DEFAULT_ORCHESTRATOR.productionProfile.adapter).toBe('xai-grok');
+    expect(MCOP_DEFAULT_ORCHESTRATOR.novaEvolveTuner.enabled).toBe(true);
+    expect(MCOP_DEFAULT_ORCHESTRATOR.novaEvolveTuner.validationSplitSize).toBe(25);
   });
 
   describe('classifyMetric', () => {

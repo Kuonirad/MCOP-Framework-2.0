@@ -36,9 +36,12 @@ import {
 /** Names of the xAI hosted Grok models known at the time of writing. */
 export type GrokModel =
   | 'grok-4'
+  | 'grok-4-fast'
   | 'grok-4-mini'
   | 'grok-3'
+  | 'grok-3-fast'
   | 'grok-3-mini'
+  | 'grok-3-mini-fast'
   | 'grok-2'
   | 'grok-beta'
   | (string & {});
@@ -57,6 +60,16 @@ export interface GrokCompletionOptions {
   systemPrompt?: string;
   /** Stop sequences forwarded verbatim to the vendor. */
   stop?: ReadonlyArray<string>;
+  /** xAI-compatible response format, e.g. `{ type: 'json_object' }`. */
+  responseFormat?: Record<string, unknown>;
+  /** OpenAI-compatible tool/function declarations forwarded to xAI. */
+  tools?: ReadonlyArray<Record<string, unknown>>;
+  /** Tool choice forwarded to xAI when tools are present. */
+  toolChoice?: 'auto' | 'none' | 'required' | Record<string, unknown>;
+  /** Optional caller/user identifier for vendor-side abuse monitoring. */
+  user?: string;
+  /** Per-request retry policy for xAI 429/5xx responses. */
+  retry?: Partial<GrokRateLimitRetryConfig>;
   /** Optional deterministic prompt pruning for high-capability model routing. */
   lowMemory?: LowMemoryMCOPModeConfig | boolean;
   /**
@@ -88,12 +101,50 @@ export interface GrokUsage {
   readonly totalTokens: number;
 }
 
+export interface GrokRateLimitMetadata {
+  readonly limitRequests?: string;
+  readonly remainingRequests?: string;
+  readonly resetRequests?: string;
+  readonly limitTokens?: string;
+  readonly remainingTokens?: string;
+  readonly resetTokens?: string;
+  readonly retryAfterMs?: number;
+}
+
 export interface GrokCompletionResult {
   readonly model: string;
   readonly content: string;
   readonly finishReason: string | null;
   readonly usage: GrokUsage | null;
+  readonly rateLimit?: GrokRateLimitMetadata;
   readonly raw?: unknown;
+}
+
+export interface GrokRateLimitRetryConfig {
+  readonly maxRetries: number;
+  readonly baseDelayMs: number;
+  readonly maxDelayMs: number;
+  readonly jitterRatio: number;
+  readonly retryStatuses: ReadonlyArray<number>;
+}
+
+export interface GrokPipelineHookContext {
+  readonly dispatch: PreparedDispatch;
+  readonly request: GrokRequest;
+  readonly options: GrokCompletionOptions;
+}
+
+export interface GrokPipelineHooks {
+  readonly beforeDispatch?: (context: GrokPipelineHookContext) => void | Promise<void>;
+  readonly afterDispatch?: (context: GrokPipelineHookContext & { result: GrokCompletionResult }) => void | Promise<void>;
+  readonly onRateLimit?: (event: GrokRateLimitRetryEvent) => void | Promise<void>;
+}
+
+export interface GrokRateLimitRetryEvent {
+  readonly attempt: number;
+  readonly status: number;
+  readonly retryAfterMs: number;
+  readonly rateLimit: GrokRateLimitMetadata;
 }
 
 /**
@@ -110,6 +161,8 @@ export interface GrokClient {
 
 export interface GrokAdapterConfig extends BaseAdapterDeps {
   client: GrokClient;
+  /** MCOP pipeline hooks for observability, queueing, and production tracing. */
+  hooks?: GrokPipelineHooks;
   /** Default model when the request does not supply one. */
   defaultModel?: GrokModel;
   /**
@@ -120,6 +173,63 @@ export interface GrokAdapterConfig extends BaseAdapterDeps {
   defaultEntropyTarget?: number;
 }
 
+export interface GrokModelMapping {
+  readonly model: GrokModel;
+  readonly tier: 'flagship' | 'fast' | 'balanced' | 'legacy';
+  readonly contextWindow: number;
+  readonly defaultTemperature: number;
+  readonly useCases: ReadonlyArray<string>;
+}
+
+export const GROK_MODEL_MAPPINGS: Readonly<Record<string, GrokModelMapping>> = Object.freeze({
+  'grok-4': Object.freeze({
+    model: 'grok-4',
+    tier: 'flagship',
+    contextWindow: 256_000,
+    defaultTemperature: 0.35,
+    useCases: ['hard-reasoning', 'arc-agi', 'agentic-planning'],
+  }),
+  'grok-4-fast': Object.freeze({
+    model: 'grok-4-fast',
+    tier: 'fast',
+    contextWindow: 256_000,
+    defaultTemperature: 0.3,
+    useCases: ['low-latency-routing', 'meta-tuning', 'tool-use'],
+  }),
+  'grok-4-mini': Object.freeze({
+    model: 'grok-4-mini',
+    tier: 'balanced',
+    contextWindow: 128_000,
+    defaultTemperature: 0.4,
+    useCases: ['production-default', 'cost-aware-completions', 'stigmergy-recall'],
+  }),
+  'grok-3': Object.freeze({
+    model: 'grok-3',
+    tier: 'legacy',
+    contextWindow: 128_000,
+    defaultTemperature: 0.4,
+    useCases: ['compatibility', 'replay'],
+  }),
+  'grok-3-mini': Object.freeze({
+    model: 'grok-3-mini',
+    tier: 'legacy',
+    contextWindow: 128_000,
+    defaultTemperature: 0.4,
+    useCases: ['compatibility', 'ci-fixtures'],
+  }),
+});
+
+export const MAPPING_GROK_PRODUCTION_PROFILE = Object.freeze({
+  id: 'mapping_grok',
+  adapter: 'xai-grok',
+  defaultModel: 'grok-4-mini' as GrokModel,
+  fallbackModel: 'grok-3-mini' as GrokModel,
+  entropyTarget: 0.18,
+  stigmergyHistory: Object.freeze({ limit: 10, label: 'mapping_grok', includeMetadata: true }),
+  retry: Object.freeze({ maxRetries: 3, baseDelayMs: 500, maxDelayMs: 10_000, jitterRatio: 0.15 }),
+  pipelineHooks: Object.freeze(['beforeDispatch', 'afterDispatch', 'onRateLimit']),
+});
+
 export class GrokMCOPAdapter extends BaseAdapter<
   GrokRequest,
   GrokCompletionResult
@@ -127,12 +237,14 @@ export class GrokMCOPAdapter extends BaseAdapter<
   private readonly client: GrokClient;
   private readonly defaultModel: GrokModel;
   private readonly defaultEntropyTarget: number;
+  private readonly hooks: GrokPipelineHooks;
 
   constructor(config: GrokAdapterConfig) {
     super(config);
     this.client = config.client;
-    this.defaultModel = config.defaultModel ?? 'grok-3-mini';
-    this.defaultEntropyTarget = config.defaultEntropyTarget ?? 0.18;
+    this.defaultModel = config.defaultModel ?? MAPPING_GROK_PRODUCTION_PROFILE.defaultModel;
+    this.defaultEntropyTarget = config.defaultEntropyTarget ?? MAPPING_GROK_PRODUCTION_PROFILE.entropyTarget;
+    this.hooks = config.hooks ?? {};
   }
 
   protected platformName(): string {
@@ -145,9 +257,12 @@ export class GrokMCOPAdapter extends BaseAdapter<
       version: '2025-01',
       models: [
         'grok-4',
+        'grok-4-fast',
         'grok-4-mini',
         'grok-3',
+        'grok-3-fast',
         'grok-3-mini',
+        'grok-3-mini-fast',
         'grok-2',
         'grok-beta',
       ],
@@ -162,6 +277,11 @@ export class GrokMCOPAdapter extends BaseAdapter<
         'entropy-resonance-routing',
         'low-memory-prompt-pruning',
         'stigmergy-history-injection',
+        'mapping-grok-production-profile',
+        'rate-limit-retry-after',
+        'pipeline-hooks',
+        'tool-calling',
+        'json-response-format',
       ],
       notes:
         "OpenAI-compatible Chat Completions on https://api.x.ai/v1. " +
@@ -248,7 +368,11 @@ export class GrokMCOPAdapter extends BaseAdapter<
 
     messages.push({ role: 'user', content: dispatch.refinedPrompt });
 
-    return this.client.createCompletion({ messages, options: clientOptions });
+    const context: GrokPipelineHookContext = { dispatch, request, options: clientOptions };
+    await this.hooks.beforeDispatch?.(context);
+    const result = await this.client.createCompletion({ messages, options: clientOptions });
+    await this.hooks.afterDispatch?.({ ...context, result });
+    return result;
   }
 
   private buildStigmergyHistoryBlock(
@@ -347,6 +471,10 @@ export interface DefaultGrokClientConfig {
   fetchImpl?: typeof fetch;
   /** Request timeout in ms.  Defaults to 60s. */
   timeoutMs?: number;
+  /** Retry policy for 429/rate-limit and transient 5xx responses. */
+  retry?: Partial<GrokRateLimitRetryConfig>;
+  /** Optional hook fired before each retry sleep. */
+  onRateLimit?: GrokPipelineHooks['onRateLimit'];
 }
 
 interface XaiChatCompletionResponse {
@@ -400,36 +528,44 @@ export function defaultGrokClient(
   return {
     async createCompletion({ messages, options }) {
       const body: Record<string, unknown> = {
-        model: options.model ?? 'grok-3-mini',
+        model: options.model ?? MAPPING_GROK_PRODUCTION_PROFILE.defaultModel,
         messages,
-        temperature: options.temperature ?? 0.4,
+        temperature:
+          options.temperature ??
+          GROK_MODEL_MAPPINGS[String(options.model ?? MAPPING_GROK_PRODUCTION_PROFILE.defaultModel)]?.defaultTemperature ??
+          0.4,
       };
       if (options.topP !== undefined) body.top_p = options.topP;
       if (options.maxTokens !== undefined) body.max_tokens = options.maxTokens;
       if (options.stop && options.stop.length > 0) body.stop = [...options.stop];
+      if (options.responseFormat !== undefined) body.response_format = options.responseFormat;
+      if (options.tools !== undefined) body.tools = [...options.tools];
+      if (options.toolChoice !== undefined) body.tool_choice = options.toolChoice;
+      if (options.user !== undefined) body.user = options.user;
 
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), timeoutMs);
-      let response: Response;
-      try {
-        response = await fetchImpl(`${baseUrl}/chat/completions`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${apiKey}`,
-          },
-          body: JSON.stringify(body),
-          signal: controller.signal,
-        });
-      } finally {
-        clearTimeout(timer);
+      const requestRetryConfig = normalizeGrokRetryConfig({
+        ...config.retry,
+        ...options.retry,
+      });
+      let response = await postXaiCompletion(fetchImpl, `${baseUrl}/chat/completions`, apiKey, body, timeoutMs);
+      let rateLimit = readGrokRateLimit(response);
+      for (let attempt = 0; shouldRetryXai(response.status, attempt, requestRetryConfig); attempt += 1) {
+        const retryAfterMs = rateLimit.retryAfterMs ?? computeGrokBackoffMs(attempt, requestRetryConfig);
+        await config.onRateLimit?.({ attempt: attempt + 1, status: response.status, retryAfterMs, rateLimit });
+        await sleep(retryAfterMs);
+        response = await postXaiCompletion(fetchImpl, `${baseUrl}/chat/completions`, apiKey, body, timeoutMs);
+        rateLimit = readGrokRateLimit(response);
       }
 
       if (!response.ok) {
         const detail = await safeReadText(response);
-        throw new Error(
+        throw new GrokApiError(
           `xAI request failed: ${response.status} ${response.statusText}` +
             (detail ? ` — ${detail}` : ''),
+          response.status,
+          response.statusText,
+          rateLimit,
+          detail,
         );
       }
 
@@ -448,14 +584,112 @@ export function defaultGrokClient(
         : null;
 
       return {
-        model: json.model ?? options.model ?? 'grok-3-mini',
+        model: json.model ?? options.model ?? MAPPING_GROK_PRODUCTION_PROFILE.defaultModel,
         content: choice.message?.content ?? '',
         finishReason: choice.finish_reason ?? null,
         usage,
+        rateLimit,
         raw: json,
       };
     },
   };
+}
+
+
+async function postXaiCompletion(
+  fetchImpl: typeof fetch,
+  url: string,
+  apiKey: string,
+  body: Record<string, unknown>,
+  timeoutMs: number,
+): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetchImpl(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+export class GrokApiError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+    readonly statusText: string,
+    readonly rateLimit: GrokRateLimitMetadata,
+    readonly detail: string | null,
+  ) {
+    super(message);
+    this.name = 'GrokApiError';
+  }
+}
+
+function normalizeGrokRetryConfig(
+  config: Partial<GrokRateLimitRetryConfig> = {},
+): GrokRateLimitRetryConfig {
+  return {
+    maxRetries: Math.max(0, Math.floor(config.maxRetries ?? 2)),
+    baseDelayMs: Math.max(1, Math.floor(config.baseDelayMs ?? 500)),
+    maxDelayMs: Math.max(1, Math.floor(config.maxDelayMs ?? 8_000)),
+    jitterRatio: Math.max(0, Math.min(1, config.jitterRatio ?? 0.15)),
+    retryStatuses: config.retryStatuses ?? [429, 500, 502, 503, 504],
+  };
+}
+
+function shouldRetryXai(
+  status: number,
+  attempt: number,
+  config: GrokRateLimitRetryConfig,
+): boolean {
+  return attempt < config.maxRetries && config.retryStatuses.includes(status);
+}
+
+function computeGrokBackoffMs(
+  attempt: number,
+  config: GrokRateLimitRetryConfig,
+): number {
+  const exponential = Math.min(config.maxDelayMs, config.baseDelayMs * 2 ** attempt);
+  const deterministicJitter = Math.round(exponential * config.jitterRatio * ((attempt % 3) / 3));
+  return Math.min(config.maxDelayMs, exponential + deterministicJitter);
+}
+
+function readGrokRateLimit(response: Response): GrokRateLimitMetadata {
+  const headers = response.headers;
+  const getHeader = typeof headers?.get === 'function'
+    ? (name: string) => headers.get(name)
+    : () => null;
+  const retryAfterMs = parseRetryAfterMs(getHeader('retry-after'));
+  return {
+    limitRequests: getHeader('x-ratelimit-limit-requests') ?? undefined,
+    remainingRequests: getHeader('x-ratelimit-remaining-requests') ?? undefined,
+    resetRequests: getHeader('x-ratelimit-reset-requests') ?? undefined,
+    limitTokens: getHeader('x-ratelimit-limit-tokens') ?? undefined,
+    remainingTokens: getHeader('x-ratelimit-remaining-tokens') ?? undefined,
+    resetTokens: getHeader('x-ratelimit-reset-tokens') ?? undefined,
+    retryAfterMs,
+  };
+}
+
+function parseRetryAfterMs(value: string | null): number | undefined {
+  if (!value) return undefined;
+  const seconds = Number(value);
+  if (Number.isFinite(seconds)) return Math.max(0, Math.round(seconds * 1000));
+  const dateMs = Date.parse(value);
+  if (!Number.isFinite(dateMs)) return undefined;
+  return Math.max(0, dateMs - Date.now());
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 async function safeReadText(response: Response): Promise<string | null> {

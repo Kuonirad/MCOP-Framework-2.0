@@ -17,7 +17,9 @@ import {
   GenericProductionAdapter,
   RegulatedProvenanceAdapter,
   mapProvenanceToFHIR,
+  GrokApiError,
   GrokClient,
+  MAPPING_GROK_PRODUCTION_PROFILE,
   GrokMCOPAdapter,
   HumanFeedback,
   HumanVetoError,
@@ -822,6 +824,31 @@ describe('GrokMCOPAdapter', () => {
     expect(caps.models.length).toBeGreaterThan(0);
     expect(caps.supportsAudit).toBe(true);
   });
+
+  it('defaults to the mapping_grok production profile and fires MCOP pipeline hooks', async () => {
+    const beforeDispatch = jest.fn();
+    const afterDispatch = jest.fn();
+    const client = grokFixture();
+    const adapter = new GrokMCOPAdapter({
+      ...baseTriad(),
+      client,
+      hooks: { beforeDispatch, afterDispatch },
+    });
+
+    await adapter.generateOptimizedCompletion('profile defaults');
+
+    expect(MAPPING_GROK_PRODUCTION_PROFILE.id).toBe('mapping_grok');
+    const call = (client.createCompletion as jest.Mock).mock.calls[0][0] as {
+      options: Record<string, unknown>;
+    };
+    expect(call.options.model).toBe(MAPPING_GROK_PRODUCTION_PROFILE.defaultModel);
+    expect(beforeDispatch).toHaveBeenCalledWith(expect.objectContaining({
+      dispatch: expect.objectContaining({ provenance: expect.any(Object) }),
+    }));
+    expect(afterDispatch).toHaveBeenCalledWith(expect.objectContaining({
+      result: expect.objectContaining({ model: MAPPING_GROK_PRODUCTION_PROFILE.defaultModel }),
+    }));
+  });
 });
 
 describe('defaultGrokClient', () => {
@@ -910,6 +937,69 @@ describe('defaultGrokClient', () => {
         options: {},
       }),
     ).rejects.toThrow(/401/);
+  });
+
+  it('retries xAI rate limits using Retry-After and exposes rate-limit metadata', async () => {
+    jest.useFakeTimers();
+    const onRateLimit = jest.fn();
+    const throttled = errorResponse(429, 'Too Many Requests', '{"error":"slow down"}') as Response;
+    Object.defineProperty(throttled, 'headers', {
+      value: new Headers({
+        'retry-after': '0.01',
+        'x-ratelimit-remaining-requests': '0',
+      }),
+    });
+    const ok = okResponse({
+      id: 'cmpl-2',
+      model: 'grok-4-mini',
+      choices: [{ index: 0, message: { role: 'assistant', content: 'ok' }, finish_reason: 'stop' }],
+      usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
+    }) as Response;
+    Object.defineProperty(ok, 'headers', {
+      value: new Headers({ 'x-ratelimit-remaining-requests': '9' }),
+    });
+    const fetchImpl = jest.fn()
+      .mockResolvedValueOnce(throttled)
+      .mockResolvedValueOnce(ok);
+    const client = defaultGrokClient({
+      apiKey: 'test-key',
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+      retry: { maxRetries: 1 },
+      onRateLimit,
+    });
+
+    const pending = client.createCompletion({
+      messages: [{ role: 'user', content: 'hello' }],
+      options: { model: 'grok-4-mini' },
+    });
+    await Promise.resolve();
+    await jest.advanceTimersByTimeAsync(10);
+    const result = await pending;
+
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    expect(onRateLimit).toHaveBeenCalledWith(expect.objectContaining({
+      status: 429,
+      retryAfterMs: 10,
+      rateLimit: expect.objectContaining({ remainingRequests: '0' }),
+    }));
+    expect(result.rateLimit?.remainingRequests).toBe('9');
+    jest.useRealTimers();
+  });
+
+  it('throws a typed GrokApiError after retry exhaustion', async () => {
+    const throttled = errorResponse(429, 'Too Many Requests', '{"error":"slow down"}') as Response;
+    Object.defineProperty(throttled, 'headers', { value: new Headers({ 'retry-after': '0' }) });
+    const fetchImpl = jest.fn(async () => throttled);
+    const client = defaultGrokClient({
+      apiKey: 'test-key',
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+      retry: { maxRetries: 0 },
+    });
+
+    await expect(client.createCompletion({
+      messages: [{ role: 'user', content: 'hello' }],
+      options: { model: 'grok-4-mini' },
+    })).rejects.toBeInstanceOf(GrokApiError);
   });
 });
 

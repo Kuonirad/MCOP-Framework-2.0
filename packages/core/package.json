@@ -1,6 +1,6 @@
 {
   "name": "@kullailabs/mcop-core",
-  "version": "2.3.0",
+  "version": "2.3.1",
   "description": "MCOP (Meta-Cognitive Optimization Protocol) core primitives \u2014 deterministic, auditable, provenance-tracked reasoning: NOVA-NEO encoder, Stigmergy v5, Holographic Etch.",
   "keywords": [
     "mcop",
@@ -12,7 +12,10 @@
     "deterministic",
     "sha256",
     "ai",
-    "llm"
+    "llm",
+    "arc-agi",
+    "meta-cognitive",
+    "evolutionary-ai"
   ],
   "author": "Kevin John Kull (Kuonirad)",
   "license": "BUSL-1.1",

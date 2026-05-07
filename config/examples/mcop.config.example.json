@@ -19,5 +19,25 @@
     "learnedRolloutDepth": 4,
     "maxFanout": 16,
     "maxDepth": 6
+  },
+  "orchestrator": {
+    "productionProfile": "mapping_grok",
+    "profiles": {
+      "mapping_grok": {
+        "adapter": "xai-grok",
+        "model": "grok-4-mini",
+        "fallbackModel": "grok-3-mini",
+        "entropyTarget": 0.18,
+        "stigmergyHistoryLimit": 10,
+        "rateLimitMaxRetries": 3
+      }
+    },
+    "novaEvolveTuner": {
+      "enabled": true,
+      "metaTuneInterval": 5,
+      "projectedGainThreshold": 0.04,
+      "maxMetaDepth": 2,
+      "validationSplitSize": 25
+    }
   }
 }

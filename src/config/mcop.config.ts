@@ -30,6 +30,48 @@ export interface MCOPPerformanceConfig {
   readonly VSI: MetricThreshold & VSIOptions;
 }
 
+export interface MCOPOrchestratorProfile {
+  readonly id: string;
+  readonly adapter: 'xai-grok' | 'local' | 'generic';
+  readonly model: string;
+  readonly fallbackModel: string;
+  readonly entropyTarget: number;
+  readonly stigmergyHistoryLimit: number;
+  readonly rateLimitMaxRetries: number;
+}
+
+export interface MCOPNovaEvolveTunerConfig {
+  readonly enabled: boolean;
+  readonly metaTuneInterval: number;
+  readonly projectedGainThreshold: number;
+  readonly maxMetaDepth: number;
+  readonly validationSplitSize: number;
+}
+
+export interface MCOPDefaultOrchestratorConfig {
+  readonly productionProfile: MCOPOrchestratorProfile;
+  readonly novaEvolveTuner: MCOPNovaEvolveTunerConfig;
+}
+
+export const MCOP_DEFAULT_ORCHESTRATOR: MCOPDefaultOrchestratorConfig = Object.freeze({
+  productionProfile: Object.freeze({
+    id: 'mapping_grok',
+    adapter: 'xai-grok',
+    model: 'grok-4-mini',
+    fallbackModel: 'grok-3-mini',
+    entropyTarget: 0.18,
+    stigmergyHistoryLimit: 10,
+    rateLimitMaxRetries: 3,
+  }),
+  novaEvolveTuner: Object.freeze({
+    enabled: true,
+    metaTuneInterval: 5,
+    projectedGainThreshold: 0.04,
+    maxMetaDepth: 2,
+    validationSplitSize: 25,
+  }),
+});
+
 export const MCOP_CONFIG: MCOPPerformanceConfig = Object.freeze({
   LCP: Object.freeze({ good: 2500, poor: 4000 }),
   INP: Object.freeze({ good: 200, poor: 500 }),

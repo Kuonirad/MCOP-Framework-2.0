@@ -1,6 +1,6 @@
 {
   "name": "@kuonirad/mcop-framework",
-  "version": "2.3.0",
+  "version": "2.3.1",
   "private": true,
   "license": "BUSL-1.1",
   "publishConfig": {
@@ -36,7 +36,8 @@
     "benchmark:refresh": "BENCHMARK_GENERATE=1 jest --testPathPatterns=src/__tests__/benchmarks.test.ts",
     "sbom": "node scripts/generate-sbom.mjs",
     "sbom:validate": "node scripts/validate-sbom.mjs",
-    "positive:audit": "node scripts/positive-audit.mjs"
+    "positive:audit": "node scripts/positive-audit.mjs",
+    "benchmark:arc-evo": "node scripts/benchmark-arc-evo.mjs"
   },
   "engines": {
     "node": "^20.17.0 || >=22.9.0",
@@ -93,5 +94,10 @@
   },
   "overrides": {
     "postcss": "^8.5.10"
-  }
+  },
+  "keywords": [
+    "arc-agi",
+    "meta-cognitive",
+    "evolutionary-ai"
+  ]
 }
