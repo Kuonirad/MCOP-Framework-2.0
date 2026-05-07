@@ -1,4 +1,10 @@
-import { attachAcceleratorProvenance, CPUFallback, CUDAProvider } from '../hardware';
+import {
+  attachAcceleratorProvenance,
+  CPUFallback,
+  CUDAAccelerator,
+  CUDAProvider,
+  detectCUDA,
+} from '../hardware';
 
 describe('hardware accelerator provenance', () => {
   it('seals CPU fallback outputs with device-aware Merkle metadata', async () => {
@@ -37,5 +43,38 @@ describe('hardware accelerator provenance', () => {
     expect(sealed._device).toBe('cuda:0');
     expect(sealed._provenance.cudaGraphCaptured).toBeUndefined();
     expect(sealed._provenance.merkleRoot).toMatch(/^[a-f0-9]{64}$/);
+  });
+
+  it('detects forced CPU and injected CUDA probes without Node-only imports', async () => {
+    await expect(detectCUDA({ useCUDA: false })).resolves.toMatchObject({
+      cudaAvailable: false,
+      mode: 'cpu',
+      device: 'cpu',
+    });
+
+    await expect(detectCUDA({
+      probe: async () => ({ available: true, deviceName: 'RTX Test', computeCapability: '8.9' }),
+    })).resolves.toMatchObject({
+      cudaAvailable: true,
+      mode: 'cuda',
+      deviceName: 'RTX Test',
+      computeCapability: '8.9',
+    });
+  });
+
+  it('exposes the requested CUDAAccelerator facade with CPU parity fallback', async () => {
+    const accelerator = new CUDAAccelerator({ useCUDA: false });
+
+    const encoded = await accelerator.encodeWithCUDA(Float32Array.from([1, 2, 3]));
+    const proteome = await accelerator.propagateProteomeGraphCUDA({ nodes: 3 }, Float32Array.from([3, 2, 1]));
+    const etch = await accelerator.holographicBatchUpdate([2, 3], [5, 7]);
+    const projected = await accelerator.metaProject({ baseline: 1 }, () => 0.125);
+
+    expect(accelerator.useCUDA).toBe(false);
+    expect(Array.from(encoded.output)).toEqual([1, 2, 3]);
+    expect(Array.from(proteome.output)).toEqual([3, 2, 1]);
+    expect(Array.from(etch.output)).toEqual([10, 14, 15, 21]);
+    expect(projected.projectedGain).toBe(0.125);
+    expect(projected._provenance.kernel).toBe('meta-dry-run');
   });
 });

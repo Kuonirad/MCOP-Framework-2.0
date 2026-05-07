@@ -40,6 +40,13 @@ export interface MCOPOrchestratorProfile {
   readonly rateLimitMaxRetries: number;
 }
 
+export interface MCOPHardwareAccelerationConfig {
+  /** Creator-controlled CUDA switch: true = prefer CUDA bridge, false = force CPU. */
+  readonly useCUDA: boolean;
+  /** Bridge deployment flavor used when CUDA is enabled. */
+  readonly provider: 'microservice' | 'onnx' | 'native';
+}
+
 export interface MCOPNovaEvolveTunerConfig {
   readonly enabled: boolean;
   readonly metaTuneInterval: number;
@@ -51,6 +58,7 @@ export interface MCOPNovaEvolveTunerConfig {
 export interface MCOPDefaultOrchestratorConfig {
   readonly productionProfile: MCOPOrchestratorProfile;
   readonly novaEvolveTuner: MCOPNovaEvolveTunerConfig;
+  readonly hardware: MCOPHardwareAccelerationConfig;
 }
 
 export const MCOP_DEFAULT_ORCHESTRATOR: MCOPDefaultOrchestratorConfig = Object.freeze({
@@ -69,6 +77,10 @@ export const MCOP_DEFAULT_ORCHESTRATOR: MCOPDefaultOrchestratorConfig = Object.f
     projectedGainThreshold: 0.04,
     maxMetaDepth: 2,
     validationSplitSize: 25,
+  }),
+  hardware: Object.freeze({
+    useCUDA: process.env.MCOP_USE_CUDA === '1',
+    provider: 'microservice',
   }),
 });
 

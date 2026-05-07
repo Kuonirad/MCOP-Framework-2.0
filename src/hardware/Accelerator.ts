@@ -9,12 +9,16 @@ export type AcceleratedOperation =
   | 'meta-dry-run'
   | 'nova-evolve-score';
 
+export type AcceleratorProviderKind = 'cpu' | 'microservice' | 'onnx' | 'native';
+
 export interface AcceleratorCapabilities {
   cudaAvailable: boolean;
+  webGPUAvailable: boolean;
   deviceName: string;
   computeCapability: string;
   mode: AcceleratorMode;
   device: string;
+  provider: AcceleratorProviderKind;
 }
 
 export interface AcceleratorProvenance {
@@ -41,9 +45,24 @@ export interface Accelerator {
   getCapabilities(): Promise<AcceleratorCapabilities>;
 }
 
+export interface CUDAProbeResult {
+  available: boolean;
+  deviceName?: string;
+  computeCapability?: string;
+  device?: string;
+}
+
+export interface DetectCUDAOptions {
+  useCUDA?: boolean;
+  device?: string;
+  provider?: AcceleratorProviderKind;
+  probe?: () => Promise<CUDAProbeResult | null | undefined>;
+}
+
 export interface CUDAProviderOptions {
   endpoint?: string;
   device?: string;
+  provider?: Exclude<AcceleratorProviderKind, 'cpu'>;
   fetchImpl?: typeof fetch;
   timeoutMs?: number;
   fallback?: Accelerator;
@@ -62,7 +81,7 @@ export class CPUFallback implements Accelerator {
   }
 
   async accelerate<T>(op: AcceleratedOperation, input: unknown): Promise<AcceleratedResult<T>> {
-    return attachAcceleratorProvenance(input as T, {
+    return attachAcceleratorProvenance<T>(input as T, {
       op,
       mode: this.mode,
       device: this.device,
@@ -75,10 +94,12 @@ export class CPUFallback implements Accelerator {
   async getCapabilities(): Promise<AcceleratorCapabilities> {
     return {
       cudaAvailable: false,
+      webGPUAvailable: detectWebGPU(),
       deviceName: 'CPU fallback',
       computeCapability: 'n/a',
       mode: this.mode,
       device: this.device,
+      provider: 'cpu',
     };
   }
 }
@@ -87,6 +108,7 @@ export class CUDAProvider implements Accelerator {
   readonly mode = 'cuda' as const;
   readonly device: string;
   private readonly endpoint: string;
+  private readonly provider: Exclude<AcceleratorProviderKind, 'cpu'>;
   private readonly fetchImpl: typeof fetch;
   private readonly timeoutMs: number;
   private readonly fallback: Accelerator;
@@ -94,6 +116,7 @@ export class CUDAProvider implements Accelerator {
   constructor(options: CUDAProviderOptions = {}) {
     this.device = options.device ?? process.env.MCOP_CUDA_DEVICE ?? 'cuda:0';
     this.endpoint = (options.endpoint ?? process.env.MCOP_CUDA_ENDPOINT ?? 'http://localhost:8765').replace(/\/$/, '');
+    this.provider = options.provider ?? 'microservice';
     this.fetchImpl = options.fetchImpl ?? fetch;
     this.timeoutMs = Math.max(1, options.timeoutMs ?? Number(process.env.MCOP_CUDA_TIMEOUT_MS ?? 750));
     this.fallback = options.fallback ?? new CPUFallback();
@@ -106,25 +129,25 @@ export class CUDAProvider implements Accelerator {
       const response = await this.fetchImpl(`${this.endpoint}/cuda/${op}`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ input, device: this.device }),
+        body: JSON.stringify({ input, device: this.device, provider: this.provider }),
         signal: controller.signal,
       });
       if (!response.ok) throw new Error(`CUDA provider returned HTTP ${response.status}`);
       const payload = await response.json() as T;
-      return attachAcceleratorProvenance(payload, {
+      return attachAcceleratorProvenance<T>(payload, {
         op,
         mode: this.mode,
         device: this.device,
-        provider: 'CUDAProvider',
+        provider: `CUDAProvider:${this.provider}`,
         cudaGraphCaptured: true,
       });
     } catch (error) {
       const fallback = await this.fallback.accelerate<T>(op, input);
-      return attachAcceleratorProvenance(stripAcceleratorFields(fallback) as T, {
+      return attachAcceleratorProvenance<T>(stripAcceleratorFields(fallback) as T, {
         op,
         mode: this.fallback.mode,
         device: this.fallback.device,
-        provider: 'CUDAProvider→CPUFallback',
+        provider: `CUDAProvider:${this.provider}→CPUFallback`,
         fallback: true,
         fallbackReason: error instanceof Error ? error.message : String(error),
       });
@@ -134,54 +157,61 @@ export class CUDAProvider implements Accelerator {
   }
 
   async getCapabilities(): Promise<AcceleratorCapabilities> {
-    return detectCUDA(this.device);
+    return detectCUDA({ device: this.device, provider: this.provider });
   }
 }
 
-export async function detectCUDA(device = process.env.MCOP_CUDA_DEVICE ?? 'cuda:0'): Promise<AcceleratorCapabilities> {
-  if (process.env.MCOP_ACCELERATOR === 'cpu') {
-    return {
-      cudaAvailable: false,
-      deviceName: 'CPU forced by MCOP_ACCELERATOR=cpu',
-      computeCapability: 'n/a',
-      mode: 'cpu',
-      device: 'cpu',
-    };
+export async function detectCUDA(options: DetectCUDAOptions = {}): Promise<AcceleratorCapabilities> {
+  const device = options.device ?? process.env.MCOP_CUDA_DEVICE ?? 'cuda:0';
+  const provider = options.provider ?? 'microservice';
+  if (options.useCUDA === false || process.env.MCOP_ACCELERATOR === 'cpu' || process.env.MCOP_USE_CUDA === '0') {
+    return cpuCapabilities('CPU forced by accelerator configuration');
   }
-  try {
-    // Dynamic import keeps node:child_process out of the client bundle.
-    const { execFile } = await import('node:child_process');
-    const { promisify } = await import('node:util');
-    const execFileAsync = promisify(execFile);
-    const { stdout } = await execFileAsync('nvidia-smi', [
-      '--query-gpu=name,compute_cap',
-      '--format=csv,noheader',
-      '-i',
-      device.replace('cuda:', ''),
-    ], { timeout: 750 });
-    const [name = 'CUDA device', capability = 'unknown'] = stdout.trim().split(',').map((part) => part.trim());
+
+  const probed = options.probe ? await options.probe() : undefined;
+  if (probed?.available === true) {
     return {
       cudaAvailable: true,
-      deviceName: name,
-      computeCapability: capability,
+      webGPUAvailable: detectWebGPU(),
+      deviceName: probed.deviceName ?? 'CUDA device',
+      computeCapability: probed.computeCapability ?? 'unknown',
       mode: 'cuda',
-      device,
-    };
-  } catch {
-    return {
-      cudaAvailable: false,
-      deviceName: 'CPU fallback',
-      computeCapability: 'n/a',
-      mode: 'cpu',
-      device: 'cpu',
+      device: probed.device ?? device,
+      provider,
     };
   }
+
+  const visibleDevices = process.env.CUDA_VISIBLE_DEVICES;
+  const envClaimsCUDA = process.env.MCOP_CUDA_AVAILABLE === '1'
+    || (visibleDevices !== undefined && visibleDevices !== '' && visibleDevices !== '-1');
+  if (envClaimsCUDA || options.useCUDA === true) {
+    return {
+      cudaAvailable: true,
+      webGPUAvailable: detectWebGPU(),
+      deviceName: process.env.MCOP_CUDA_DEVICE_NAME ?? 'CUDA device',
+      computeCapability: process.env.MCOP_CUDA_COMPUTE_CAPABILITY ?? 'unknown',
+      mode: 'cuda',
+      device,
+      provider,
+    };
+  }
+
+  return cpuCapabilities(detectWebGPU() ? 'CPU fallback (WebGPU available)' : 'CPU fallback');
 }
 
-export async function createDefaultAccelerator(): Promise<Accelerator> {
-  const capabilities = await detectCUDA();
-  if (capabilities.cudaAvailable) return new CUDAProvider({ device: capabilities.device });
-  return new CPUFallback();
+export async function createDefaultAccelerator(options: DetectCUDAOptions & CUDAProviderOptions = {}): Promise<Accelerator> {
+  const capabilities = await detectCUDA(options);
+  if (capabilities.cudaAvailable) {
+    return new CUDAProvider({
+      endpoint: options.endpoint,
+      device: capabilities.device,
+      provider: capabilities.provider === 'cpu' ? 'microservice' : capabilities.provider,
+      fetchImpl: options.fetchImpl,
+      timeoutMs: options.timeoutMs,
+      fallback: options.fallback,
+    });
+  }
+  return options.fallback ?? new CPUFallback();
 }
 
 export function attachAcceleratorProvenance<T>(
@@ -209,10 +239,28 @@ export function attachAcceleratorProvenance<T>(
   };
   const merkleRoot = canonicalDigest({ type: 'MCOP_ACCELERATOR_PROVENANCE', provenance: provenanceWithoutRoot, payload });
   const provenance: AcceleratorProvenance = { ...provenanceWithoutRoot, merkleRoot };
+
   if (payload !== null && typeof payload === 'object' && !Array.isArray(payload)) {
     return { ...(payload as Record<string, unknown>), _device: options.device, _provenance: provenance } as AcceleratedResult<T>;
   }
+
   return { value: payload, _device: options.device, _provenance: provenance } as unknown as AcceleratedResult<T>;
+}
+
+function cpuCapabilities(deviceName: string): AcceleratorCapabilities {
+  return {
+    cudaAvailable: false,
+    webGPUAvailable: detectWebGPU(),
+    deviceName,
+    computeCapability: 'n/a',
+    mode: 'cpu',
+    device: 'cpu',
+    provider: 'cpu',
+  };
+}
+
+function detectWebGPU(): boolean {
+  return typeof navigator !== 'undefined' && 'gpu' in navigator;
 }
 
 function stripAcceleratorFields(value: unknown): unknown {
