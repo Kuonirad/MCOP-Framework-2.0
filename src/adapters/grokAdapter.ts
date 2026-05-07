@@ -22,6 +22,7 @@ import {
   BaseAdapterDeps,
   PreparedDispatch,
 } from './baseAdapter';
+import type { PheromoneTrace } from '../core/types';
 import {
   AdapterCapabilities,
   AdapterRequest,
@@ -58,6 +59,20 @@ export interface GrokCompletionOptions {
   stop?: ReadonlyArray<string>;
   /** Optional deterministic prompt pruning for high-capability model routing. */
   lowMemory?: LowMemoryMCOPModeConfig | boolean;
+  /**
+   * Inject prior Stigmergy traces as a compact Merkle-auditable memory block
+   * before the current refined prompt. `true` uses the default of 10 traces.
+   */
+  stigmergyHistory?: boolean | GrokStigmergyHistoryOptions;
+}
+
+export interface GrokStigmergyHistoryOptions {
+  /** Maximum number of prior traces to inject. Default: 10. */
+  limit?: number;
+  /** Optional task/session label surfaced in the memory block header. */
+  label?: string;
+  /** Include trace metadata keys in the memory block. Default: true. */
+  includeMetadata?: boolean;
 }
 
 export interface GrokRequest extends AdapterRequest {
@@ -146,6 +161,7 @@ export class GrokMCOPAdapter extends BaseAdapter<
         'human-veto',
         'entropy-resonance-routing',
         'low-memory-prompt-pruning',
+        'stigmergy-history-injection',
       ],
       notes:
         "OpenAI-compatible Chat Completions on https://api.x.ai/v1. " +
@@ -169,7 +185,7 @@ export class GrokMCOPAdapter extends BaseAdapter<
       'styleContext' | 'humanFeedback' | 'metadata' | 'entropyTarget'
     > = {},
   ) {
-    const { lowMemory, ...platformOptions } = options;
+    const { lowMemory, stigmergyHistory, ...platformOptions } = options;
     const lowMemoryConfig = lowMemory === true
       ? GROK_4_3_LOW_MEMORY_MCOP_PRESET
       : lowMemory;
@@ -193,8 +209,14 @@ export class GrokMCOPAdapter extends BaseAdapter<
             prunedPromptLength: effectivePrompt.length,
           }
           : {}),
+        ...(stigmergyHistory
+          ? {
+            stigmergyHistoryInjected: true,
+            stigmergyHistoryLimit: normalizeStigmergyHistoryOptions(stigmergyHistory).limit,
+          }
+          : {}),
       },
-      payload: { options: platformOptions },
+      payload: { options: { ...platformOptions, ...(stigmergyHistory ? { stigmergyHistory } : {}) } },
     });
   }
 
@@ -206,18 +228,106 @@ export class GrokMCOPAdapter extends BaseAdapter<
       ...(request.payload?.options ?? {}),
       model: request.payload?.options?.model ?? this.defaultModel,
     };
+    const { stigmergyHistory, lowMemory: _lowMemory, ...clientOptions } = opts;
+    void _lowMemory;
 
     const messages: Array<{
       role: 'system' | 'user' | 'assistant';
       content: string;
     }> = [];
-    if (opts.systemPrompt && opts.systemPrompt.trim().length > 0) {
-      messages.push({ role: 'system', content: opts.systemPrompt.trim() });
+    if (clientOptions.systemPrompt && clientOptions.systemPrompt.trim().length > 0) {
+      messages.push({ role: 'system', content: clientOptions.systemPrompt.trim() });
     }
+
+    const memoryBlock = stigmergyHistory
+      ? this.buildStigmergyHistoryBlock(stigmergyHistory, dispatch.trace.id)
+      : undefined;
+    if (memoryBlock) {
+      messages.push({ role: 'system', content: memoryBlock });
+    }
+
     messages.push({ role: 'user', content: dispatch.refinedPrompt });
 
-    return this.client.createCompletion({ messages, options: opts });
+    return this.client.createCompletion({ messages, options: clientOptions });
   }
+
+  private buildStigmergyHistoryBlock(
+    history: boolean | GrokStigmergyHistoryOptions,
+    currentTraceId: string,
+  ): string | undefined {
+    const options = normalizeStigmergyHistoryOptions(history);
+    if (options.limit <= 0) return undefined;
+
+    const traces = this.stigmergy
+      .getRecent(options.limit + 1)
+      .filter((trace) => trace.id !== currentTraceId)
+      .slice(-options.limit);
+    if (traces.length === 0) return undefined;
+
+    const label = options.label ? ` (${options.label})` : '';
+    const lines = traces.map((trace, index) =>
+      formatStigmergyHistoryTrace(trace, index + 1, options.includeMetadata),
+    );
+    return [
+      `MCOP Stigmergy v5 Merkle memory${label}:`,
+      'Use these prior verified traces for continuity; do not fabricate missing steps.',
+      ...lines,
+    ].join('\n');
+  }
+}
+
+function normalizeStigmergyHistoryOptions(
+  history: boolean | GrokStigmergyHistoryOptions,
+): Required<GrokStigmergyHistoryOptions> {
+  if (history === true) {
+    return { limit: 10, label: '', includeMetadata: true };
+  }
+  if (history === false) {
+    return { limit: 0, label: '', includeMetadata: true };
+  }
+  const rawLimit = history.limit ?? 10;
+  const limit = Number.isFinite(rawLimit)
+    ? Math.max(0, Math.floor(rawLimit))
+    : 10;
+  return {
+    limit,
+    label: history.label ?? '',
+    includeMetadata: history.includeMetadata ?? true,
+  };
+}
+
+function formatStigmergyHistoryTrace(
+  trace: PheromoneTrace,
+  ordinal: number,
+  includeMetadata: boolean,
+): string {
+  const parts = [
+    `${ordinal}. trace=${trace.id}`,
+    `hash=${trace.hash}`,
+    trace.parentHash ? `parent=${trace.parentHash}` : undefined,
+    `weight=${trace.weight.toFixed(4)}`,
+    `timestamp=${trace.timestamp}`,
+  ];
+  if (includeMetadata && trace.metadata) {
+    parts.push(`metadata=${JSON.stringify(redactHistoryMetadata(trace.metadata))}`);
+  }
+  return parts.filter(Boolean).join(' | ');
+}
+
+function redactHistoryMetadata(
+  metadata: Record<string, unknown>,
+): Record<string, unknown> {
+  const redacted: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(metadata)) {
+    if (/api[_-]?key|token|secret|password/iu.test(key)) {
+      redacted[key] = '[redacted]';
+    } else if (typeof value === 'string' && value.length > 160) {
+      redacted[key] = `${value.slice(0, 157)}…`;
+    } else {
+      redacted[key] = value;
+    }
+  }
+  return redacted;
 }
 
 /* --------------------------------------------------------------------- */

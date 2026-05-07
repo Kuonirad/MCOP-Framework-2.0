@@ -30,6 +30,7 @@ src/
     ├── magnificAdapter.ts          # Magnific image/video/upscale adapter (ex-Freepik)
     ├── freepikAdapter.ts           # Legacy backward-compat wrapper → magnificAdapter
     ├── utopaiAdapter.ts            # Long-form narrative adapter
+    ├── grokAdapter.ts              # xAI Grok chat adapter + Stigmergy history injection
     ├── genericProductionAdapter.ts # 20-line scaffold for new platforms
     └── regulatedProvenanceAdapter.ts # v0.3 FHIR + ISO 20022 lineage mappings
 
@@ -139,6 +140,47 @@ const { result, merkleRoot } = await adapter.generateOptimizedImage(
 - `turbo` and `premium_quality` booleans are removed
 - Raw Base64 or direct HTTPS URLs required — no canvas.toDataURL()
 - Model-agnostic orchestration: Mystic 2.5, Google Veo 3.1, ByteDance Seeddance 2.0
+
+## Example: Grok with ARC step memory (TypeScript)
+
+`GrokMCOPAdapter` can inject the latest Merkle-chained Stigmergy traces as a
+compact system memory block before the current refined prompt. This keeps ARC
+or other multi-step reasoning sessions externally recallable without relying on
+vendor-native long-term memory.
+
+```ts
+import {
+  HolographicEtch,
+  NovaNeoEncoder,
+  StigmergyV5,
+} from '@/core';
+import { defaultGrokClient, GrokMCOPAdapter } from '@/adapters';
+
+const adapter = new GrokMCOPAdapter({
+  encoder: new NovaNeoEncoder({ dimensions: 8192, normalize: true }),
+  stigmergy: new StigmergyV5({ resonanceThreshold: 0.65, maxTraces: 4096 }),
+  etch: new HolographicEtch({ confidenceFloor: 0, auditLog: true }),
+  client: defaultGrokClient(),
+  defaultModel: 'grok-3-mini',
+});
+
+async function runArcStep(taskId: string, stepPrompt: string) {
+  return adapter.generateOptimizedCompletion(
+    stepPrompt,
+    {
+      model: 'grok-3-mini',
+      temperature: 0.2,
+      stigmergyHistory: { limit: 10, label: `ARC ${taskId}` },
+    },
+    { metadata: { arcTaskId: taskId } },
+  );
+}
+```
+
+The adapter queries Stigmergy after MCOP records the current trace, filters that
+current trace out, and injects only prior traces. Each injected line includes the
+trace UUID, SHA-256 Merkle hash, parent hash when present, weight, timestamp,
+and redacted metadata.
 
 ## Example: Higgsfield (Python)
 
