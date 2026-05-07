@@ -17,9 +17,11 @@ from mcop.adapters.arcagi3_agent import (
     DEFAULT_GROK_MODEL,
     LOW_MEMORY_ENCODER_DIMS,
     LOW_MEMORY_MAX_TRACES,
+    GameResult,
     GrokStrategy,
     MappingGrokStrategy,
     RandomStrategy,
+    StepRecord,
     _StuckDetector,
     _build_prompt,
     _decide_action,
@@ -31,6 +33,54 @@ from mcop.adapters.arcagi3_agent import (
 
 ALLOWED_4 = ["ACTION1", "ACTION2", "ACTION3", "ACTION4"]
 ALLOWED_FULL = ["ACTION1", "ACTION2", "ACTION3", "ACTION4", "ACTION5", "ACTION6"]
+
+
+# ---- GameResult serialization ---------------------------------------------
+
+def test_game_result_serializes_step_trace() -> None:
+    result = GameResult(
+        game_id="ls20",
+        final_state="INTERRUPTED",
+        levels_completed=0,
+        win_levels=0,
+        scorecard_id=None,
+        steps=[
+            StepRecord(
+                step=0,
+                action="ACTION1",
+                state="PLAYING",
+                levels_completed=0,
+                score=0.0,
+            ),
+            StepRecord(
+                step=1,
+                action="ACTION2",
+                state="PLAYING",
+                levels_completed=0,
+                score=0.0,
+            ),
+        ],
+    )
+
+    payload = result.as_dict()
+
+    assert payload["n_steps"] == 2
+    assert payload["steps"] == [
+        {
+            "step": 0,
+            "action": "ACTION1",
+            "state": "PLAYING",
+            "levels_completed": 0,
+            "score": 0.0,
+        },
+        {
+            "step": 1,
+            "action": "ACTION2",
+            "state": "PLAYING",
+            "levels_completed": 0,
+            "score": 0.0,
+        },
+    ]
 
 
 # ---- _snap_to_allowed ------------------------------------------------------
@@ -260,6 +310,19 @@ def test_exploit_snaps_disallowed_action_instead_of_random(
     assert len(snap_warnings) == 1
     assert "ACTION5" in snap_warnings[0]
     assert "ACTION4" in snap_warnings[0]
+
+
+def test_mapping_grok_phase_a_does_not_initialize_grok_client() -> None:
+    strat = MappingGrokStrategy(api_key="x")
+    strat.grok._ensure_client = mock.Mock(
+        side_effect=AssertionError("Phase A must not call Grok")
+    )
+
+    name, data = strat.choose(_FakeFrame(), [], {}, ALLOWED_4)
+
+    assert name == "ACTION1"
+    assert data == {}
+    strat.grok._ensure_client.assert_not_called()
 
 
 def test_exploit_disallowed_no_snap_falls_back_with_clear_log(
