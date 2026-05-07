@@ -66,6 +66,10 @@ export interface ProvenanceMetadata {
   etchDelta: number;
   /** Refined prompt produced by the dialectical synthesizer. */
   refinedPrompt: string;
+  /** Accelerator device that produced or validated the heavy compute path. */
+  device?: string;
+  /** Merkle-sealed accelerator execution metadata. */
+  accelerator?: import('../hardware').AcceleratorProvenance;
   /** ISO-8601 timestamp recorded at adapter entry. */
   timestamp: string;
 }
