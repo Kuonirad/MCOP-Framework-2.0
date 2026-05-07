@@ -5,6 +5,7 @@ import { StigmergyV5 } from './stigmergyV5';
 import { HolographicEtch } from './holographicEtch';
 import { canonicalDigest } from './canonicalEncoding';
 import { failTriadSpan, finishTriadSpan, startTriadSpan } from './observability';
+import { attachAcceleratorProvenance, CPUFallback, type Accelerator } from '../hardware';
 
 /**
  * Full Synthesis Provenance Tracer — composes the MCOP triad and emits a
@@ -28,6 +29,7 @@ export interface SynthesisResult {
   etchDelta: number;
   events: ProvenanceEvent[];
   root: string;
+  device: string;
 }
 
 export class SynthesisProvenanceTracer {
@@ -37,6 +39,7 @@ export class SynthesisProvenanceTracer {
     private readonly encoder: NovaNeoEncoder,
     private readonly stigmergy: StigmergyV5,
     private readonly etch: HolographicEtch,
+    private readonly accelerator: Accelerator = new CPUFallback(),
   ) {}
 
   /** Run the triad on `input` and return a provenance-tracked synthesis. */
@@ -48,18 +51,36 @@ export class SynthesisProvenanceTracer {
     try {
       const tensor = this.encoder.encode(input);
       const entropy = this.encoder.estimateEntropy(tensor);
+      const encodeSeal = attachAcceleratorProvenance(
+        { inputHash: sha256(input).slice(0, 16), dimensions: tensor.length, entropy },
+        {
+          op: 'nova-neo-encode',
+          mode: this.accelerator.mode,
+          device: this.accelerator.device,
+          provider: 'SynthesisProvenanceTracer',
+          fallback: this.accelerator.mode === 'cpu',
+          fallbackReason: this.accelerator.mode === 'cpu' ? 'synchronous encoder path' : undefined,
+        },
+      );
       const encodeEvt = this.append('encode', {
         inputHash: sha256(input).slice(0, 16),
         dimensions: tensor.length,
         entropy,
+        device: this.accelerator.device,
+        accelerator: encodeSeal._provenance,
       });
 
-      const trace = this.stigmergy.recordTrace(tensor, tensor, metadata);
+      const trace = this.stigmergy.recordTrace(tensor, tensor, {
+        ...(metadata ?? {}),
+        device: this.accelerator.device,
+        acceleratorMode: this.accelerator.mode,
+      });
       const resonance = this.stigmergy.getResonance(tensor);
       const traceEvt = this.append('trace', {
         traceId: trace.id,
         resonance: resonance.score,
         merkleRoot: this.stigmergy.getMerkleRoot(),
+        device: this.accelerator.device,
       });
 
       const etchRecord = this.etch.applyEtch(tensor, tensor, metadata?.note as string | undefined);
@@ -67,6 +88,7 @@ export class SynthesisProvenanceTracer {
         etchHash: etchRecord.hash,
         deltaWeight: etchRecord.deltaWeight,
         note: etchRecord.note,
+        device: this.accelerator.device,
       });
 
       const synthEvt = this.append('synthesize', {
@@ -90,6 +112,7 @@ export class SynthesisProvenanceTracer {
         etchDelta: etchRecord.deltaWeight,
         events: [encodeEvt, traceEvt, etchEvt, synthEvt],
         root: synthEvt.hash,
+        device: this.accelerator.device,
       };
     } catch (error) {
       failTriadSpan(span, error);

@@ -2,6 +2,7 @@ import { HolographicEtch } from './holographicEtch';
 import { StigmergyV5 } from './stigmergyV5';
 import { ContextTensor, EtchRecord, PheromoneTrace } from './types';
 import { canonicalDigest } from './canonicalEncoding';
+import { attachAcceleratorProvenance, CPUFallback, type Accelerator } from '../hardware';
 
 export type ExplorationSchedule = 'linear' | 'exponential' | 'adaptive';
 
@@ -54,6 +55,8 @@ export interface NovaEvolveMetaDecision {
   traceHash?: string;
   etchHash?: string;
   timestamp: string;
+  device: string;
+  accelerator?: import('../hardware').AcceleratorProvenance;
 }
 
 export interface NovaEvolveTunerOptions {
@@ -72,6 +75,7 @@ export interface NovaEvolveTunerOptions {
 export interface NovaEvolveTunerDeps {
   stigmergy: StigmergyV5;
   etch: HolographicEtch;
+  accelerator?: Accelerator;
 }
 
 export const DEFAULT_NOVA_EVOLVE_CONFIG: NovaEvolveConfig = Object.freeze({
@@ -116,6 +120,7 @@ export class NovaEvolveTuner {
   private readonly maxDelta: number;
   private readonly proposalGenerator?: NovaEvolveTunerOptions['proposalGenerator'];
   private readonly now: () => Date;
+  private readonly accelerator: Accelerator;
 
   constructor(
     private readonly deps: NovaEvolveTunerDeps,
@@ -131,6 +136,7 @@ export class NovaEvolveTuner {
     this.maxDelta = clamp(options.maxDelta ?? 0.08, 0.001, 1);
     this.proposalGenerator = options.proposalGenerator;
     this.now = options.now ?? (() => new Date());
+    this.accelerator = deps.accelerator ?? new CPUFallback();
   }
 
   async maybeMetaTune(recentResults: NovaEvolveTaskResult[] = []): Promise<NovaEvolveMetaDecision | null> {
@@ -160,7 +166,7 @@ export class NovaEvolveTuner {
       : this.applyProposal(this.config, proposal);
     const projectedGain = this.metaDepth >= this.maxMetaDepth
       ? 0
-      : this.dryRunProjection(candidate, context);
+      : await this.dryRunProjection(candidate, context);
     const accepted = this.metaDepth < this.maxMetaDepth && projectedGain >= this.projectedGainThreshold;
     const depth = accepted ? this.metaDepth + 1 : this.metaDepth;
 
@@ -257,17 +263,33 @@ export class NovaEvolveTuner {
     return normalizeConfig(next);
   }
 
-  private dryRunProjection(candidate: NovaEvolveConfig, context: NovaEvolveMetaTuneContext): number {
+  private async dryRunProjection(candidate: NovaEvolveConfig, context: NovaEvolveMetaTuneContext): Promise<number> {
     const baseline = scoreConfig(this.config, context);
     const candidateScore = scoreConfig(candidate, context);
-    let horizonWeightedGain = 0;
-    for (let step = 0; step < this.dryRunHorizon; step += 1) {
-      horizonWeightedGain += (candidateScore - baseline) * (1 - step * 0.08);
-    }
-    return Math.max(0, horizonWeightedGain / this.dryRunHorizon);
+    const localProjection = () => {
+      let horizonWeightedGain = 0;
+      for (let step = 0; step < this.dryRunHorizon; step += 1) {
+        horizonWeightedGain += (candidateScore - baseline) * (1 - step * 0.08);
+      }
+      return Math.max(0, horizonWeightedGain / this.dryRunHorizon);
+    };
+
+    if (this.accelerator.mode === 'cpu') return localProjection();
+
+    const accelerated = await this.accelerator.accelerate<{ projectedGain?: number }>('meta-dry-run', {
+      currentConfig: this.config,
+      candidate,
+      context,
+      baseline,
+      candidateScore,
+      dryRunHorizon: this.dryRunHorizon,
+    });
+    return typeof accelerated.projectedGain === 'number'
+      ? Math.max(0, accelerated.projectedGain)
+      : localProjection();
   }
 
-  private commitDecision(input: Omit<NovaEvolveMetaDecision, 'metaMerkleRoot' | 'timestamp' | 'traceHash' | 'etchHash'>): NovaEvolveMetaDecision {
+  private commitDecision(input: Omit<NovaEvolveMetaDecision, 'metaMerkleRoot' | 'timestamp' | 'traceHash' | 'etchHash' | 'device' | 'accelerator'>): NovaEvolveMetaDecision {
     const timestamp = this.now().toISOString();
     const metaMerkleRoot = canonicalDigest({
       parentHash: this.metaRoot ?? null,
@@ -284,6 +306,8 @@ export class NovaEvolveTuner {
       metaMerkleRoot,
       proposal: input.proposal,
       depth: input.depth,
+      device: this.accelerator.device,
+      acceleratorMode: this.accelerator.mode,
     });
     const decisionConfidence = clamp01(input.projectedGain / Math.max(this.projectedGainThreshold, 0.001));
     const etch = this.deps.etch.applyEtch(
@@ -291,11 +315,24 @@ export class NovaEvolveTuner {
       [decisionConfidence, decisionConfidence, decisionConfidence],
       input.accepted ? 'nova-evolve-meta-tune-accepted' : 'nova-evolve-meta-tune-rejected',
     );
+    const acceleratorSeal = attachAcceleratorProvenance(
+      { metaMerkleRoot, projectedGain: input.projectedGain, traceHash: trace.hash, etchHash: etch.hash },
+      {
+        op: 'meta-dry-run',
+        mode: this.accelerator.mode,
+        device: this.accelerator.device,
+        provider: 'NovaEvolveTuner',
+        fallback: this.accelerator.mode === 'cpu',
+        fallbackReason: this.accelerator.mode === 'cpu' ? 'local projection path' : undefined,
+      },
+    );
     this.metaRoot = metaMerkleRoot;
     const decision: NovaEvolveMetaDecision = {
       ...input,
       metaMerkleRoot,
       timestamp,
+      device: this.accelerator.device,
+      accelerator: acceleratorSeal._provenance,
       traceHash: trace.hash,
       etchHash: etch.hash,
     };
