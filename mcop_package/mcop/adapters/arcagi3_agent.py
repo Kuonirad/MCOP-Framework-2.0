@@ -112,6 +112,15 @@ class StepRecord:
     levels_completed: int
     score: float
 
+    def as_dict(self) -> Dict[str, Any]:
+        return {
+            "step": self.step,
+            "action": self.action,
+            "state": self.state,
+            "levels_completed": self.levels_completed,
+            "score": self.score,
+        }
+
 
 @dataclass
 class GameResult:
@@ -130,6 +139,7 @@ class GameResult:
             "win_levels": self.win_levels,
             "scorecard_id": self.scorecard_id,
             "n_steps": len(self.steps),
+            "steps": [step.as_dict() for step in self.steps],
         }
 
 

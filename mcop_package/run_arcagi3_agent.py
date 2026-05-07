@@ -73,7 +73,7 @@ def main() -> int:
         choices=["random", "grok", "mapping-grok"],
         default="random",
     )
-    parser.add_argument("--max-actions", type=int, default=80)
+    parser.add_argument("--max-actions", type=int, default=200)
     parser.add_argument("--seed", type=int, default=None)
     parser.add_argument(
         "--grok-model",
