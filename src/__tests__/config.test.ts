@@ -37,6 +37,15 @@ describe('mcop.config.ts', () => {
     expect(MCOP_DEFAULT_ORCHESTRATOR.novaEvolveTuner.validationSplitSize).toBe(25);
   });
 
+  it('keeps the in-process CUDA hardware layer disabled by default with a sane kernel directory', () => {
+    expect(Object.isFrozen(MCOP_DEFAULT_ORCHESTRATOR.hardware)).toBe(true);
+    // Independent flag from the existing microservice-bridge `useCUDA` switch:
+    expect(MCOP_DEFAULT_ORCHESTRATOR.hardware.enableCUDA).toBe(false);
+    expect(MCOP_DEFAULT_ORCHESTRATOR.hardware.useCUDA).toBe(false);
+    expect(MCOP_DEFAULT_ORCHESTRATOR.hardware.kernelDir).toBe('./models');
+    expect(MCOP_DEFAULT_ORCHESTRATOR.hardware.provider).toBe('microservice');
+  });
+
   describe('classifyMetric', () => {
     it('returns good when value ≤ good threshold', () => {
       expect(classifyMetric('LCP', 2000)).toBe('good');

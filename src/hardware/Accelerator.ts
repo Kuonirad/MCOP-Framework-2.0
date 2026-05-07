@@ -7,7 +7,9 @@ export type AcceleratedOperation =
   | 'proteome-graph-step'
   | 'holographic-write'
   | 'meta-dry-run'
-  | 'nova-evolve-score';
+  | 'nova-evolve-score'
+  | 'cosine-recall'
+  | 'homeostasis';
 
 export type AcceleratorProviderKind = 'cpu' | 'microservice' | 'onnx' | 'native';
 
@@ -31,6 +33,14 @@ export interface AcceleratorProvenance {
   fallback?: boolean;
   fallbackReason?: string;
   cudaGraphCaptured?: boolean;
+  /** Device the caller asked the accelerator to dispatch to (may differ from `device` if a silent fallback occurred). */
+  requestedDevice?: string;
+  /** Execution provider actually observed in the runtime profiler output. Used by ghost-GPU detection. */
+  verifiedDevice?: string;
+  /** Heritable silicon-lineage tag emitted by op-sharded kernels for substrate-conditional strategy revival. */
+  substrateLineage?: string;
+  /** Wall-clock duration of the accelerated op in milliseconds, when measured at the bridge. */
+  durationMs?: number;
 }
 
 export type AcceleratedResult<T> = T & {
@@ -224,6 +234,10 @@ export function attachAcceleratorProvenance<T>(
     fallback?: boolean;
     fallbackReason?: string;
     cudaGraphCaptured?: boolean;
+    requestedDevice?: string;
+    verifiedDevice?: string;
+    substrateLineage?: string;
+    durationMs?: number;
   },
 ): AcceleratedResult<T> {
   const timestamp = new Date().toISOString();
@@ -236,6 +250,10 @@ export function attachAcceleratorProvenance<T>(
     fallback: options.fallback,
     fallbackReason: options.fallbackReason,
     cudaGraphCaptured: options.cudaGraphCaptured,
+    requestedDevice: options.requestedDevice,
+    verifiedDevice: options.verifiedDevice,
+    substrateLineage: options.substrateLineage,
+    durationMs: options.durationMs,
   };
   const merkleRoot = canonicalDigest({ type: 'MCOP_ACCELERATOR_PROVENANCE', provenance: provenanceWithoutRoot, payload });
   const provenance: AcceleratorProvenance = { ...provenanceWithoutRoot, merkleRoot };

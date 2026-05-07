@@ -41,10 +41,24 @@ export interface MCOPOrchestratorProfile {
 }
 
 export interface MCOPHardwareAccelerationConfig {
-  /** Creator-controlled CUDA switch: true = prefer CUDA bridge, false = force CPU. */
+  /** Creator-controlled CUDA switch for the existing microservice/HTTP bridge: true = prefer CUDA bridge, false = force CPU. */
   readonly useCUDA: boolean;
-  /** Bridge deployment flavor used when CUDA is enabled. */
+  /** Bridge deployment flavor used when {@link useCUDA} is enabled. */
   readonly provider: 'microservice' | 'onnx' | 'native';
+  /**
+   * Independent feature flag for the in-process op-sharded CUDA layer
+   * (`src/hardware/CUDAHardwareLayer.ts`). Default `false` until Φ4 of the
+   * Φ1–Φ5 deployment ladder. See `docs/CUDA_PHI1_PHI5.md`.
+   *
+   * Set via `MCOP_ENABLE_CUDA=1` at runtime.
+   */
+  readonly enableCUDA: boolean;
+  /**
+   * Filesystem directory that contains the per-op ONNX kernels expected by
+   * `CUDAHardwareLayer.loadKernels()` (one file per kernel, e.g.
+   * `mcop_graphAggregate.onnx`). Resolved relative to the process CWD.
+   */
+  readonly kernelDir: string;
 }
 
 export interface MCOPNovaEvolveTunerConfig {
@@ -81,6 +95,8 @@ export const MCOP_DEFAULT_ORCHESTRATOR: MCOPDefaultOrchestratorConfig = Object.f
   hardware: Object.freeze({
     useCUDA: process.env.MCOP_USE_CUDA === '1',
     provider: 'microservice',
+    enableCUDA: process.env.MCOP_ENABLE_CUDA === '1',
+    kernelDir: process.env.MCOP_CUDA_KERNEL_DIR ?? './models',
   }),
 });
 
