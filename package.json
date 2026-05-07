@@ -37,7 +37,9 @@
     "sbom": "node scripts/generate-sbom.mjs",
     "sbom:validate": "node scripts/validate-sbom.mjs",
     "positive:audit": "node scripts/positive-audit.mjs",
-    "benchmark:arc-evo": "node scripts/benchmark-arc-evo.mjs"
+    "benchmark:arc-evo": "node scripts/benchmark-arc-evo.mjs",
+    "cuda:serve": "python -m mcop_cuda_server --port 8765 --device cuda:0",
+    "dev:cuda": "concurrently \"pnpm dev\" \"pnpm cuda:serve\""
   },
   "engines": {
     "node": "^20.17.0 || >=22.9.0",

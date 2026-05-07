@@ -12,6 +12,7 @@
 import crypto from 'crypto';
 
 import { HolographicEtch } from '../core/holographicEtch';
+import { attachAcceleratorProvenance, CPUFallback, type Accelerator } from '../hardware';
 import { NovaNeoEncoder } from '../core/novaNeoEncoder';
 import { StigmergyV5 } from '../core/stigmergyV5';
 import type {
@@ -34,6 +35,7 @@ export interface BaseAdapterDeps {
   stigmergy: StigmergyV5;
   etch: HolographicEtch;
   dialectical?: IDialecticalSynthesizer;
+  accelerator?: Accelerator;
 }
 
 export interface PreparedDispatch {
@@ -55,12 +57,14 @@ export abstract class BaseAdapter<
   protected readonly stigmergy: StigmergyV5;
   protected readonly etch: HolographicEtch;
   protected readonly dialectical: IDialecticalSynthesizer;
+  protected readonly accelerator: Accelerator;
 
   constructor(deps: BaseAdapterDeps) {
     this.encoder = deps.encoder;
     this.stigmergy = deps.stigmergy;
     this.etch = deps.etch;
     this.dialectical = deps.dialectical ?? new DialecticalSynthesizer();
+    this.accelerator = deps.accelerator ?? new CPUFallback();
   }
 
   /** Concrete adapters return their platform metadata. */
@@ -132,6 +136,8 @@ export abstract class BaseAdapter<
       ...(input.metadata ?? {}),
       platform: this.platformName(),
       domain: input.domain ?? 'generic',
+      device: this.accelerator.device,
+      acceleratorMode: this.accelerator.mode,
       ...(input.entropyTarget !== undefined
         ? { entropyTarget: input.entropyTarget }
         : {}),
@@ -145,6 +151,18 @@ export abstract class BaseAdapter<
       traceMetadata,
     );
 
+    const acceleratorSeal = attachAcceleratorProvenance(
+      { tensorHash, traceHash: trace.hash, etchHash: etchRecord.hash },
+      {
+        op: 'holographic-write',
+        mode: this.accelerator.mode,
+        device: this.accelerator.device,
+        provider: `${this.platformName()}Adapter`,
+        fallback: this.accelerator.mode === 'cpu',
+        fallbackReason: this.accelerator.mode === 'cpu' ? 'default synchronous CPU path' : undefined,
+      },
+    );
+
     const provenance: ProvenanceMetadata = {
       tensorHash,
       traceId: trace.id,
@@ -153,6 +171,8 @@ export abstract class BaseAdapter<
       etchHash: etchRecord.hash,
       etchDelta: etchRecord.deltaWeight,
       refinedPrompt,
+      device: this.accelerator.device,
+      accelerator: acceleratorSeal._provenance,
       timestamp: new Date().toISOString(),
     };
 
