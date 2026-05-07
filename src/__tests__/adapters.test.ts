@@ -755,6 +755,47 @@ describe('GrokMCOPAdapter', () => {
       content: 'You are MCOP-aware.',
     });
   });
+  it('injects prior Stigmergy Merkle history into Grok without leaking routing-only options', async () => {
+    const client = grokFixture();
+    const adapter = new GrokMCOPAdapter({ ...baseTriad(), client });
+
+    await adapter.generateOptimizedCompletion(
+      'ARC step 1: observe blue cell symmetry',
+      { model: 'grok-3-mini' },
+      {
+        metadata: {
+          arcTaskId: 'arc-demo-1',
+          phase: 'observation',
+          apiToken: 'do-not-leak',
+        },
+      },
+    );
+
+    await adapter.generateOptimizedCompletion(
+      'ARC step 2: test mirror transform',
+      {
+        model: 'grok-3-mini',
+        stigmergyHistory: { limit: 1, label: 'ARC arc-demo-1' },
+      },
+      { metadata: { arcTaskId: 'arc-demo-1', phase: 'hypothesis' } },
+    );
+
+    const call = (client.createCompletion as jest.Mock).mock.calls[1][0] as {
+      messages: ReadonlyArray<{ role: string; content: string }>;
+      options: Record<string, unknown>;
+    };
+    const memoryMessage = call.messages.find((message) =>
+      message.content.startsWith('MCOP Stigmergy v5 Merkle memory'),
+    );
+
+    expect(memoryMessage?.content).toContain('ARC arc-demo-1');
+    expect(memoryMessage?.content).toContain('arc-demo-1');
+    expect(memoryMessage?.content).toContain('hash=');
+    expect(memoryMessage?.content).toContain('apiToken":"[redacted]');
+    expect(memoryMessage?.content).not.toContain('do-not-leak');
+    expect(call.options).toEqual({ model: 'grok-3-mini' });
+  });
+
 
   it('honours human veto from the dialectical synthesizer', async () => {
     const adapter = new GrokMCOPAdapter({
