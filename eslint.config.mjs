@@ -35,6 +35,11 @@ const eslintConfig = [
       "**/dist/**",
       "coverage/**",
       "cypress/**",
+      // Static assets shipped to the browser as-is. Includes the
+      // /showcase/* design-handoff bundle whose .jsx files rely on
+      // browser globals (React, ReactDOM, Babel) loaded via <script>
+      // rather than ES imports — not lintable as a Next.js source tree.
+      "public/**",
       "next-env.d.ts",
     ],
   },
