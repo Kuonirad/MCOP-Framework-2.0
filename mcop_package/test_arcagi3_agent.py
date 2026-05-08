@@ -1716,6 +1716,100 @@ def test_holographic_strategy_walls_become_per_player_position() -> None:
     assert len(keys) == 3
 
 
+# ---- HolographicShadowStrategy goal-directional bias ----------------------
+
+
+def test_holographic_strategy_action_mean_drift_returns_none_below_threshold() -> None:
+    """Per-action drift must withhold a verdict until enough samples."""
+    strat = HolographicShadowStrategy(
+        player_color=9, min_action_observations_for_alignment=3
+    )
+    # One observed real_move only — below the 3-sample minimum.
+    prev = _HoloFrame(_grid_with_color([(0, 0, 9), (7, 7, 8)]))
+    nxt = _HoloFrame(_grid_with_color([(2, 0, 9), (7, 7, 8)]))
+    strat._last_state_hash = strat._state_hash(prev)
+    strat._last_player_centroid = strat._player_centroid(prev)
+    strat.observe(prev, "ACTION1", nxt)
+    assert strat._action_mean_drift("ACTION1") is None
+
+
+def test_holographic_strategy_goal_alignment_zero_when_inputs_missing() -> None:
+    """Cosine alignment must not blow up on missing centroids/drifts."""
+    strat = HolographicShadowStrategy(player_color=9)
+    # No drift observed for ACTION1 -> alignment is 0.
+    assert strat._goal_alignment("ACTION1", (0.0, 0.0), (5.0, 5.0)) == 0.0
+    # Player centroid missing.
+    assert strat._goal_alignment("ACTION1", None, (5.0, 5.0)) == 0.0
+    # Goal centroid missing.
+    assert strat._goal_alignment("ACTION1", (0.0, 0.0), None) == 0.0
+
+
+def test_holographic_strategy_goal_alignment_picks_action_toward_goal() -> None:
+    """Score function must prefer the action whose mean drift points at the goal.
+
+    Setup: player at (0, 0), goal at (5, 0). ACTION1 has been observed
+    moving the player +2 in row (toward the goal); ACTION2 has been
+    observed moving the player -2 in row (away from the goal). Both
+    actions have identical move-rate / wall stats, so under v2 scoring
+    they would tie. The new alignment term must break the tie in
+    favour of ACTION1.
+    """
+    strat = HolographicShadowStrategy(
+        player_color=9,
+        goal_alignment_weight=0.5,
+        min_action_observations_for_alignment=2,
+    )
+
+    def grid(player_rc: Tuple[int, int]) -> Any:
+        return _HoloFrame(_grid_with_color([
+            (player_rc[0], player_rc[1], 9), (5, 0, 8),
+        ]))
+
+    # Observe ACTION1: (0,0) -> (2,0) twice (drift = (+2, 0), toward goal).
+    for _ in range(2):
+        prev = grid((0, 0))
+        strat._last_state_hash = strat._state_hash(prev)
+        strat._last_player_centroid = strat._player_centroid(prev)
+        strat.observe(prev, "ACTION1", grid((2, 0)))
+    # Observe ACTION2: (2,0) -> (0,0) twice (drift = (-2, 0), away).
+    for _ in range(2):
+        prev = grid((2, 0))
+        strat._last_state_hash = strat._state_hash(prev)
+        strat._last_player_centroid = strat._player_centroid(prev)
+        strat.observe(prev, "ACTION2", grid((0, 0)))
+
+    chosen, _ = strat.choose(grid((0, 0)), [], {}, ["ACTION1", "ACTION2"])
+    assert chosen == "ACTION1"
+
+
+def test_holographic_strategy_alignment_disabled_with_zero_weight() -> None:
+    """``goal_alignment_weight=0`` must restore exact pre-bias scoring."""
+    strat = HolographicShadowStrategy(
+        player_color=9, goal_alignment_weight=0.0
+    )
+    # Two actions, identical stats; deterministic tiebreak by name.
+    strat.action_stats["ACTION1"] = {
+        "count": 5.0, "moved_count": 5.0, "total_centroid_delta": 5.0,
+    }
+    strat.action_stats["ACTION2"] = {
+        "count": 5.0, "moved_count": 5.0, "total_centroid_delta": 5.0,
+    }
+    # Even though ACTION2's mean drift would point at the goal, the
+    # zero weight must zero out the alignment term.
+    strat.action_drift_sums["ACTION2"] = (10.0, 0.0)
+    strat.action_drift_counts["ACTION2"] = 5
+    grid = _HoloFrame(_grid_with_color([(0, 0, 9), (5, 0, 8)]))
+    chosen, _ = strat.choose(grid, [], {}, ["ACTION1", "ACTION2"])
+    assert chosen == "ACTION1"  # alphabetical tiebreak preserved
+
+
+def test_holographic_strategy_alignment_weight_validation() -> None:
+    """Reject negative goal_alignment_weight up front."""
+    import pytest
+    with pytest.raises(ValueError):
+        HolographicShadowStrategy(goal_alignment_weight=-0.1)
+
+
 # ---- HolographicShadowStrategy integration --------------------------------
 
 def test_holographic_strategy_uses_planner_over_score() -> None:
