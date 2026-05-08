@@ -1,0 +1,19 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "noEmit": true,
+    "isolatedModules": false,
+    "incremental": false,
+    "jsx": "preserve"
+  },
+  "include": ["src/**/*", "examples/**/*"],
+  "exclude": [
+    "node_modules",
+    "packages/**",
+    "cypress/**",
+    "cypress.config.ts",
+    ".next/**"
+  ]
+}

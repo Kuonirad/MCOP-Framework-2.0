@@ -16,6 +16,7 @@ export * from './utopaiAdapter';
 export * from './genericProductionAdapter';
 export * from './regulatedProvenanceAdapter';
 export * from './grokAdapter';
+export * from './grokImageAdapter';
 export * from './devinOrchestratorAdapter';
 export * from './linearSlackOrchestratorAdapter';
 
