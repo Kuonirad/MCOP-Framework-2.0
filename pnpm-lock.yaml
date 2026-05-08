@@ -45,8 +45,8 @@ importers:
         version: 5.2.0
     devDependencies:
       '@cyclonedx/cdxgen':
-        specifier: ^12.3.2
-        version: 12.3.2
+        specifier: ^12.3.3
+        version: 12.3.3
       '@cyclonedx/cyclonedx-library':
         specifier: ^10
         version: 10.0.0(ajv-formats-draft2019@1.6.1(ajv@8.20.0))(ajv-formats@3.0.1(ajv@8.20.0))(ajv@8.20.0)(packageurl-js@1.0.2)(spdx-expression-parse@4.0.0)
@@ -450,8 +450,8 @@ packages:
     resolution: {integrity: sha512-Vd/9EVDiu6PPJt9yAh6roZP6El1xHrdvIVGjyBsHR0RYwNHgL7FJPyIIW4fANJNG6FtyZfvlRPpFI4ZM/lubvw==}
     engines: {node: '>=18'}
 
-  '@cyclonedx/cdxgen@12.3.2':
-    resolution: {integrity: sha512-hjStUtTJmuq21u6jBWK6HRS7g8rosZ3oR3WBLVfVJ50n9E5SCx4f886vEu19KgsGXqrSG3tWv8KpNxKURkLw5A==}
+  '@cyclonedx/cdxgen@12.3.3':
+    resolution: {integrity: sha512-CE+fW6npO9PkiRIiegSgj5N/bHkvJXOalZoF5jtS89YZ9Xzbwk55j+lKZGCyDrfA6kkrX7UEW77LfYs7eB4ZNw==}
     engines: {node: ^20 || ^22 || ^24 || ^25, pnpm: '>=10'}
     hasBin: true
 
@@ -5245,7 +5245,7 @@ snapshots:
 
   '@csstools/css-tokenizer@3.0.4': {}
 
-  '@cyclonedx/cdxgen@12.3.2':
+  '@cyclonedx/cdxgen@12.3.3':
     dependencies:
       '@babel/parser': 7.29.2
       '@babel/traverse': 7.29.0
