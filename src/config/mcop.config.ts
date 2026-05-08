@@ -109,8 +109,8 @@ export const MCOP_DEFAULT_ORCHESTRATOR: MCOPDefaultOrchestratorConfig = Object.f
   productionProfile: Object.freeze({
     id: 'mapping_grok',
     adapter: 'xai-grok',
-    model: 'grok-4-mini',
-    fallbackModel: 'grok-3-mini',
+    model: 'grok-4-1-fast-non-reasoning',
+    fallbackModel: 'grok-4.20-0309-non-reasoning',
     entropyTarget: 0.18,
     stigmergyHistoryLimit: 10,
     rateLimitMaxRetries: 3,

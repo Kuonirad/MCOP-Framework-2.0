@@ -49,7 +49,7 @@ function buildClient(): GrokClient {
     async createCompletion({ messages, options }) {
       const last = messages[messages.length - 1]?.content ?? '';
       return {
-        model: options.model ?? 'grok-3-mini',
+        model: options.model ?? 'grok-4-1-fast-non-reasoning',
         content: `[offline stub] ${last.slice(0, 240)}`,
         finishReason: 'stop',
         usage: {
@@ -110,7 +110,7 @@ async function main() {
   // ----------------------------------------------------------- adapter call
   const response = await adapter.generateOptimizedCompletion(
     userPrompt,
-    { model: 'grok-3-mini', temperature: 0.4, maxTokens: 512 },
+    { model: 'grok-4-1-fast-non-reasoning', temperature: 0.4, maxTokens: 512 },
     { metadata: { exampleRun: true } },
   );
 
