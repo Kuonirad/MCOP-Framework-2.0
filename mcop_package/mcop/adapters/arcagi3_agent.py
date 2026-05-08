@@ -1218,6 +1218,16 @@ class HolographicShadowStrategy:
     # in the limit of perfectly aligned drift; exploration still wins
     # when no aligned action has been observed yet.
     GOAL_ALIGNMENT_WEIGHT = 0.5
+    # Default search depth for the goal-BFS planner. Generous enough
+    # that the planner can route around several walls but small enough
+    # to bound per-step cost on a 64x64 grid.
+    GOAL_BFS_MAX_DEPTH = 24
+    # Minimum number of distinct actions with a learned mean drift
+    # before the BFS planner is allowed to engage. Below this floor
+    # the move model is too sparse to plan against and the strategy
+    # falls back to the score-based chooser (which already has
+    # goal-directional bias from PR #648).
+    GOAL_BFS_MIN_ACTION_DRIFTS = 2
 
     def __init__(
         self,
@@ -1250,6 +1260,18 @@ class HolographicShadowStrategy:
         # ``goal_alignment_weight=0.0`` disables the bias entirely.
         goal_alignment_weight: float = GOAL_ALIGNMENT_WEIGHT,
         min_action_observations_for_alignment: int = 2,
+        # Goal-BFS planner. Once at least
+        # ``goal_bfs_min_action_drifts`` distinct actions have an
+        # observed mean drift, plan a shortest-path through the
+        # learned per-position wall map (also accumulated online
+        # from observe()) up to ``goal_bfs_max_depth`` actions deep.
+        # First action of the path overrides the score-based pick.
+        # ``enable_goal_bfs=False`` restores PR #648 behaviour
+        # exactly. ARC-compliant: nothing read from outside
+        # observe(); both walls and drifts are learned in-game.
+        enable_goal_bfs: bool = True,
+        goal_bfs_max_depth: int = GOAL_BFS_MAX_DEPTH,
+        goal_bfs_min_action_drifts: int = GOAL_BFS_MIN_ACTION_DRIFTS,
     ) -> None:
         if wobble_threshold_centroid > move_threshold_centroid:
             raise ValueError(
@@ -1257,6 +1279,10 @@ class HolographicShadowStrategy:
             )
         if goal_alignment_weight < 0:
             raise ValueError("goal_alignment_weight must be >= 0")
+        if goal_bfs_max_depth < 0:
+            raise ValueError("goal_bfs_max_depth must be >= 0")
+        if goal_bfs_min_action_drifts < 1:
+            raise ValueError("goal_bfs_min_action_drifts must be >= 1")
         self.fallback = fallback or RandomStrategy()
         self.goal_color = goal_color
         self.player_color = player_color
@@ -1279,8 +1305,18 @@ class HolographicShadowStrategy:
         self.action_drift_sums: Dict[str, Tuple[float, float]] = {}
         self.action_drift_counts: Dict[str, int] = {}
         self.walls: Dict[Tuple[str, str], int] = {}
+        # Per-position blocked-action map populated alongside
+        # ``walls`` whenever a blocked_wobble is observed at a known
+        # binned player position. The BFS planner consults this map
+        # directly so it sees the same wall evidence as the scorer.
+        # Stored separately (rather than re-derived from walls) so a
+        # planner expansion is O(1) per (pos, action) lookup.
+        self.position_walls: Dict[Tuple[int, int], set] = {}
         self.state_action_tries: Dict[Tuple[str, str], int] = {}
         self.state_visits: Dict[str, int] = {}
+        self.enable_goal_bfs = enable_goal_bfs
+        self.goal_bfs_max_depth = goal_bfs_max_depth
+        self.goal_bfs_min_action_drifts = goal_bfs_min_action_drifts
         # ``_centroid_history`` tracks the *player* centroid post-
         # discovery (the entity that actually moves and oscillates);
         # pre-discovery it stays empty so oscillation detection waits
@@ -1313,6 +1349,7 @@ class HolographicShadowStrategy:
         from scratch under the better signal.
         """
         self.walls.clear()
+        self.position_walls.clear()
         self.state_action_tries.clear()
         self.state_visits.clear()
         self._centroid_history.clear()
@@ -1482,6 +1519,103 @@ class HolographicShadowStrategy:
             score -= 0.6 * tries_here + 0.5 * n
         return score
 
+    def _goal_bfs(
+        self,
+        player_centroid: Optional[Tuple[float, float]],
+        goal_centroid: Optional[Tuple[float, float]],
+        available_action_names: List[str],
+    ) -> Optional[str]:
+        """BFS over the learned per-position wall map for a path to the goal.
+
+        Returns the first action of the shortest path from the binned
+        player position to the binned goal position, or ``None`` when:
+
+        * planning is disabled, or
+        * fewer than ``goal_bfs_min_action_drifts`` distinct actions
+          have a learned mean drift (move model too sparse), or
+        * either centroid is unavailable, or
+        * no path exists within ``goal_bfs_max_depth`` actions.
+
+        The move model is the per-action mean drift learned in
+        observe(); walls come from ``position_walls`` which mirrors
+        ``self.walls`` per binned player position. Both are
+        accumulated strictly online — no offline data, no per-game
+        knowledge.
+        """
+        if not self.enable_goal_bfs or self.goal_bfs_max_depth == 0:
+            return None
+        if player_centroid is None or goal_centroid is None:
+            return None
+        # Move table: action -> rounded-integer drift. Skip actions
+        # without enough drift samples or whose mean drift rounds
+        # to (0, 0) (e.g. a no-op button).
+        moves: Dict[str, Tuple[int, int]] = {}
+        for name in available_action_names:
+            drift = self._action_mean_drift(name)
+            if drift is None:
+                continue
+            dr = int(round(drift[0]))
+            dc = int(round(drift[1]))
+            if dr == 0 and dc == 0:
+                continue
+            moves[name] = (dr, dc)
+        if len(moves) < self.goal_bfs_min_action_drifts:
+            return None
+        # Reach tolerance: half the largest single-step move so that
+        # the BFS terminates when the planner can step onto a cell
+        # that overlaps the goal centroid even with sub-cell error.
+        max_step = max(abs(dr) + abs(dc) for dr, dc in moves.values())
+        tol = max(1, max_step // 2)
+        start = (int(player_centroid[0]), int(player_centroid[1]))
+        goal = (int(goal_centroid[0]), int(goal_centroid[1]))
+        if abs(start[0] - goal[0]) <= tol and abs(start[1] - goal[1]) <= tol:
+            # Already at goal — let the score-based chooser act on
+            # any local refinement (or the env will advance the
+            # level on the next step).
+            return None
+        # Sort actions for deterministic exploration order so the
+        # planner picks the same first action when multiple shortest
+        # paths exist (matches the rest of the strategy's lex tiebreak).
+        ordered = sorted(moves.items(), key=lambda kv: kv[0])
+        # Standard BFS: queue holds (pos, first_action). We only need
+        # the first action of the shortest path, so once a state is
+        # reached we never need to revisit it.
+        from collections import deque
+        queue: "deque[Tuple[Tuple[int, int], str]]" = deque()
+        visited: set = {start}
+        for name, (dr, dc) in ordered:
+            if name in self.position_walls.get(start, set()):
+                continue
+            nxt = (start[0] + dr, start[1] + dc)
+            if (
+                abs(nxt[0] - goal[0]) <= tol
+                and abs(nxt[1] - goal[1]) <= tol
+            ):
+                return name
+            if nxt not in visited:
+                visited.add(nxt)
+                queue.append((nxt, name))
+        depth = 1
+        while queue and depth < self.goal_bfs_max_depth:
+            level_size = len(queue)
+            for _ in range(level_size):
+                pos, first_action = queue.popleft()
+                blocked_here = self.position_walls.get(pos, set())
+                for name, (dr, dc) in ordered:
+                    if name in blocked_here:
+                        continue
+                    nxt = (pos[0] + dr, pos[1] + dc)
+                    if (
+                        abs(nxt[0] - goal[0]) <= tol
+                        and abs(nxt[1] - goal[1]) <= tol
+                    ):
+                        return first_action
+                    if nxt not in visited:
+                        visited.add(nxt)
+                        queue.append((nxt, first_action))
+            depth += 1
+        return None
+
     def choose(
         self,
         frame: Any,
@@ -1519,6 +1653,46 @@ class HolographicShadowStrategy:
                     x, y = self._complex_default
                     data = {"x": x, "y": y}
                 return (planned, data)
+        # Goal-BFS planner: shortest-path search through the learned
+        # per-position wall map using the learned per-action drifts
+        # as the move table. Only engages when both the player and
+        # goal centroids are known and at least
+        # ``goal_bfs_min_action_drifts`` actions have a learned drift.
+        # Falls through to the score-based chooser when no path is
+        # found within ``goal_bfs_max_depth`` so the strategy still
+        # makes progress while accumulating wall evidence.
+        bfs_pick = self._goal_bfs(
+            player_centroid, goal_centroid, available_action_names
+        )
+        if bfs_pick is not None:
+            logger.info(
+                "holographic-shadow goal-BFS pick=%s "
+                "(walls=%d positions=%d)",
+                bfs_pick,
+                len(self.walls),
+                len(self.position_walls),
+            )
+            self.provenance.append(
+                {
+                    "type": "debug_goal_bfs",
+                    "action": bfs_pick,
+                    "player_pos": (
+                        int(player_centroid[0]),  # type: ignore[index]
+                        int(player_centroid[1]),  # type: ignore[index]
+                    ),
+                    "goal_pos": (
+                        int(goal_centroid[0]),  # type: ignore[index]
+                        int(goal_centroid[1]),  # type: ignore[index]
+                    ),
+                    "walls_known": len(self.walls),
+                    "positions_with_walls": len(self.position_walls),
+                }
+            )
+            data = {}
+            if bfs_pick in COMPLEX_ACTIONS:
+                x, y = self._complex_default
+                data = {"x": x, "y": y}
+            return (bfs_pick, data)
         oscillating = self._detect_oscillation()
         scored = sorted(
             available_action_names,
@@ -1704,6 +1878,16 @@ class HolographicShadowStrategy:
             existing = self.walls.get(key, 0)
             wall_first_hit = existing == 0
             self.walls[key] = existing + 1
+            # Mirror the wall into the per-position planner map so
+            # the BFS expansion sees the same blocked transitions
+            # that the scorer penalises. Keyed on the binned player
+            # centroid at the time the action was taken (i.e. the
+            # ``prev_centroid`` from this observation).
+            if prev_centroid is not None:
+                pos = (int(prev_centroid[0]), int(prev_centroid[1]))
+                self.position_walls.setdefault(pos, set()).add(
+                    action_name
+                )
 
         if curr_centroid is not None:
             self._centroid_history.append(curr_centroid)

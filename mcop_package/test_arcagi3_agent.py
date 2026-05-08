@@ -1810,6 +1810,144 @@ def test_holographic_strategy_alignment_weight_validation() -> None:
         HolographicShadowStrategy(goal_alignment_weight=-0.1)
 
 
+# ---- HolographicShadowStrategy goal-BFS planner ---------------------------
+
+
+def _seed_drift(
+    strat: HolographicShadowStrategy,
+    name: str,
+    drift: Tuple[float, float],
+    samples: int = 4,
+) -> None:
+    """Plant a learned mean drift for ``name`` directly in the
+    accumulators so a BFS test doesn't have to drive observe()."""
+    strat.action_drift_sums[name] = (drift[0] * samples, drift[1] * samples)
+    strat.action_drift_counts[name] = samples
+
+
+def test_holographic_strategy_goal_bfs_returns_none_below_drift_floor() -> None:
+    """BFS must withhold a path until enough actions have a learned drift."""
+    strat = HolographicShadowStrategy(
+        player_color=9, goal_bfs_min_action_drifts=4
+    )
+    _seed_drift(strat, "ACTION1", (-1.0, 0.0))
+    # Only one action has drift — below the 4-action floor.
+    assert strat._goal_bfs(
+        (0.0, 0.0), (5.0, 0.0), ["ACTION1", "ACTION2", "ACTION3", "ACTION4"]
+    ) is None
+
+
+def test_holographic_strategy_goal_bfs_returns_first_action_of_shortest_path() -> None:
+    """Straight-line BFS must take the action whose drift points at the goal."""
+    strat = HolographicShadowStrategy(
+        player_color=9, goal_bfs_min_action_drifts=2
+    )
+    _seed_drift(strat, "ACTION1", (-1.0, 0.0))   # up
+    _seed_drift(strat, "ACTION2", (1.0, 0.0))    # down
+    _seed_drift(strat, "ACTION3", (0.0, -1.0))   # left
+    _seed_drift(strat, "ACTION4", (0.0, 1.0))    # right
+    # Player at (0, 0); goal at (0, 5). Shortest path: 5x ACTION4.
+    pick = strat._goal_bfs(
+        (0.0, 0.0),
+        (0.0, 5.0),
+        ["ACTION1", "ACTION2", "ACTION3", "ACTION4"],
+    )
+    assert pick == "ACTION4"
+
+
+def test_holographic_strategy_goal_bfs_routes_around_known_walls() -> None:
+    """When the direct action is a wall, BFS must take a detour."""
+    strat = HolographicShadowStrategy(
+        player_color=9, goal_bfs_min_action_drifts=2
+    )
+    _seed_drift(strat, "ACTION1", (-1.0, 0.0))
+    _seed_drift(strat, "ACTION2", (1.0, 0.0))
+    _seed_drift(strat, "ACTION3", (0.0, -1.0))
+    _seed_drift(strat, "ACTION4", (0.0, 1.0))
+    # ACTION4 is blocked at the start position (0, 0).
+    strat.position_walls[(0, 0)] = {"ACTION4"}
+    # Goal at (0, 5). Direct path is blocked, so BFS should take
+    # ACTION2 (down) or ACTION1 (up) first to get out of the wall.
+    pick = strat._goal_bfs(
+        (0.0, 0.0),
+        (0.0, 5.0),
+        ["ACTION1", "ACTION2", "ACTION3", "ACTION4"],
+    )
+    assert pick != "ACTION4"
+    assert pick is not None
+
+
+def test_holographic_strategy_goal_bfs_returns_none_when_no_path() -> None:
+    """If the search budget can't reach the goal, BFS yields None."""
+    strat = HolographicShadowStrategy(
+        player_color=9,
+        goal_bfs_min_action_drifts=2,
+        goal_bfs_max_depth=2,
+    )
+    _seed_drift(strat, "ACTION1", (1.0, 0.0))
+    _seed_drift(strat, "ACTION2", (0.0, 1.0))
+    # Goal is 10 steps away; depth=2 can't reach it.
+    pick = strat._goal_bfs(
+        (0.0, 0.0), (10.0, 10.0), ["ACTION1", "ACTION2"]
+    )
+    assert pick is None
+
+
+def test_holographic_strategy_goal_bfs_disabled_by_flag() -> None:
+    """``enable_goal_bfs=False`` must skip the planner entirely."""
+    strat = HolographicShadowStrategy(
+        player_color=9,
+        enable_goal_bfs=False,
+        goal_bfs_min_action_drifts=2,
+    )
+    _seed_drift(strat, "ACTION4", (0.0, 1.0))
+    _seed_drift(strat, "ACTION3", (0.0, -1.0))
+    pick = strat._goal_bfs(
+        (0.0, 0.0), (0.0, 1.0), ["ACTION3", "ACTION4"]
+    )
+    assert pick is None
+
+
+def test_holographic_strategy_position_walls_populated_from_observe() -> None:
+    """``blocked_wobble`` observations must mirror into position_walls."""
+    strat = HolographicShadowStrategy(player_color=9)
+    # Player static at (3, 3) — no centroid drift, so blocked_wobble.
+    blocked = _HoloFrame(_grid_with_color([(3, 3, 9), (7, 7, 8)]))
+    strat._last_state_hash = strat._state_hash(blocked)
+    strat._last_player_centroid = strat._player_centroid(blocked)
+    strat.observe(blocked, "ACTION1", blocked)
+    assert (3, 3) in strat.position_walls
+    assert "ACTION1" in strat.position_walls[(3, 3)]
+
+
+def test_holographic_strategy_choose_emits_debug_goal_bfs() -> None:
+    """When BFS picks an action, choose() must emit a debug_goal_bfs etch."""
+    strat = HolographicShadowStrategy(
+        player_color=9, goal_bfs_min_action_drifts=2
+    )
+    _seed_drift(strat, "ACTION1", (-1.0, 0.0))
+    _seed_drift(strat, "ACTION2", (1.0, 0.0))
+    _seed_drift(strat, "ACTION3", (0.0, -1.0))
+    _seed_drift(strat, "ACTION4", (0.0, 1.0))
+    grid = _HoloFrame(_grid_with_color([(2, 0, 9), (2, 5, 8)]))
+    chosen, _ = strat.choose(grid, [], {}, ["ACTION1", "ACTION2", "ACTION3", "ACTION4"])
+    assert chosen == "ACTION4"  # right -> toward goal
+    bfs_etches = [r for r in strat.provenance if r["type"] == "debug_goal_bfs"]
+    assert len(bfs_etches) == 1
+    assert bfs_etches[0]["action"] == "ACTION4"
+    assert bfs_etches[0]["player_pos"] == (2, 0)
+    assert bfs_etches[0]["goal_pos"] == (2, 5)
+
+
+def test_holographic_strategy_bfs_validation() -> None:
+    """Reject negative depth and non-positive drift floor."""
+    import pytest
+    with pytest.raises(ValueError):
+        HolographicShadowStrategy(goal_bfs_max_depth=-1)
+    with pytest.raises(ValueError):
+        HolographicShadowStrategy(goal_bfs_min_action_drifts=0)
+
+
 # ---- HolographicShadowStrategy integration --------------------------------
 
 def test_holographic_strategy_uses_planner_over_score() -> None:
