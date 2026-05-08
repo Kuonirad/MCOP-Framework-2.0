@@ -669,6 +669,29 @@ def _frame_diff(prev: Any, curr: Any, max_samples: int = 12) -> Dict[str, Any]:
     }
 
 
+def _color_centroids(grid: List[Any]) -> Dict[int, Tuple[float, float]]:
+    """Mean (row, col) position of every colour present in ``grid``.
+
+    Used by :class:`_PlayerColorDetector` to track per-colour centroid
+    drift across actions. Walks the full grid so the centroid is
+    unbiased; returns an empty dict for an empty grid.
+    """
+    sums_r: Dict[int, float] = {}
+    sums_c: Dict[int, float] = {}
+    counts: Dict[int, int] = {}
+    for layer in grid:
+        for ri, row in enumerate(layer):
+            for ci, val in enumerate(row):
+                colour = int(val)
+                sums_r[colour] = sums_r.get(colour, 0.0) + ri
+                sums_c[colour] = sums_c.get(colour, 0.0) + ci
+                counts[colour] = counts.get(colour, 0) + 1
+    return {
+        colour: (sums_r[colour] / counts[colour], sums_c[colour] / counts[colour])
+        for colour in counts
+    }
+
+
 def _diff_color_tally(prev: Any, curr: Any) -> Dict[int, int]:
     """For every cell that changed between ``prev`` and ``curr``, count
     how many times each colour value appeared on either side of the
@@ -736,6 +759,119 @@ class _GoalColorDetector:
             self.advance_credits.items(),
             key=lambda kv: (kv[1], -kv[0]),
         )[0]
+
+
+class _PlayerColorDetector:
+    """Online, no-prior-knowledge player-colour discovery.
+
+    Watches every observed ``(prev_frame, action, next_frame)``
+    transition. For each colour visible in both frames, records the
+    centroid drift vector keyed by the action that produced the
+    transition. The "player" is the colour whose mean drift vector
+    *varies the most across actions* (i.e. ACTION1 produces a clearly
+    different drift than ACTION2 etc).
+
+    Static colours (centroid never moves), large-area colours whose
+    centroid is dominated by background fill, and ticking colours
+    whose centroid drifts the *same* on every action (e.g. a timer)
+    all have low cross-action variance and are correctly filtered out.
+
+    Returns ``None`` until
+
+    * at least ``min_observations`` transitions have contributed
+      drift data for at least one colour, **and**
+    * at least ``min_actions`` distinct action names have been seen,
+      **and**
+    * the leading candidate's cross-action variance exceeds
+      ``min_variance``.
+
+    Fully ARC-AGI-3 / Kaggle compliant: zero offline data, zero
+    per-game hardcoding, learned strictly online from the live play.
+    """
+
+    def __init__(
+        self,
+        min_observations: int = 4,
+        min_actions: int = 2,
+        min_variance: float = 0.5,
+    ) -> None:
+        self.min_observations = min_observations
+        self.min_actions = min_actions
+        self.min_variance = min_variance
+        # per-(colour, action_name) -> list of (dr, dc) drift vectors
+        self.drifts: Dict[Tuple[int, str], List[Tuple[float, float]]] = {}
+        self.observations_seen = 0
+        self._cached: Optional[int] = None
+        self._cache_obs_count = -1
+
+    def observe(
+        self,
+        prev_frame: Any,
+        action_name: str,
+        next_frame: Any,
+    ) -> None:
+        if prev_frame is None or next_frame is None:
+            return
+        prev_centroids = _color_centroids(_grid_as_list(prev_frame))
+        next_centroids = _color_centroids(_grid_as_list(next_frame))
+        recorded = False
+        for colour, prev_c in prev_centroids.items():
+            if colour == 0:
+                continue  # background; exclude.
+            next_c = next_centroids.get(colour)
+            if next_c is None:
+                continue  # colour disappeared on this transition.
+            dr = next_c[0] - prev_c[0]
+            dc = next_c[1] - prev_c[1]
+            self.drifts.setdefault((colour, action_name), []).append((dr, dc))
+            recorded = True
+        if recorded:
+            self.observations_seen += 1
+        # Invalidate cache; next current() call recomputes.
+        self._cached = None
+
+    def current(self) -> Optional[int]:
+        if (
+            self._cached is not None
+            and self._cache_obs_count == self.observations_seen
+        ):
+            return self._cached
+        if self.observations_seen < self.min_observations:
+            return None
+        actions_seen = {a for _, a in self.drifts}
+        if len(actions_seen) < self.min_actions:
+            return None
+        scores: Dict[int, float] = {}
+        colours = {c for c, _ in self.drifts}
+        for colour in colours:
+            action_means: Dict[str, Tuple[float, float]] = {}
+            for (col, act), vecs in self.drifts.items():
+                if col != colour or not vecs:
+                    continue
+                mean_dr = sum(v[0] for v in vecs) / len(vecs)
+                mean_dc = sum(v[1] for v in vecs) / len(vecs)
+                action_means[act] = (mean_dr, mean_dc)
+            if len(action_means) < self.min_actions:
+                continue
+            avg_dr = sum(v[0] for v in action_means.values()) / len(action_means)
+            avg_dc = sum(v[1] for v in action_means.values()) / len(action_means)
+            variance = sum(
+                (v[0] - avg_dr) ** 2 + (v[1] - avg_dc) ** 2
+                for v in action_means.values()
+            ) / len(action_means)
+            scores[colour] = variance
+        if not scores:
+            return None
+        # Highest variance wins; ties broken by lower colour index for
+        # determinism (so two scorecards on the same trace agree).
+        best_colour, best_var = max(
+            scores.items(), key=lambda kv: (kv[1], -kv[0])
+        )
+        if best_var < self.min_variance:
+            return None
+        self._cached = best_colour
+        self._cache_obs_count = self.observations_seen
+        return best_colour
 
 
 class _ForwardModel:
@@ -992,52 +1128,69 @@ class MappingGrokStrategy:
 
 
 class HolographicShadowStrategy:
-    """Goal-focused, oscillation-aware action chooser with debug provenance.
+    """Player-tracking, oscillation-aware action chooser with debug provenance.
 
     Adapts the v2 holographic-shadow design to the discrete ARC-AGI-3
-    grid (no env rollback, integer cells). Five behaviours:
+    grid (no env rollback, integer cells). Six behaviours:
 
-    1. Goal-only perception. State hashing and centroid tracking only
-       consider cells matching ``goal_color`` (default 8); other layers
-       become noise that no longer fragments the state cache.
-    2. Dual movement thresholds keyed on goal-centroid drift. When both
-       prev and curr frames expose a goal centroid, ``observe()``
-       classifies a step as ``real_move`` when the centroid moved
-       further than ``move_threshold_centroid`` (default 1.5 cells) and
-       as ``blocked_wobble`` only when it moved less than
-       ``wobble_threshold_centroid`` (default 0.5 cells). Drifts in
-       between are ``ambiguous_drift`` and update neither the
-       move-rate nor the wall counter, so sub-cell sprite jitter no
-       longer reads as either progress or a wall. When no goal
-       centroid is available the strategy falls back to the cell-count
-       threshold (``move_threshold_cells``, default 2 cells).
+    1. Goal-mask + player-position state keying. The state hash
+       captures the goal-colour mask (an invariant landmark for
+       planning) **and** the player centroid binned to integer cells.
+       Goal mask alone collapses the cache in goal-static games (e.g.
+       ls20 keeps the goal at one corner), so wall-learning would
+       grow uniformly across all actions and produce a deterministic
+       cycle; including the player position makes walls per-cell.
+    2. Dual movement thresholds keyed on **player-centroid** drift.
+       When both prev and curr frames expose a player centroid,
+       ``observe()`` classifies a step as ``real_move`` when the
+       centroid moved further than ``move_threshold_centroid``
+       (default 1.5 cells) and as ``blocked_wobble`` only when it
+       moved less than ``wobble_threshold_centroid`` (default 0.5
+       cells). Drifts in between are ``ambiguous_drift`` and update
+       neither the move-rate nor the wall counter, so sub-cell sprite
+       jitter no longer reads as either progress or a wall. Until
+       the player colour has been auto-discovered, the strategy
+       falls back to the cell-count threshold
+       (``move_threshold_cells``, default 2 cells).
     3. Per-step debug provenance. Every observed transition appends a
-       record to ``provenance`` (type, action, n_changed, centroid
-       delta, wall hit count, levels delta). Wall-learning hits also
-       emit a dedicated ``debug_wall_learning`` entry the first time a
-       given (state, action) is registered as blocked, and
-       oscillation-driven novelty picks emit a ``debug_loop_detected``
-       entry the first time a given goal-centroid pattern triggers, so
-       a stuck state can be reconstructed exactly after the fact.
+       record to ``provenance`` (type, action, n_changed,
+       player-centroid delta, wall hit count, levels delta).
+       Wall-learning hits also emit a dedicated ``debug_wall_learning``
+       entry the first time a given (state, action) is registered as
+       blocked, and oscillation-driven novelty picks emit a
+       ``debug_loop_detected`` entry the first time a given centroid
+       pattern triggers, so a stuck state can be reconstructed
+       exactly after the fact.
     4. Wall learning. ``blocked_wobble`` increments
        ``walls[(state_hash, action)]``; the chooser subtracts that
        count from the score so repeated walls fall to the back.
-    5. Oscillation -> novelty. A short ring buffer of goal centroids
-       detects ABAB-style alternation; while detected, the score is
-       biased toward the least-tried action at the current state
-       (``state_action_tries``) so the agent breaks out of the cycle
-       even when no action has yet been classified as a wall.
+    5. Oscillation -> novelty. A short ring buffer of player
+       centroids detects ABAB-style alternation; while detected, the
+       score is biased toward the least-tried action at the current
+       state (``state_action_tries``) so the agent breaks out of the
+       cycle even when no action has yet been classified as a wall.
 
-    Two further behaviours, both fully ARC-AGI-3 compliant (no offline
-    data, no per-game hardcoding, learned strictly online):
+    Three further behaviours, all fully ARC-AGI-3 / Kaggle compliant
+    (no offline data, no per-game hardcoding, learned strictly
+    online from the live play):
 
     6. Auto goal-colour discovery. A :class:`_GoalColorDetector`
        watches every transition; once it has seen ``min_advances``
        level advances it credits the colour most associated with them
-       and the strategy re-keys its goal-dependent caches. Until then
-       the configured ``goal_color`` is used. Disable with
-       ``auto_discover_goal_color=False``.
-    7. Forward-model planning. A :class:`_ForwardModel` records
+       and the strategy re-keys its state-dependent caches. Until
+       then the configured ``goal_color`` (default 8) is used.
+       Disable with ``auto_discover_goal_color=False``.
+    7. Auto player-colour discovery. A :class:`_PlayerColorDetector`
+       records per-(colour, action) centroid drift vectors and picks
+       the colour whose drift varies the most across actions. Static
+       and ticking colours (centroid drifts the same on every action,
+       like a timer) are filtered out by the variance signal. The
+       default ``player_color`` is ``None``: until enough
+       cross-action observations exist, movement classification
+       falls back to the cell-count threshold. Disable with
+       ``auto_discover_player_color=False`` (and pass an explicit
+       ``player_color`` for offline determinism testing).
+    8. Forward-model planning. A :class:`_ForwardModel` records
        observed ``(state, action) -> next_state`` transitions and
        flags any next-state that produced a level advance. On each
        :meth:`choose` the strategy runs a bounded BFS over the
@@ -1071,6 +1224,17 @@ class HolographicShadowStrategy:
         auto_discover_goal_color: bool = True,
         min_advances_for_discovery: int = 1,
         max_plan_depth: int = MAX_PLAN_DEPTH,
+        # Player-colour auto-discovery (online, no offline data, no
+        # per-game hardcoding). ``player_color=None`` means the
+        # detector has the floor: until enough cross-action drift
+        # observations exist, movement classification falls back to
+        # the cell-count threshold. Pass an explicit value only for
+        # offline determinism testing.
+        player_color: Optional[int] = None,
+        auto_discover_player_color: bool = True,
+        min_observations_for_player_discovery: int = 4,
+        min_actions_for_player_discovery: int = 2,
+        min_variance_for_player_discovery: float = 0.5,
     ) -> None:
         if wobble_threshold_centroid > move_threshold_centroid:
             raise ValueError(
@@ -1078,33 +1242,47 @@ class HolographicShadowStrategy:
             )
         self.fallback = fallback or RandomStrategy()
         self.goal_color = goal_color
+        self.player_color = player_color
         self.move_threshold_cells = move_threshold_cells
         self.move_threshold_centroid = move_threshold_centroid
         self.wobble_threshold_centroid = wobble_threshold_centroid
         self._complex_default = complex_action_default
         self.auto_discover_goal_color = auto_discover_goal_color
+        self.auto_discover_player_color = auto_discover_player_color
         self.action_stats: Dict[str, Dict[str, float]] = {}
         self.walls: Dict[Tuple[str, str], int] = {}
         self.state_action_tries: Dict[Tuple[str, str], int] = {}
         self.state_visits: Dict[str, int] = {}
+        # ``_centroid_history`` tracks the *player* centroid post-
+        # discovery (the entity that actually moves and oscillates);
+        # pre-discovery it stays empty so oscillation detection waits
+        # for a real signal instead of firing on the static goal.
         self._centroid_history: List[Tuple[float, float]] = []
         self._last_state_hash: Optional[str] = None
-        self._last_goal_centroid: Optional[Tuple[float, float]] = None
+        self._last_player_centroid: Optional[Tuple[float, float]] = None
         self._loop_signatures_seen: set = set()
         self.provenance: List[Dict[str, Any]] = []
         self._goal_detector = _GoalColorDetector(
             min_advances=min_advances_for_discovery
         )
+        self._player_detector = _PlayerColorDetector(
+            min_observations=min_observations_for_player_discovery,
+            min_actions=min_actions_for_player_discovery,
+            min_variance=min_variance_for_player_discovery,
+        )
         self._forward_model = _ForwardModel(max_plan_depth=max_plan_depth)
         self._max_plan_depth = max_plan_depth
 
-    def _reset_goal_dependent_state(self) -> None:
-        """Drop caches that are keyed on the old goal-colour mask.
+    def _reset_state_dependent_caches(self) -> None:
+        """Drop caches keyed on a state-hash component that just changed.
 
-        Called when :class:`_GoalColorDetector` flips ``goal_color``
-        mid-episode, so previously stored state hashes (and the walls,
-        visits, forward-model transitions, and centroid history they
-        feed) don't pollute decisions taken under the new mask.
+        Called when either :class:`_GoalColorDetector` flips
+        ``goal_color`` or :class:`_PlayerColorDetector` flips
+        ``player_color`` mid-episode. Previously stored state hashes
+        (and the walls, visits, forward-model transitions, and
+        centroid history they feed) are no longer comparable under
+        the new keying, so we wipe them and let the strategy relearn
+        from scratch under the better signal.
         """
         self.walls.clear()
         self.state_action_tries.clear()
@@ -1113,17 +1291,37 @@ class HolographicShadowStrategy:
         self._loop_signatures_seen.clear()
         self._forward_model.reset()
         self._last_state_hash = None
-        self._last_goal_centroid = None
+        self._last_player_centroid = None
+
+    # Back-compat alias: external code (and tests) may call the old
+    # name. The behaviour is identical now that the cache also depends
+    # on player_color.
+    _reset_goal_dependent_state = _reset_state_dependent_caches
 
     def _goal_centroid(
         self, frame: Any
     ) -> Optional[Tuple[float, float]]:
+        return self._color_centroid(frame, self.goal_color)
+
+    def _player_centroid(
+        self, frame: Any
+    ) -> Optional[Tuple[float, float]]:
+        if self.player_color is None:
+            return None
+        return self._color_centroid(frame, self.player_color)
+
+    @staticmethod
+    def _color_centroid(
+        frame: Any, colour: Optional[int]
+    ) -> Optional[Tuple[float, float]]:
+        if colour is None:
+            return None
         rs: List[int] = []
         cs: List[int] = []
         for layer in _grid_as_list(frame):
             for ri, row in enumerate(layer):
                 for ci, val in enumerate(row):
-                    if val == self.goal_color:
+                    if val == colour:
                         rs.append(ri)
                         cs.append(ci)
         if not rs:
@@ -1131,8 +1329,18 @@ class HolographicShadowStrategy:
         return (sum(rs) / len(rs), sum(cs) / len(cs))
 
     def _state_hash(self, frame: Any) -> str:
-        # Hash only the goal-color mask so non-goal cell churn (e.g.
-        # static geometry repaints) doesn't fragment the wall/visit cache.
+        # Goal-colour mask gives the strategy an invariant landmark
+        # against which it can later bias planning, but it is the
+        # *player position* that actually differentiates one game
+        # state from the next: the goal almost always sits still
+        # (e.g. ls20 keeps colour 8 pinned at row 61, col 59 across
+        # every level) while the player moves cell-by-cell. Hashing
+        # only the goal mask collapses every step into the same
+        # key in goal-static games, which makes wall-learning grow
+        # uniformly across all actions and produces a deterministic
+        # ACTION1→4 cycle. Including the player centroid (binned to
+        # integer cells, post-discovery) ensures walls accrue per
+        # position so the strategy actually navigates.
         masked = [
             [
                 [1 if v == self.goal_color else 0 for v in row]
@@ -1140,7 +1348,15 @@ class HolographicShadowStrategy:
             ]
             for layer in _grid_as_list(frame)
         ]
-        payload = json.dumps(masked, default=_json_default).encode()
+        player_pos: Optional[Tuple[int, int]] = None
+        if self.player_color is not None:
+            cen = self._player_centroid(frame)
+            if cen is not None:
+                player_pos = (int(cen[0]), int(cen[1]))
+        payload = json.dumps(
+            {"goal_mask": masked, "player_pos": player_pos},
+            default=_json_default,
+        ).encode()
         return hashlib.sha1(payload).hexdigest()[:16]
 
     def _detect_oscillation(self) -> bool:
@@ -1189,7 +1405,7 @@ class HolographicShadowStrategy:
             return ("ACTION1", {})
         state_hash = self._state_hash(frame)
         self._last_state_hash = state_hash
-        self._last_goal_centroid = self._goal_centroid(frame)
+        self._last_player_centroid = self._player_centroid(frame)
         self.state_visits[state_hash] = (
             self.state_visits.get(state_hash, 0) + 1
         )
@@ -1264,26 +1480,49 @@ class HolographicShadowStrategy:
     ) -> None:
         if prev_frame is None or next_frame is None:
             return
-        # Goal-colour discovery first, since updating goal_color
-        # invalidates every cache keyed on the old mask. Re-keying
-        # ahead of the rest of observe() ensures the wall/visit/forward-
-        # model entries this call writes use the new mask consistently.
+        # Colour-detector observations first, since updating either
+        # ``goal_color`` or ``player_color`` invalidates every cache
+        # keyed on the old mask / position. Re-keying ahead of the
+        # rest of observe() ensures the wall/visit/forward-model
+        # entries this call writes use the new keying consistently.
         self._goal_detector.observe(prev_frame, next_frame)
+        self._player_detector.observe(prev_frame, action_name, next_frame)
         if self.auto_discover_goal_color:
             discovered = self._goal_detector.current()
             if discovered is not None and discovered != self.goal_color:
                 logger.info(
                     "holographic-shadow goal-colour discovered: %d -> %d "
-                    "(advances=%d); resetting goal-dependent caches",
+                    "(advances=%d); resetting state-dependent caches",
                     self.goal_color,
                     discovered,
                     self._goal_detector.advances_seen,
                 )
                 self.goal_color = discovered
-                self._reset_goal_dependent_state()
+                self._reset_state_dependent_caches()
+        if self.auto_discover_player_color:
+            discovered_player = self._player_detector.current()
+            if (
+                discovered_player is not None
+                and discovered_player != self.player_color
+            ):
+                logger.info(
+                    "holographic-shadow player-colour discovered: %s -> %d "
+                    "(observations=%d); resetting state-dependent caches",
+                    self.player_color,
+                    discovered_player,
+                    self._player_detector.observations_seen,
+                )
+                self.player_color = discovered_player
+                self._reset_state_dependent_caches()
         diff = _frame_diff(prev_frame, next_frame)
-        prev_centroid = self._last_goal_centroid
-        curr_centroid = self._goal_centroid(next_frame)
+        # Movement classification is keyed on the *player* centroid
+        # (the entity that actually moves), not the goal centroid.
+        # Tracking the goal here was a regression: in goal-static
+        # games (e.g. ls20, where colour 8 sits pinned at one corner
+        # across every level) every step would read centroid_delta=0
+        # and the strategy would treat every action as a wall.
+        prev_centroid = self._last_player_centroid
+        curr_centroid = self._player_centroid(next_frame)
         centroid_delta = 0.0
         centroid_available = (
             prev_centroid is not None and curr_centroid is not None
@@ -1294,15 +1533,16 @@ class HolographicShadowStrategy:
                 curr_centroid[1] - prev_centroid[1],
             )
 
-        # Three-way classification keyed on goal-centroid drift when
-        # both centroids are available; otherwise fall back to the
-        # cell-count threshold so early frames (no goal visible yet)
-        # still classify deterministically. ``ambiguous_drift`` means
-        # the goal moved within the dead-zone between
-        # ``wobble_threshold_centroid`` (truly blocked) and
-        # ``move_threshold_centroid`` (real movement) — neither the
-        # move-rate nor the wall counter is updated, so sub-cell
-        # sprite jitter no longer reads as either progress or a wall.
+        # Three-way classification keyed on player-centroid drift
+        # when both centroids are available; otherwise fall back to
+        # the cell-count threshold so the bootstrap window before
+        # auto-discovery still classifies deterministically.
+        # ``ambiguous_drift`` means the player moved within the
+        # dead-zone between ``wobble_threshold_centroid`` (truly
+        # blocked) and ``move_threshold_centroid`` (real movement)
+        # — neither the move-rate nor the wall counter is updated,
+        # so sub-cell sprite jitter no longer reads as either
+        # progress or a wall.
         if centroid_available:
             if centroid_delta > self.move_threshold_centroid:
                 outcome = "real_move"
@@ -1360,7 +1600,7 @@ class HolographicShadowStrategy:
                 "type": outcome,
                 "action": action_name,
                 "n_changed": diff["n_changed"],
-                "goal_centroid_delta": round(centroid_delta, 3),
+                "player_centroid_delta": round(centroid_delta, 3),
                 "wall_hits": wall_hits,
                 "levels_delta": diff["levels_delta"],
             }
@@ -1376,7 +1616,7 @@ class HolographicShadowStrategy:
                     "type": "debug_wall_learning",
                     "action": action_name,
                     "state_hash": self._last_state_hash,
-                    "goal_centroid_delta": round(centroid_delta, 3),
+                    "player_centroid_delta": round(centroid_delta, 3),
                     "n_changed": diff["n_changed"],
                     "wobble_threshold_centroid": (
                         self.wobble_threshold_centroid
