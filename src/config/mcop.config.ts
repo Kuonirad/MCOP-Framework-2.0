@@ -40,6 +40,14 @@ export interface MCOPOrchestratorProfile {
   readonly rateLimitMaxRetries: number;
 }
 
+/**
+ * Φ5 tri-state for the in-process CUDA layer flag. `'auto'` opts into
+ * runtime probing via `detectCUDACapability()` so the same MCOP build
+ * adapts to every ARC-AGI-3 environment (CPU-only CI, dev laptop,
+ * GPU prod node) without code changes.
+ */
+export type MCOPCUDAEnableMode = boolean | 'auto';
+
 export interface MCOPHardwareAccelerationConfig {
   /** Creator-controlled CUDA switch for the existing microservice/HTTP bridge: true = prefer CUDA bridge, false = force CPU. */
   readonly useCUDA: boolean;
@@ -47,18 +55,40 @@ export interface MCOPHardwareAccelerationConfig {
   readonly provider: 'microservice' | 'onnx' | 'native';
   /**
    * Independent feature flag for the in-process op-sharded CUDA layer
-   * (`src/hardware/CUDAHardwareLayer.ts`). Default `false` until Φ4 of the
-   * Φ1–Φ5 deployment ladder. See `docs/CUDA_PHI1_PHI5.md`.
+   * (`src/hardware/CUDAHardwareLayer.ts`). Φ5 default `'auto'` —
+   * `resolveEnableCUDA()` runs the runtime probe and folds the result
+   * into a sealed `resolvedFrom` provenance field. See
+   * `docs/CUDA_PHI1_PHI5.md`.
    *
-   * Set via `MCOP_ENABLE_CUDA=1` at runtime.
+   * Set via `MCOP_ENABLE_CUDA=1` (force-on), `MCOP_ENABLE_CUDA=0`
+   * (force-off), or `MCOP_ENABLE_CUDA=auto` (default — probe-driven).
    */
-  readonly enableCUDA: boolean;
+  readonly enableCUDA: MCOPCUDAEnableMode;
   /**
    * Filesystem directory that contains the per-op ONNX kernels expected by
    * `CUDAHardwareLayer.loadKernels()` (one file per kernel, e.g.
    * `mcop_graphAggregate.onnx`). Resolved relative to the process CWD.
    */
   readonly kernelDir: string;
+}
+
+/**
+ * Parse the `MCOP_ENABLE_CUDA` env var into the tri-state. Unknown
+ * values fall back to `false` for safety.
+ *
+ * Recognised inputs (case-insensitive, trimmed):
+ *   - `'1'`, `'true'`, `'on'` → `true`
+ *   - `'0'`, `'false'`, `'off'` → `false`
+ *   - `'auto'`, `'detect'`, undefined, empty string → `'auto'`
+ *   - anything else → `false` (conservative)
+ */
+export function parseEnableCUDAEnv(raw: string | undefined): MCOPCUDAEnableMode {
+  if (raw === undefined) return 'auto';
+  const value = raw.trim().toLowerCase();
+  if (value === '' || value === 'auto' || value === 'detect') return 'auto';
+  if (value === '1' || value === 'true' || value === 'on') return true;
+  if (value === '0' || value === 'false' || value === 'off') return false;
+  return false;
 }
 
 export interface MCOPNovaEvolveTunerConfig {
@@ -95,7 +125,7 @@ export const MCOP_DEFAULT_ORCHESTRATOR: MCOPDefaultOrchestratorConfig = Object.f
   hardware: Object.freeze({
     useCUDA: process.env.MCOP_USE_CUDA === '1',
     provider: 'microservice',
-    enableCUDA: process.env.MCOP_ENABLE_CUDA === '1',
+    enableCUDA: parseEnableCUDAEnv(process.env.MCOP_ENABLE_CUDA),
     kernelDir: process.env.MCOP_CUDA_KERNEL_DIR ?? './models',
   }),
 });

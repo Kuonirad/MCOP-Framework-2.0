@@ -97,6 +97,13 @@ export interface OnnxRuntimeApi {
   InferenceSession: {
     create(modelPath: string, options?: OnnxSessionOptions): Promise<OnnxInferenceSession>;
   };
+  /**
+   * `onnxruntime-node` ≥ 1.17 exposes this helper to enumerate the
+   * supported execution provider backends without instantiating a
+   * session. Older builds may omit it; the Φ5 probe treats absence as
+   * "not capable" (conservative default).
+   */
+  listSupportedBackends?: () => ReadonlyArray<string | { name?: string }>;
 }
 
 /* ------------------------------------------------------------------ */
@@ -116,9 +123,36 @@ export interface OnnxRuntimeApi {
  */
 export type CUDAStreamMode = 'per-op' | 'shared';
 
+/**
+ * Φ5 tri-state feature flag. The boolean values preserve every Φ1–Φ4
+ * caller verbatim; `'auto'` opts the layer into runtime probing via
+ * {@link detectCUDACapability} and is the new Φ5 default for
+ * `MCOP_ENABLE_CUDA` when unset.
+ */
+export type CUDAEnableMode = boolean | 'auto';
+
+/**
+ * Audit trail for *why* `enableCUDA` ended up at its resolved boolean
+ * value. Sealed into `AcceleratorProvenance.resolvedFrom` so a
+ * Lamarckian substrate-lineage entry can be replayed and the original
+ * decision reconstructed. ARC-AGI-3-friendly: byte-stable across runs
+ * given the same construction options + probe environment.
+ */
+export type CUDAResolvedFrom =
+  | 'explicit-on'
+  | 'explicit-off'
+  | 'default-off'
+  | 'auto-capable'
+  | 'auto-not-capable';
+
 export interface CUDAHardwareLayerOptions {
-  /** Master feature flag. Default `false`. Flip at Φ4 of the deployment ladder. */
-  enableCUDA?: boolean;
+  /**
+   * Master feature flag. Tri-state: `true | false | 'auto'`. Default
+   * `false` for the synchronous constructor (Φ1–Φ4 contract preserved).
+   * Pass `'auto'` to {@link CUDAHardwareLayer.create} for probe-driven
+   * resolution (Φ5).
+   */
+  enableCUDA?: CUDAEnableMode;
   /** Logical device tag for provenance, e.g. `cuda:0`. */
   device?: string;
   /** Filesystem directory containing per-op ONNX kernels (`mcop_<op>.onnx`). */
@@ -132,6 +166,28 @@ export interface CUDAHardwareLayerOptions {
    * entirely and lets the caller decide how each per-op session is built.
    */
   sessionFactory?: (op: CUDAKernelOp, modelPath: string) => Promise<OnnxInferenceSession>;
+  /**
+   * Φ5 audit hint: explicit override of the resolution provenance. Set
+   * by {@link CUDAHardwareLayer.create} after running the probe.
+   * Callers normally do not pass this directly.
+   */
+  resolvedFrom?: CUDAResolvedFrom;
+}
+
+/**
+ * Result of {@link detectCUDACapability}.
+ *
+ * `capable=false` is the conservative default for any environment that
+ * fails to load `onnxruntime-node` or whose ORT build does not expose a
+ * `listSupportedBackends()` helper. CPU-only `ubuntu-latest` CI
+ * therefore stays on the CPU path even with `enableCUDA: 'auto'` —
+ * exactly the safety property ARC-AGI-3 demands across substrates.
+ */
+export interface CUDACapabilityProbeResult {
+  readonly capable: boolean;
+  readonly reason: string;
+  readonly probedProviders: readonly string[];
+  readonly durationMs: number;
 }
 
 /**
@@ -242,6 +298,14 @@ export class CUDAHardwareLayer {
   readonly device: string;
   readonly kernelDir: string;
   readonly streams: CUDAStreamMode;
+  /**
+   * Φ5 substrate-lineage audit field — *why* the layer ended up
+   * enabled or disabled. Sealed into every leaf's
+   * `AcceleratorProvenance.resolvedFrom` so a future strategy revival
+   * can condition on the original decision (auto-probe vs explicit
+   * override). Tracked even when the layer is disabled.
+   */
+  readonly resolvedFrom: CUDAResolvedFrom;
 
   private readonly ortInjection: OnnxRuntimeApi | undefined;
   private readonly sessionFactory:
@@ -251,12 +315,50 @@ export class CUDAHardwareLayer {
   private loaded = false;
 
   constructor(options: CUDAHardwareLayerOptions = {}) {
-    this.enableCUDA = options.enableCUDA ?? false;
+    const requested = options.enableCUDA;
+    if (requested === 'auto') {
+      // Constructor stays synchronous; 'auto' resolves to disabled in
+      // this path. Use {@link CUDAHardwareLayer.create} for probe-driven
+      // resolution.
+      this.enableCUDA = false;
+      this.resolvedFrom = options.resolvedFrom ?? 'auto-not-capable';
+    } else if (requested === true) {
+      this.enableCUDA = true;
+      this.resolvedFrom = options.resolvedFrom ?? 'explicit-on';
+    } else if (requested === false) {
+      this.enableCUDA = false;
+      this.resolvedFrom = options.resolvedFrom ?? 'explicit-off';
+    } else {
+      this.enableCUDA = false;
+      this.resolvedFrom = options.resolvedFrom ?? 'default-off';
+    }
     this.device = options.device ?? 'cuda:0';
     this.kernelDir = options.kernelDir ?? './models';
     this.streams = options.streams ?? 'per-op';
     this.ortInjection = options.ortInjection;
     this.sessionFactory = options.sessionFactory;
+  }
+
+  /**
+   * Φ5 async factory — runs {@link detectCUDACapability} when
+   * `enableCUDA: 'auto'` is requested, then constructs the layer with
+   * the resolved boolean. For boolean inputs this just delegates to
+   * the synchronous constructor (zero overhead).
+   *
+   * Use this from orchestrator boot / config resolution paths so the
+   * layer adapts to the substrate without the caller hard-coding the
+   * decision.
+   */
+  static async create(options: CUDAHardwareLayerOptions = {}): Promise<CUDAHardwareLayer> {
+    if (options.enableCUDA !== 'auto') {
+      return new CUDAHardwareLayer(options);
+    }
+    const probe = await detectCUDACapability({ ortInjection: options.ortInjection });
+    return new CUDAHardwareLayer({
+      ...options,
+      enableCUDA: probe.capable,
+      resolvedFrom: probe.capable ? 'auto-capable' : 'auto-not-capable',
+    });
   }
 
   /**
@@ -342,9 +444,115 @@ export class CUDAHardwareLayer {
         verifiedDevice: verified,
         substrateLineage,
         durationMs: duration,
+        resolvedFrom: this.resolvedFrom,
       },
     );
   }
+}
+
+/* ------------------------------------------------------------------ */
+/* Φ5 capability probe                                                 */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Side-effect-free probe that asks `onnxruntime-node` whether a CUDA
+ * execution provider is available *without* instantiating a session,
+ * loading any model, or touching the GPU. Designed so a CPU-only
+ * `ubuntu-latest` runner returns `capable=false` cleanly, while a real
+ * GPU host with `onnxruntime-node-gpu` returns `capable=true` — both
+ * deterministically and within a few milliseconds.
+ *
+ * Resolution rules:
+ *   1. If `onnxruntime-node` cannot be imported, return
+ *      `capable=false` with reason `'onnxruntime-node not installed'`.
+ *   2. If the imported module exposes `listSupportedBackends()`,
+ *      return `capable=true` iff any backend's name (case-insensitive)
+ *      starts with `cuda`. Backends are reported verbatim in
+ *      {@link CUDACapabilityProbeResult.probedProviders} for audit.
+ *   3. If `listSupportedBackends()` is missing or throws, return
+ *      `capable=false` (conservative; prevents false-positive flips
+ *      on older ORT builds).
+ *
+ * Never throws — every failure mode is folded into a `capable=false`
+ * result with a human-readable `reason`.
+ */
+export async function detectCUDACapability(options: {
+  /** Test/advanced override; bypasses the dynamic import. */
+  ortInjection?: OnnxRuntimeApi;
+} = {}): Promise<CUDACapabilityProbeResult> {
+  const start = nowMs();
+  let ort: OnnxRuntimeApi | undefined = options.ortInjection;
+  if (!ort) {
+    try {
+      const moduleId = 'onnxruntime-node';
+      ort = (await import(moduleId)) as unknown as OnnxRuntimeApi;
+    } catch {
+      return Object.freeze({
+        capable: false,
+        reason: 'onnxruntime-node not installed',
+        probedProviders: Object.freeze([]),
+        durationMs: nowMs() - start,
+      });
+    }
+  }
+  const lister = ort.listSupportedBackends;
+  if (typeof lister !== 'function') {
+    return Object.freeze({
+      capable: false,
+      reason: 'listSupportedBackends() unavailable on this onnxruntime-node build',
+      probedProviders: Object.freeze([]),
+      durationMs: nowMs() - start,
+    });
+  }
+  let raw: ReadonlyArray<string | { name?: string }>;
+  try {
+    raw = lister();
+  } catch (err) {
+    return Object.freeze({
+      capable: false,
+      reason: `listSupportedBackends() threw: ${(err as Error).message}`,
+      probedProviders: Object.freeze([]),
+      durationMs: nowMs() - start,
+    });
+  }
+  const probedProviders: string[] = [];
+  for (const entry of raw) {
+    if (typeof entry === 'string' && entry.length > 0) probedProviders.push(entry);
+    else if (entry && typeof entry === 'object' && typeof entry.name === 'string' && entry.name.length > 0) {
+      probedProviders.push(entry.name);
+    }
+  }
+  const capable = probedProviders.some((p) => p.toLowerCase().startsWith('cuda'));
+  return Object.freeze({
+    capable,
+    reason: capable
+      ? 'CUDA backend reported as supported by onnxruntime-node'
+      : 'CUDA backend not in onnxruntime-node listSupportedBackends()',
+    probedProviders: Object.freeze(probedProviders.slice()),
+    durationMs: nowMs() - start,
+  });
+}
+
+/**
+ * Φ5 helper that folds an {@link CUDAEnableMode} value into a sync
+ * boolean + audit trail. Mirrors {@link CUDAHardwareLayer.create} but
+ * returns a plain object so callers (e.g. config-resolution paths)
+ * can decide the layer construction afterwards.
+ */
+export async function resolveEnableCUDA(
+  requested: CUDAEnableMode | undefined,
+  options: { probe?: () => Promise<CUDACapabilityProbeResult>; ortInjection?: OnnxRuntimeApi } = {},
+): Promise<{ enableCUDA: boolean; resolvedFrom: CUDAResolvedFrom; probe?: CUDACapabilityProbeResult }> {
+  if (requested === true) return { enableCUDA: true, resolvedFrom: 'explicit-on' };
+  if (requested === false) return { enableCUDA: false, resolvedFrom: 'explicit-off' };
+  if (requested === undefined) return { enableCUDA: false, resolvedFrom: 'default-off' };
+  // requested === 'auto'
+  const probe = await (options.probe?.() ?? detectCUDACapability({ ortInjection: options.ortInjection }));
+  return {
+    enableCUDA: probe.capable,
+    resolvedFrom: probe.capable ? 'auto-capable' : 'auto-not-capable',
+    probe,
+  };
 }
 
 /* ------------------------------------------------------------------ */

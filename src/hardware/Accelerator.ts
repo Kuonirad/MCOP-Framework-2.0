@@ -41,6 +41,15 @@ export interface AcceleratorProvenance {
   substrateLineage?: string;
   /** Wall-clock duration of the accelerated op in milliseconds, when measured at the bridge. */
   durationMs?: number;
+  /**
+   * Φ5 audit trail — the human-readable bucket that explains *why*
+   * the in-process CUDA layer ended up enabled or disabled for this
+   * run (`'auto-capable' | 'auto-not-capable' | 'explicit-on' |
+   * 'explicit-off' | 'default-off'`). Surfaced as a string so the
+   * `Accelerator.ts` module can stay decoupled from
+   * `CUDAHardwareLayer.ts` (avoids a circular import).
+   */
+  resolvedFrom?: string;
 }
 
 export type AcceleratedResult<T> = T & {
@@ -238,6 +247,7 @@ export function attachAcceleratorProvenance<T>(
     verifiedDevice?: string;
     substrateLineage?: string;
     durationMs?: number;
+    resolvedFrom?: string;
   },
 ): AcceleratedResult<T> {
   const timestamp = new Date().toISOString();
@@ -254,6 +264,7 @@ export function attachAcceleratorProvenance<T>(
     verifiedDevice: options.verifiedDevice,
     substrateLineage: options.substrateLineage,
     durationMs: options.durationMs,
+    resolvedFrom: options.resolvedFrom,
   };
   const merkleRoot = canonicalDigest({ type: 'MCOP_ACCELERATOR_PROVENANCE', provenance: provenanceWithoutRoot, payload });
   const provenance: AcceleratorProvenance = { ...provenanceWithoutRoot, merkleRoot };

@@ -170,17 +170,24 @@ export abstract class BaseAdapter<
       traceMetadata,
     );
 
-    // Φ4 wiring: when the in-process CUDA layer is supplied AND
-    // enabled, surface the layer's `requestedDevice` and
-    // `<verifiedProvider>/<streamMode>` substrate-lineage hint on the
-    // holographic-write leaf so MetaTuner can revive on the exact
-    // stream-allocation regime that produced the leaf. Default
-    // `undefined` keeps the leaf shape byte-identical to Φ3.
-    const cudaProvenance = this.cudaLayer?.enableCUDA
-      ? {
-          requestedDevice: this.cudaLayer.device,
-          substrateLineage: `${this.cudaLayer.device}/${this.cudaLayer.streams}`,
-        }
+    // Φ4 + Φ5 wiring: when the in-process CUDA layer is supplied,
+    // surface its `requestedDevice` + `<device>/<streamMode>`
+    // substrate-lineage hint on the holographic-write leaf so
+    // MetaTuner can revive on the exact stream-allocation regime that
+    // produced the leaf. Φ5 additionally seals `resolvedFrom` —
+    // *why* the layer was on/off (auto-probe vs explicit override)
+    // — even when disabled, so substrate-conditional revival can
+    // distinguish a CPU-only auto-not-capable host from an explicit
+    // shutoff. Default `undefined` keeps the leaf shape byte-identical
+    // to Φ3 when `cudaLayer` is unsupplied.
+    const cudaProvenance = this.cudaLayer
+      ? this.cudaLayer.enableCUDA
+        ? {
+            requestedDevice: this.cudaLayer.device,
+            substrateLineage: `${this.cudaLayer.device}/${this.cudaLayer.streams}`,
+            resolvedFrom: this.cudaLayer.resolvedFrom,
+          }
+        : { resolvedFrom: this.cudaLayer.resolvedFrom }
       : {};
 
     const acceleratorSeal = attachAcceleratorProvenance(

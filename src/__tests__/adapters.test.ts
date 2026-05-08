@@ -651,30 +651,42 @@ describe('GenericProductionAdapter', () => {
     expect(accelerator).toBeDefined();
     expect(accelerator?.requestedDevice).toBe('cuda:5');
     expect(accelerator?.substrateLineage).toBe('cuda:5/shared');
+    // Φ5 — explicit-on layers seal the resolution audit trail.
+    expect(accelerator?.resolvedFrom).toBe('explicit-on');
   });
 
-  it('Φ4 cudaLayer wiring is a no-op when the layer is disabled (byte-stable vs Φ3 leaf shape)', async () => {
+  it('Φ5 cudaLayer wiring records resolvedFrom even when the layer is disabled (substrate-conditional revival)', async () => {
     const { CUDAHardwareLayer } = await import('../hardware/CUDAHardwareLayer');
     const triad = baseTriad();
     const disabledLayer = new CUDAHardwareLayer({ enableCUDA: false });
     const adapterWith = new GenericProductionAdapter({
       ...triad,
-      platform: 'phi4-disabled',
+      platform: 'phi5-disabled',
       dispatch: async () => ({ ok: true }),
       cudaLayer: disabledLayer,
     });
-    const adapterWithout = new GenericProductionAdapter({
-      ...baseTriad(),
-      platform: 'phi4-disabled',
-      dispatch: async () => ({ ok: true }),
-    });
     const r1 = await adapterWith.generate({ prompt: 'parity probe' });
-    const r2 = await adapterWithout.generate({ prompt: 'parity probe' });
+    // No fingerprintable device leak — Φ4 contract preserved.
     expect(r1.provenance.accelerator?.requestedDevice).toBeUndefined();
     expect(r1.provenance.accelerator?.substrateLineage).toBeUndefined();
-    expect(r1.provenance.accelerator?.substrateLineage).toBe(
-      r2.provenance.accelerator?.substrateLineage,
-    );
+    // Φ5 — disabled layers still emit resolvedFrom so a downstream
+    // MetaTuner can distinguish a CPU run that was deliberately
+    // forced from one that auto-probed and found no GPU.
+    expect(r1.provenance.accelerator?.resolvedFrom).toBe('explicit-off');
+  });
+
+  it('Φ5 byte-stable Φ3 leaf shape preserved when no cudaLayer is supplied at all', async () => {
+    const triad = baseTriad();
+    const adapterWithout = new GenericProductionAdapter({
+      ...triad,
+      platform: 'phi5-no-layer',
+      dispatch: async () => ({ ok: true }),
+    });
+    const r = await adapterWithout.generate({ prompt: 'parity probe' });
+    const accel = r.provenance.accelerator;
+    expect(accel?.requestedDevice).toBeUndefined();
+    expect(accel?.substrateLineage).toBeUndefined();
+    expect(accel?.resolvedFrom).toBeUndefined();
   });
 });
 
