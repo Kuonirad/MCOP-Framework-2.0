@@ -158,17 +158,61 @@ end-to-end pipeline gain when all six run on per-op streams.
 
 ## Φ4 — verifiedDevice gate hardening
 
-- Run a 1 000-step ARC trace with `enableCUDA: true` and assert zero
-  `GhostGPUError` events. Any silent CPU fallback in this run blocks Φ5.
-- Add a CI integration test that boots the layer with a deliberately
-  CPU-only ORT build and asserts the gate fires (i.e. negative test for
-  the safety property).
-- Wire the layer through `BaseAdapter.prepare()` and
-  `SynthesisProvenanceTracer` analogously to PR #633's wiring of the
-  microservice provider, but only behind `enableCUDA`.
+**Status: shipped (this PR). Soak harness + canary regression + BaseAdapter wiring all on `ubuntu-latest`; full 1 000-step CUDA trace on a real GPU host remains a follow-up.**
 
-**Exit criteria.** 1 000-step run emits zero ghost-GPU events and full
-Merkle replay reproduces every `verifiedDevice` field byte-identically.
+What this PR adds:
+
+- `scripts/cuda-verified-device-soak.mjs` — pure-ESM 1 000-step soak
+  harness with the same `parseExecutionProvider` semantics as
+  `CUDAHardwareLayer.ts`. Cycles through all six op-sharded kernels via
+  `step % 6`, seals a fold-Merkle root over the leaf sequence, and writes
+  `docs/benchmarks/cuda_verified_device_soak.json`. Schema
+  `mcop-cuda-verified-device-soak/1.0`. Byte-stable across machines in
+  smoke mode.
+- `--canary=<step>` flag injects a `CPUExecutionProvider` payload at
+  one specific step so CI can prove the gate halts at *exactly* the
+  canonical step (regression for ghost-GPU detection).
+- `src/__tests__/cudaVerifiedDeviceSoak.test.ts` — drives the actual
+  in-process `CUDAHardwareLayer.accelerate()` for 1 000 × 6 = 6 000
+  iterations against an injected mock `sessionFactory`, asserts:
+  - Every leaf's `verifiedDevice === 'CUDAExecutionProvider'`.
+  - Every leaf's `substrateLineage === 'CUDAExecutionProvider/per-op'`.
+  - Zero `GhostGPUError`s raised across the soak.
+  - Every emitted root is a 64-hex SHA-256 digest.
+  - Plus a separate canary case that injects a CPU profile at step 137
+    and asserts the gate halts at exactly that step.
+  - Plus a child-process test that re-runs the standalone harness in
+    a tmpdir-isolated process and verifies the committed Merkle root
+    reproduces byte-identically.
+- `BaseAdapter.cudaLayer?: CUDAHardwareLayer` slot — analogous to PR
+  #633's `accelerator?: Accelerator` slot. When supplied AND
+  `enableCUDA` is `true`, the holographic-write Merkle leaf is enriched
+  with the layer's `requestedDevice` and
+  `<verifiedProvider>/<streamMode>` substrate-lineage tag. Default
+  `undefined` (no behaviour change vs. Φ3). Provenance-only — adapters
+  that don't supply the layer keep the Φ3 leaf shape byte-for-byte.
+- `pnpm soak:cuda-verified-device` (canonical 1 000-step run) and
+  `pnpm soak:cuda-verified-device:canary` (canary at step 500) added.
+
+What defers to Φ4 follow-up (requires GPU host + ONNX exports):
+
+- Real-GPU 1 000-step soak with full per-op streams + actual ORT
+  profiler payloads. The structural soak is byte-stable on
+  `ubuntu-latest`; on a GPU host it should reproduce the same
+  `targets.phi4ZeroGhostGPUEvents === true` invariant against real
+  driver output.
+- Full integration with `SynthesisProvenanceTracer` (currently the
+  trace records `device` + `acceleratorMode` only via the existing
+  accelerator slot; surfacing `verifiedDevice` + `substrateLineage`
+  through the tracer's UI is a Φ5 concern).
+
+**Exit criteria (full).** GPU-host 1 000-step run emits zero ghost-GPU
+events with real ORT profiler output, and full Merkle replay reproduces
+every `verifiedDevice` field byte-identically across reboots.
+
+**Exit criteria (this PR).** `ubuntu-latest` runs the soak +
+canary + in-process gate tests with byte-stable Merkle root, all Φ3
+provenance leaf shapes preserved when the cudaLayer slot is unused.
 
 ## Φ5 — Default-on
 

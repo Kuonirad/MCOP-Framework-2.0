@@ -1,0 +1,36 @@
+{
+  "schema": "mcop-cuda-verified-device-soak/1.0",
+  "capturedAt": "2026-05-07T20:30:00.000Z",
+  "mode": "smoke",
+  "seed": "0xC0FFEE",
+  "steps": 1000,
+  "completedSteps": 1000,
+  "halted": false,
+  "firstGhostGPUStep": null,
+  "canary": null,
+  "device": "cuda:0",
+  "streams": "per-op",
+  "kernelOps": [
+    "encode",
+    "graphAggregate",
+    "holographicUpdate",
+    "cosineRecall",
+    "evolveScore",
+    "homeostasis"
+  ],
+  "opCoverage": {
+    "encode": 167,
+    "graphAggregate": 167,
+    "holographicUpdate": 167,
+    "cosineRecall": 167,
+    "evolveScore": 166,
+    "homeostasis": 166
+  },
+  "ghostGpuEvents": [],
+  "lastVerifiedDevice": "CUDAExecutionProvider",
+  "host": null,
+  "targets": {
+    "phi4ZeroGhostGPUEvents": true
+  },
+  "merkleRoot": "75c65f3e56d4c9e74acfa27db84def44c85d20325d88bb074519b083b4392780"
+}
