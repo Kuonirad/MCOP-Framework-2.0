@@ -13,6 +13,7 @@ import crypto from 'crypto';
 
 import { HolographicEtch } from '../core/holographicEtch';
 import { attachAcceleratorProvenance, CPUFallback, type Accelerator } from '../hardware';
+import type { CUDAHardwareLayer } from '../hardware/CUDAHardwareLayer';
 import { NovaNeoEncoder } from '../core/novaNeoEncoder';
 import { StigmergyV5 } from '../core/stigmergyV5';
 import type {
@@ -36,6 +37,22 @@ export interface BaseAdapterDeps {
   etch: HolographicEtch;
   dialectical?: IDialecticalSynthesizer;
   accelerator?: Accelerator;
+  /**
+   * Φ4 wiring slot for the in-process op-sharded CUDA layer.
+   *
+   * When supplied AND `enableCUDA` is set on the layer, the
+   * holographic-write Merkle leaf is enriched with the layer's
+   * `requestedDevice` and `<verifiedProvider>/<streamMode>`
+   * substrate-lineage tag — analogous to PR #633's wiring of the
+   * microservice provider, but specific to the in-process layer's
+   * verifiedDevice gate.
+   *
+   * Provenance-only — this slot does NOT call `accelerate()`, so
+   * adapters opt in without dragging the optional `onnxruntime-node`
+   * peer into the dispatch path. Default `undefined` (no behaviour
+   * change vs. Φ3).
+   */
+  cudaLayer?: CUDAHardwareLayer;
 }
 
 export interface PreparedDispatch {
@@ -58,6 +75,7 @@ export abstract class BaseAdapter<
   protected readonly etch: HolographicEtch;
   protected readonly dialectical: IDialecticalSynthesizer;
   protected readonly accelerator: Accelerator;
+  protected readonly cudaLayer: CUDAHardwareLayer | undefined;
 
   constructor(deps: BaseAdapterDeps) {
     this.encoder = deps.encoder;
@@ -65,6 +83,7 @@ export abstract class BaseAdapter<
     this.etch = deps.etch;
     this.dialectical = deps.dialectical ?? new DialecticalSynthesizer();
     this.accelerator = deps.accelerator ?? new CPUFallback();
+    this.cudaLayer = deps.cudaLayer;
   }
 
   /** Concrete adapters return their platform metadata. */
@@ -151,6 +170,19 @@ export abstract class BaseAdapter<
       traceMetadata,
     );
 
+    // Φ4 wiring: when the in-process CUDA layer is supplied AND
+    // enabled, surface the layer's `requestedDevice` and
+    // `<verifiedProvider>/<streamMode>` substrate-lineage hint on the
+    // holographic-write leaf so MetaTuner can revive on the exact
+    // stream-allocation regime that produced the leaf. Default
+    // `undefined` keeps the leaf shape byte-identical to Φ3.
+    const cudaProvenance = this.cudaLayer?.enableCUDA
+      ? {
+          requestedDevice: this.cudaLayer.device,
+          substrateLineage: `${this.cudaLayer.device}/${this.cudaLayer.streams}`,
+        }
+      : {};
+
     const acceleratorSeal = attachAcceleratorProvenance(
       { tensorHash, traceHash: trace.hash, etchHash: etchRecord.hash },
       {
@@ -160,6 +192,7 @@ export abstract class BaseAdapter<
         provider: `${this.platformName()}Adapter`,
         fallback: this.accelerator.mode === 'cpu',
         fallbackReason: this.accelerator.mode === 'cpu' ? 'default synchronous CPU path' : undefined,
+        ...cudaProvenance,
       },
     );
 

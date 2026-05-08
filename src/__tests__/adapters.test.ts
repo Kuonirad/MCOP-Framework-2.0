@@ -631,6 +631,51 @@ describe('GenericProductionAdapter', () => {
     };
     expect(recorded.plannedSequence).toBeUndefined();
   });
+
+  it('Φ4 cudaLayer wiring augments holographic-write provenance when the layer is enabled', async () => {
+    const { CUDAHardwareLayer } = await import('../hardware/CUDAHardwareLayer');
+    const triad = baseTriad();
+    const cudaLayer = new CUDAHardwareLayer({
+      enableCUDA: true,
+      device: 'cuda:5',
+      streams: 'shared',
+    });
+    const adapter = new GenericProductionAdapter({
+      ...triad,
+      platform: 'phi4-wiring',
+      dispatch: async () => ({ ok: true }),
+      cudaLayer,
+    });
+    const response = await adapter.generate({ prompt: 'phi4 wiring' });
+    const accelerator = response.provenance.accelerator;
+    expect(accelerator).toBeDefined();
+    expect(accelerator?.requestedDevice).toBe('cuda:5');
+    expect(accelerator?.substrateLineage).toBe('cuda:5/shared');
+  });
+
+  it('Φ4 cudaLayer wiring is a no-op when the layer is disabled (byte-stable vs Φ3 leaf shape)', async () => {
+    const { CUDAHardwareLayer } = await import('../hardware/CUDAHardwareLayer');
+    const triad = baseTriad();
+    const disabledLayer = new CUDAHardwareLayer({ enableCUDA: false });
+    const adapterWith = new GenericProductionAdapter({
+      ...triad,
+      platform: 'phi4-disabled',
+      dispatch: async () => ({ ok: true }),
+      cudaLayer: disabledLayer,
+    });
+    const adapterWithout = new GenericProductionAdapter({
+      ...baseTriad(),
+      platform: 'phi4-disabled',
+      dispatch: async () => ({ ok: true }),
+    });
+    const r1 = await adapterWith.generate({ prompt: 'parity probe' });
+    const r2 = await adapterWithout.generate({ prompt: 'parity probe' });
+    expect(r1.provenance.accelerator?.requestedDevice).toBeUndefined();
+    expect(r1.provenance.accelerator?.substrateLineage).toBeUndefined();
+    expect(r1.provenance.accelerator?.substrateLineage).toBe(
+      r2.provenance.accelerator?.substrateLineage,
+    );
+  });
 });
 
 const grokFixture = (
