@@ -21,6 +21,7 @@ on:
           - random
           - grok
           - mapping-grok
+          - holographic
       max_actions:
         description: "Hard cap on actions per game"
         required: false
