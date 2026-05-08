@@ -1233,22 +1233,120 @@ def test_holographic_strategy_state_hash_only_depends_on_goal_layer() -> None:
 
 
 def test_holographic_strategy_classifies_blocked_wobble_below_threshold() -> None:
-    """A 1-cell change is wobble; >=2-cell change is real movement."""
+    """Goal centroid stationary => blocked_wobble + wall registered."""
     strat = HolographicShadowStrategy()
     prev = _HoloFrame(_grid_with_goal([(0, 0)]))
     # Set last_goal_centroid the way choose() would.
     strat._last_state_hash = strat._state_hash(prev)
     strat._last_goal_centroid = strat._goal_centroid(prev)
-    # 1-cell change vs prev (a single non-goal cell flips) => wobble.
-    # Moving the goal itself would change 2 cells (vacate + arrive) and
-    # hit the real_move threshold, which is the opposite of what we want.
+    # Non-goal cell flips while the goal stays at (0,0). Centroid delta
+    # is 0.0 (< wobble threshold of 0.5) => blocked_wobble.
     wobble_grid = _grid_with_goal([(0, 0)])
     wobble_grid[0][7][7] = 5
     next_wobble = _HoloFrame(wobble_grid)
     strat.observe(prev, "ACTION1", next_wobble)
-    record = strat.provenance[-1]
-    assert record["type"] == "blocked_wobble"
+    # Both a blocked_wobble outcome record and a debug_wall_learning
+    # follow-up are appended; assert against types rather than the
+    # trailing index so future debug etches don't break the test.
+    types = [rec["type"] for rec in strat.provenance]
+    assert "blocked_wobble" in types
+    assert "debug_wall_learning" in types
     assert strat.walls[(strat._last_state_hash, "ACTION1")] == 1
+
+
+def test_holographic_strategy_ambiguous_drift_does_not_register_wall() -> None:
+    """0.5..1.5 cell centroid drift is ambiguous: no move, no wall."""
+    strat = HolographicShadowStrategy()
+    prev = _HoloFrame(_grid_with_goal([(0, 0)]))
+    strat._last_state_hash = strat._state_hash(prev)
+    strat._last_goal_centroid = strat._goal_centroid(prev)
+    # Hand-set centroids straddling the dead zone (delta = 1.0).
+    strat._last_goal_centroid = (10.0, 10.0)
+    nxt = _HoloFrame(_grid_with_goal([(1, 0)]))  # any next frame is fine
+    # Patch _goal_centroid to return a deterministic in-zone centroid.
+    original = strat._goal_centroid
+    strat._goal_centroid = lambda frame: (11.0, 10.0)  # type: ignore
+    try:
+        strat.observe(prev, "ACTION4", nxt)
+    finally:
+        strat._goal_centroid = original  # type: ignore
+    record = next(
+        r for r in strat.provenance
+        if r.get("action") == "ACTION4" and r.get("type") != "debug_wall_learning"
+    )
+    assert record["type"] == "ambiguous_drift"
+    assert (strat._last_state_hash, "ACTION4") not in strat.walls
+    assert strat.action_stats["ACTION4"]["moved_count"] == 0
+    # No debug_wall_learning should be emitted for ambiguous drifts.
+    assert all(
+        r["type"] != "debug_wall_learning"
+        for r in strat.provenance
+    )
+
+
+def test_holographic_strategy_emits_debug_loop_detected_on_oscillation() -> None:
+    """First-time oscillation triggers a debug_loop_detected provenance entry."""
+    strat = HolographicShadowStrategy()
+    strat._centroid_history = [
+        (1.0, 1.0), (1.0, 2.0),
+        (1.0, 1.0), (1.0, 2.0),
+        (1.0, 1.0), (1.0, 2.0),
+    ]
+    strat.choose(_HoloFrame(_grid_with_goal([(1, 1)])), [], {}, ["ACTION1", "ACTION2"])
+    debug_entries = [
+        r for r in strat.provenance if r["type"] == "debug_loop_detected"
+    ]
+    assert len(debug_entries) == 1
+    entry = debug_entries[0]
+    assert entry["novelty_pick"] in {"ACTION1", "ACTION2"}
+    assert len(entry["centroid_window"]) == strat.HISTORY_WINDOW
+    # Re-running with an identical signature must not spam the trace.
+    strat.choose(_HoloFrame(_grid_with_goal([(1, 1)])), [], {}, ["ACTION1", "ACTION2"])
+    debug_entries = [
+        r for r in strat.provenance if r["type"] == "debug_loop_detected"
+    ]
+    assert len(debug_entries) == 1
+
+
+def test_holographic_strategy_oscillation_breaks_via_least_tried_action() -> None:
+    """Both alternating actions register as real_move; novelty must still flip."""
+    strat = HolographicShadowStrategy()
+    state_hash = "abcd"
+    strat._last_state_hash = state_hash
+    # Both actions have moved every time, so wall_hits == 0 for both
+    # and only the per-state try counter discriminates them.
+    strat.action_stats["ACTION1"] = {
+        "count": 10.0, "moved_count": 10.0, "total_centroid_delta": 10.0,
+    }
+    strat.action_stats["ACTION2"] = {
+        "count": 4.0, "moved_count": 4.0, "total_centroid_delta": 4.0,
+    }
+    strat.state_action_tries[(state_hash, "ACTION1")] = 8
+    strat.state_action_tries[(state_hash, "ACTION2")] = 2
+    strat._centroid_history = [
+        (1.0, 1.0), (1.0, 2.0),
+        (1.0, 1.0), (1.0, 2.0),
+        (1.0, 1.0), (1.0, 2.0),
+    ]
+    # Force choose() to use our seeded state_hash.
+    frame = _HoloFrame(_grid_with_goal([(1, 1)]))
+    original = strat._state_hash
+    strat._state_hash = lambda f: state_hash  # type: ignore
+    try:
+        chosen, _ = strat.choose(frame, [], {}, ["ACTION1", "ACTION2"])
+    finally:
+        strat._state_hash = original  # type: ignore
+    assert chosen == "ACTION2"
+
+
+def test_holographic_strategy_wobble_threshold_validation() -> None:
+    """Reject configurations where wobble_threshold > move_threshold."""
+    import pytest
+    with pytest.raises(ValueError):
+        HolographicShadowStrategy(
+            move_threshold_centroid=1.0,
+            wobble_threshold_centroid=2.0,
+        )
 
 
 def test_holographic_strategy_classifies_real_move_at_threshold() -> None:
