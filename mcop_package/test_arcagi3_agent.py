@@ -1648,3 +1648,67 @@ def test_holographic_strategy_auto_discovery_can_be_disabled() -> None:
     assert strat.goal_color == 8  # unchanged
     # Detector still runs (so discovery can be enabled later) but is not applied.
     assert strat._goal_detector.current() == 7
+
+
+# ---- run_arcagi3_agent CLI dispatch ---------------------------------------
+
+
+def test_run_arcagi3_agent_dispatches_holographic_strategy(
+    monkeypatch: Any,
+) -> None:
+    """``--strategy holographic`` constructs a HolographicShadowStrategy.
+
+    Regression guard for the workflow_dispatch dropdown in
+    ``.github/workflows/arcagi3-run.yml`` -- the workflow exposes
+    ``holographic`` as a choice, and the CLI must accept it and wire it
+    to the right Strategy class.
+    """
+    import sys
+    from mcop_package import run_arcagi3_agent
+
+    captured: Dict[str, Any] = {}
+
+    class _FakeAgent:
+        def __init__(self, **kwargs: Any) -> None:
+            captured["init_kwargs"] = kwargs
+            captured["strategy_type"] = type(kwargs["strategy"]).__name__
+
+        def list_games(self) -> List[str]:  # pragma: no cover -- not exercised
+            return []
+
+        def play(self, game_id: str) -> GameResult:  # pragma: no cover
+            captured["played"] = game_id
+            return GameResult(game_id=game_id, final_state="WIN")
+
+    monkeypatch.setenv("ARC_API_KEY", "test-key")
+    monkeypatch.setattr(run_arcagi3_agent, "MCOPArcAgi3Agent", _FakeAgent)
+    # No game_id => list_games path; strategy still has to be constructed.
+    monkeypatch.setattr(
+        sys, "argv", ["run_arcagi3_agent", "--strategy", "holographic"]
+    )
+
+    rc = run_arcagi3_agent.main()
+    assert rc == 0
+    assert captured["strategy_type"] == "HolographicShadowStrategy"
+
+
+def test_run_arcagi3_agent_rejects_unknown_strategy(
+    monkeypatch: Any,
+    capsys: Any,
+) -> None:
+    """argparse must reject unknown strategies (no silent fallback)."""
+    import sys
+    from mcop_package import run_arcagi3_agent
+
+    monkeypatch.setenv("ARC_API_KEY", "test-key")
+    monkeypatch.setattr(
+        sys, "argv", ["run_arcagi3_agent", "--strategy", "doesnotexist"]
+    )
+    try:
+        run_arcagi3_agent.main()
+    except SystemExit as exc:
+        assert exc.code == 2
+    else:  # pragma: no cover -- argparse must exit
+        raise AssertionError("argparse accepted unknown strategy")
+    err = capsys.readouterr().err
+    assert "invalid choice" in err
