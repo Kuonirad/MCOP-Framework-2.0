@@ -52,8 +52,31 @@ const nextConfig: NextConfig = {
   },
 
   async headers() {
+    // The /showcase/* cinematic prototype loads Three.js, React + Babel
+    // (for the in-page Tweaks panel) from unpkg, Google Fonts CSS, and uses
+    // the Babel runtime which evals JSX → JS at runtime. The site-wide CSP
+    // forbids all of that, so this scoped header overrides it for that
+    // path only — every other route keeps the strict policy below.
+    const showcaseSecurityHeaders = securityHeaders.map((h) =>
+      h.key === 'Content-Security-Policy'
+        ? {
+            key: 'Content-Security-Policy',
+            value:
+              "default-src 'self'; " +
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com; " +
+              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
+              "font-src 'self' https://fonts.gstatic.com data:; " +
+              "img-src 'self' blob: data:; " +
+              "connect-src 'self'; object-src 'none'; base-uri 'self';",
+          }
+        : h,
+    );
+
     // Note: Next already sets immutable Cache-Control for `/_next/static/*`,
     // so we avoid re-declaring it here (it triggers a dev-mode warning).
+    // Order matters — when multiple rules set the same header key, the
+    // later one wins, so the scoped showcase CSP must come AFTER the
+    // wildcard policy.
     return [
       { source: '/:path*', headers: securityHeaders },
       { source: '/fonts/:path*', headers: [immutableCache] },
@@ -61,6 +84,7 @@ const nextConfig: NextConfig = {
         source: '/:path*.(svg|png|jpg|jpeg|webp|avif|ico|woff|woff2)',
         headers: [immutableCache],
       },
+      { source: '/showcase/:path*', headers: showcaseSecurityHeaders },
     ];
   },
 };

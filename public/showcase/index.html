@@ -1,0 +1,813 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>MCOP Framework 2.0 — Meta-Cognitive Optimization Protocol</title>
+<meta name="description" content="Recursive triad orchestration. Deterministic. Cryptographically-linked provenance at every step." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600&family=JetBrains+Mono:wght@300;400;500&display=swap" />
+<style>
+:root{
+  --bg:#07070a;
+  --bg-2:#0c0c11;
+  --ink:#f5f1e8;
+  --ink-soft:rgba(245,241,232,.66);
+  --ink-mute:rgba(245,241,232,.42);
+  --ink-faint:rgba(245,241,232,.18);
+  --rule:rgba(245,241,232,.12);
+  --warm:#e8c98a;
+  --cool:#9bd6ff;
+  --violet:#b39bff;
+  --serif:'Instrument Serif', 'Times New Roman', serif;
+  --sans:'Geist', system-ui, sans-serif;
+  --mono:'JetBrains Mono', ui-monospace, monospace;
+  --grain-mul:.55;
+  --hero-grad-1:rgba(155,214,255,.06);
+}
+/* ===== Atmosphere: Bone (light editorial) ===== */
+body[data-atmosphere="bone"]{
+  --bg:#f1ece2;
+  --bg-2:#e8e1d3;
+  --ink:#1a1410;
+  --ink-soft:rgba(26,20,16,.66);
+  --ink-mute:rgba(26,20,16,.46);
+  --ink-faint:rgba(26,20,16,.16);
+  --rule:rgba(26,20,16,.14);
+  --warm:#7a4a18;
+  --cool:#2a5a8a;
+  --violet:#5a3a8a;
+  --grain-mul:.32;
+  --hero-grad-1:rgba(122,74,24,.05);
+}
+body[data-atmosphere="bone"] .site-header.is-floated{background:rgba(241,236,226,.7)}
+body[data-atmosphere="bone"] .code-block{background:#1a1612;color:#e8e1d3;border-color:rgba(26,20,16,.2)}
+body[data-atmosphere="bone"] .code-block .c-com{color:rgba(232,225,211,.5)}
+body[data-atmosphere="bone"] .code-tabs{border-color:var(--rule)}
+body[data-atmosphere="bone"] section[id="perf"],
+body[data-atmosphere="bone"] section[id="install"]{background:#e8e1d3}
+body[data-atmosphere="bone"] .orbit-center{
+  background:radial-gradient(circle at 35% 30%,#1a1612,#3a2e22 40%,#7a4a18 80%,#f1ece2);
+  color:#f1ece2;
+  box-shadow:0 0 80px rgba(122,74,24,.18), inset 0 0 30px rgba(255,255,255,.2);
+}
+body[data-atmosphere="bone"] .adapter-pin{background:rgba(241,236,226,.85)}
+body[data-atmosphere="bone"] .hero h1 .gold{
+  background:linear-gradient(180deg,#7a4a18 0%,#3a2008 60%,#1a0a02 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+body[data-atmosphere="bone"] body::before,body[data-atmosphere="bone"]::before{mix-blend-mode:multiply}
+
+/* ===== Atmosphere: Plasma (vivid neon cyber) ===== */
+body[data-atmosphere="plasma"]{
+  --bg:#03020a;
+  --bg-2:#08051a;
+  --ink:#f0f6ff;
+  --ink-soft:rgba(240,246,255,.7);
+  --ink-mute:rgba(240,246,255,.45);
+  --ink-faint:rgba(240,246,255,.2);
+  --rule:rgba(180,150,255,.18);
+  --warm:#ffd700;
+  --cool:#00f0ff;
+  --violet:#b39bff;
+  --grain-mul:.38;
+  --hero-grad-1:rgba(0,240,255,.08);
+}
+body[data-atmosphere="plasma"] .site-header.is-floated{background:rgba(3,2,10,.62);border-bottom-color:rgba(0,240,255,.2)}
+body[data-atmosphere="plasma"] .hero h1 .gold{
+  background:linear-gradient(180deg,#00f0ff 0%,#7b2dff 50%,#ff006e 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 0 24px rgba(123,45,255,.35));
+}
+body[data-atmosphere="plasma"] section[id="perf"],
+body[data-atmosphere="plasma"] section[id="install"]{background:#06031a}
+body[data-atmosphere="plasma"] .triad-card:hover{background:#0a061f}
+body[data-atmosphere="plasma"] .triad-tag{color:#00f0ff}
+body[data-atmosphere="plasma"] .step-hash{color:#00f0ff}
+body[data-atmosphere="plasma"] .perf-bar i{background:linear-gradient(90deg,#00f0ff,#ff006e)}
+body[data-atmosphere="plasma"] .resonance-bar-track .bar{background:linear-gradient(90deg,#00f0ff,#ff006e)}
+body[data-atmosphere="plasma"] .orbit-center{
+  background:radial-gradient(circle at 35% 30%,#fff,#00f0ff 40%,#7b2dff 75%,#03020a);
+  box-shadow:0 0 80px rgba(0,240,255,.4), inset 0 0 30px rgba(0,0,0,.4);
+  color:#03020a;
+}
+body[data-atmosphere="plasma"] .adapter-pin .lamp{background:#00f0ff;box-shadow:0 0 10px #00f0ff}
+body[data-atmosphere="plasma"] .eyebrow .pulse{background:#00f0ff;box-shadow:0 0 12px #00f0ff}
+body[data-atmosphere="plasma"] .btn.primary{background:linear-gradient(90deg,#00f0ff,#7b2dff);border-color:transparent;color:#03020a}
+body[data-atmosphere="plasma"] .btn.primary:hover{background:linear-gradient(90deg,#ff006e,#ffd700)}
+
+/* atmosphere transitions */
+body,header,section,.triad-card,.code-block,.adapter-pin,.bench,.perf-row,.console-cell{
+  transition:background-color .5s ease,color .5s ease,border-color .5s ease;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-weight:400;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+body{overflow-x:hidden;line-height:1.45}
+img,svg,canvas{display:block;max-width:100%}
+a{color:inherit;text-decoration:none}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+
+/* ---- film grain ---- */
+body::before{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:200;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.96 0 0 0 0 0.94 0 0 0 0 0.91 0 0 0 0.06 0'/></filter><rect width='240' height='240' filter='url(%23n)'/></svg>");
+  mix-blend-mode:overlay;opacity:var(--grain-mul);
+}
+
+/* ---- header ---- */
+.site-header{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:18px 32px;
+  transition:backdrop-filter .3s ease, background .3s ease, border-color .3s ease;
+  border-bottom:1px solid transparent;
+}
+.site-header.is-floated{
+  backdrop-filter:blur(18px) saturate(140%);
+  -webkit-backdrop-filter:blur(18px) saturate(140%);
+  background:rgba(7,7,10,.62);
+  border-bottom-color:var(--rule);
+}
+.brand{display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:12px;letter-spacing:.18em;text-transform:uppercase}
+.brand-mark{width:14px;height:14px;border:1px solid var(--ink);transform:rotate(45deg);position:relative}
+.brand-mark::before{content:"";position:absolute;inset:3px;background:var(--ink);transform:rotate(0)}
+.nav{display:flex;gap:28px;font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-soft)}
+.nav a{position:relative;padding:6px 0;transition:color .2s}
+.nav a:hover{color:var(--ink)}
+.nav a::after{content:"";position:absolute;left:0;right:0;bottom:0;height:1px;background:var(--ink);transform:scaleX(0);transform-origin:left;transition:transform .3s}
+.nav a:hover::after{transform:scaleX(1)}
+.cta-link{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;padding:9px 16px;border:1px solid var(--rule);border-radius:999px;transition:border-color .2s,background .2s}
+.cta-link:hover{border-color:var(--ink);background:rgba(245,241,232,.04)}
+@media(max-width:820px){.nav{display:none}}
+
+/* ---- hero ---- */
+.hero{
+  position:relative;min-height:100vh;
+  display:grid;grid-template-rows:1fr auto;
+  padding:120px 32px 32px;
+  overflow:hidden;
+}
+#hero-canvas{position:absolute;inset:0;width:100%;height:100%;z-index:1}
+.hero-content{position:relative;z-index:2;display:grid;align-content:end;gap:28px;max-width:1400px;margin:0 auto;width:100%}
+.eyebrow{
+  display:inline-flex;align-items:center;gap:14px;
+  font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-soft);
+}
+.eyebrow .pulse{width:7px;height:7px;border-radius:50%;background:var(--cool);box-shadow:0 0 12px var(--cool);animation:pulse 1.8s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.4;transform:scale(.85)}50%{opacity:1;transform:scale(1.1)}}
+.hero h1{
+  font-family:var(--serif);font-weight:400;font-style:italic;
+  font-size:clamp(56px,11vw,184px);line-height:.92;letter-spacing:-.02em;
+  text-wrap:balance;
+}
+.hero h1 .roman{font-style:normal}
+.hero h1 .gold{
+  background:linear-gradient(180deg,#f5e6c0 0%,#c89d52 60%,#7a4a18 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+.hero-meta{
+  display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:48px;align-items:end;
+  padding-top:32px;border-top:1px solid var(--rule);
+}
+.hero-meta .lede{font-family:var(--serif);font-size:24px;line-height:1.25;color:var(--ink);max-width:520px;text-wrap:pretty}
+.meta-cell{display:grid;gap:6px}
+.meta-cell .k{font-family:var(--mono);font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-mute)}
+.meta-cell .v{font-family:var(--serif);font-size:28px;line-height:1}
+.meta-cell .vmono{font-family:var(--mono);font-size:14px;color:var(--ink)}
+@media(max-width:900px){
+  .hero-meta{grid-template-columns:1fr 1fr;gap:24px}
+}
+
+/* ---- ticker bar ---- */
+.ticker{
+  border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);
+  font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;
+  color:var(--ink-mute);overflow:hidden;
+}
+.ticker-track{display:flex;gap:48px;padding:14px 0;white-space:nowrap;animation:slide 60s linear infinite;width:max-content}
+.ticker-track span{display:inline-flex;align-items:center;gap:14px}
+.ticker-track .dot{width:4px;height:4px;border-radius:50%;background:var(--ink-faint)}
+@keyframes slide{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+
+/* ---- general section ---- */
+section{padding:140px 32px;position:relative}
+.shell{max-width:1400px;margin:0 auto;width:100%}
+.section-head{display:grid;grid-template-columns:auto 1fr;gap:64px;align-items:end;margin-bottom:80px}
+.section-head .num{font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-mute)}
+.section-head h2{font-family:var(--serif);font-weight:400;font-size:clamp(40px,6vw,84px);line-height:1;letter-spacing:-.015em;text-wrap:balance}
+.section-head h2 em{font-style:italic;color:var(--ink-soft)}
+.section-head .desc{max-width:540px;font-size:15px;color:var(--ink-soft);line-height:1.55;justify-self:end}
+@media(max-width:900px){
+  .section-head{grid-template-columns:1fr;gap:24px}
+  .section-head .desc{justify-self:start}
+}
+
+/* reveal */
+[data-reveal]{opacity:0;transform:translateY(28px);transition:opacity .9s ease,transform .9s ease}
+[data-reveal].is-revealed{opacity:1;transform:none}
+
+/* ---- triad ---- */
+.triad-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--rule);border:1px solid var(--rule)}
+.triad-card{background:var(--bg);padding:0;display:grid;grid-template-rows:auto 1fr auto;min-height:560px;position:relative;overflow:hidden;transition:background .4s}
+.triad-card:hover{background:#0a0a0f}
+.triad-head{padding:32px 32px 0;display:flex;justify-content:space-between;align-items:flex-start;gap:16px;font-family:var(--mono);font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-mute)}
+.triad-head .idx{font-family:var(--serif);font-style:italic;font-size:18px;color:var(--ink-soft);letter-spacing:0;text-transform:none}
+.triad-canvas{height:280px;width:100%;cursor:grab}
+.triad-body{padding:0 32px 32px;display:grid;gap:14px}
+.triad-body h3{font-family:var(--serif);font-size:36px;line-height:1.05;font-weight:400;letter-spacing:-.01em}
+.triad-body h3 em{font-style:italic;color:var(--ink-soft)}
+.triad-body p{font-size:14px;color:var(--ink-soft);line-height:1.55;max-width:38ch}
+.triad-tag{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--warm);margin-top:6px}
+.triad-tag::before{content:"";width:18px;height:1px;background:currentColor}
+@media(max-width:980px){.triad-grid{grid-template-columns:1fr}.triad-card{min-height:520px}}
+
+/* ---- chain section ---- */
+.chain{
+  display:grid;grid-template-columns:1fr 1.2fr;gap:64px;align-items:center;
+}
+#chain-canvas{width:100%;height:520px;background:radial-gradient(ellipse at center,rgba(155,214,255,.04),transparent 60%)}
+.chain-steps{display:grid;gap:0;border-top:1px solid var(--rule)}
+.chain-step{
+  display:grid;grid-template-columns:48px 1fr auto;gap:20px;
+  padding:22px 0;border-bottom:1px solid var(--rule);align-items:center;
+}
+.chain-step .step-num{font-family:var(--serif);font-style:italic;font-size:32px;color:var(--ink-soft);line-height:1}
+.chain-step .step-body h4{font-family:var(--serif);font-size:22px;font-weight:400;line-height:1.15;margin-bottom:4px}
+.chain-step .step-body p{font-family:var(--mono);font-size:11px;color:var(--ink-mute);letter-spacing:.05em}
+.chain-step .step-hash{font-family:var(--mono);font-size:11px;color:var(--warm);letter-spacing:.08em;white-space:nowrap}
+@media(max-width:980px){.chain{grid-template-columns:1fr}}
+
+/* ---- benchmarks ---- */
+.bench-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--rule);border:1px solid var(--rule)}
+.bench{background:var(--bg);padding:36px 28px;display:grid;gap:14px;min-height:220px;align-content:space-between}
+.bench .b-label{font-family:var(--mono);font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-mute)}
+.bench .b-value{font-family:var(--serif);font-size:clamp(48px,5vw,76px);line-height:.9;letter-spacing:-.02em}
+.bench .b-unit{font-family:var(--mono);font-size:11px;color:var(--ink-soft);letter-spacing:.1em;text-transform:lowercase;margin-left:6px}
+.bench .b-sub{font-size:13px;color:var(--ink-soft);line-height:1.4}
+@media(max-width:980px){.bench-grid{grid-template-columns:1fr 1fr}}
+
+/* perf table */
+.perf-table{margin-top:64px;border:1px solid var(--rule);border-radius:0;overflow:hidden}
+.perf-row{
+  display:grid;grid-template-columns:2fr 1fr 1.4fr 1fr;
+  padding:18px 28px;border-bottom:1px solid var(--rule);align-items:center;
+  font-family:var(--mono);font-size:13px;
+}
+.perf-row:last-child{border-bottom:0}
+.perf-row.head{font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-mute);background:rgba(245,241,232,.02)}
+.perf-row .opname{font-family:var(--sans);font-size:15px;letter-spacing:0;text-transform:none;color:var(--ink)}
+.perf-row .val{color:var(--ink)}
+.perf-bar{height:3px;background:var(--ink-faint);position:relative;overflow:hidden}
+.perf-bar i{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,var(--cool),var(--warm));transform-origin:left}
+
+/* ---- adapters ---- */
+.adapter-orbit{position:relative;height:560px;display:grid;place-items:center}
+.orbit-ring{position:absolute;border:1px solid var(--rule);border-radius:50%;animation:rot 80s linear infinite}
+.orbit-ring.r1{width:360px;height:360px}
+.orbit-ring.r2{width:540px;height:540px;animation-direction:reverse;animation-duration:120s}
+.orbit-ring.r3{width:720px;height:720px;animation-duration:200s}
+@keyframes rot{to{transform:rotate(360deg)}}
+.orbit-center{
+  position:relative;width:140px;height:140px;border-radius:50%;
+  background:radial-gradient(circle at 35% 30%,#f5f1e8,#9a8f80 40%,#1a1a20 80%,#06060a);
+  box-shadow:0 0 80px rgba(232,201,138,.25), inset 0 0 30px rgba(0,0,0,.5);
+  display:grid;place-items:center;
+  font-family:var(--mono);font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:#1a1a20;
+  z-index:2;
+}
+.adapter-pin{
+  position:absolute;width:auto;padding:10px 18px;border:1px solid var(--rule);
+  background:rgba(7,7,10,.85);backdrop-filter:blur(8px);border-radius:999px;
+  font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;
+  display:flex;align-items:center;gap:10px;
+  white-space:nowrap;
+}
+.adapter-pin .lamp{width:6px;height:6px;border-radius:50%;background:var(--cool);box-shadow:0 0 8px var(--cool)}
+
+/* ---- code/install ---- */
+.install{
+  display:grid;grid-template-columns:1.1fr 1fr;gap:80px;align-items:start;
+}
+.code-block{
+  background:#0a0a10;border:1px solid var(--rule);border-radius:0;
+  font-family:var(--mono);font-size:13px;line-height:1.7;
+  padding:26px 28px;color:var(--ink-soft);
+  position:relative;overflow:hidden;
+}
+.code-block::before{
+  content:"";position:absolute;left:0;top:0;bottom:0;width:1px;
+  background:linear-gradient(180deg,transparent,var(--warm),transparent);
+}
+.code-block .c-prompt{color:var(--cool)}
+.code-block .c-key{color:var(--warm)}
+.code-block .c-str{color:#9eddc6}
+.code-block .c-com{color:var(--ink-mute);font-style:italic}
+.code-tabs{display:flex;gap:0;margin-bottom:0;border:1px solid var(--rule);border-bottom:0}
+.code-tab{padding:12px 20px;font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-mute);border-right:1px solid var(--rule);transition:color .2s,background .2s}
+.code-tab:last-child{border-right:0}
+.code-tab.is-active{color:var(--ink);background:rgba(245,241,232,.03)}
+.code-stack{display:grid}
+.code-pane{display:none}
+.code-pane.is-active{display:block}
+.copy-btn{
+  position:absolute;top:14px;right:14px;
+  font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--ink-mute);padding:6px 10px;border:1px solid var(--rule);
+}
+.copy-btn.is-copied{color:var(--warm);border-color:var(--warm)}
+.install-prose{display:grid;gap:20px;align-content:start;padding-top:48px}
+.install-prose h3{font-family:var(--serif);font-size:42px;font-weight:400;line-height:1;letter-spacing:-.01em;text-wrap:balance}
+.install-prose p{font-size:15px;color:var(--ink-soft);line-height:1.6}
+.kbd-list{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.kbd-list span{font-family:var(--mono);font-size:11px;padding:6px 10px;border:1px solid var(--rule);border-radius:0;color:var(--ink-soft);letter-spacing:.05em}
+@media(max-width:980px){.install{grid-template-columns:1fr;gap:32px}}
+
+/* ---- live console ---- */
+.console{
+  margin-top:64px;border:1px solid var(--rule);
+  display:grid;grid-template-columns:1fr 1fr;gap:0;
+}
+.console-cell{padding:24px 28px;border-right:1px solid var(--rule)}
+.console-cell:last-child{border-right:0}
+.console-cell .label{font-family:var(--mono);font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-mute);margin-bottom:14px;display:flex;justify-content:space-between;align-items:center}
+.console-cell .label .live{display:inline-flex;align-items:center;gap:8px;color:var(--cool)}
+.console-cell .label .live::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;box-shadow:0 0 8px currentColor;animation:pulse 1.4s ease-in-out infinite}
+.hash-line{font-family:var(--mono);font-size:13px;color:var(--ink);word-break:break-all;line-height:1.7}
+.hash-line .lk{color:var(--ink-mute);margin-right:8px}
+.resonance-wrap{display:grid;gap:12px;margin-top:8px}
+.resonance-bar-track{height:2px;background:var(--ink-faint);position:relative;overflow:hidden}
+.resonance-bar-track .bar{position:absolute;inset:0;background:linear-gradient(90deg,var(--cool),var(--warm));transform-origin:left;transform:scaleX(.94);transition:transform .2s linear}
+.iso{font-family:var(--mono);font-size:13px;color:var(--ink)}
+@media(max-width:760px){.console{grid-template-columns:1fr}.console-cell{border-right:0;border-bottom:1px solid var(--rule)}}
+
+/* ---- closing/cta ---- */
+.outro{
+  display:grid;place-items:center;text-align:center;padding:160px 32px;
+  border-top:1px solid var(--rule);position:relative;overflow:hidden;
+}
+.outro h2{font-family:var(--serif);font-weight:400;font-style:italic;font-size:clamp(48px,9vw,140px);line-height:.95;letter-spacing:-.02em;max-width:18ch;margin-bottom:32px}
+.outro h2 .roman{font-style:normal}
+.outro .lede{max-width:560px;font-size:17px;color:var(--ink-soft);line-height:1.55;margin-bottom:48px}
+.btn-row{display:flex;gap:16px;flex-wrap:wrap;justify-content:center}
+.btn{
+  display:inline-flex;align-items:center;gap:12px;
+  font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;
+  padding:18px 28px;border:1px solid var(--rule);border-radius:0;
+  transition:border-color .2s,background .2s,color .2s;
+}
+.btn:hover{border-color:var(--ink);background:rgba(245,241,232,.04)}
+.btn.primary{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.btn.primary:hover{background:var(--warm);border-color:var(--warm)}
+.btn .arr{display:inline-block;transition:transform .25s}
+.btn:hover .arr{transform:translateX(4px)}
+
+/* ---- footer ---- */
+footer{
+  border-top:1px solid var(--rule);padding:48px 32px;
+  display:grid;grid-template-columns:1fr auto;gap:24px;
+  font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-mute);
+  align-items:center;
+}
+footer .legal{display:flex;gap:24px;flex-wrap:wrap}
+@media(max-width:760px){footer{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <a href="#" class="brand"><span class="brand-mark"></span><span>MCOP · v2.3.0</span></a>
+  <nav class="nav">
+    <a href="#triad">Triad</a>
+    <a href="#provenance">Provenance</a>
+    <a href="#perf">Performance</a>
+    <a href="#adapters">Adapters</a>
+    <a href="#install">Install</a>
+  </nav>
+  <a class="cta-link" href="https://github.com/Kuonirad/MCOP-Framework-2.0" target="_blank" rel="noopener">
+    GitHub <span>→</span>
+  </a>
+</header>
+
+<!-- ============= HERO ============= -->
+<section class="hero" data-screen-label="01 Hero">
+  <canvas id="hero-canvas"></canvas>
+  <div class="hero-content">
+    <div class="eyebrow"><span class="pulse"></span><span>Meta-Cognitive Optimization Protocol · Framework 2.0</span></div>
+    <h1>
+      <span class="roman">Recursive</span> triad<br/>
+      orchestration, <span class="gold">cryptographically</span><br/>
+      <span class="roman">linked at every step.</span>
+    </h1>
+    <div class="hero-meta">
+      <p class="lede">Deterministic cognition for production AI. Encoder, stigmergic memory, and a holographic etch ledger — composed into one replayable chain of custody.</p>
+      <div class="meta-cell">
+        <span class="k">License</span>
+        <span class="v">BUSL <em style="font-style:italic">1.1</em></span>
+        <span class="vmono" style="color:var(--ink-mute);font-size:11px;letter-spacing:.1em">→ MIT · 2030-04-26</span>
+      </div>
+      <div class="meta-cell">
+        <span class="k">Coverage</span>
+        <span class="v"><span data-count="96.6" data-decimals="1">0</span><em style="font-family:var(--mono);font-size:18px;color:var(--ink-soft);font-style:normal">%</em></span>
+        <span class="vmono" style="color:var(--ink-mute);font-size:11px;letter-spacing:.1em">jest · documented surface</span>
+      </div>
+      <div class="meta-cell">
+        <span class="k">Pipeline</span>
+        <span class="v"><span data-count="4.4" data-decimals="1">0</span><em style="font-family:var(--mono);font-size:18px;color:var(--ink-soft);font-style:normal"> ms</em></span>
+        <span class="vmono" style="color:var(--ink-mute);font-size:11px;letter-spacing:.1em">22,700 ops/sec · full triad</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============= TICKER ============= -->
+<div class="ticker">
+  <div class="ticker-track" data-marquee>
+    <span>SHA-256<span class="dot"></span></span>
+    <span>UUID-v4<span class="dot"></span></span>
+    <span>ISO 8601<span class="dot"></span></span>
+    <span>Merkle-Chained<span class="dot"></span></span>
+    <span>RFC 8785<span class="dot"></span></span>
+    <span>Rank-1 Tensor<span class="dot"></span></span>
+    <span>Cosine Resonance<span class="dot"></span></span>
+    <span>Append-Only Ledger<span class="dot"></span></span>
+    <span>Deterministic<span class="dot"></span></span>
+    <span>Replayable<span class="dot"></span></span>
+    <span>Next.js 16<span class="dot"></span></span>
+    <span>TypeScript 5<span class="dot"></span></span>
+    <span>SBOM Validated<span class="dot"></span></span>
+    <span>CodeQL Hardened<span class="dot"></span></span>
+  </div>
+</div>
+
+<!-- ============= TRIAD ============= -->
+<section id="triad" data-screen-label="02 Triad">
+  <div class="shell">
+    <div class="section-head" data-reveal>
+      <span class="num">§ 01 — The Deterministic Triad</span>
+      <h2>Three kernels.<br/><em>One replayable engine.</em></h2>
+      <p class="desc">Coordination through environmental traces — like ant colonies via pheromones. Each kernel is independently auditable; together they form the chain of custody for every synthesis.</p>
+    </div>
+
+    <div class="triad-grid" data-reveal>
+      <article class="triad-card">
+        <header class="triad-head">
+          <span>NovaNeoEncoder</span>
+          <span class="idx">i.</span>
+        </header>
+        <canvas class="triad-canvas" data-triad-canvas="encoder"></canvas>
+        <div class="triad-body">
+          <h3>Context becomes <em>tensor.</em></h3>
+          <p>Deterministic hashing pipeline producing fixed-dimension tensors with optional normalization and entropy estimates. Two backends: SHA-256 hash trick and n-gram feature embedding.</p>
+          <span class="triad-tag">Entropy-normalized · Crystalline determinism</span>
+        </div>
+      </article>
+
+      <article class="triad-card">
+        <header class="triad-head">
+          <span>StigmergyV5</span>
+          <span class="idx">ii.</span>
+        </header>
+        <canvas class="triad-canvas" data-triad-canvas="stigmergy"></canvas>
+        <div class="triad-body">
+          <h3>Memory as <em>resonance.</em></h3>
+          <p>A vector pheromone store with cosine resonance scoring, adaptive thresholding, and Merkle-tracked roots. Bounded memory pressure via deterministic circular buffer; positive feedback hysteresis on beneficial patterns.</p>
+          <span class="triad-tag">Cosine recall · Merkle-chained · 125,000 ops/s</span>
+        </div>
+      </article>
+
+      <article class="triad-card">
+        <header class="triad-head">
+          <span>HolographicEtch</span>
+          <span class="idx">iii.</span>
+        </header>
+        <canvas class="triad-canvas" data-triad-canvas="etch"></canvas>
+        <div class="triad-body">
+          <h3>Confidence, <em>etched.</em></h3>
+          <p>Append-only rank-1 micro-etch accumulator. Tracks confidence deltas across four factors — alignment, magnitude health, static floor margin, recency stability — and exposes a replayable, hash-verified audit trail.</p>
+          <span class="triad-tag">Append-only · Rank-1 · Eudaimonic Bloom</span>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ============= CHAIN ============= -->
+<section id="provenance" data-screen-label="03 Provenance">
+  <div class="shell">
+    <div class="section-head" data-reveal>
+      <span class="num">§ 02 — Cryptographic Chain of Custody</span>
+      <h2>Every step.<br/><em>Hash-linked. Replayable.</em></h2>
+      <p class="desc">A complete traceability record for every adapter call — tensor hash, trace hash, resonance score, etch hash, refined prompt, ISO-8601 timestamp. Persist it to replay or audit the decision later.</p>
+    </div>
+
+    <div class="chain" data-reveal>
+      <canvas id="chain-canvas"></canvas>
+      <div class="chain-steps">
+        <div class="chain-step">
+          <span class="step-num">i.</span>
+          <div class="step-body">
+            <h4>Input received</h4>
+            <p>UUID-v4 assigned · provenance opened</p>
+          </div>
+          <span class="step-hash" data-hash="12">550e8400e29b</span>
+        </div>
+        <div class="chain-step">
+          <span class="step-num">ii.</span>
+          <div class="step-body">
+            <h4>Nova-Neo encoding</h4>
+            <p>RFC 8785 · entropy-normalized tensor</p>
+          </div>
+          <span class="step-hash" data-hash="12">a3f8c2d1e4b7</span>
+        </div>
+        <div class="chain-step">
+          <span class="step-num">iii.</span>
+          <div class="step-body">
+            <h4>Stigmergy recall</h4>
+            <p>Merkle root · cosine 0.9923</p>
+          </div>
+          <span class="step-hash" data-hash="12">8f4a2c1d9e7b</span>
+        </div>
+        <div class="chain-step">
+          <span class="step-num">iv.</span>
+          <div class="step-body">
+            <h4>Holographic etch</h4>
+            <p>Rank-1 tensor sealed · ISO-8601</p>
+          </div>
+          <span class="step-hash" data-hash="12">1c4f8a2e6d9b</span>
+        </div>
+        <div class="chain-step">
+          <span class="step-num">v.</span>
+          <div class="step-body">
+            <h4>Provenance closed</h4>
+            <p>SHA-256 verified · ledger sealed ✓</p>
+          </div>
+          <span class="step-hash" data-hash="12">d5e9f2c4a8b1</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="console" data-reveal>
+      <div class="console-cell">
+        <div class="label"><span>Last canonical digest</span><span class="live">live</span></div>
+        <div class="hash-line"><span class="lk">sha256:</span><span data-hash="48">a3f8c2d1e4b7f9a2c5d8e1f4a7b2c5d8e1f4a7b2c5d8e1f4</span></div>
+        <div class="hash-line" style="margin-top:8px"><span class="lk">merkle:</span><span data-hash="48">8f4a2c1d9e7b3f5a8c2d4e6f8a1b3c5d8f4a2c1d9e7b3f5a</span></div>
+      </div>
+      <div class="console-cell">
+        <div class="label"><span>Resonance · cosine similarity</span><span id="live-iso" class="iso" style="color:var(--ink-mute);font-size:11px;letter-spacing:.1em">2026-05-08T00:00:00Z</span></div>
+        <div class="resonance-wrap">
+          <div class="hash-line" style="display:flex;justify-content:space-between"><span class="lk" style="color:var(--ink-soft)">resonance</span><span id="resonance-val" style="color:var(--warm)">0.9923</span></div>
+          <div class="resonance-bar-track"><div class="bar" id="resonance-bar"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============= BENCHMARKS ============= -->
+<section id="perf" data-screen-label="04 Performance" style="background:#06060a">
+  <div class="shell">
+    <div class="section-head" data-reveal>
+      <span class="num">§ 03 — Deterministic Benchmarks</span>
+      <h2>Production-hardened.<br/><em>Microsecond-budgeted.</em></h2>
+      <p class="desc">Regression budgets generated by <code style="font-family:var(--mono);font-size:13px;color:var(--ink)">src/benchmarks/promptingModes.ts</code>. Re-run with <code style="font-family:var(--mono);font-size:13px;color:var(--ink)">pnpm benchmark:refresh</code> before publishing new numbers.</p>
+    </div>
+
+    <div class="bench-grid" data-reveal>
+      <div class="bench">
+        <span class="b-label">Response time</span>
+        <div><span class="b-value">&lt;<span data-count="50">0</span></span><span class="b-unit">ms</span></div>
+        <span class="b-sub">P99 across the documented API surface.</span>
+      </div>
+      <div class="bench">
+        <span class="b-label">Throughput</span>
+        <div><span class="b-value"><span data-count="10">0</span>K</span><span class="b-unit">req/s</span></div>
+        <span class="b-sub">Sustained on a single Next.js 16 runtime.</span>
+      </div>
+      <div class="bench">
+        <span class="b-label">Uptime</span>
+        <div><span class="b-value"><span data-count="99.99" data-decimals="2">0</span></span><span class="b-unit">%</span></div>
+        <span class="b-sub">Multi-region deployment target.</span>
+      </div>
+      <div class="bench">
+        <span class="b-label">Memory ceiling</span>
+        <div><span class="b-value">&lt;<span data-count="128">0</span></span><span class="b-unit">MB</span></div>
+        <span class="b-sub">Bounded by deterministic circular buffer.</span>
+      </div>
+    </div>
+
+    <div class="perf-table" data-reveal>
+      <div class="perf-row head">
+        <span>Operation</span><span>Latency</span><span>Throughput</span><span>Δ load</span>
+      </div>
+      <div class="perf-row">
+        <span class="opname">Context encoding</span>
+        <span class="val">2.1 ms</span>
+        <span class="val">47,600 ops/sec</span>
+        <span class="perf-bar"><i style="transform:scaleX(.42)"></i></span>
+      </div>
+      <div class="perf-row">
+        <span class="opname">NovaNeoWeb encoding</span>
+        <span class="val">2.1 ms</span>
+        <span class="val">47,600 ops/sec</span>
+        <span class="perf-bar"><i style="transform:scaleX(.42)"></i></span>
+      </div>
+      <div class="perf-row">
+        <span class="opname">Stigmergy recall</span>
+        <span class="val">0.8 ms</span>
+        <span class="val">125,000 ops/sec</span>
+        <span class="perf-bar"><i style="transform:scaleX(.86)"></i></span>
+      </div>
+      <div class="perf-row">
+        <span class="opname">ResonantRecentQuery</span>
+        <span class="val">0.8 ms</span>
+        <span class="val">125,000 ops/sec</span>
+        <span class="perf-bar"><i style="transform:scaleX(.86)"></i></span>
+      </div>
+      <div class="perf-row">
+        <span class="opname">Holographic etch write</span>
+        <span class="val">1.2 ms</span>
+        <span class="val">83,300 ops/sec</span>
+        <span class="perf-bar"><i style="transform:scaleX(.66)"></i></span>
+      </div>
+      <div class="perf-row">
+        <span class="opname">Eudaimonic etch score</span>
+        <span class="val">0.1 ms</span>
+        <span class="val">1,000,000+ ops/sec</span>
+        <span class="perf-bar"><i style="transform:scaleX(1)"></i></span>
+      </div>
+      <div class="perf-row">
+        <span class="opname">Provenance hash</span>
+        <span class="val">0.3 ms</span>
+        <span class="val">333,000 ops/sec</span>
+        <span class="perf-bar"><i style="transform:scaleX(.94)"></i></span>
+      </div>
+      <div class="perf-row">
+        <span class="opname" style="color:var(--warm)">Full pipeline</span>
+        <span class="val" style="color:var(--warm)">4.4 ms</span>
+        <span class="val" style="color:var(--warm)">22,700 ops/sec</span>
+        <span class="perf-bar"><i style="transform:scaleX(.36);background:linear-gradient(90deg,var(--warm),#f5e6c0)"></i></span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============= ADAPTERS ============= -->
+<section id="adapters" data-screen-label="05 Adapters">
+  <div class="shell">
+    <div class="section-head" data-reveal>
+      <span class="num">§ 04 — Universal Adapter Protocol v2.1</span>
+      <h2>Six providers.<br/><em>One contract.</em></h2>
+      <p class="desc">A typed <code style="font-family:var(--mono);font-size:13px;color:var(--ink)">IMCOPAdapter</code> contract. Plug the triad into any creative-production platform — Magnific, Higgsfield, Utopai, or any REST/MCP/HTTP service — without modifying the core.</p>
+    </div>
+
+    <div class="adapter-orbit" data-reveal>
+      <div class="orbit-ring r3"></div>
+      <div class="orbit-ring r2"></div>
+      <div class="orbit-ring r1"></div>
+      <div class="orbit-center">CORE</div>
+      <div class="adapter-pin" style="top:8%;left:50%;transform:translateX(-50%)"><span class="lamp"></span>OpenAI · GPT-4</div>
+      <div class="adapter-pin" style="top:30%;right:5%"><span class="lamp"></span>Anthropic · Claude</div>
+      <div class="adapter-pin" style="bottom:24%;right:8%"><span class="lamp"></span>Google · Gemini</div>
+      <div class="adapter-pin" style="bottom:5%;left:50%;transform:translateX(-50%)"><span class="lamp"></span>Ollama · Local</div>
+      <div class="adapter-pin" style="bottom:24%;left:8%"><span class="lamp"></span>Groq</div>
+      <div class="adapter-pin" style="top:30%;left:5%"><span class="lamp"></span>Together AI</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============= INSTALL ============= -->
+<section id="install" data-screen-label="06 Install" style="background:#06060a">
+  <div class="shell">
+    <div class="section-head" data-reveal>
+      <span class="num">§ 05 — Quick Start</span>
+      <h2>Clone the<br/><em>cinematic intelligence engine.</em></h2>
+      <p class="desc">Production container, 96.6% test coverage, hardware-acceleration-ready. Activate the toolchain and you're four commands from a sealed provenance ledger.</p>
+    </div>
+
+    <div class="install" data-reveal>
+      <div>
+        <div class="code-tabs">
+          <button class="code-tab is-active" data-tab="bash">bash</button>
+          <button class="code-tab" data-tab="ts">typescript</button>
+          <button class="code-tab" data-tab="py">python</button>
+        </div>
+        <div class="code-stack">
+          <pre class="code-block code-pane is-active" data-pane="bash"><button class="copy-btn" data-copy="git clone https://github.com/Kuonirad/MCOP-Framework-2.0.git" data-label="copy">copy</button><span class="c-com"># clone the cinematic intelligence engine</span>
+<span class="c-prompt">$</span> git clone https://github.com/Kuonirad/<span class="c-key">MCOP-Framework-2.0</span>.git
+<span class="c-prompt">$</span> cd MCOP-Framework-2.0
+
+<span class="c-com"># activate the repo toolchain</span>
+<span class="c-prompt">$</span> nvm use
+<span class="c-prompt">$</span> corepack enable
+<span class="c-prompt">$</span> corepack prepare pnpm@<span class="c-str">9.15.0</span> --activate
+
+<span class="c-com"># install · test · audit · launch</span>
+<span class="c-prompt">$</span> pnpm install
+<span class="c-prompt">$</span> pnpm test           <span class="c-com"># 96.6% coverage</span>
+<span class="c-prompt">$</span> pnpm positive:audit <span class="c-com"># positive impact report</span>
+<span class="c-prompt">$</span> pnpm build &amp;&amp; pnpm start</pre>
+
+          <pre class="code-block code-pane" data-pane="ts"><button class="copy-btn" data-copy="import { MCOPOrchestrator } from '@mcop/core';" data-label="copy">copy</button><span class="c-key">import</span> { MCOPOrchestrator } <span class="c-key">from</span> <span class="c-str">'@mcop/core'</span>;
+
+<span class="c-com">// initialize the recursive triad</span>
+<span class="c-key">const</span> mcop = <span class="c-key">new</span> MCOPOrchestrator({
+  encoder: <span class="c-str">'nova-neo-v2'</span>,
+  memory: <span class="c-str">'stigmergy-v5'</span>,
+  ledger: <span class="c-str">'holographic-etch'</span>,
+  provenance: { algorithm: <span class="c-str">'SHA-256'</span>, standard: <span class="c-str">'ISO8601'</span> }
+});
+
+<span class="c-com">// execute with cryptographic provenance at every step</span>
+<span class="c-key">const</span> result = <span class="c-key">await</span> mcop.optimize(context, {
+  deterministic: <span class="c-str">true</span>,
+  entropyNormalized: <span class="c-str">true</span>,
+  merkleChained: <span class="c-str">true</span>
+});</pre>
+
+          <pre class="code-block code-pane" data-pane="py"><button class="copy-btn" data-copy="pip install mcop" data-label="copy">copy</button><span class="c-prompt">$</span> pip install mcop
+
+<span class="c-key">from</span> mcop <span class="c-key">import</span> MCOPOrchestrator
+<span class="c-key">from</span> mcop.mycelial <span class="c-key">import</span> MycelialNetwork
+<span class="c-key">from</span> mcop.xi_infinity <span class="c-key">import</span> XiInfinityReasoner
+
+<span class="c-com"># cross-language parity guardian — bit-for-bit with TS</span>
+mcop = MCOPOrchestrator(
+    encoder=<span class="c-str">"nova-neo-v2"</span>,
+    memory=<span class="c-str">"stigmergy-v5"</span>,
+    deterministic=<span class="c-str">True</span>,
+)
+
+result = mcop.optimize(context)
+<span class="c-key">assert</span> result.provenance.merkle_root.verify()</pre>
+        </div>
+      </div>
+
+      <div class="install-prose">
+        <h3>Built on Next.js 16 + TypeScript. <em>Cross-runtime parity with Python.</em></h3>
+        <p>Canonical hashes use RFC 8785 JSON serialization. Every TypeScript ↔ Python boundary is parity-guarded by CI — fixtures must hash byte-identically across runtimes or the build fails.</p>
+        <p>The encoder path is portable: <code style="font-family:var(--mono);font-size:13px">UniversalEncoder</code> uses portable SHA-256, so client and edge runtimes don't require Node <code style="font-family:var(--mono);font-size:13px">crypto</code> or <code style="font-family:var(--mono);font-size:13px">Buffer</code>.</p>
+        <div class="kbd-list">
+          <span>Next.js 16</span>
+          <span>TypeScript 5</span>
+          <span>Node 20+</span>
+          <span>Docker ready</span>
+          <span>Jest 96.6%</span>
+          <span>ESLint strict</span>
+          <span>CodeQL</span>
+          <span>SBOM</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============= OUTRO ============= -->
+<section class="outro" data-screen-label="07 Outro">
+  <h2>Determinism is a <span class="roman">design choice.</span></h2>
+  <p class="lede">Identical inputs, identical triad state, identical outputs — no hidden randomness. Crystalline cognition for the systems you can't afford to misremember.</p>
+  <div class="btn-row">
+    <a class="btn primary" href="https://github.com/Kuonirad/MCOP-Framework-2.0" target="_blank" rel="noopener">Open on GitHub <span class="arr">→</span></a>
+    <a class="btn" href="https://github.com/Kuonirad/MCOP-Framework-2.0/blob/main/docs/api/README.md" target="_blank" rel="noopener">Read the docs <span class="arr">→</span></a>
+    <a class="btn" href="https://github.com/Kuonirad/MCOP-Framework-2.0/blob/main/ARCHITECTURE.md" target="_blank" rel="noopener">Architecture <span class="arr">→</span></a>
+  </div>
+</section>
+
+<footer>
+  <div>MCOP Framework 2.0 · v2.3.0 · Built with 🧠 by <a href="https://github.com/Kuonirad" style="text-decoration:underline">Kuonirad</a></div>
+  <div class="legal">
+    <span>BUSL 1.1</span>
+    <span>→ MIT 2030-04-26</span>
+    <span>SHA-256 sealed</span>
+  </div>
+</footer>
+
+<div id="tweaks-mount"></div>
+
+<!-- THREE.js -->
+<script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+
+<!-- React + Babel for tweaks panel. Integrity hashes from the original
+     design bundle were unverified placeholders; dropped so SRI doesn't
+     hard-fail in production. -->
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<script type="text/babel" src="tweaks-app.jsx"></script>
+
+<script src="scene.js"></script>
+<script src="ui.js"></script>
+<script>
+// code tab switcher
+document.querySelectorAll('.code-tab').forEach(tab=>{
+  tab.addEventListener('click',()=>{
+    const k=tab.dataset.tab;
+    tab.parentElement.querySelectorAll('.code-tab').forEach(t=>t.classList.toggle('is-active',t===tab));
+    document.querySelectorAll('.code-pane').forEach(p=>p.classList.toggle('is-active',p.dataset.pane===k));
+  });
+});
+</script>
+
+</body>
+</html>

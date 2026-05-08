@@ -367,6 +367,12 @@ export default function Home() {
               >
                 Health endpoint
               </a>
+              <a
+                className="rounded-full border border-amber-300/40 bg-amber-300/[0.06] px-5 py-2 text-amber-100 transition hover:border-amber-200/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
+                href="/showcase/index.html"
+              >
+                Cinematic showcase →
+              </a>
             </nav>
           </header>
 
