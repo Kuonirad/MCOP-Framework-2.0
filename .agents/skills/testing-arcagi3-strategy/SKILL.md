@@ -42,7 +42,7 @@ The agent is competition-compliant by construction (online learning, full proven
 
 2. **Scorecard lifecycle** — assert `result.scorecard_id is not None` after `play()` returns. The SDK opens the scorecard at the start of `play()` and closes it in the `finally` block; a None id means the official harness was bypassed.
 
-3. **Closed-set provenance vocabulary** — for `HolographicShadowStrategy`, every `provenance[i]["type"]` must be in `{real_move, blocked_wobble, ambiguous_drift, debug_wall_learning, debug_loop_detected}`. Unknown types reveal a regression.
+3. **Closed-set provenance vocabulary** — for `HolographicShadowStrategy`, every `provenance[i]["type"]` must be in `{real_move, blocked_wobble, ambiguous_drift, debug_wall_learning, debug_loop_detected, debug_goal_bfs}`. Unknown types reveal a regression. (`debug_goal_bfs` was added by PR #649 and is emitted by the goal-BFS planner.)
 
 4. **Provenance non-empty** — `len(strategy.provenance) >= len(result.steps)`. If `observe()` was never called, the strategy didn't learn online.
 
@@ -69,36 +69,23 @@ result = agent.play("ls20-9607627b")
 assert result.scorecard_id is not None
 assert all(h.endswith(".arcprize.org") or h == "arcprize.org" for h in _observed), _observed
 assert len(strategy.provenance) >= len(result.steps) >= 1
-allowed = {"real_move", "blocked_wobble", "ambiguous_drift", "debug_wall_learning", "debug_loop_detected"}
+allowed = {"real_move", "blocked_wobble", "ambiguous_drift", "debug_wall_learning", "debug_loop_detected", "debug_goal_bfs"}
 assert {p["type"] for p in strategy.provenance} <= allowed
 ```
+
+## Adversarial pattern — distinguishing "feature works" from "no-op stub"
+
+When testing a strategy change that adds a new behaviour gated by a flag (e.g. `enable_goal_bfs=True/False` from PR #649), run the **same game / same budget / same seed** twice and compare:
+
+- **Feature ON** — the new provenance type (e.g. `debug_goal_bfs`) must fire enough times to prove engagement (≥ 5 etches in 80 steps for the BFS planner).
+- **Feature OFF** — the new provenance type must produce **exactly zero** etches.
+
+If both produce the new type, the disable flag is a no-op. If neither produces it, the feature is dead code. Pair this with the compliance gates above to catch regressions a single-run smoke would miss. PR #649's test report is the canonical example: `BFS ON: 49 etches; BFS OFF: 0 etches; only three.arcprize.org` — see `/tmp/test-plan-pr649.md` and `/tmp/test-report-pr649.md` for the full pattern.
 
 ## Useful strategy attributes after `play()`
 
 - `strategy.provenance: List[Dict[str, Any]]` — every observed step's classification + debug etches. Inspect histogram of `["type"]` first.
 - `strategy.walls: Dict[Tuple[str, str], int]` — `(state_hash, action) -> wall_hits`. `len(walls)` should match the count of distinct `(state_hash, action)` pairs seen blocked.
+- `strategy.position_walls: Dict[Tuple[int, int], Set[str]]` — (added by PR #649) per-binned-player-position blocked actions, mirrored from `walls` whenever a `blocked_wobble` fires at a known centroid. The goal-BFS planner consults this map directly.
+- `strategy.action_drift_sums` / `action_drift_counts` — (added by PR #648) per-action mean-drift accumulators learned online. The goal-BFS planner uses `int(round(action_mean_drift))` as the move table.
 - `strategy.state_action_tries: Dict[Tuple[str, str], int]` — per-state try counter that drives oscillation novelty.
-- `strategy._loop_signatures_seen: set` — dedup set for `debug_loop_detected` emissions; non-zero only if oscillation was detected.
-- `strategy._goal_detector.current()` — the goal colour discovered online; `None` if no level-advance happened during the run (correct fallback per the documented online-only contract).
-
-**Common attribute mistake:** `strategy._goal_color_detector` does NOT exist; use `strategy._goal_detector` (the `_GoalColorDetector` instance, accessed via its `.current()` method).
-
-## Behaviors that may NOT trigger in a short live game
-
-A bounded budget against a single game often won't surface every v2 behavior. Cover the long tail with a deterministic in-process harness using `_HoloFrame`/`_grid_with_goal` from the test suite, hand-patching `_goal_centroid` / `_state_hash` / `state_action_tries` as needed. See `/tmp/holographic_deterministic_harness.py` (when present) for the canonical pattern, or the tests themselves at `mcop_package/test_arcagi3_agent.py` lines ~1235–1340.
-
-Behaviors most likely to require the offline harness:
-- `ambiguous_drift` (centroid delta in `[0.5, 1.5)` — needs hand-patched `_goal_centroid`)
-- `debug_loop_detected` (needs ABAB centroid history with both actions registering as moves)
-- `_state_hash` invariance over non-goal cells (B1) — easy to verify offline, no game required.
-
-## When to record
-
-**Do not record** for shell-only ARC-AGI-3 strategy testing. Recording captures the screen and the work is entirely terminal-based (Python harness output, `arc_agi` log lines, assertion lines). Capture the harness stdout/stderr to `/tmp/*.log` and attach to the report instead.
-
-## Reporting
-
-- Post a single consolidated PR comment using `<details>` blocks per phase.
-- Lead with the compliance table (C1..C5) since the user has historically asked for explicit ARC Prize / Kaggle adherence.
-- Include the hostname log in the body — it's the single strongest evidence of "no external LLM calls during play()".
-- Note: `final_state == NOT_FINISHED` is *expected* for an 80-action behavior-verification run on `ls20-9607627b`. It is not a failure; the run is for behavior verification, not game-solving.
