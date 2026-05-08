@@ -92,14 +92,14 @@ def main() -> int:
         ),
     )
     parser.add_argument("--verbose", action="store_true")
-        parser.add_argument(
-        "--goal-color",
-        type=int,
-        default=None,
-        help=(
-            "Pixel colour index of the goal tile for the holographic strategy. "
-            f"Defaults to HOLOGRAPHIC_GOAL_COLOR env var, then the library default ({GOAL_COLOR})."
-        ),
+    parser.add_argument(
+    "--goal-color",
+    type=int,
+    default=None,
+    help=(
+        "Pixel colour index of the goal tile for the holographic strategy. "
+        f"Defaults to HOLOGRAPHIC_GOAL_COLOR env var, then the library default ({GOAL_COLOR})."
+    ),
     )
     parser.add_argument(
         "--player-color",
