@@ -25,6 +25,7 @@ from mcop.adapters.arcagi3_agent import (
     StepRecord,
     _ForwardModel,
     _GoalColorDetector,
+    _PlayerColorDetector,
     _StuckDetector,
     _build_prompt,
     _decide_action,
@@ -1255,21 +1256,23 @@ def test_holographic_strategy_classifies_blocked_wobble_below_threshold() -> Non
 
 
 def test_holographic_strategy_ambiguous_drift_does_not_register_wall() -> None:
-    """0.5..1.5 cell centroid drift is ambiguous: no move, no wall."""
-    strat = HolographicShadowStrategy()
+    """0.5..1.5 cell player-centroid drift is ambiguous: no move, no wall."""
+    # Pin player_color so the centroid logic engages without waiting
+    # for online auto-discovery in this single-step unit test.
+    strat = HolographicShadowStrategy(player_color=8)
     prev = _HoloFrame(_grid_with_goal([(0, 0)]))
     strat._last_state_hash = strat._state_hash(prev)
-    strat._last_goal_centroid = strat._goal_centroid(prev)
-    # Hand-set centroids straddling the dead zone (delta = 1.0).
-    strat._last_goal_centroid = (10.0, 10.0)
+    # Hand-set the prev player centroid to (10, 10) and patch the
+    # next-frame centroid to (11, 10): delta = 1.0 lies inside the
+    # dead zone (wobble=0.5, move=1.5).
+    strat._last_player_centroid = (10.0, 10.0)
     nxt = _HoloFrame(_grid_with_goal([(1, 0)]))  # any next frame is fine
-    # Patch _goal_centroid to return a deterministic in-zone centroid.
-    original = strat._goal_centroid
-    strat._goal_centroid = lambda frame: (11.0, 10.0)  # type: ignore
+    original = strat._player_centroid
+    strat._player_centroid = lambda frame: (11.0, 10.0)  # type: ignore
     try:
         strat.observe(prev, "ACTION4", nxt)
     finally:
-        strat._goal_centroid = original  # type: ignore
+        strat._player_centroid = original  # type: ignore
     record = next(
         r for r in strat.provenance
         if r.get("action") == "ACTION4" and r.get("type") != "debug_wall_learning"
@@ -1350,17 +1353,20 @@ def test_holographic_strategy_wobble_threshold_validation() -> None:
 
 
 def test_holographic_strategy_classifies_real_move_at_threshold() -> None:
-    strat = HolographicShadowStrategy()
+    # Pin player_color=8 so the centroid path engages: the colour-8
+    # cell that moves from (0,0) to (3,3) acts as both goal *and*
+    # player in this self-contained unit test.
+    strat = HolographicShadowStrategy(player_color=8)
     # Goal moves from (0,0) to (3,3): two cells change (old becomes 0, new
     # becomes 8) => n_changed == 2 == MOVE_THRESHOLD_CELLS => real_move.
     prev = _HoloFrame(_grid_with_goal([(0, 0)]))
     strat._last_state_hash = strat._state_hash(prev)
-    strat._last_goal_centroid = strat._goal_centroid(prev)
+    strat._last_player_centroid = strat._player_centroid(prev)
     nxt = _HoloFrame(_grid_with_goal([(3, 3)]))
     strat.observe(prev, "ACTION2", nxt)
     record = strat.provenance[-1]
     assert record["type"] == "real_move"
-    assert record["goal_centroid_delta"] > 0
+    assert record["player_centroid_delta"] > 0
     assert (strat._last_state_hash, "ACTION2") not in strat.walls
 
 
@@ -1562,6 +1568,152 @@ def test_forward_model_returns_none_when_no_actions_available() -> None:
     fm = _ForwardModel()
     fm.add_transition("s0", "ACTION1", "GOAL", levels_delta=1)
     assert fm.plan("s0", []) is None
+
+
+# ---- _PlayerColorDetector --------------------------------------------------
+
+
+def _frame_with_player_at(player_color: int, row: int, col: int) -> Any:
+    """Build a tiny frame where ``player_color`` lives at one cell."""
+    return _HoloFrame(_grid_with_color([(row, col, player_color)]))
+
+
+def test_player_color_detector_returns_none_during_bootstrap() -> None:
+    """Below ``min_observations`` the detector must withhold a verdict."""
+    det = _PlayerColorDetector(min_observations=4, min_actions=2)
+    prev = _frame_with_player_at(9, 0, 0)
+    nxt = _frame_with_player_at(9, 0, 1)
+    det.observe(prev, "ACTION1", nxt)
+    assert det.current() is None
+
+
+def test_player_color_detector_picks_color_with_highest_action_variance() -> None:
+    """Player = colour whose drift vector varies across actions.
+
+    Static colours (no drift) and ticking colours (same drift on every
+    action) have low cross-action variance and must be filtered out.
+    """
+    det = _PlayerColorDetector(
+        min_observations=4, min_actions=2, min_variance=0.5
+    )
+    # Colour 9 is the player: ACTION1 moves it down 2 rows, ACTION2
+    # moves it back up. Colour 8 is a static goal (never moves).
+    # Colour 7 is a 'timer' that drifts (0,+1) regardless of action.
+    def grid(player_rc: Tuple[int, int], timer_rc: Tuple[int, int]) -> Any:
+        return _HoloFrame(_grid_with_color([
+            (player_rc[0], player_rc[1], 9),
+            (3, 3, 8),  # static goal
+            (timer_rc[0], timer_rc[1], 7),
+        ]))
+    transitions = [
+        (grid((0, 0), (0, 0)), "ACTION1", grid((2, 0), (0, 1))),
+        (grid((2, 0), (0, 1)), "ACTION2", grid((0, 0), (0, 2))),
+        (grid((0, 0), (0, 2)), "ACTION1", grid((2, 0), (0, 3))),
+        (grid((2, 0), (0, 3)), "ACTION2", grid((0, 0), (0, 4))),
+    ]
+    for prev, act, nxt in transitions:
+        det.observe(prev, act, nxt)
+    assert det.current() == 9
+
+
+def test_player_color_detector_rejects_low_variance_candidates() -> None:
+    """If no colour shows enough cross-action variance, return None."""
+    det = _PlayerColorDetector(
+        min_observations=4, min_actions=2, min_variance=10.0
+    )
+    # All drifts are tiny + identical across actions; variance=0.
+    grids = [
+        _frame_with_player_at(9, r, 0) for r in range(6)
+    ]
+    for prev, act, nxt in zip(
+        grids, ["ACTION1", "ACTION2"] * 3, grids[1:]
+    ):
+        det.observe(prev, act, nxt)
+    # Drift across actions is identical (0, 0) — variance below threshold.
+    assert det.current() is None
+
+
+# ---- HolographicShadowStrategy auto-discovery (player) ---------------------
+
+
+def test_holographic_strategy_auto_discovers_player_color_after_bootstrap() -> None:
+    """Cross-action centroid drift on colour 9 must flip player_color to 9.
+
+    Regression guard for the ls20 cycle bug: before discovery the
+    strategy could not classify movement (centroid_available=False
+    falls through to the cell-count threshold) and walls accreted
+    uniformly across all four actions; after discovery, walls become
+    keyed on (goal_mask, player_position) so navigation actually
+    works. Variance-based, online, no per-game hardcoding.
+    """
+    strat = HolographicShadowStrategy(
+        min_observations_for_player_discovery=4,
+        min_variance_for_player_discovery=0.5,
+    )
+
+    def grid(player_rc: Tuple[int, int]) -> Any:
+        # Colour 8 = static goal (kept across frames). Colour 9 = the
+        # entity that actually moves. Colour 5 = static geometry.
+        return _HoloFrame(_grid_with_color([
+            (player_rc[0], player_rc[1], 9),
+            (7, 7, 8),
+            (3, 3, 5),
+        ]))
+
+    transitions = [
+        (grid((0, 0)), "ACTION1", grid((2, 0))),
+        (grid((2, 0)), "ACTION2", grid((0, 0))),
+        (grid((0, 0)), "ACTION1", grid((2, 0))),
+        (grid((2, 0)), "ACTION2", grid((0, 0))),
+    ]
+    assert strat.player_color is None
+    for prev, act, nxt in transitions:
+        strat._last_state_hash = strat._state_hash(prev)
+        strat._last_player_centroid = strat._player_centroid(prev)
+        strat.observe(prev, act, nxt)
+    assert strat.player_color == 9
+
+
+def test_holographic_strategy_state_hash_includes_player_position() -> None:
+    """With a known player_color, two frames whose only difference is
+    the player position must hash differently — otherwise wall-learning
+    can't tell ``player at (0, 0)`` from ``player at (5, 5)``.
+    """
+    strat = HolographicShadowStrategy(player_color=9)
+    a = _HoloFrame(_grid_with_color([(0, 0, 9), (7, 7, 8)]))
+    b = _HoloFrame(_grid_with_color([(5, 5, 9), (7, 7, 8)]))
+    assert strat._state_hash(a) != strat._state_hash(b)
+    # Sanity: same player position + same goal mask => same hash.
+    c = _HoloFrame(_grid_with_color([(0, 0, 9), (7, 7, 8)]))
+    assert strat._state_hash(a) == strat._state_hash(c)
+
+
+def test_holographic_strategy_walls_become_per_player_position() -> None:
+    """Reproducer for the ls20 ACTION1->4 cycle bug.
+
+    Pre-fix: state_hash hashed only the goal mask, so when the goal is
+    static (e.g. ls20) every step shared one hash and walls accreted
+    uniformly across all four actions producing a deterministic
+    cycle. Post-fix: with player_color set (or auto-discovered), the
+    state hash includes the player centroid binned to integer cells,
+    so walls are keyed per-position and the strategy can actually
+    navigate around them.
+    """
+    strat = HolographicShadowStrategy(player_color=9)
+
+    def grid_with_player(rc: Tuple[int, int]) -> Any:
+        # Static goal at (7,7), player at rc.
+        return _HoloFrame(_grid_with_color([(rc[0], rc[1], 9), (7, 7, 8)]))
+
+    # Same action ACTION1, different player positions, both blocked.
+    for rc in [(0, 0), (1, 0), (2, 0)]:
+        prev = grid_with_player(rc)
+        strat._last_state_hash = strat._state_hash(prev)
+        strat._last_player_centroid = strat._player_centroid(prev)
+        strat.observe(prev, "ACTION1", prev)  # no-op => blocked_wobble
+    # Three distinct (state_hash, ACTION1) wall keys, not one.
+    keys = [k for k in strat.walls if k[1] == "ACTION1"]
+    assert len(keys) == 3
 
 
 # ---- HolographicShadowStrategy integration --------------------------------
