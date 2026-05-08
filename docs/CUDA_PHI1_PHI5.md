@@ -59,18 +59,50 @@ existing pipeline (the layer cannot be reached when `enableCUDA: false`).
 
 ## Φ2 — First op online (`graphAggregate`)
 
-- Export the proteome graph aggregation kernel as
-  `models/mcop_graphAggregate.onnx` from the reference Python pipeline.
-- Add a `pnpm exec tsx scripts/benchmark-cuda-graph.ts` smoke that
-  constructs a `CUDAHardwareLayer({ enableCUDA: true })`, calls
-  `accelerate('graphAggregate', …)`, and asserts `_provenance.verifiedDevice
-  === 'CUDAExecutionProvider'`.
-- Gate: ≥ 3× speedup vs the existing CPU path on an RTX 4090 (or comparable
-  Blackwell-class GPU) at the canonical 32k-node proteome size.
+**Status: harness landed; CPU baseline + structural artifact committed; awaiting model export + GPU runner for the ≥ 3× gate.**
 
-**Exit criteria.** Benchmark JSON committed under
-`docs/benchmarks/cuda_graph_aggregate.json` with raw timings, GPU model,
-driver, ORT version, and the verified Merkle root of the run.
+What this PR adds:
+
+- `scripts/benchmark-cuda-graph.mjs` — pure-ESM harness mirroring the
+  conventions of `scripts/benchmark-arc-evo.mjs`. Builds a deterministic
+  CSR sparse graph (32 768 nodes / avg degree 12 in `--mode=full`,
+  1 024 / 12 in `--mode=smoke`) from a fixed mulberry32 seed
+  (`0xC0FFEE`), runs warmup + timed iterations of a mean-aggregation
+  kernel on CPU, optionally on CUDA (when `MCOP_ENABLE_CUDA=1` and a
+  real `models/mcop_graphAggregate.onnx` exists), parses
+  `session.endProfiling()` to enforce the verifiedDevice gate, and
+  writes a Merkle-rooted record. ARC-AGI-3 conventions honoured:
+  fixed seed, `MCOP_LOW_MEMORY_MODE` scales `nodeCount` to 4 096 in
+  `--mode=full`, every leaf carries `verifiedDevice` /
+  `outputFingerprint` / `merkleRoot`.
+- `pnpm benchmark:cuda-graph` (full mode) and
+  `pnpm benchmark:cuda-graph:smoke` (deterministic, structural-only).
+- `docs/benchmarks/cuda_graph_aggregate.json` — committed smoke-mode
+  baseline. Host-dependent timings are stripped so the merkleRoot is
+  byte-stable across machines; `outputFingerprint` validates
+  numerical correctness across Node versions / JIT shuffles.
+- `src/__tests__/cudaBenchmarkHarness.test.ts` — re-runs the harness
+  in a tmpdir-isolated child process and asserts the committed
+  Merkle root, output fingerprint, edge count, and seed all reproduce
+  byte-identically.
+
+What is **not** in this PR (Φ2 follow-up):
+
+- `models/mcop_graphAggregate.onnx`. Owned by the user's Python
+  export pipeline. Drop the file under `MCOP_CUDA_KERNEL_DIR` and the
+  harness picks it up automatically.
+- `.github/workflows/cuda-bench.yml`. A `workflow_dispatch`
+  GPU-runner workflow uploading the full-mode JSON as an artifact —
+  small follow-up via the REST-API workaround for the
+  `workflow`-scope token, separable from this PR.
+- The ≥ 3× speedup gate. Cannot be measured on the GitHub
+  `ubuntu-latest` runner; runs on the GPU host once the ONNX kernel
+  is available.
+
+**Exit criteria.** Full-mode JSON committed under
+`docs/benchmarks/cuda_graph_aggregate.full.json` with raw timings, GPU
+model, driver, ORT version, and the verified Merkle root of the run,
+showing `targets.phi2Met === true`.
 
 ## Φ3 — Cascade the remaining five kernels
 
