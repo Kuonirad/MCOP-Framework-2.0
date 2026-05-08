@@ -19,6 +19,7 @@ from mcop.adapters.arcagi3_agent import (
     LOW_MEMORY_MAX_TRACES,
     GameResult,
     GrokStrategy,
+    HolographicShadowStrategy,
     MappingGrokStrategy,
     RandomStrategy,
     StepRecord,
@@ -1192,3 +1193,143 @@ def test_play_passes_recent_levels_alongside_actions(
     assert len(captured[3]["recent"]) == 3
     assert len(captured[3]["recent_levels"]) == 3
     assert captured[3]["recent_levels"] == [0, 0, 0]
+
+
+# ---- HolographicShadowStrategy --------------------------------------------
+
+def _grid_with_goal(goal_positions: List[Tuple[int, int]]) -> List[List[List[int]]]:
+    """Build a single 8x8 layer with goal cells (color 8) at the given (row, col)."""
+    layer = [[0 for _ in range(8)] for _ in range(8)]
+    for r, c in goal_positions:
+        layer[r][c] = 8
+    return [layer]
+
+
+class _HoloFrame:
+    def __init__(self, grid: List[List[List[int]]], levels_completed: int = 0) -> None:
+        self.frame = grid
+        self.levels_completed = levels_completed
+        self.state = mock.Mock(value="PLAYING")
+
+
+def test_holographic_strategy_goal_centroid_ignores_non_goal_colors() -> None:
+    grid = _grid_with_goal([(2, 4), (4, 2)])
+    grid[0][0][0] = 5  # color 5 should be ignored
+    grid[0][7][7] = 3  # so should other colors
+    strat = HolographicShadowStrategy()
+    centroid = strat._goal_centroid(_HoloFrame(grid))
+    assert centroid == (3.0, 3.0)
+
+
+def test_holographic_strategy_state_hash_only_depends_on_goal_layer() -> None:
+    """Non-goal cell churn must not invalidate the wall/visit cache."""
+    grid_a = _grid_with_goal([(1, 1)])
+    grid_b = _grid_with_goal([(1, 1)])
+    grid_b[0][5][5] = 5  # different non-goal cell — hash should still match
+    strat = HolographicShadowStrategy()
+    assert strat._state_hash(_HoloFrame(grid_a)) == strat._state_hash(_HoloFrame(grid_b))
+
+
+def test_holographic_strategy_classifies_blocked_wobble_below_threshold() -> None:
+    """A 1-cell change is wobble; >=2-cell change is real movement."""
+    strat = HolographicShadowStrategy()
+    prev = _HoloFrame(_grid_with_goal([(0, 0)]))
+    # Set last_goal_centroid the way choose() would.
+    strat._last_state_hash = strat._state_hash(prev)
+    strat._last_goal_centroid = strat._goal_centroid(prev)
+    # 1-cell change vs prev (a single non-goal cell flips) => wobble.
+    # Moving the goal itself would change 2 cells (vacate + arrive) and
+    # hit the real_move threshold, which is the opposite of what we want.
+    wobble_grid = _grid_with_goal([(0, 0)])
+    wobble_grid[0][7][7] = 5
+    next_wobble = _HoloFrame(wobble_grid)
+    strat.observe(prev, "ACTION1", next_wobble)
+    record = strat.provenance[-1]
+    assert record["type"] == "blocked_wobble"
+    assert strat.walls[(strat._last_state_hash, "ACTION1")] == 1
+
+
+def test_holographic_strategy_classifies_real_move_at_threshold() -> None:
+    strat = HolographicShadowStrategy()
+    # Goal moves from (0,0) to (3,3): two cells change (old becomes 0, new
+    # becomes 8) => n_changed == 2 == MOVE_THRESHOLD_CELLS => real_move.
+    prev = _HoloFrame(_grid_with_goal([(0, 0)]))
+    strat._last_state_hash = strat._state_hash(prev)
+    strat._last_goal_centroid = strat._goal_centroid(prev)
+    nxt = _HoloFrame(_grid_with_goal([(3, 3)]))
+    strat.observe(prev, "ACTION2", nxt)
+    record = strat.provenance[-1]
+    assert record["type"] == "real_move"
+    assert record["goal_centroid_delta"] > 0
+    assert (strat._last_state_hash, "ACTION2") not in strat.walls
+
+
+def test_holographic_strategy_wall_learning_avoids_repeated_blocked_action() -> None:
+    """After three blocked observations of ACTION1, choose() should prefer ACTION2."""
+    strat = HolographicShadowStrategy()
+    prev = _HoloFrame(_grid_with_goal([(0, 0)]))
+    # Learn that ACTION1 is a wall in this state.
+    for _ in range(3):
+        strat._last_state_hash = strat._state_hash(prev)
+        strat._last_goal_centroid = strat._goal_centroid(prev)
+        # No change -> blocked_wobble
+        strat.observe(prev, "ACTION1", _HoloFrame(_grid_with_goal([(0, 0)])))
+    # Now ask for an action — ACTION1 should NOT win.
+    chosen, _ = strat.choose(prev, [], {}, ["ACTION1", "ACTION2"])
+    assert chosen == "ACTION2"
+
+
+def test_holographic_strategy_oscillation_triggers_novelty_pick() -> None:
+    """ABAB centroid pattern + heavily-tried ACTION1 should flip choice to ACTION2."""
+    strat = HolographicShadowStrategy()
+    # Seed action_stats so ACTION1 looks 'great' under normal scoring
+    # (high move rate) and ACTION2 is rarely tried — without oscillation
+    # the chooser would pick ACTION1; with oscillation novelty-bias flips it.
+    strat.action_stats["ACTION1"] = {
+        "count": 20.0,
+        "moved_count": 20.0,
+        "total_centroid_delta": 20.0,
+    }
+    strat.action_stats["ACTION2"] = {
+        "count": 0.0,
+        "moved_count": 0.0,
+        "total_centroid_delta": 0.0,
+    }
+    # Inject an alternating centroid history (a, b, a, b, a, b).
+    strat._centroid_history = [
+        (1.0, 1.0), (1.0, 2.0),
+        (1.0, 1.0), (1.0, 2.0),
+        (1.0, 1.0), (1.0, 2.0),
+    ]
+    assert strat._detect_oscillation() is True
+    chosen, _ = strat.choose(
+        _HoloFrame(_grid_with_goal([(1, 1)])), [], {}, ["ACTION1", "ACTION2"]
+    )
+    assert chosen == "ACTION2"
+
+
+def test_holographic_strategy_provenance_records_levels_delta() -> None:
+    strat = HolographicShadowStrategy()
+    prev = _HoloFrame(_grid_with_goal([(0, 0)]), levels_completed=0)
+    strat._last_state_hash = strat._state_hash(prev)
+    strat._last_goal_centroid = strat._goal_centroid(prev)
+    nxt = _HoloFrame(_grid_with_goal([(3, 3)]), levels_completed=1)
+    strat.observe(prev, "ACTION3", nxt)
+    record = strat.provenance[-1]
+    assert record["levels_delta"] == 1
+    assert record["action"] == "ACTION3"
+
+
+def test_holographic_strategy_returns_action1_when_no_actions_available() -> None:
+    strat = HolographicShadowStrategy()
+    chosen, data = strat.choose(_HoloFrame(_grid_with_goal([])), [], {}, [])
+    assert chosen == "ACTION1"
+    assert data == {}
+
+
+def test_holographic_strategy_complex_action_gets_default_coordinates() -> None:
+    strat = HolographicShadowStrategy(complex_action_default=(10, 20))
+    # With only ACTION6 available it must win regardless of score.
+    chosen, data = strat.choose(_HoloFrame(_grid_with_goal([])), [], {}, ["ACTION6"])
+    assert chosen == "ACTION6"
+    assert data == {"x": 10, "y": 20}

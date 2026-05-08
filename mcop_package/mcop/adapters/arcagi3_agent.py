@@ -35,8 +35,10 @@ rest of ``mcop_package`` stays importable on 3.11.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
+import math
 import os
 import random
 import re
@@ -846,6 +848,207 @@ class MappingGrokStrategy:
             if self._mapping_queue and self._mapping_queue[0] == action_name:
                 self._mapping_queue.pop(0)
             self._pending_mapping_action = None
+
+
+class HolographicShadowStrategy:
+    """Goal-focused, oscillation-aware action chooser with debug provenance.
+
+    Adapts the v2 holographic-shadow design to the discrete ARC-AGI-3
+    grid (no env rollback, integer cells). Five behaviours:
+
+    1. Goal-only perception. State hashing and centroid tracking only
+       consider cells matching ``goal_color`` (default 8); other layers
+       become noise that no longer fragments the state cache.
+    2. Movement threshold. ``observe()`` classifies each step as
+       ``real_move`` when ``n_changed >= move_threshold_cells`` and
+       ``blocked_wobble`` otherwise, so 0/1-cell jitter no longer reads
+       as progress.
+    3. Per-step debug provenance. Every observed transition appends a
+       record to ``provenance`` (type, action, n_changed, centroid
+       delta, wall hit count, levels delta) so a stuck state can be
+       inspected after the fact.
+    4. Wall learning. ``blocked_wobble`` increments
+       ``walls[(state_hash, action)]``; the chooser subtracts that
+       count from the score so repeated walls fall to the back.
+    5. Oscillation -> novelty. A short ring buffer of goal centroids
+       detects ABAB-style alternation; while detected, the score is
+       biased toward less-tried actions to break the cycle.
+
+    The strategy learns from real outcomes via ``observe()`` (same
+    channel :class:`MappingGrokStrategy` uses), so no env probing is
+    required. Falls back to ``fallback`` (default
+    :class:`RandomStrategy`) only when no available actions are passed.
+    """
+
+    GOAL_COLOR = 8
+    MOVE_THRESHOLD_CELLS = 2
+    HISTORY_WINDOW = 6
+    OSCILLATION_REPEAT = 3
+
+    def __init__(
+        self,
+        fallback: Optional[Strategy] = None,
+        goal_color: int = GOAL_COLOR,
+        move_threshold_cells: int = MOVE_THRESHOLD_CELLS,
+        complex_action_default: Tuple[int, int] = (32, 32),
+    ) -> None:
+        self.fallback = fallback or RandomStrategy()
+        self.goal_color = goal_color
+        self.move_threshold_cells = move_threshold_cells
+        self._complex_default = complex_action_default
+        self.action_stats: Dict[str, Dict[str, float]] = {}
+        self.walls: Dict[Tuple[str, str], int] = {}
+        self.state_visits: Dict[str, int] = {}
+        self._centroid_history: List[Tuple[float, float]] = []
+        self._last_state_hash: Optional[str] = None
+        self._last_goal_centroid: Optional[Tuple[float, float]] = None
+        self.provenance: List[Dict[str, Any]] = []
+
+    def _goal_centroid(
+        self, frame: Any
+    ) -> Optional[Tuple[float, float]]:
+        rs: List[int] = []
+        cs: List[int] = []
+        for layer in _grid_as_list(frame):
+            for ri, row in enumerate(layer):
+                for ci, val in enumerate(row):
+                    if val == self.goal_color:
+                        rs.append(ri)
+                        cs.append(ci)
+        if not rs:
+            return None
+        return (sum(rs) / len(rs), sum(cs) / len(cs))
+
+    def _state_hash(self, frame: Any) -> str:
+        # Hash only the goal-color mask so non-goal cell churn (e.g.
+        # static geometry repaints) doesn't fragment the wall/visit cache.
+        masked = [
+            [
+                [1 if v == self.goal_color else 0 for v in row]
+                for row in layer
+            ]
+            for layer in _grid_as_list(frame)
+        ]
+        payload = json.dumps(masked, default=_json_default).encode()
+        return hashlib.sha1(payload).hexdigest()[:16]
+
+    def _detect_oscillation(self) -> bool:
+        if len(self._centroid_history) < self.HISTORY_WINDOW:
+            return False
+        recent = self._centroid_history[-self.HISTORY_WINDOW:]
+        alternations = sum(
+            1
+            for i in range(2, len(recent))
+            if recent[i] == recent[i - 2] and recent[i] != recent[i - 1]
+        )
+        return alternations >= self.OSCILLATION_REPEAT
+
+    def _score_action(
+        self, name: str, state_hash: str, oscillating: bool
+    ) -> float:
+        wall_hits = self.walls.get((state_hash, name), 0)
+        stats = self.action_stats.get(name, {})
+        n = stats.get("count", 0)
+        moved = stats.get("moved_count", 0)
+        avg_delta = (
+            stats.get("total_centroid_delta", 0.0) / n if n > 0 else 0.0
+        )
+        # Optimistic prior for untried actions so the chooser explores
+        # before settling on the first action that happened to move.
+        move_rate = (moved / n) if n > 0 else 0.5
+        score = move_rate + 0.1 * avg_delta - 1.0 * wall_hits
+        if oscillating:
+            # Novelty seeking: penalise the actions we keep picking and
+            # reward the ones we have tried least, breaking the loop.
+            score -= 0.5 * n
+        return score
+
+    def choose(
+        self,
+        frame: Any,
+        tensor: Sequence[float],
+        memory_summary: Dict[str, Any],
+        available_action_names: List[str],
+    ) -> Tuple[str, Dict[str, Any]]:
+        if not available_action_names:
+            return ("ACTION1", {})
+        state_hash = self._state_hash(frame)
+        self._last_state_hash = state_hash
+        self._last_goal_centroid = self._goal_centroid(frame)
+        self.state_visits[state_hash] = (
+            self.state_visits.get(state_hash, 0) + 1
+        )
+        oscillating = self._detect_oscillation()
+        scored = sorted(
+            available_action_names,
+            key=lambda n: (
+                -self._score_action(n, state_hash, oscillating),
+                n,
+            ),
+        )
+        chosen = scored[0]
+        data: Dict[str, Any] = {}
+        if chosen in COMPLEX_ACTIONS:
+            x, y = self._complex_default
+            data = {"x": x, "y": y}
+        if oscillating:
+            logger.info(
+                "holographic-shadow oscillation detected; novelty pick=%s",
+                chosen,
+            )
+        return (chosen, data)
+
+    def observe(
+        self,
+        prev_frame: Any,
+        action_name: str,
+        next_frame: Any,
+    ) -> None:
+        if prev_frame is None or next_frame is None:
+            return
+        diff = _frame_diff(prev_frame, next_frame)
+        prev_centroid = self._last_goal_centroid
+        curr_centroid = self._goal_centroid(next_frame)
+        centroid_delta = 0.0
+        if prev_centroid is not None and curr_centroid is not None:
+            centroid_delta = math.hypot(
+                curr_centroid[0] - prev_centroid[0],
+                curr_centroid[1] - prev_centroid[1],
+            )
+        moved = diff["n_changed"] >= self.move_threshold_cells
+
+        stats = self.action_stats.setdefault(
+            action_name,
+            {"count": 0.0, "moved_count": 0.0, "total_centroid_delta": 0.0},
+        )
+        stats["count"] += 1
+        if moved:
+            stats["moved_count"] += 1
+        stats["total_centroid_delta"] += centroid_delta
+
+        if not moved and self._last_state_hash is not None:
+            key = (self._last_state_hash, action_name)
+            self.walls[key] = self.walls.get(key, 0) + 1
+
+        if curr_centroid is not None:
+            self._centroid_history.append(curr_centroid)
+            cap = 4 * self.HISTORY_WINDOW
+            if len(self._centroid_history) > cap:
+                self._centroid_history = self._centroid_history[-cap:]
+
+        wall_hits = self.walls.get(
+            (self._last_state_hash or "", action_name), 0
+        )
+        self.provenance.append(
+            {
+                "type": "real_move" if moved else "blocked_wobble",
+                "action": action_name,
+                "n_changed": diff["n_changed"],
+                "goal_centroid_delta": round(centroid_delta, 3),
+                "wall_hits": wall_hits,
+                "levels_delta": diff["levels_delta"],
+            }
+        )
 
 
 @dataclass
