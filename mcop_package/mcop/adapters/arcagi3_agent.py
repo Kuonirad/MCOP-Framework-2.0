@@ -1000,20 +1000,33 @@ class HolographicShadowStrategy:
     1. Goal-only perception. State hashing and centroid tracking only
        consider cells matching ``goal_color`` (default 8); other layers
        become noise that no longer fragments the state cache.
-    2. Movement threshold. ``observe()`` classifies each step as
-       ``real_move`` when ``n_changed >= move_threshold_cells`` and
-       ``blocked_wobble`` otherwise, so 0/1-cell jitter no longer reads
-       as progress.
+    2. Dual movement thresholds keyed on goal-centroid drift. When both
+       prev and curr frames expose a goal centroid, ``observe()``
+       classifies a step as ``real_move`` when the centroid moved
+       further than ``move_threshold_centroid`` (default 1.5 cells) and
+       as ``blocked_wobble`` only when it moved less than
+       ``wobble_threshold_centroid`` (default 0.5 cells). Drifts in
+       between are ``ambiguous_drift`` and update neither the
+       move-rate nor the wall counter, so sub-cell sprite jitter no
+       longer reads as either progress or a wall. When no goal
+       centroid is available the strategy falls back to the cell-count
+       threshold (``move_threshold_cells``, default 2 cells).
     3. Per-step debug provenance. Every observed transition appends a
        record to ``provenance`` (type, action, n_changed, centroid
-       delta, wall hit count, levels delta) so a stuck state can be
-       inspected after the fact.
+       delta, wall hit count, levels delta). Wall-learning hits also
+       emit a dedicated ``debug_wall_learning`` entry the first time a
+       given (state, action) is registered as blocked, and
+       oscillation-driven novelty picks emit a ``debug_loop_detected``
+       entry the first time a given goal-centroid pattern triggers, so
+       a stuck state can be reconstructed exactly after the fact.
     4. Wall learning. ``blocked_wobble`` increments
        ``walls[(state_hash, action)]``; the chooser subtracts that
        count from the score so repeated walls fall to the back.
     5. Oscillation -> novelty. A short ring buffer of goal centroids
        detects ABAB-style alternation; while detected, the score is
-       biased toward less-tried actions to break the cycle.
+       biased toward the least-tried action at the current state
+       (``state_action_tries``) so the agent breaks out of the cycle
+       even when no action has yet been classified as a wall.
 
     Two further behaviours, both fully ARC-AGI-3 compliant (no offline
     data, no per-game hardcoding, learned strictly online):
@@ -1041,6 +1054,8 @@ class HolographicShadowStrategy:
 
     GOAL_COLOR = 8
     MOVE_THRESHOLD_CELLS = 2
+    MOVE_THRESHOLD_CENTROID = 1.5
+    WOBBLE_THRESHOLD_CENTROID = 0.5
     HISTORY_WINDOW = 6
     OSCILLATION_REPEAT = 3
     MAX_PLAN_DEPTH = 6
@@ -1050,22 +1065,32 @@ class HolographicShadowStrategy:
         fallback: Optional[Strategy] = None,
         goal_color: int = GOAL_COLOR,
         move_threshold_cells: int = MOVE_THRESHOLD_CELLS,
+        move_threshold_centroid: float = MOVE_THRESHOLD_CENTROID,
+        wobble_threshold_centroid: float = WOBBLE_THRESHOLD_CENTROID,
         complex_action_default: Tuple[int, int] = (32, 32),
         auto_discover_goal_color: bool = True,
         min_advances_for_discovery: int = 1,
         max_plan_depth: int = MAX_PLAN_DEPTH,
     ) -> None:
+        if wobble_threshold_centroid > move_threshold_centroid:
+            raise ValueError(
+                "wobble_threshold_centroid must be <= move_threshold_centroid"
+            )
         self.fallback = fallback or RandomStrategy()
         self.goal_color = goal_color
         self.move_threshold_cells = move_threshold_cells
+        self.move_threshold_centroid = move_threshold_centroid
+        self.wobble_threshold_centroid = wobble_threshold_centroid
         self._complex_default = complex_action_default
         self.auto_discover_goal_color = auto_discover_goal_color
         self.action_stats: Dict[str, Dict[str, float]] = {}
         self.walls: Dict[Tuple[str, str], int] = {}
+        self.state_action_tries: Dict[Tuple[str, str], int] = {}
         self.state_visits: Dict[str, int] = {}
         self._centroid_history: List[Tuple[float, float]] = []
         self._last_state_hash: Optional[str] = None
         self._last_goal_centroid: Optional[Tuple[float, float]] = None
+        self._loop_signatures_seen: set = set()
         self.provenance: List[Dict[str, Any]] = []
         self._goal_detector = _GoalColorDetector(
             min_advances=min_advances_for_discovery
@@ -1082,8 +1107,10 @@ class HolographicShadowStrategy:
         feed) don't pollute decisions taken under the new mask.
         """
         self.walls.clear()
+        self.state_action_tries.clear()
         self.state_visits.clear()
         self._centroid_history.clear()
+        self._loop_signatures_seen.clear()
         self._forward_model.reset()
         self._last_state_hash = None
         self._last_goal_centroid = None
@@ -1142,9 +1169,13 @@ class HolographicShadowStrategy:
         move_rate = (moved / n) if n > 0 else 0.5
         score = move_rate + 0.1 * avg_delta - 1.0 * wall_hits
         if oscillating:
-            # Novelty seeking: penalise the actions we keep picking and
-            # reward the ones we have tried least, breaking the loop.
-            score -= 0.5 * n
+            # Novelty seeking: prefer the action we have tried least at
+            # *this* state, even when no wall has been registered yet.
+            # This breaks ABAB cycles like (25,46)<->(25,48) where both
+            # alternating actions register as "real_move" and so neither
+            # gets a wall penalty under normal scoring.
+            tries_here = self.state_action_tries.get((state_hash, name), 0)
+            score -= 0.6 * tries_here + 0.5 * n
         return score
 
     def choose(
@@ -1200,6 +1231,29 @@ class HolographicShadowStrategy:
                 "holographic-shadow oscillation detected; novelty pick=%s",
                 chosen,
             )
+            # Etch a debug entry the first time a given oscillation
+            # signature is seen, so post-mortem inspection of
+            # ``provenance`` shows exactly which centroid pattern
+            # triggered the novelty pick. Re-triggers are suppressed
+            # to keep the trace readable.
+            recent_centroids = tuple(
+                self._centroid_history[-self.HISTORY_WINDOW:]
+            )
+            signature = (state_hash, recent_centroids)
+            if signature not in self._loop_signatures_seen:
+                self._loop_signatures_seen.add(signature)
+                self.provenance.append(
+                    {
+                        "type": "debug_loop_detected",
+                        "state_hash": state_hash,
+                        "centroid_window": [
+                            [round(r, 3), round(c, 3)]
+                            for r, c in recent_centroids
+                        ],
+                        "novelty_pick": chosen,
+                        "available": list(available_action_names),
+                    }
+                )
         return (chosen, data)
 
     def observe(
@@ -1231,12 +1285,39 @@ class HolographicShadowStrategy:
         prev_centroid = self._last_goal_centroid
         curr_centroid = self._goal_centroid(next_frame)
         centroid_delta = 0.0
-        if prev_centroid is not None and curr_centroid is not None:
+        centroid_available = (
+            prev_centroid is not None and curr_centroid is not None
+        )
+        if centroid_available:
             centroid_delta = math.hypot(
                 curr_centroid[0] - prev_centroid[0],
                 curr_centroid[1] - prev_centroid[1],
             )
-        moved = diff["n_changed"] >= self.move_threshold_cells
+
+        # Three-way classification keyed on goal-centroid drift when
+        # both centroids are available; otherwise fall back to the
+        # cell-count threshold so early frames (no goal visible yet)
+        # still classify deterministically. ``ambiguous_drift`` means
+        # the goal moved within the dead-zone between
+        # ``wobble_threshold_centroid`` (truly blocked) and
+        # ``move_threshold_centroid`` (real movement) — neither the
+        # move-rate nor the wall counter is updated, so sub-cell
+        # sprite jitter no longer reads as either progress or a wall.
+        if centroid_available:
+            if centroid_delta > self.move_threshold_centroid:
+                outcome = "real_move"
+            elif centroid_delta < self.wobble_threshold_centroid:
+                outcome = "blocked_wobble"
+            else:
+                outcome = "ambiguous_drift"
+        else:
+            outcome = (
+                "real_move"
+                if diff["n_changed"] >= self.move_threshold_cells
+                else "blocked_wobble"
+            )
+        moved = outcome == "real_move"
+        blocked = outcome == "blocked_wobble"
 
         stats = self.action_stats.setdefault(
             action_name,
@@ -1247,9 +1328,23 @@ class HolographicShadowStrategy:
             stats["moved_count"] += 1
         stats["total_centroid_delta"] += centroid_delta
 
-        if not moved and self._last_state_hash is not None:
+        # Track every (state, action) try so the oscillation-novelty
+        # picker can prefer the least-tried action even when no wall
+        # has yet been learned for the current state.
+        if self._last_state_hash is not None:
+            tries_key = (self._last_state_hash, action_name)
+            self.state_action_tries[tries_key] = (
+                self.state_action_tries.get(tries_key, 0) + 1
+            )
+
+        # Wall learning is gated on ``blocked`` rather than ``not
+        # moved`` so the ambiguous dead-zone never increments walls.
+        wall_first_hit = False
+        if blocked and self._last_state_hash is not None:
             key = (self._last_state_hash, action_name)
-            self.walls[key] = self.walls.get(key, 0) + 1
+            existing = self.walls.get(key, 0)
+            wall_first_hit = existing == 0
+            self.walls[key] = existing + 1
 
         if curr_centroid is not None:
             self._centroid_history.append(curr_centroid)
@@ -1262,7 +1357,7 @@ class HolographicShadowStrategy:
         )
         self.provenance.append(
             {
-                "type": "real_move" if moved else "blocked_wobble",
+                "type": outcome,
                 "action": action_name,
                 "n_changed": diff["n_changed"],
                 "goal_centroid_delta": round(centroid_delta, 3),
@@ -1270,6 +1365,24 @@ class HolographicShadowStrategy:
                 "levels_delta": diff["levels_delta"],
             }
         )
+
+        # Emit a dedicated debug etch the first time a given (state,
+        # action) is registered as a wall, so reviewers can correlate
+        # wall-learning decisions with the centroid drift that
+        # triggered them without scanning every observe() record.
+        if wall_first_hit and self._last_state_hash is not None:
+            self.provenance.append(
+                {
+                    "type": "debug_wall_learning",
+                    "action": action_name,
+                    "state_hash": self._last_state_hash,
+                    "goal_centroid_delta": round(centroid_delta, 3),
+                    "n_changed": diff["n_changed"],
+                    "wobble_threshold_centroid": (
+                        self.wobble_threshold_centroid
+                    ),
+                }
+            )
 
         # Record the transition in the learned forward model. Use the
         # post-discovery goal_color for both endpoints so the planner's
