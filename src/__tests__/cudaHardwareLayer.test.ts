@@ -182,7 +182,9 @@ describe('CUDAHardwareLayer.accelerate()', () => {
     expect(result._provenance.kernel).toBe('proteome-graph-step');
     expect(result._provenance.provider).toBe('CUDAHardwareLayer:onnx');
     expect(result._provenance.verifiedDevice).toBe('CUDAExecutionProvider');
-    expect(result._provenance.substrateLineage).toBe('CUDAExecutionProvider');
+    // Φ3 substrate-lineage tag combines the verified provider with the
+    // stream-allocation regime so MetaTuner can revive on lineage parity.
+    expect(result._provenance.substrateLineage).toBe('CUDAExecutionProvider/per-op');
     expect(result._provenance.requestedDevice).toBe('cuda:7');
     expect(result._provenance.cudaGraphCaptured).toBe(true);
     expect(result._provenance.merkleRoot).toMatch(/^[a-f0-9]{64}$/);
@@ -210,6 +212,23 @@ describe('CUDAHardwareLayer.accelerate()', () => {
       const result = await layer.accelerate(op, {});
       expect(result._provenance.kernel).toBe(expected[op]);
     }
+  });
+
+  it('Φ3 streams=shared override flows into substrateLineage and the streams getter', async () => {
+    const layer = new CUDAHardwareLayer({
+      enableCUDA: true,
+      streams: 'shared',
+      sessionFactory: async () => makeMockSession({ profilerOutput: cudaProfilerOutput() }),
+    });
+    expect(layer.streams).toBe('shared');
+    await layer.loadKernels();
+    const result = await layer.accelerate('cosineRecall', {});
+    expect(result._provenance.substrateLineage).toBe('CUDAExecutionProvider/shared');
+  });
+
+  it('Φ3 streams default to per-op when omitted', () => {
+    const layer = new CUDAHardwareLayer({ enableCUDA: false });
+    expect(layer.streams).toBe('per-op');
   });
 
   it('throws GhostGPUError when the profiler shows a CPU fallback for a CUDA-requested op', async () => {

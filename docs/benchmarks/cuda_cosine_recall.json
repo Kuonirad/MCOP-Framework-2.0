@@ -1,14 +1,13 @@
 {
   "schema": "mcop-cuda-bench/1.1",
   "capturedAt": "2026-05-07T20:30:00.000Z",
-  "op": "graphAggregate",
-  "description": "Proteome CSR mean-aggregation (GraphSAGE-style)",
+  "op": "cosineRecall",
+  "description": "Query × memory-bank cosine similarity sweep (Stigmergy V5)",
   "mode": "smoke",
   "seed": "0xC0FFEE",
   "fixture": {
-    "nodeCount": 1024,
-    "edgeCount": 12252,
-    "avgDegree": 12,
+    "bank": 256,
+    "dim": 64,
     "lowMemory": false
   },
   "iterations": {
@@ -29,7 +28,7 @@
       "minMs": null,
       "maxMs": null
     },
-    "outputFingerprint": "0c13d5c9571620b7636b79bf00e10f51f98a833b378f70509fd444da138656c4"
+    "outputFingerprint": "081da254cdceb68ad1568e9f9b13a2560e6996308a23b383432bebfe6c50f9de"
   },
   "cuda": {
     "skipped": "enableCuda=false"
@@ -39,5 +38,5 @@
     "phi2GoalSpeedup": 3,
     "phi2Met": false
   },
-  "merkleRoot": "40c6b1c9d9af06cbdb36447d32b8a5e90cdcdd33580a30e90d0655504802528c"
+  "merkleRoot": "3b62822f75b83b8b18788d328863f3825f83f52742da88a7834ddf2289f3ca29"
 }

@@ -1,14 +1,14 @@
 {
   "schema": "mcop-cuda-bench/1.1",
   "capturedAt": "2026-05-07T20:30:00.000Z",
-  "op": "graphAggregate",
-  "description": "Proteome CSR mean-aggregation (GraphSAGE-style)",
+  "op": "encode",
+  "description": "NovaNeoEncoder context → fixed-dim embedding projection",
   "mode": "smoke",
   "seed": "0xC0FFEE",
   "fixture": {
-    "nodeCount": 1024,
-    "edgeCount": 12252,
-    "avgDegree": 12,
+    "batch": 8,
+    "inputDim": 256,
+    "hiddenDim": 64,
     "lowMemory": false
   },
   "iterations": {
@@ -29,7 +29,7 @@
       "minMs": null,
       "maxMs": null
     },
-    "outputFingerprint": "0c13d5c9571620b7636b79bf00e10f51f98a833b378f70509fd444da138656c4"
+    "outputFingerprint": "9078803a4021db078cd713e9401a36a4d8cb916e767f24a5869be193ac19cae8"
   },
   "cuda": {
     "skipped": "enableCuda=false"
@@ -39,5 +39,5 @@
     "phi2GoalSpeedup": 3,
     "phi2Met": false
   },
-  "merkleRoot": "40c6b1c9d9af06cbdb36447d32b8a5e90cdcdd33580a30e90d0655504802528c"
+  "merkleRoot": "b3abe8ea80aa01d0cf4b852f7d45e8d3fe61fad5d91b32187b544bd5af8e7c86"
 }

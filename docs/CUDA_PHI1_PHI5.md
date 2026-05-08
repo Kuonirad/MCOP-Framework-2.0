@@ -35,7 +35,7 @@ shape stays unified across both providers:
 
 ## Φ1 — Land the layer disabled
 
-**Status: this PR.**
+**Status: shipped (#634).**
 
 - Add `src/hardware/CUDAHardwareLayer.ts` with op-sharded session loader,
   `accelerate()` dispatcher, and ghost-GPU detection via
@@ -59,9 +59,9 @@ existing pipeline (the layer cannot be reached when `enableCUDA: false`).
 
 ## Φ2 — First op online (`graphAggregate`)
 
-**Status: harness landed; CPU baseline + structural artifact committed; awaiting model export + GPU runner for the ≥ 3× gate.**
+**Status: shipped (#635). Harness landed; CPU baseline + structural artifact committed; awaiting model export + GPU runner for the ≥ 3× gate.**
 
-What this PR adds:
+What this PR added:
 
 - `scripts/benchmark-cuda-graph.mjs` — pure-ESM harness mirroring the
   conventions of `scripts/benchmark-arc-evo.mjs`. Builds a deterministic
@@ -106,19 +106,55 @@ showing `targets.phi2Met === true`.
 
 ## Φ3 — Cascade the remaining five kernels
 
-- Export the remaining ONNX kernels: `encode`, `holographicUpdate`,
-  `cosineRecall`, `evolveScore`, `homeostasis`.
-- Wire per-op CUDA streams (`session.run({ ... }, { ... cudaStreamId })`)
-  so independent organelles execute in parallel rather than serially. The
-  TypeScript surface does not need to change — kernel-level concurrency is
-  set on the ORT session at create-time.
-- Extend the benchmark runner to cover all six ops; gate on ≥ 1.4×
-  pipeline-level gain end-to-end (proxy for true multi-stream parallelism)
-  in addition to per-op speedups.
+**Status: harness extended to all six ops + per-op stream knob plumbed; CPU baselines committed; awaiting five ONNX exports + GPU runner for the per-op ≥3× / pipeline ≥1.4× gates.**
 
-**Exit criteria.** Six `.onnx` files in `models/`, six benchmark records
-under `docs/benchmarks/`, all dispatched through the same Merkle-rooted
-provenance.
+What this PR adds:
+
+- `scripts/benchmark-cuda-graph.mjs` upgraded to a multi-op registry
+  covering all six kernels. Each kernel ships a deterministic CPU
+  baseline (matmul + GELU for `encode`, CSR mean-aggregate for
+  `graphAggregate`, rank-1 outer product for `holographicUpdate`,
+  pre-normalised dot product for `cosineRecall`, weighted L2 for
+  `evolveScore`, decay/clamp for `homeostasis`) and an ONNX feeds
+  builder for the future GPU run. New CLI flag `--op=<kernel>` picks a
+  single op; `--op=all` cascades all six. Schema bumped to
+  `mcop-cuda-bench/1.1` with new `op`, `description`, and `streams`
+  fields.
+- `CUDAHardwareLayer` exposes a `streams: 'per-op' | 'shared'` knob
+  (default `'per-op'`). The choice is recorded in
+  `_provenance.substrateLineage` as `<verifiedProvider>/<streamMode>`
+  so MetaTuner can revive on stream-allocation lineage parity, not
+  just device family. `'shared'` exists as a Φ3 rollback escape hatch.
+  ONNX-Runtime-level concurrency is configured at
+  `InferenceSession.create()` time per op; the in-process surface is
+  intentionally minimal.
+- Five new committed smoke baselines: `cuda_encode.json`,
+  `cuda_holographic_update.json`, `cuda_cosine_recall.json`,
+  `cuda_evolve_score.json`, `cuda_homeostasis.json`. Each is
+  Merkle-stable across machines (host info + timings stripped),
+  alongside the upgraded `cuda_graph_aggregate.json`.
+- `pnpm benchmark:cuda-ops` (full mode, all ops) and
+  `pnpm benchmark:cuda-ops:smoke` (deterministic, all ops) added on
+  top of the existing `pnpm benchmark:cuda-graph[:smoke]` shortcuts.
+- `cudaBenchmarkHarness.test.ts` extended via `it.each` to exercise
+  all six ops; `cudaHardwareLayer.test.ts` gains tests for the
+  `streams` getter, `streams=shared` substrate-lineage tag, and the
+  `'per-op'` default.
+
+What is **not** in this PR (Φ3 follow-up):
+
+- The five remaining `mcop_<op>.onnx` exports. Owned by the user's
+  Python pipeline; drop them under `MCOP_CUDA_KERNEL_DIR` and the
+  harness picks them up automatically.
+- True multi-stream concurrency measurement (≥ 1.4× pipeline gain).
+  Cannot be measured without the ONNX exports + a GPU host.
+- Wiring `BaseAdapter.prepare()` through `CUDAHardwareLayer` —
+  deferred to Φ4 alongside the verifiedDevice 1k-step run.
+
+**Exit criteria.** Six `.onnx` files in `models/`, six full-mode
+benchmark records under `docs/benchmarks/cuda_<op>.full.json` with
+per-op `targets.phi2Met === true` and a roll-up showing ≥ 1.4×
+end-to-end pipeline gain when all six run on per-op streams.
 
 ## Φ4 — verifiedDevice gate hardening
 
