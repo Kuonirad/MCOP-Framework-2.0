@@ -20,6 +20,13 @@ from .base_adapter import (
     StigmergyStore,
     EtchLedger,
 )
+from .grok_image_adapter import (
+    GrokImageMCOPAdapter,
+    GrokImageRequest,
+    GrokImageResult,
+    generate_image,
+    generate_image_async,
+)
 from .higgsfield_adapter import (
     HiggsfieldClient,
     HiggsfieldMCOPAdapter,
@@ -35,6 +42,11 @@ __all__ = [
     "BaseMCOPAdapter",
     "DialecticalSynthesizer",
     "EtchLedger",
+    "generate_image_async",
+    "generate_image",
+    "GrokImageResult",
+    "GrokImageRequest",
+    "GrokImageMCOPAdapter",
     "HiggsfieldClient",
     "HiggsfieldMCOPAdapter",
     "HiggsfieldRequest",
