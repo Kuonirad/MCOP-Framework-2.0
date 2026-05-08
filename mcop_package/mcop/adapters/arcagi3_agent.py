@@ -669,6 +669,147 @@ def _frame_diff(prev: Any, curr: Any, max_samples: int = 12) -> Dict[str, Any]:
     }
 
 
+def _diff_color_tally(prev: Any, curr: Any) -> Dict[int, int]:
+    """For every cell that changed between ``prev`` and ``curr``, count
+    how many times each colour value appeared on either side of the
+    change. Used by :class:`_GoalColorDetector` to credit colours that
+    co-occur with level advances. Walks the full grid (not just
+    ``_frame_diff``'s 12-sample subset) so the credit is unbiased.
+    """
+    p = _grid_as_list(prev)
+    c = _grid_as_list(curr)
+    tally: Dict[int, int] = {}
+    for pl, cl in zip(p, c):
+        for pr, cr in zip(pl, cl):
+            for pv, cv in zip(pr, cr):
+                if pv != cv:
+                    tally[int(pv)] = tally.get(int(pv), 0) + 1
+                    tally[int(cv)] = tally.get(int(cv), 0) + 1
+    return tally
+
+
+class _GoalColorDetector:
+    """Online, no-prior-knowledge goal-colour discovery.
+
+    Watches every observed transition and, on the steps where
+    ``levels_delta > 0``, tallies which colour values participated in
+    the diff (either as the ``from`` or ``to`` value of any changed
+    cell). The colour that accumulates the most credit across advances
+    is the inferred goal colour.
+
+    Background colour 0 is excluded — every level advance also tends
+    to vacate cells back to 0, which would otherwise dominate the
+    tally and wash out the real signal.
+
+    Returns ``None`` until ``min_advances`` advances have been
+    observed; callers should fall back to a configured default during
+    that bootstrap window. Fully ARC-AGI-3 compliant: zero offline
+    data, zero per-game hardcoding, learned strictly online.
+    """
+
+    def __init__(self, min_advances: int = 1) -> None:
+        self.min_advances = min_advances
+        self.advance_credits: Dict[int, int] = {}
+        self.advances_seen = 0
+
+    def observe(self, prev_frame: Any, next_frame: Any) -> None:
+        if prev_frame is None or next_frame is None:
+            return
+        prev_levels = getattr(prev_frame, "levels_completed", 0)
+        next_levels = getattr(next_frame, "levels_completed", 0)
+        if next_levels - prev_levels <= 0:
+            return
+        self.advances_seen += 1
+        for colour, count in _diff_color_tally(prev_frame, next_frame).items():
+            if colour == 0:
+                continue  # background; exclude.
+            self.advance_credits[colour] = (
+                self.advance_credits.get(colour, 0) + count
+            )
+
+    def current(self) -> Optional[int]:
+        if self.advances_seen < self.min_advances or not self.advance_credits:
+            return None
+        # Highest credit wins; ties broken by lower colour index for
+        # determinism (so two scorecards on the same trace agree).
+        return max(
+            self.advance_credits.items(),
+            key=lambda kv: (kv[1], -kv[0]),
+        )[0]
+
+
+class _ForwardModel:
+    """Online-learned (state, action) -> next_state graph + bounded BFS.
+
+    Records every observed transition so the strategy can plan
+    short action sequences toward a state that previously produced a
+    level advance. The graph is built strictly from in-episode
+    ``observe()`` calls: no offline data, no leaked answers, no
+    per-game priors — fully ARC-AGI-3 compliant.
+
+    ``plan(start, available)`` returns the *first action* of the
+    shortest action-path from ``start`` to any state in
+    ``terminal_states`` whose length is at most ``max_plan_depth``.
+    Returns ``None`` when no such path exists in the learned graph,
+    so the caller can fall back to its own scoring logic. Planning
+    consumes zero env steps.
+    """
+
+    def __init__(self, max_plan_depth: int = 6) -> None:
+        self.max_plan_depth = max_plan_depth
+        self.transitions: Dict[Tuple[str, str], str] = {}
+        self.terminal_states: set = set()
+
+    def add_transition(
+        self,
+        state: str,
+        action: str,
+        next_state: str,
+        levels_delta: int,
+    ) -> None:
+        self.transitions[(state, action)] = next_state
+        if levels_delta > 0:
+            self.terminal_states.add(next_state)
+
+    def reset(self) -> None:
+        self.transitions.clear()
+        self.terminal_states.clear()
+
+    def plan(
+        self, start: str, available: List[str]
+    ) -> Optional[str]:
+        from collections import deque
+
+        if not self.terminal_states or not available:
+            return None
+        # Direct hit: any (start, a) -> terminal short-circuits BFS.
+        for action in available:
+            nxt = self.transitions.get((start, action))
+            if nxt is not None and nxt in self.terminal_states:
+                return action
+        visited = {start}
+        queue: Any = deque()
+        for action in available:
+            nxt = self.transitions.get((start, action))
+            if nxt is not None and nxt not in visited:
+                visited.add(nxt)
+                queue.append((nxt, action, 1))
+        while queue:
+            state, first_action, depth = queue.popleft()
+            if depth >= self.max_plan_depth:
+                continue
+            for action in available:
+                nxt = self.transitions.get((state, action))
+                if nxt is None:
+                    continue
+                if nxt in self.terminal_states:
+                    return first_action
+                if nxt not in visited:
+                    visited.add(nxt)
+                    queue.append((nxt, first_action, depth + 1))
+        return None
+
+
 class MappingGrokStrategy:
     """Map action semantics, then exploit them via Grok.
 
@@ -874,6 +1015,24 @@ class HolographicShadowStrategy:
        detects ABAB-style alternation; while detected, the score is
        biased toward less-tried actions to break the cycle.
 
+    Two further behaviours, both fully ARC-AGI-3 compliant (no offline
+    data, no per-game hardcoding, learned strictly online):
+
+    6. Auto goal-colour discovery. A :class:`_GoalColorDetector`
+       watches every transition; once it has seen ``min_advances``
+       level advances it credits the colour most associated with them
+       and the strategy re-keys its goal-dependent caches. Until then
+       the configured ``goal_color`` is used. Disable with
+       ``auto_discover_goal_color=False``.
+    7. Forward-model planning. A :class:`_ForwardModel` records
+       observed ``(state, action) -> next_state`` transitions and
+       flags any next-state that produced a level advance. On each
+       :meth:`choose` the strategy runs a bounded BFS over the
+       learned graph; if a short action sequence reaches a known
+       advance state, the first action of that path is returned in
+       preference to the score-based pick. Planning consumes zero
+       env steps. Disable with ``max_plan_depth=0``.
+
     The strategy learns from real outcomes via ``observe()`` (same
     channel :class:`MappingGrokStrategy` uses), so no env probing is
     required. Falls back to ``fallback`` (default
@@ -884,6 +1043,7 @@ class HolographicShadowStrategy:
     MOVE_THRESHOLD_CELLS = 2
     HISTORY_WINDOW = 6
     OSCILLATION_REPEAT = 3
+    MAX_PLAN_DEPTH = 6
 
     def __init__(
         self,
@@ -891,11 +1051,15 @@ class HolographicShadowStrategy:
         goal_color: int = GOAL_COLOR,
         move_threshold_cells: int = MOVE_THRESHOLD_CELLS,
         complex_action_default: Tuple[int, int] = (32, 32),
+        auto_discover_goal_color: bool = True,
+        min_advances_for_discovery: int = 1,
+        max_plan_depth: int = MAX_PLAN_DEPTH,
     ) -> None:
         self.fallback = fallback or RandomStrategy()
         self.goal_color = goal_color
         self.move_threshold_cells = move_threshold_cells
         self._complex_default = complex_action_default
+        self.auto_discover_goal_color = auto_discover_goal_color
         self.action_stats: Dict[str, Dict[str, float]] = {}
         self.walls: Dict[Tuple[str, str], int] = {}
         self.state_visits: Dict[str, int] = {}
@@ -903,6 +1067,26 @@ class HolographicShadowStrategy:
         self._last_state_hash: Optional[str] = None
         self._last_goal_centroid: Optional[Tuple[float, float]] = None
         self.provenance: List[Dict[str, Any]] = []
+        self._goal_detector = _GoalColorDetector(
+            min_advances=min_advances_for_discovery
+        )
+        self._forward_model = _ForwardModel(max_plan_depth=max_plan_depth)
+        self._max_plan_depth = max_plan_depth
+
+    def _reset_goal_dependent_state(self) -> None:
+        """Drop caches that are keyed on the old goal-colour mask.
+
+        Called when :class:`_GoalColorDetector` flips ``goal_color``
+        mid-episode, so previously stored state hashes (and the walls,
+        visits, forward-model transitions, and centroid history they
+        feed) don't pollute decisions taken under the new mask.
+        """
+        self.walls.clear()
+        self.state_visits.clear()
+        self._centroid_history.clear()
+        self._forward_model.reset()
+        self._last_state_hash = None
+        self._last_goal_centroid = None
 
     def _goal_centroid(
         self, frame: Any
@@ -978,6 +1162,26 @@ class HolographicShadowStrategy:
         self.state_visits[state_hash] = (
             self.state_visits.get(state_hash, 0) + 1
         )
+        # Planner first: if the learned forward model knows a short path
+        # from this state to a previously-observed level-advancing
+        # state, take the first action of that path. Skips entirely if
+        # planning is disabled (max_plan_depth == 0) or no terminal has
+        # been seen yet, so early-game behaviour matches v1.
+        if self._max_plan_depth > 0:
+            planned = self._forward_model.plan(
+                state_hash, available_action_names
+            )
+            if planned is not None:
+                logger.info(
+                    "holographic-shadow planner pick=%s (terminals=%d)",
+                    planned,
+                    len(self._forward_model.terminal_states),
+                )
+                data: Dict[str, Any] = {}
+                if planned in COMPLEX_ACTIONS:
+                    x, y = self._complex_default
+                    data = {"x": x, "y": y}
+                return (planned, data)
         oscillating = self._detect_oscillation()
         scored = sorted(
             available_action_names,
@@ -987,7 +1191,7 @@ class HolographicShadowStrategy:
             ),
         )
         chosen = scored[0]
-        data: Dict[str, Any] = {}
+        data = {}
         if chosen in COMPLEX_ACTIONS:
             x, y = self._complex_default
             data = {"x": x, "y": y}
@@ -1006,6 +1210,23 @@ class HolographicShadowStrategy:
     ) -> None:
         if prev_frame is None or next_frame is None:
             return
+        # Goal-colour discovery first, since updating goal_color
+        # invalidates every cache keyed on the old mask. Re-keying
+        # ahead of the rest of observe() ensures the wall/visit/forward-
+        # model entries this call writes use the new mask consistently.
+        self._goal_detector.observe(prev_frame, next_frame)
+        if self.auto_discover_goal_color:
+            discovered = self._goal_detector.current()
+            if discovered is not None and discovered != self.goal_color:
+                logger.info(
+                    "holographic-shadow goal-colour discovered: %d -> %d "
+                    "(advances=%d); resetting goal-dependent caches",
+                    self.goal_color,
+                    discovered,
+                    self._goal_detector.advances_seen,
+                )
+                self.goal_color = discovered
+                self._reset_goal_dependent_state()
         diff = _frame_diff(prev_frame, next_frame)
         prev_centroid = self._last_goal_centroid
         curr_centroid = self._goal_centroid(next_frame)
@@ -1049,6 +1270,18 @@ class HolographicShadowStrategy:
                 "levels_delta": diff["levels_delta"],
             }
         )
+
+        # Record the transition in the learned forward model. Use the
+        # post-discovery goal_color for both endpoints so the planner's
+        # graph is internally consistent.
+        if self._last_state_hash is not None and self._max_plan_depth > 0:
+            next_state_hash = self._state_hash(next_frame)
+            self._forward_model.add_transition(
+                self._last_state_hash,
+                action_name,
+                next_state_hash,
+                diff["levels_delta"],
+            )
 
 
 @dataclass
