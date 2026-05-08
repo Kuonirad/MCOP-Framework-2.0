@@ -1,14 +1,13 @@
 {
   "schema": "mcop-cuda-bench/1.1",
   "capturedAt": "2026-05-07T20:30:00.000Z",
-  "op": "graphAggregate",
-  "description": "Proteome CSR mean-aggregation (GraphSAGE-style)",
+  "op": "holographicUpdate",
+  "description": "Rank-1 outer-product micro-update on a holographic state matrix",
   "mode": "smoke",
   "seed": "0xC0FFEE",
   "fixture": {
-    "nodeCount": 1024,
-    "edgeCount": 12252,
-    "avgDegree": 12,
+    "dim": 64,
+    "gain": 0.125,
     "lowMemory": false
   },
   "iterations": {
@@ -29,7 +28,7 @@
       "minMs": null,
       "maxMs": null
     },
-    "outputFingerprint": "0c13d5c9571620b7636b79bf00e10f51f98a833b378f70509fd444da138656c4"
+    "outputFingerprint": "38b2bab0ecf40fed330e84370da15a1c6bf2c8ae4c7c48563cb85451f2a7083b"
   },
   "cuda": {
     "skipped": "enableCuda=false"
@@ -39,5 +38,5 @@
     "phi2GoalSpeedup": 3,
     "phi2Met": false
   },
-  "merkleRoot": "40c6b1c9d9af06cbdb36447d32b8a5e90cdcdd33580a30e90d0655504802528c"
+  "merkleRoot": "cbf656fae38083edc516974c1f6be25e7eca840caa63a6d3c891954d625318a5"
 }

@@ -1,35 +1,46 @@
 #!/usr/bin/env node
 /**
- * Φ2 of the CUDA Hardware Layer ladder — proteome-graph-step benchmark harness.
+ * Φ2 + Φ3 of the CUDA Hardware Layer ladder — multi-op benchmark harness.
  *
- * Runs a deterministic sparse-graph mean-aggregation kernel under both the
- * existing CPU path and (when available) the in-process CUDA path
- * (`CUDAHardwareLayer`). Emits a Merkle-rooted JSON record under
- * `docs/benchmarks/cuda_graph_aggregate.json` for committable provenance.
+ * Provides a deterministic CPU baseline (and optional in-process CUDA path
+ * via `onnxruntime-node`) for every kernel exposed by `CUDAHardwareLayer`:
+ *
+ *   - `encode`             — dense embedding projection (NovaNeoEncoder shape).
+ *   - `graphAggregate`     — proteome CSR mean-aggregation (Φ2 entry op).
+ *   - `holographicUpdate`  — rank-1 micro-update on a holographic state matrix.
+ *   - `cosineRecall`       — query × memory-bank cosine similarity sweep.
+ *   - `evolveScore`        — population × phenotype fitness aggregation.
+ *   - `homeostasis`        — bounded clamp-and-decay state update.
  *
  * Mirrors `scripts/benchmark-arc-evo.mjs` conventions: pure ESM, no
  * TypeScript runtime, deterministic seed, full per-row Merkle root.
  *
  * Environment knobs (mirrored from `arcagi3-run.yml`):
- *   MCOP_LOW_MEMORY_MODE    Scales `nodeCount` down to 4096 when set.
+ *   MCOP_LOW_MEMORY_MODE    Scales fixture size down for low-RAM hosts.
  *   MCOP_ENABLE_CUDA=1      Attempts the real in-process CUDA path.
  *                           Requires `onnxruntime-node` installed and a
- *                           `models/mcop_graphAggregate.onnx` kernel.
+ *                           `models/mcop_<op>.onnx` kernel for the chosen op.
  *   MCOP_CUDA_KERNEL_DIR    Override for the kernel directory.
+ *   MCOP_CUDA_STREAMS       'per-op' (default) | 'shared' — recorded in
+ *                           provenance for Φ3 substrate-lineage analysis.
  *
  * CLI flags:
- *   --mode=smoke            32k -> 1024 nodes, 8 timed iterations.
+ *   --op=<kernel>           One of `encode | graphAggregate |
+ *                           holographicUpdate | cosineRecall | evolveScore |
+ *                           homeostasis | all`. Default `graphAggregate`.
+ *   --mode=smoke            Reduced fixtures + 8 timed iterations.
  *                           Used for committed baseline + CI smoke.
- *   --mode=full             32768 nodes, 20 timed iterations (default).
- *   --out=<path>            Where to write the JSON record. Default
- *                           docs/benchmarks/cuda_graph_aggregate.json.
+ *   --mode=full             Full fixtures + 20 timed iterations.
+ *   --out=<path>            Where to write the JSON record. Defaults to
+ *                           `docs/benchmarks/cuda_<op>.json` (or
+ *                           `docs/benchmarks/cuda_graph_aggregate.json`
+ *                           for the legacy `graphAggregate` slot).
  *   --seed=<u32>            Override the deterministic PRNG seed.
  *
  * The harness is intentionally portable to the GitHub Actions
- * `ubuntu-latest` runner (CPU only) — it always produces a baseline
- * record. The CUDA columns are populated when (and only when) a
- * real CUDA execution provider is available; otherwise they are
- * `null` with a `skipped` reason captured in the JSON.
+ * `ubuntu-latest` runner (CPU only). When a CUDA path is unavailable
+ * the JSON's `cuda` slot is `{ skipped: <reason> }` rather than null,
+ * so reviewers can see the gate fired correctly.
  */
 
 import { performance } from 'node:perf_hooks';
@@ -45,7 +56,7 @@ const DEFAULT_SEED = 0xC0FFEE;
 const AVG_DEGREE = 12;
 
 /* ------------------------------------------------------------------ */
-/* Deterministic graph + input generation                              */
+/* PRNG + canonical-encoding parity                                    */
 /* ------------------------------------------------------------------ */
 
 /**
@@ -62,73 +73,6 @@ function mulberry32(seed) {
     return ((t ^ (t >>> 14)) >>> 0) / 4_294_967_296;
   };
 }
-
-/**
- * Build a deterministic CSR graph with `nodeCount` nodes and an average
- * out-degree of `avgDegree`. Edge weights are uniform in [0,1).
- */
-function buildCsrGraph(nodeCount, avgDegree, seed) {
-  const rand = mulberry32(seed);
-  const rowPtr = new Int32Array(nodeCount + 1);
-  const colBuilder = [];
-  const weightBuilder = [];
-  for (let row = 0; row < nodeCount; row += 1) {
-    rowPtr[row] = colBuilder.length;
-    // Vary degree slightly around avgDegree for realistic sparsity.
-    const degree = Math.max(1, Math.round(avgDegree * (0.7 + rand() * 0.6)));
-    for (let k = 0; k < degree; k += 1) {
-      const col = Math.floor(rand() * nodeCount);
-      colBuilder.push(col);
-      weightBuilder.push(rand());
-    }
-  }
-  rowPtr[nodeCount] = colBuilder.length;
-  return {
-    nodeCount,
-    edgeCount: colBuilder.length,
-    rowPtr,
-    colIdx: Int32Array.from(colBuilder),
-    weights: Float32Array.from(weightBuilder),
-  };
-}
-
-function buildInputVector(nodeCount, seed) {
-  const rand = mulberry32(seed ^ 0x9E3779B9);
-  const out = new Float32Array(nodeCount);
-  for (let i = 0; i < nodeCount; i += 1) out[i] = rand() * 2 - 1;
-  return out;
-}
-
-/* ------------------------------------------------------------------ */
-/* CPU mean-aggregation kernel                                         */
-/* ------------------------------------------------------------------ */
-
-/**
- * Standard sparse mean-aggregation over a CSR graph (a la GraphSAGE):
- *   out[v] = sum_u weights[v,u] * input[u] / max(1, degree[v])
- *
- * Pure JS, single-threaded — this is the baseline the CUDA path is
- * expected to beat by ≥ 3× on Φ2 hardware (RTX 4090 / Blackwell).
- */
-function cpuMeanAggregate(graph, input) {
-  const { nodeCount, rowPtr, colIdx, weights } = graph;
-  const out = new Float32Array(nodeCount);
-  for (let v = 0; v < nodeCount; v += 1) {
-    const start = rowPtr[v];
-    const end = rowPtr[v + 1];
-    if (end <= start) continue;
-    let sum = 0;
-    for (let k = start; k < end; k += 1) {
-      sum += weights[k] * input[colIdx[k]];
-    }
-    out[v] = sum / (end - start);
-  }
-  return out;
-}
-
-/* ------------------------------------------------------------------ */
-/* Canonical Merkle digest (parity with src/core/canonicalEncoding.ts) */
-/* ------------------------------------------------------------------ */
 
 function canonicalize(value) {
   if (value === undefined) return undefined;
@@ -158,11 +102,328 @@ function canonicalDigest(payload) {
 }
 
 function fingerprintFloatArray(arr) {
-  // Quantise to 8 hex digits per cell to keep digests Node-version-stable
-  // even when the JIT reorders fused-multiply-add chains by ±1 ulp.
   const buf = Buffer.alloc(arr.length * 4);
   for (let i = 0; i < arr.length; i += 1) buf.writeFloatLE(arr[i], i * 4);
   return createHash('sha256').update(buf).digest('hex');
+}
+
+/* ------------------------------------------------------------------ */
+/* Fixture / kernel primitives shared by multiple ops                  */
+/* ------------------------------------------------------------------ */
+
+function buildCsrGraph(nodeCount, avgDegree, seed) {
+  const rand = mulberry32(seed);
+  const rowPtr = new Int32Array(nodeCount + 1);
+  const colBuilder = [];
+  const weightBuilder = [];
+  for (let row = 0; row < nodeCount; row += 1) {
+    rowPtr[row] = colBuilder.length;
+    const degree = Math.max(1, Math.round(avgDegree * (0.7 + rand() * 0.6)));
+    for (let k = 0; k < degree; k += 1) {
+      const col = Math.floor(rand() * nodeCount);
+      colBuilder.push(col);
+      weightBuilder.push(rand());
+    }
+  }
+  rowPtr[nodeCount] = colBuilder.length;
+  return {
+    nodeCount,
+    edgeCount: colBuilder.length,
+    rowPtr,
+    colIdx: Int32Array.from(colBuilder),
+    weights: Float32Array.from(weightBuilder),
+  };
+}
+
+function buildVector(length, seed) {
+  const rand = mulberry32(seed);
+  const out = new Float32Array(length);
+  for (let i = 0; i < length; i += 1) out[i] = rand() * 2 - 1;
+  return out;
+}
+
+function buildMatrix(rows, cols, seed) {
+  const rand = mulberry32(seed);
+  const out = new Float32Array(rows * cols);
+  for (let i = 0; i < out.length; i += 1) out[i] = rand() * 2 - 1;
+  return out;
+}
+
+/* ------------------------------------------------------------------ */
+/* Per-op kernel registry                                              */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Each entry describes one kernel surface in the v2.3 layer:
+ *   - `legacyArtifact` — when the committed JSON path differs from
+ *     `cuda_<op>.json` (only `graphAggregate` does, for backwards compat).
+ *   - `dims(mode, lowMemory)` — fixture sizing per mode.
+ *   - `buildFixture(dims, seed)` — deterministic typed-array fixtures.
+ *   - `fixtureMeta(fixture)` — JSON-friendly summary (committed verbatim).
+ *   - `cpuKernel(fixture)` — pure-JS reference implementation, returns
+ *     a `Float32Array` whose fingerprint is committed for parity.
+ *   - `buildCudaFeeds(ort, fixture)` — feeds dict for ORT (only used on
+ *     a real GPU host; never exercised on `ubuntu-latest`).
+ */
+const KERNELS = {
+  encode: {
+    description: 'NovaNeoEncoder context → fixed-dim embedding projection',
+    legacyArtifact: 'cuda_encode.json',
+    dims(mode, lowMemory) {
+      if (mode === 'smoke') return { batch: 8, inputDim: 256, hiddenDim: 64 };
+      const batch = lowMemory ? 32 : 128;
+      return { batch, inputDim: 1024, hiddenDim: 256 };
+    },
+    buildFixture(dims, seed) {
+      const input = buildMatrix(dims.batch, dims.inputDim, seed);
+      const projection = buildMatrix(dims.inputDim, dims.hiddenDim, seed ^ 0xA1B2C3D4);
+      const bias = buildVector(dims.hiddenDim, seed ^ 0x5E6F7081);
+      return { dims, input, projection, bias };
+    },
+    fixtureMeta(fixture) {
+      return { batch: fixture.dims.batch, inputDim: fixture.dims.inputDim, hiddenDim: fixture.dims.hiddenDim };
+    },
+    cpuKernel(fixture) {
+      const { input, projection, bias, dims } = fixture;
+      const { batch, inputDim, hiddenDim } = dims;
+      const out = new Float32Array(batch * hiddenDim);
+      for (let b = 0; b < batch; b += 1) {
+        for (let h = 0; h < hiddenDim; h += 1) {
+          let sum = bias[h];
+          for (let i = 0; i < inputDim; i += 1) {
+            sum += input[b * inputDim + i] * projection[i * hiddenDim + h];
+          }
+          // GELU-ish smooth activation; matches NovaNeoEncoder's nonlinearity surface.
+          out[b * hiddenDim + h] = sum / (1 + Math.exp(-sum));
+        }
+      }
+      return out;
+    },
+    buildCudaFeeds(ort, fixture) {
+      const { dims, input, projection, bias } = fixture;
+      return {
+        input: new ort.Tensor('float32', input, [dims.batch, dims.inputDim]),
+        projection: new ort.Tensor('float32', projection, [dims.inputDim, dims.hiddenDim]),
+        bias: new ort.Tensor('float32', bias, [dims.hiddenDim]),
+      };
+    },
+  },
+
+  graphAggregate: {
+    description: 'Proteome CSR mean-aggregation (GraphSAGE-style)',
+    legacyArtifact: 'cuda_graph_aggregate.json',
+    dims(mode, lowMemory) {
+      if (mode === 'smoke') return { nodeCount: 1024, avgDegree: AVG_DEGREE };
+      return { nodeCount: lowMemory ? 4096 : 32_768, avgDegree: AVG_DEGREE };
+    },
+    buildFixture(dims, seed) {
+      const graph = buildCsrGraph(dims.nodeCount, dims.avgDegree, seed);
+      const input = buildVector(dims.nodeCount, seed ^ 0x9E3779B9);
+      return { dims, graph, input };
+    },
+    fixtureMeta(fixture) {
+      return {
+        nodeCount: fixture.graph.nodeCount,
+        edgeCount: fixture.graph.edgeCount,
+        avgDegree: fixture.dims.avgDegree,
+      };
+    },
+    cpuKernel(fixture) {
+      const { graph, input } = fixture;
+      const { nodeCount, rowPtr, colIdx, weights } = graph;
+      const out = new Float32Array(nodeCount);
+      for (let v = 0; v < nodeCount; v += 1) {
+        const start = rowPtr[v];
+        const end = rowPtr[v + 1];
+        if (end <= start) continue;
+        let sum = 0;
+        for (let k = start; k < end; k += 1) sum += weights[k] * input[colIdx[k]];
+        out[v] = sum / (end - start);
+      }
+      return out;
+    },
+    buildCudaFeeds(ort, fixture) {
+      const { graph, input } = fixture;
+      return {
+        rowPtr: new ort.Tensor('int32', graph.rowPtr, [graph.nodeCount + 1]),
+        colIdx: new ort.Tensor('int32', graph.colIdx, [graph.edgeCount]),
+        weights: new ort.Tensor('float32', graph.weights, [graph.edgeCount]),
+        input: new ort.Tensor('float32', input, [graph.nodeCount]),
+      };
+    },
+  },
+
+  holographicUpdate: {
+    description: 'Rank-1 outer-product micro-update on a holographic state matrix',
+    legacyArtifact: 'cuda_holographic_update.json',
+    dims(mode, lowMemory) {
+      if (mode === 'smoke') return { dim: 64 };
+      return { dim: lowMemory ? 256 : 1024 };
+    },
+    buildFixture(dims, seed) {
+      const state = buildMatrix(dims.dim, dims.dim, seed);
+      const left = buildVector(dims.dim, seed ^ 0xBADDCAFE);
+      const right = buildVector(dims.dim, seed ^ 0xDEADBEEF);
+      return { dims, state, left, right, gain: 0.125 };
+    },
+    fixtureMeta(fixture) {
+      return { dim: fixture.dims.dim, gain: fixture.gain };
+    },
+    cpuKernel(fixture) {
+      const { state, left, right, gain, dims } = fixture;
+      const { dim } = dims;
+      const out = new Float32Array(state.length);
+      for (let r = 0; r < dim; r += 1) {
+        const lr = left[r];
+        for (let c = 0; c < dim; c += 1) {
+          out[r * dim + c] = state[r * dim + c] + gain * lr * right[c];
+        }
+      }
+      return out;
+    },
+    buildCudaFeeds(ort, fixture) {
+      const { dims, state, left, right, gain } = fixture;
+      return {
+        state: new ort.Tensor('float32', state, [dims.dim, dims.dim]),
+        left: new ort.Tensor('float32', left, [dims.dim]),
+        right: new ort.Tensor('float32', right, [dims.dim]),
+        gain: new ort.Tensor('float32', new Float32Array([gain]), [1]),
+      };
+    },
+  },
+
+  cosineRecall: {
+    description: 'Query × memory-bank cosine similarity sweep (Stigmergy V5)',
+    legacyArtifact: 'cuda_cosine_recall.json',
+    dims(mode, lowMemory) {
+      if (mode === 'smoke') return { bank: 256, dim: 64 };
+      return { bank: lowMemory ? 1024 : 8192, dim: 256 };
+    },
+    buildFixture(dims, seed) {
+      const bank = buildMatrix(dims.bank, dims.dim, seed);
+      const query = buildVector(dims.dim, seed ^ 0xC0DECAFE);
+      // Pre-normalise the bank rows + query so the kernel reduces to a dot product;
+      // matches StigmergyV5's pre-normalised pheromone-trace storage.
+      normaliseRows(bank, dims.bank, dims.dim);
+      normaliseRow(query, 0, dims.dim);
+      return { dims, bank, query };
+    },
+    fixtureMeta(fixture) {
+      return { bank: fixture.dims.bank, dim: fixture.dims.dim };
+    },
+    cpuKernel(fixture) {
+      const { bank, query, dims } = fixture;
+      const { bank: bankRows, dim } = dims;
+      const out = new Float32Array(bankRows);
+      for (let r = 0; r < bankRows; r += 1) {
+        let sum = 0;
+        for (let c = 0; c < dim; c += 1) sum += bank[r * dim + c] * query[c];
+        out[r] = sum;
+      }
+      return out;
+    },
+    buildCudaFeeds(ort, fixture) {
+      const { dims, bank, query } = fixture;
+      return {
+        bank: new ort.Tensor('float32', bank, [dims.bank, dims.dim]),
+        query: new ort.Tensor('float32', query, [dims.dim]),
+      };
+    },
+  },
+
+  evolveScore: {
+    description: 'Population × phenotype fitness aggregation (NovaEvolveTuner)',
+    legacyArtifact: 'cuda_evolve_score.json',
+    dims(mode, lowMemory) {
+      if (mode === 'smoke') return { population: 64, traits: 16 };
+      return { population: lowMemory ? 256 : 2048, traits: 64 };
+    },
+    buildFixture(dims, seed) {
+      const phenotype = buildMatrix(dims.population, dims.traits, seed);
+      const reference = buildVector(dims.traits, seed ^ 0x600D5EED);
+      const weights = buildVector(dims.traits, seed ^ 0x1FACADE);
+      return { dims, phenotype, reference, weights };
+    },
+    fixtureMeta(fixture) {
+      return { population: fixture.dims.population, traits: fixture.dims.traits };
+    },
+    cpuKernel(fixture) {
+      const { phenotype, reference, weights, dims } = fixture;
+      const { population, traits } = dims;
+      const out = new Float32Array(population);
+      for (let p = 0; p < population; p += 1) {
+        let score = 0;
+        for (let t = 0; t < traits; t += 1) {
+          const delta = phenotype[p * traits + t] - reference[t];
+          score -= weights[t] * delta * delta;
+        }
+        out[p] = score;
+      }
+      return out;
+    },
+    buildCudaFeeds(ort, fixture) {
+      const { dims, phenotype, reference, weights } = fixture;
+      return {
+        phenotype: new ort.Tensor('float32', phenotype, [dims.population, dims.traits]),
+        reference: new ort.Tensor('float32', reference, [dims.traits]),
+        weights: new ort.Tensor('float32', weights, [dims.traits]),
+      };
+    },
+  },
+
+  homeostasis: {
+    description: 'Bounded clamp-and-decay state update (eudaimonic audit ring)',
+    legacyArtifact: 'cuda_homeostasis.json',
+    dims(mode, lowMemory) {
+      if (mode === 'smoke') return { dim: 256, decay: 0.95, bound: 1.5 };
+      return { dim: lowMemory ? 4096 : 32_768, decay: 0.95, bound: 1.5 };
+    },
+    buildFixture(dims, seed) {
+      const state = buildVector(dims.dim, seed);
+      const drive = buildVector(dims.dim, seed ^ 0xDEC0DE);
+      const setpoint = buildVector(dims.dim, seed ^ 0x5E5E5E5E);
+      return { dims, state, drive, setpoint };
+    },
+    fixtureMeta(fixture) {
+      return { dim: fixture.dims.dim, decay: fixture.dims.decay, bound: fixture.dims.bound };
+    },
+    cpuKernel(fixture) {
+      const { state, drive, setpoint, dims } = fixture;
+      const { dim, decay, bound } = dims;
+      const out = new Float32Array(dim);
+      for (let i = 0; i < dim; i += 1) {
+        const next = decay * state[i] + (1 - decay) * setpoint[i] + drive[i];
+        out[i] = next > bound ? bound : next < -bound ? -bound : next;
+      }
+      return out;
+    },
+    buildCudaFeeds(ort, fixture) {
+      const { dims, state, drive, setpoint } = fixture;
+      return {
+        state: new ort.Tensor('float32', state, [dims.dim]),
+        drive: new ort.Tensor('float32', drive, [dims.dim]),
+        setpoint: new ort.Tensor('float32', setpoint, [dims.dim]),
+        decay: new ort.Tensor('float32', new Float32Array([dims.decay]), [1]),
+        bound: new ort.Tensor('float32', new Float32Array([dims.bound]), [1]),
+      };
+    },
+  },
+};
+
+const KERNEL_NAMES = Object.freeze(Object.keys(KERNELS));
+
+function normaliseRow(buf, rowStart, length) {
+  let sumSq = 0;
+  for (let i = 0; i < length; i += 1) {
+    const v = buf[rowStart + i];
+    sumSq += v * v;
+  }
+  const norm = Math.sqrt(sumSq) || 1;
+  for (let i = 0; i < length; i += 1) buf[rowStart + i] = buf[rowStart + i] / norm;
+}
+
+function normaliseRows(matrix, rows, cols) {
+  for (let r = 0; r < rows; r += 1) normaliseRow(matrix, r * cols, cols);
 }
 
 /* ------------------------------------------------------------------ */
@@ -215,13 +476,13 @@ function stripTimings(run) {
 /* CPU run                                                             */
 /* ------------------------------------------------------------------ */
 
-function runCpuBaseline(graph, input, warmup, timed) {
-  for (let i = 0; i < warmup; i += 1) cpuMeanAggregate(graph, input);
+function runCpuBaseline(kernel, fixture, warmup, timed) {
+  for (let i = 0; i < warmup; i += 1) kernel.cpuKernel(fixture);
   const latencies = [];
   let lastOutput = null;
   for (let i = 0; i < timed; i += 1) {
     const t0 = performance.now();
-    lastOutput = cpuMeanAggregate(graph, input);
+    lastOutput = kernel.cpuKernel(fixture);
     latencies.push(performance.now() - t0);
   }
   return {
@@ -238,7 +499,7 @@ function runCpuBaseline(graph, input, warmup, timed) {
 /* CUDA run (best-effort)                                              */
 /* ------------------------------------------------------------------ */
 
-async function tryRunCuda(graph, input, warmup, timed, kernelDir) {
+async function tryRunCuda(opName, kernel, fixture, warmup, timed, kernelDir) {
   let ort;
   try {
     const moduleId = 'onnxruntime-node';
@@ -246,7 +507,7 @@ async function tryRunCuda(graph, input, warmup, timed, kernelDir) {
   } catch (err) {
     return { skipped: `onnxruntime-node not installed: ${(err && err.message) || err}` };
   }
-  const modelPath = resolve(kernelDir, 'mcop_graphAggregate.onnx');
+  const modelPath = resolve(kernelDir, `mcop_${opName}.onnx`);
   let session;
   try {
     session = await ort.InferenceSession.create(modelPath, {
@@ -258,7 +519,7 @@ async function tryRunCuda(graph, input, warmup, timed, kernelDir) {
     return { skipped: `Failed to create CUDA session for ${modelPath}: ${(err && err.message) || err}` };
   }
 
-  const feeds = buildCudaFeeds(ort, graph, input);
+  const feeds = kernel.buildCudaFeeds(ort, fixture);
   for (let i = 0; i < warmup; i += 1) await session.run(feeds);
 
   const latencies = [];
@@ -284,15 +545,6 @@ async function tryRunCuda(graph, input, warmup, timed, kernelDir) {
     summary: summariseLatencies(latencies),
     outputFingerprint: lastOutput ? fingerprintFloatArray(Float32Array.from(lastOutput)) : null,
     rawLatenciesMs: latencies.map((v) => round(v, 4)),
-  };
-}
-
-function buildCudaFeeds(ort, graph, input) {
-  return {
-    rowPtr: new ort.Tensor('int32', graph.rowPtr, [graph.nodeCount + 1]),
-    colIdx: new ort.Tensor('int32', graph.colIdx, [graph.edgeCount]),
-    weights: new ort.Tensor('float32', graph.weights, [graph.edgeCount]),
-    input: new ort.Tensor('float32', input, [graph.nodeCount]),
   };
 }
 
@@ -337,42 +589,46 @@ function parseExecutionProvider(profilerOutput) {
 }
 
 /* ------------------------------------------------------------------ */
-/* Main                                                                */
+/* Programmatic entry points                                           */
 /* ------------------------------------------------------------------ */
 
 /**
- * Programmatic entry point. Exposed for jest so the smoke-mode record is
- * tested directly without spawning a subprocess.
+ * Run a single kernel and return a Merkle-rooted record. Exported for jest.
  */
 export async function runBenchmark({
+  op = 'graphAggregate',
   mode = 'smoke',
   seed = DEFAULT_SEED,
   capturedAt,
   enableCuda = process.env.MCOP_ENABLE_CUDA === '1',
   kernelDir = process.env.MCOP_CUDA_KERNEL_DIR ?? './models',
   lowMemory = process.env.MCOP_LOW_MEMORY_MODE !== undefined && process.env.MCOP_LOW_MEMORY_MODE !== '',
+  streams = process.env.MCOP_CUDA_STREAMS === 'shared' ? 'shared' : 'per-op',
   log = () => {},
 } = {}) {
+  const kernel = KERNELS[op];
+  if (!kernel) {
+    throw new Error(`Unknown CUDA kernel op '${op}'. Expected one of: ${KERNEL_NAMES.join(', ')}`);
+  }
+
   const isFull = mode === 'full';
-  const nodeCount = isFull ? (lowMemory ? 4096 : 32_768) : 1024;
   const warmup = isFull ? 5 : 2;
   const timed = isFull ? 20 : 8;
+  const dims = kernel.dims(mode, lowMemory);
 
-  log('MCOP CUDA Φ2 benchmark — proteome-graph-step / mean-aggregation');
-  log(
-    `mode=${mode} nodeCount=${nodeCount} avgDegree=${AVG_DEGREE} warmup=${warmup} timed=${timed} seed=0x${seed.toString(16)}`,
-  );
-  log(`enableCUDA=${enableCuda} kernelDir=${kernelDir} lowMemory=${lowMemory}`);
+  log('MCOP CUDA Φ2/Φ3 benchmark — multi-op kernel harness');
+  log(`op=${op} mode=${mode} warmup=${warmup} timed=${timed} seed=0x${seed.toString(16)}`);
+  log(`enableCUDA=${enableCuda} kernelDir=${kernelDir} lowMemory=${lowMemory} streams=${streams}`);
 
-  const graph = buildCsrGraph(nodeCount, AVG_DEGREE, seed);
-  const input = buildInputVector(nodeCount, seed);
-  log(`graph: nodes=${graph.nodeCount} edges=${graph.edgeCount}`);
+  const fixture = kernel.buildFixture(dims, seed);
+  const fixtureMeta = kernel.fixtureMeta(fixture);
+  log(`fixture: ${JSON.stringify(fixtureMeta)}`);
 
-  const cpu = runCpuBaseline(graph, input, warmup, timed);
+  const cpu = runCpuBaseline(kernel, fixture, warmup, timed);
   log(`cpu: meanMs=${cpu.summary.meanMs} p95Ms=${cpu.summary.p95Ms} fingerprint=${cpu.outputFingerprint.slice(0, 16)}`);
 
   const cuda = enableCuda
-    ? await tryRunCuda(graph, input, warmup, timed, kernelDir)
+    ? await tryRunCuda(op, kernel, fixture, warmup, timed, kernelDir)
     : { skipped: 'enableCuda=false' };
   let speedup = null;
   if (cuda.summary && cpu.summary.meanMs > 0) {
@@ -390,17 +646,15 @@ export async function runBenchmark({
   const cudaRecord = cuda.summary ? (isSmoke ? stripTimings(cuda) : cuda) : cuda;
 
   const record = {
-    schema: 'mcop-cuda-bench/1.0',
+    schema: 'mcop-cuda-bench/1.1',
     capturedAt: capturedAt ?? process.env.MCOP_BENCH_CAPTURED_AT ?? new Date().toISOString(),
+    op,
+    description: kernel.description,
     mode,
     seed: `0x${seed.toString(16).toUpperCase()}`,
-    fixture: {
-      nodeCount: graph.nodeCount,
-      edgeCount: graph.edgeCount,
-      avgDegree: AVG_DEGREE,
-      lowMemory,
-    },
+    fixture: { ...fixtureMeta, lowMemory },
     iterations: { warmup, timed },
+    streams,
     host: isSmoke ? null : { platform: process.platform, arch: process.arch, nodeVersion: process.version },
     cpu: cpuRecord,
     cuda: cudaRecord,
@@ -416,26 +670,56 @@ export async function runBenchmark({
 
 /** Test-only helpers exposed for jest parity assertions. */
 export const __benchInternals = {
+  KERNEL_NAMES,
+  KERNELS,
   mulberry32,
   buildCsrGraph,
-  buildInputVector,
-  cpuMeanAggregate,
+  buildVector,
+  buildMatrix,
   canonicalDigest,
   fingerprintFloatArray,
   parseExecutionProvider,
   stripTimings,
 };
 
-async function main() {
-  const args = parseArgs(process.argv.slice(2));
-  const mode = args.mode === 'full' ? 'full' : 'smoke';
-  const outPath = resolve(process.cwd(), args.out ?? 'docs/benchmarks/cuda_graph_aggregate.json');
-  const seed = Number.parseInt(args.seed ?? '0xC0FFEE', 16) >>> 0;
+/* ------------------------------------------------------------------ */
+/* CLI                                                                 */
+/* ------------------------------------------------------------------ */
 
-  const record = await runBenchmark({ mode, seed, log: console.log });
+function defaultOutPath(opName) {
+  const slot = KERNELS[opName]?.legacyArtifact ?? `cuda_${opName}.json`;
+  return resolve(process.cwd(), 'docs', 'benchmarks', slot);
+}
+
+async function runOne(opName, mode, seed, outOverride, capturedAt) {
+  const record = await runBenchmark({ op: opName, mode, seed, capturedAt, log: console.log });
+  const outPath = outOverride ? resolve(process.cwd(), outOverride) : defaultOutPath(opName);
   mkdirSync(dirname(outPath), { recursive: true });
   writeFileSync(outPath, `${JSON.stringify(record, replacer, 2)}\n`, 'utf8');
   console.log(`wrote ${outPath} merkleRoot=${record.merkleRoot.slice(0, 16)}`);
+  return record;
+}
+
+async function main() {
+  const args = parseArgs(process.argv.slice(2));
+  const mode = args.mode === 'full' ? 'full' : 'smoke';
+  const seed = Number.parseInt(args.seed ?? '0xC0FFEE', 16) >>> 0;
+  const capturedAt = args.capturedAt;
+  const opArg = args.op ?? 'graphAggregate';
+
+  if (opArg === 'all') {
+    for (const name of KERNEL_NAMES) {
+      console.log(`\n=== ${name} ===`);
+      await runOne(name, mode, seed, undefined, capturedAt);
+    }
+    return;
+  }
+
+  if (!KERNELS[opArg]) {
+    console.error(`benchmark-cuda-graph: unknown --op='${opArg}'. Expected one of: ${KERNEL_NAMES.join(', ')} | all`);
+    process.exit(2);
+  }
+  await runOne(opArg, mode, seed, args.out, capturedAt);
 }
 
 function replacer(_key, value) {
@@ -461,7 +745,6 @@ function parseArgs(argv) {
 const isCliEntry = (() => {
   if (typeof process === 'undefined' || !process.argv?.[1]) return false;
   const invoked = resolve(process.argv[1]);
-  // Compare against this module's URL → file path.
   const here = resolve(new URL(import.meta.url).pathname);
   return invoked === here;
 })();

@@ -103,6 +103,19 @@ export interface OnnxRuntimeApi {
 /* Layer options + errors                                             */
 /* ------------------------------------------------------------------ */
 
+/**
+ * CUDA stream-allocation strategy.
+ *   - `'per-op'` (Φ3 default) — one logical stream per kernel session, the
+ *     computational analogue of mitochondrial cristae compartmentalisation.
+ *     Different subsystems (e.g. proteome graph vs encode) can run on
+ *     separate SM partitions concurrently. Recorded in
+ *     {@link AcceleratorProvenance.substrateLineage} so MetaTuner can
+ *     condition revival on stream-allocation lineage.
+ *   - `'shared'` — single stream shared across all six sessions. Used for
+ *     diagnostics and as a Φ3-rollback escape hatch.
+ */
+export type CUDAStreamMode = 'per-op' | 'shared';
+
 export interface CUDAHardwareLayerOptions {
   /** Master feature flag. Default `false`. Flip at Φ4 of the deployment ladder. */
   enableCUDA?: boolean;
@@ -110,6 +123,8 @@ export interface CUDAHardwareLayerOptions {
   device?: string;
   /** Filesystem directory containing per-op ONNX kernels (`mcop_<op>.onnx`). */
   kernelDir?: string;
+  /** Stream-allocation strategy across the six op-sharded sessions. Default `'per-op'`. */
+  streams?: CUDAStreamMode;
   /** Override for tests / advanced consumers. Skips the dynamic import of `onnxruntime-node`. */
   ortInjection?: OnnxRuntimeApi;
   /**
@@ -226,6 +241,7 @@ export class CUDAHardwareLayer {
   readonly enableCUDA: boolean;
   readonly device: string;
   readonly kernelDir: string;
+  readonly streams: CUDAStreamMode;
 
   private readonly ortInjection: OnnxRuntimeApi | undefined;
   private readonly sessionFactory:
@@ -238,6 +254,7 @@ export class CUDAHardwareLayer {
     this.enableCUDA = options.enableCUDA ?? false;
     this.device = options.device ?? 'cuda:0';
     this.kernelDir = options.kernelDir ?? './models';
+    this.streams = options.streams ?? 'per-op';
     this.ortInjection = options.ortInjection;
     this.sessionFactory = options.sessionFactory;
   }
@@ -308,6 +325,11 @@ export class CUDAHardwareLayer {
     const firstKey = Object.keys(outputs)[0];
     const primary = firstKey ? outputs[firstKey] : undefined;
 
+    // Φ3 substrate-lineage tag: `<verifiedProvider>/<streamMode>` lets
+    // MetaTuner condition revival on the exact stream-allocation regime
+    // that produced a successful run, not just the device family.
+    const substrateLineage = `${verified}/${this.streams}`;
+
     return attachAcceleratorProvenance<{ output: OnnxTensor | undefined; outputs: Record<string, OnnxTensor> }>(
       { output: primary, outputs },
       {
@@ -318,7 +340,7 @@ export class CUDAHardwareLayer {
         cudaGraphCaptured: true,
         requestedDevice: this.device,
         verifiedDevice: verified,
-        substrateLineage: verified,
+        substrateLineage,
         durationMs: duration,
       },
     );
