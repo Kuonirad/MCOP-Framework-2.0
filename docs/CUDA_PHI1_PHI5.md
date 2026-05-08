@@ -214,25 +214,85 @@ every `verifiedDevice` field byte-identically across reboots.
 canary + in-process gate tests with byte-stable Merkle root, all Φ3
 provenance leaf shapes preserved when the cudaLayer slot is unused.
 
-## Φ5 — Default-on
+## Φ5 — Adaptive default-on (probe-driven, status: shipped this PR)
 
-- Flip `MCOP_DEFAULT_ORCHESTRATOR.hardware.enableCUDA` to `true` whenever
-  the runtime detects a CUDA-capable ONNX Runtime build (`onnxruntime-node`
-  installed and `parseExecutionProvider(session.endProfiling())` returns
-  `'CUDAExecutionProvider'` on a smoke run during boot).
-- Continue to honour explicit `enableCUDA: false` overrides; the gate is
-  always available as an emergency disable.
-- Target: sub-second end-to-end ARC step on RTX 4090 / Blackwell with full
-  Lamarckian substrate-lineage metadata on every Merkle leaf.
+The Φ5 ladder rung adapts the in-process CUDA layer to **every**
+ARC-AGI-3 substrate without forking the build:
 
-**Exit criteria.** Production traffic exercising both providers, with
-substrate-lineage entries surviving through the next snapshot of the
-hardware-evolution log without verifiedDevice mismatches.
+| Substrate | `enableCUDA` resolved value | `resolvedFrom` | Result |
+| --- | --- | --- | --- |
+| CPU-only `ubuntu-latest` CI runner (no `onnxruntime-node`) | `false` | `auto-not-capable` | Layer disabled; all ops fall back to existing CPU triad path, zero ghost-GPU events. |
+| Dev laptop with CPU-only ORT build | `false` | `auto-not-capable` | Same as above. |
+| GPU prod node with `onnxruntime-node-gpu` | `true` | `auto-capable` | Layer flips on; full op-sharded dispatch with verifiedDevice gate. |
+| Any host with `MCOP_ENABLE_CUDA=1` | `true` | `explicit-on` | User override wins over the probe. |
+| Any host with `MCOP_ENABLE_CUDA=0` | `false` | `explicit-off` | User override wins over the probe. |
+| Any host with `MCOP_ENABLE_CUDA` unset (default) | from probe | `auto-*` | Probe runs once at orchestrator boot. |
+
+**What shipped.**
+
+- New tri-state config: `enableCUDA: boolean | 'auto'`, default `'auto'`.
+  `MCOP_ENABLE_CUDA` accepts `1` / `0` / `auto` / `detect`. Unrecognised
+  values fall back to `false` (conservative). Legacy `0`/`1` semantics
+  are preserved verbatim.
+- New `detectCUDACapability()` async probe in `CUDAHardwareLayer.ts`:
+  pure, side-effect-free, never throws. Tries `import('onnxruntime-node')`
+  (returns `not-installed` cleanly on CPU-only CI) and inspects
+  `listSupportedBackends()` to determine availability without
+  instantiating a session, loading a model, or touching the GPU.
+  Returns `{ capable, reason, probedProviders, durationMs }`.
+- New `resolveEnableCUDA(requested, opts)` helper that folds the probe
+  into a sync `{ enableCUDA, resolvedFrom, probe? }` triple. Mirrored
+  by `CUDAHardwareLayer.create()`, which runs the probe and constructs
+  the layer with the resolved boolean.
+- New `AcceleratorProvenance.resolvedFrom` field. Sealed into every
+  Merkle leaf produced by the layer (`accelerate()`), the
+  `BaseAdapter.cudaLayer` wiring, and the `SynthesisProvenanceTracer`
+  encode leaf — even when the layer is disabled. Values:
+  `'explicit-on' | 'explicit-off' | 'default-off' | 'auto-capable' |
+  'auto-not-capable'`.
+- `SynthesisProvenanceTracer` now accepts an optional `cudaLayer`
+  argument. When supplied, the encode leaf carries `requestedDevice` +
+  `<device>/<streams>` substrate-lineage + `resolvedFrom` for
+  user-visible per-step Lamarckian lineage.
+- 3-substrate regression suite (`cudaPhi5AdaptiveProbe.test.ts`)
+  covering explicit-on, explicit-off, and auto-not-capable substrates
+  in a single run; asserts `resolvedFrom` diverges correctly while
+  the disabled-state gate stays sovereign.
+
+**ARC-AGI-3 invariants preserved.**
+
+- The probe result itself (`probedProviders`, `durationMs`) is **not**
+  written into any Merkle-rooted canonical encoding. It exists solely
+  in the structured probe return value for diagnostics.
+- `resolvedFrom` **is** included in the canonical leaf so two
+  strategies revived on different substrates carry distinct
+  Lamarckian lineage tags. Byte-stable across reruns given the same
+  resolution (e.g. CPU-only CI always seals `'auto-not-capable'`).
+- Merkle stability for unsupplied-cudaLayer paths: when no `cudaLayer`
+  is wired into `BaseAdapter` or `SynthesisProvenanceTracer`,
+  byte-parity with the Φ3 leaf shape is preserved (verified by the
+  Φ5 byte-stable parity test).
+
+**Exit criteria (this PR).** `ubuntu-latest` runs the full local +
+CI gate suite with the new tri-state default `'auto'`. The probe
+detects CPU-only and refuses to flip; legacy `MCOP_ENABLE_CUDA=0` /
+`MCOP_ENABLE_CUDA=1` overrides still bypass the probe; every leaf
+carries a `resolvedFrom` audit. 593+ tests pass, 0 failed.
+
+**Exit criteria (full).** Production GPU traffic exercising both
+providers, with substrate-lineage entries surviving through the next
+snapshot of the hardware-evolution log without verifiedDevice
+mismatches; MetaTuner conditioning on `resolvedFrom` to revive
+strategies on the substrate class that proved robust.
 
 ## Reversibility
 
-- `enableCUDA: false` (or unsetting `MCOP_ENABLE_CUDA`) restores the
-  pre-Φ1 behaviour exactly.
+- `MCOP_ENABLE_CUDA=0` (or `enableCUDA: false`) is *always* honoured
+  ahead of the probe — it pins the layer off and seals
+  `resolvedFrom: 'explicit-off'` on every leaf so future runs know the
+  shutoff was deliberate.
+- `enableCUDA: false` (or `MCOP_ENABLE_CUDA=0`) restores the pre-Φ1
+  behaviour exactly.
 - Provenance from any past run remains replayable via `canonicalDigest`
   over the recorded `AcceleratorProvenance` payload — including
   `verifiedDevice`, `substrateLineage`, and `durationMs`.

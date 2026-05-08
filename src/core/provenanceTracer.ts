@@ -6,6 +6,7 @@ import { HolographicEtch } from './holographicEtch';
 import { canonicalDigest } from './canonicalEncoding';
 import { failTriadSpan, finishTriadSpan, startTriadSpan } from './observability';
 import { attachAcceleratorProvenance, CPUFallback, type Accelerator } from '../hardware';
+import type { CUDAHardwareLayer } from '../hardware/CUDAHardwareLayer';
 
 /**
  * Full Synthesis Provenance Tracer — composes the MCOP triad and emits a
@@ -34,13 +35,17 @@ export interface SynthesisResult {
 
 export class SynthesisProvenanceTracer {
   private events: ProvenanceEvent[] = [];
+  private readonly cudaLayer?: CUDAHardwareLayer;
 
   constructor(
     private readonly encoder: NovaNeoEncoder,
     private readonly stigmergy: StigmergyV5,
     private readonly etch: HolographicEtch,
     private readonly accelerator: Accelerator = new CPUFallback(),
-  ) {}
+    cudaLayer?: CUDAHardwareLayer,
+  ) {
+    this.cudaLayer = cudaLayer;
+  }
 
   /** Run the triad on `input` and return a provenance-tracked synthesis. */
   synthesize(input: string, metadata?: Record<string, unknown>): SynthesisResult {
@@ -51,6 +56,19 @@ export class SynthesisProvenanceTracer {
     try {
       const tensor = this.encoder.encode(input);
       const entropy = this.encoder.estimateEntropy(tensor);
+      // Φ5 — when the in-process CUDA layer is wired in, surface its
+      // requestedDevice + substrateLineage + resolvedFrom audit on the
+      // encode leaf so the full Lamarckian lineage is user-visible
+      // per-step. Layer is provenance-only; no kernel dispatch here.
+      const cudaProvenance = this.cudaLayer
+        ? this.cudaLayer.enableCUDA
+          ? {
+              requestedDevice: this.cudaLayer.device,
+              substrateLineage: `${this.cudaLayer.device}/${this.cudaLayer.streams}`,
+              resolvedFrom: this.cudaLayer.resolvedFrom,
+            }
+          : { resolvedFrom: this.cudaLayer.resolvedFrom }
+        : {};
       const encodeSeal = attachAcceleratorProvenance(
         { inputHash: sha256(input).slice(0, 16), dimensions: tensor.length, entropy },
         {
@@ -60,6 +78,7 @@ export class SynthesisProvenanceTracer {
           provider: 'SynthesisProvenanceTracer',
           fallback: this.accelerator.mode === 'cpu',
           fallbackReason: this.accelerator.mode === 'cpu' ? 'synchronous encoder path' : undefined,
+          ...cudaProvenance,
         },
       );
       const encodeEvt = this.append('encode', {

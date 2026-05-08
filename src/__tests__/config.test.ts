@@ -1,5 +1,11 @@
 import nextConfig from '../../next.config';
-import { MCOP_CONFIG, MCOP_DEFAULT_ORCHESTRATOR, classifyMetric, classifyVSI } from '@/config/mcop.config';
+import {
+  MCOP_CONFIG,
+  MCOP_DEFAULT_ORCHESTRATOR,
+  classifyMetric,
+  classifyVSI,
+  parseEnableCUDAEnv,
+} from '@/config/mcop.config';
 
 describe('next.config.ts', () => {
   it('should have output set to standalone', () => {
@@ -37,13 +43,44 @@ describe('mcop.config.ts', () => {
     expect(MCOP_DEFAULT_ORCHESTRATOR.novaEvolveTuner.validationSplitSize).toBe(25);
   });
 
-  it('keeps the in-process CUDA hardware layer disabled by default with a sane kernel directory', () => {
+  it('Φ5 ships the in-process CUDA hardware layer in probe-driven auto mode by default', () => {
     expect(Object.isFrozen(MCOP_DEFAULT_ORCHESTRATOR.hardware)).toBe(true);
-    // Independent flag from the existing microservice-bridge `useCUDA` switch:
-    expect(MCOP_DEFAULT_ORCHESTRATOR.hardware.enableCUDA).toBe(false);
+    // Independent flag from the existing microservice-bridge `useCUDA` switch.
+    // Φ5 default flips from `false` (Φ1–Φ4) to `'auto'` so the same MCOP
+    // build adapts to every ARC-AGI-3 environment without code changes.
+    expect(MCOP_DEFAULT_ORCHESTRATOR.hardware.enableCUDA).toBe('auto');
     expect(MCOP_DEFAULT_ORCHESTRATOR.hardware.useCUDA).toBe(false);
     expect(MCOP_DEFAULT_ORCHESTRATOR.hardware.kernelDir).toBe('./models');
     expect(MCOP_DEFAULT_ORCHESTRATOR.hardware.provider).toBe('microservice');
+  });
+
+  describe('parseEnableCUDAEnv (Φ5)', () => {
+    it('treats undefined / empty / "auto" / "detect" as auto-probe', () => {
+      expect(parseEnableCUDAEnv(undefined)).toBe('auto');
+      expect(parseEnableCUDAEnv('')).toBe('auto');
+      expect(parseEnableCUDAEnv('  ')).toBe('auto');
+      expect(parseEnableCUDAEnv('auto')).toBe('auto');
+      expect(parseEnableCUDAEnv('AUTO')).toBe('auto');
+      expect(parseEnableCUDAEnv('detect')).toBe('auto');
+    });
+
+    it('honours legacy "1" / "true" / "on" force-on values', () => {
+      expect(parseEnableCUDAEnv('1')).toBe(true);
+      expect(parseEnableCUDAEnv('true')).toBe(true);
+      expect(parseEnableCUDAEnv('TRUE')).toBe(true);
+      expect(parseEnableCUDAEnv('on')).toBe(true);
+    });
+
+    it('honours legacy "0" / "false" / "off" force-off values', () => {
+      expect(parseEnableCUDAEnv('0')).toBe(false);
+      expect(parseEnableCUDAEnv('false')).toBe(false);
+      expect(parseEnableCUDAEnv('off')).toBe(false);
+    });
+
+    it('falls back to false on unrecognised input (conservative default)', () => {
+      expect(parseEnableCUDAEnv('yes')).toBe(false);
+      expect(parseEnableCUDAEnv('garbage')).toBe(false);
+    });
   });
 
   describe('classifyMetric', () => {
