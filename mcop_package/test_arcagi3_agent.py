@@ -1664,7 +1664,10 @@ def test_run_arcagi3_agent_dispatches_holographic_strategy(
     to the right Strategy class.
     """
     import sys
-    from mcop_package import run_arcagi3_agent
+    # ``mcop_package`` is a directory, not an importable package (the
+    # installable distribution is ``mcop``). pytest runs from inside
+    # ``mcop_package/``, so ``run_arcagi3_agent`` is importable directly.
+    import run_arcagi3_agent  # type: ignore[import-not-found]
 
     captured: Dict[str, Any] = {}
 
@@ -1698,7 +1701,7 @@ def test_run_arcagi3_agent_rejects_unknown_strategy(
 ) -> None:
     """argparse must reject unknown strategies (no silent fallback)."""
     import sys
-    from mcop_package import run_arcagi3_agent
+    import run_arcagi3_agent  # type: ignore[import-not-found]
 
     monkeypatch.setenv("ARC_API_KEY", "test-key")
     monkeypatch.setattr(
