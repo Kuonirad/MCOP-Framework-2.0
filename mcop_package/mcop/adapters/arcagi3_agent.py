@@ -1212,6 +1212,12 @@ class HolographicShadowStrategy:
     HISTORY_WINDOW = 6
     OSCILLATION_REPEAT = 3
     MAX_PLAN_DEPTH = 6
+    # Default weight on the "shadow biased toward the goal" attraction
+    # term. Cosine alignment ∈ [-1, 1], so a weight of 0.5 puts goal
+    # attraction on the same order as the wall-hit penalty (1.0) only
+    # in the limit of perfectly aligned drift; exploration still wins
+    # when no aligned action has been observed yet.
+    GOAL_ALIGNMENT_WEIGHT = 0.5
 
     def __init__(
         self,
@@ -1235,11 +1241,22 @@ class HolographicShadowStrategy:
         min_observations_for_player_discovery: int = 4,
         min_actions_for_player_discovery: int = 2,
         min_variance_for_player_discovery: float = 0.5,
+        # Goal-directional bias (the "holographic shadow biased toward
+        # the goal" attraction term from the v2 spec). Score boost is
+        # ``goal_alignment_weight`` * cosine(action mean drift, vector
+        # from player centroid to goal centroid). Both vectors are
+        # learned strictly online from observe() — no offline data,
+        # no per-game hint about which axis any action moves on.
+        # ``goal_alignment_weight=0.0`` disables the bias entirely.
+        goal_alignment_weight: float = GOAL_ALIGNMENT_WEIGHT,
+        min_action_observations_for_alignment: int = 2,
     ) -> None:
         if wobble_threshold_centroid > move_threshold_centroid:
             raise ValueError(
                 "wobble_threshold_centroid must be <= move_threshold_centroid"
             )
+        if goal_alignment_weight < 0:
+            raise ValueError("goal_alignment_weight must be >= 0")
         self.fallback = fallback or RandomStrategy()
         self.goal_color = goal_color
         self.player_color = player_color
@@ -1249,7 +1266,18 @@ class HolographicShadowStrategy:
         self._complex_default = complex_action_default
         self.auto_discover_goal_color = auto_discover_goal_color
         self.auto_discover_player_color = auto_discover_player_color
+        self.goal_alignment_weight = goal_alignment_weight
+        self.min_action_observations_for_alignment = (
+            min_action_observations_for_alignment
+        )
         self.action_stats: Dict[str, Dict[str, float]] = {}
+        # Per-action mean player-centroid drift, accumulated online
+        # from observe(). action_drift_sums[name] = (sum_dr, sum_dc),
+        # action_drift_counts[name] = n. Drift is meaningful only
+        # after player_color is known; pre-discovery the cell-count
+        # path runs and these stay empty.
+        self.action_drift_sums: Dict[str, Tuple[float, float]] = {}
+        self.action_drift_counts: Dict[str, int] = {}
         self.walls: Dict[Tuple[str, str], int] = {}
         self.state_action_tries: Dict[Tuple[str, str], int] = {}
         self.state_visits: Dict[str, int] = {}
@@ -1290,6 +1318,11 @@ class HolographicShadowStrategy:
         self._centroid_history.clear()
         self._loop_signatures_seen.clear()
         self._forward_model.reset()
+        # Per-action mean drift was learned against the pre-flip
+        # player centroid; under the new keying it no longer
+        # describes the right entity. Wipe and relearn online.
+        self.action_drift_sums.clear()
+        self.action_drift_counts.clear()
         self._last_state_hash = None
         self._last_player_centroid = None
 
@@ -1370,8 +1403,54 @@ class HolographicShadowStrategy:
         )
         return alternations >= self.OSCILLATION_REPEAT
 
+    def _action_mean_drift(
+        self, name: str
+    ) -> Optional[Tuple[float, float]]:
+        """Mean ``(dr, dc)`` drift of the player centroid for ``name``.
+
+        Returns ``None`` until at least
+        ``min_action_observations_for_alignment`` real-move
+        transitions on this action have been observed; the early
+        observations are noisy (single-step centroid drift can
+        misclassify wobble) and would mislead the goal-alignment
+        score.
+        """
+        n = self.action_drift_counts.get(name, 0)
+        if n < self.min_action_observations_for_alignment:
+            return None
+        sums = self.action_drift_sums.get(name, (0.0, 0.0))
+        return (sums[0] / n, sums[1] / n)
+
+    def _goal_alignment(
+        self,
+        name: str,
+        player_centroid: Optional[Tuple[float, float]],
+        goal_centroid: Optional[Tuple[float, float]],
+    ) -> float:
+        """Cosine alignment between ``name``'s mean drift and the
+        player→goal vector. Returns 0.0 (no bias either way) if
+        any input is missing or either vector has zero magnitude.
+        """
+        if player_centroid is None or goal_centroid is None:
+            return 0.0
+        drift = self._action_mean_drift(name)
+        if drift is None:
+            return 0.0
+        dgr = goal_centroid[0] - player_centroid[0]
+        dgc = goal_centroid[1] - player_centroid[1]
+        goal_mag = (dgr * dgr + dgc * dgc) ** 0.5
+        drift_mag = (drift[0] * drift[0] + drift[1] * drift[1]) ** 0.5
+        if goal_mag == 0.0 or drift_mag == 0.0:
+            return 0.0
+        return (drift[0] * dgr + drift[1] * dgc) / (drift_mag * goal_mag)
+
     def _score_action(
-        self, name: str, state_hash: str, oscillating: bool
+        self,
+        name: str,
+        state_hash: str,
+        oscillating: bool,
+        player_centroid: Optional[Tuple[float, float]] = None,
+        goal_centroid: Optional[Tuple[float, float]] = None,
     ) -> float:
         wall_hits = self.walls.get((state_hash, name), 0)
         stats = self.action_stats.get(name, {})
@@ -1384,6 +1463,15 @@ class HolographicShadowStrategy:
         # before settling on the first action that happened to move.
         move_rate = (moved / n) if n > 0 else 0.5
         score = move_rate + 0.1 * avg_delta - 1.0 * wall_hits
+        # Goal-directional bias: pull the chooser toward actions whose
+        # observed mean drift aligns with the player→goal direction.
+        # Pure cosine ∈ [-1, 1]; weight is configurable. ARC-compliant:
+        # both vectors are learned strictly online and the alignment
+        # term degrades gracefully to 0 when either is unavailable.
+        if self.goal_alignment_weight > 0:
+            score += self.goal_alignment_weight * self._goal_alignment(
+                name, player_centroid, goal_centroid
+            )
         if oscillating:
             # Novelty seeking: prefer the action we have tried least at
             # *this* state, even when no wall has been registered yet.
@@ -1405,7 +1493,9 @@ class HolographicShadowStrategy:
             return ("ACTION1", {})
         state_hash = self._state_hash(frame)
         self._last_state_hash = state_hash
-        self._last_player_centroid = self._player_centroid(frame)
+        player_centroid = self._player_centroid(frame)
+        goal_centroid = self._goal_centroid(frame)
+        self._last_player_centroid = player_centroid
         self.state_visits[state_hash] = (
             self.state_visits.get(state_hash, 0) + 1
         )
@@ -1433,7 +1523,13 @@ class HolographicShadowStrategy:
         scored = sorted(
             available_action_names,
             key=lambda n: (
-                -self._score_action(n, state_hash, oscillating),
+                -self._score_action(
+                    n,
+                    state_hash,
+                    oscillating,
+                    player_centroid,
+                    goal_centroid,
+                ),
                 n,
             ),
         )
@@ -1567,6 +1663,29 @@ class HolographicShadowStrategy:
         if moved:
             stats["moved_count"] += 1
         stats["total_centroid_delta"] += centroid_delta
+
+        # Per-action mean drift vector for goal-directional bias.
+        # Only accumulate on real_move transitions where both
+        # centroids were available — wobble and ambiguous-drift
+        # observations carry too much noise (sub-cell sprite jitter)
+        # to be a useful "where does this action move me" signal.
+        if (
+            self.goal_alignment_weight > 0
+            and centroid_available
+            and moved
+            and prev_centroid is not None
+            and curr_centroid is not None
+        ):
+            dr = curr_centroid[0] - prev_centroid[0]
+            dc = curr_centroid[1] - prev_centroid[1]
+            sums = self.action_drift_sums.get(action_name, (0.0, 0.0))
+            self.action_drift_sums[action_name] = (
+                sums[0] + dr,
+                sums[1] + dc,
+            )
+            self.action_drift_counts[action_name] = (
+                self.action_drift_counts.get(action_name, 0) + 1
+            )
 
         # Track every (state, action) try so the oscillation-novelty
         # picker can prefer the least-tried action even when no wall
