@@ -33,17 +33,24 @@ import {
   LowMemoryMCOPModeConfig,
 } from '../core/lowMemoryMCOPMode';
 
-/** Names of the xAI hosted Grok models known at the time of writing. */
+/**
+ * Names of the xAI hosted Grok chat models known at the time of writing
+ * (catalog refreshed 2026-05 against https://docs.x.ai/docs/models).
+ *
+ * The legacy `grok-4-mini` / `grok-4-fast` / `grok-3*` / `grok-2` /
+ * `grok-beta` identifiers were removed by xAI in early 2026 and now
+ * return `400 Model not found` from the live endpoint.  Callers that
+ * still need them can pass an arbitrary string via the `(string & {})`
+ * branch — the adapter forwards model names verbatim and does not
+ * validate against the union.
+ */
 export type GrokModel =
-  | 'grok-4'
-  | 'grok-4-fast'
-  | 'grok-4-mini'
-  | 'grok-3'
-  | 'grok-3-fast'
-  | 'grok-3-mini'
-  | 'grok-3-mini-fast'
-  | 'grok-2'
-  | 'grok-beta'
+  | 'grok-4.3'
+  | 'grok-4.20-0309-reasoning'
+  | 'grok-4.20-0309-non-reasoning'
+  | 'grok-4.20-multi-agent-0309'
+  | 'grok-4-1-fast-reasoning'
+  | 'grok-4-1-fast-non-reasoning'
   | (string & {});
 
 /** Per-request options forwarded to the xAI chat-completions endpoint. */
@@ -181,49 +188,64 @@ export interface GrokModelMapping {
   readonly useCases: ReadonlyArray<string>;
 }
 
+/**
+ * Catalog of currently-served xAI Grok chat models (refreshed 2026-05).
+ *
+ * Context windows reflect xAI's public-docs claim of 256k tokens for the
+ * grok-4 family at the time of refresh; treat as approximate and verify
+ * against live `usage` blocks for cost-critical paths.  `defaultTemperature`
+ * is a sensible adapter-level default, NOT a vendor-published constant.
+ */
 export const GROK_MODEL_MAPPINGS: Readonly<Record<string, GrokModelMapping>> = Object.freeze({
-  'grok-4': Object.freeze({
-    model: 'grok-4',
+  'grok-4.3': Object.freeze({
+    model: 'grok-4.3',
     tier: 'flagship',
     contextWindow: 256_000,
-    defaultTemperature: 0.35,
+    defaultTemperature: 0.3,
     useCases: ['hard-reasoning', 'arc-agi', 'agentic-planning'],
   }),
-  'grok-4-fast': Object.freeze({
-    model: 'grok-4-fast',
+  'grok-4.20-0309-reasoning': Object.freeze({
+    model: 'grok-4.20-0309-reasoning',
+    tier: 'flagship',
+    contextWindow: 256_000,
+    defaultTemperature: 0.25,
+    useCases: ['hard-reasoning', 'chain-of-thought', 'verification'],
+  }),
+  'grok-4.20-0309-non-reasoning': Object.freeze({
+    model: 'grok-4.20-0309-non-reasoning',
+    tier: 'balanced',
+    contextWindow: 256_000,
+    defaultTemperature: 0.4,
+    useCases: ['general-completions', 'narrative-refinement', 'stigmergy-recall'],
+  }),
+  'grok-4.20-multi-agent-0309': Object.freeze({
+    model: 'grok-4.20-multi-agent-0309',
+    tier: 'flagship',
+    contextWindow: 256_000,
+    defaultTemperature: 0.3,
+    useCases: ['multi-agent-coordination', 'tool-use', 'agentic-planning'],
+  }),
+  'grok-4-1-fast-reasoning': Object.freeze({
+    model: 'grok-4-1-fast-reasoning',
     tier: 'fast',
     contextWindow: 256_000,
     defaultTemperature: 0.3,
-    useCases: ['low-latency-routing', 'meta-tuning', 'tool-use'],
+    useCases: ['low-latency-reasoning', 'meta-tuning', 'cost-aware-verification'],
   }),
-  'grok-4-mini': Object.freeze({
-    model: 'grok-4-mini',
-    tier: 'balanced',
-    contextWindow: 128_000,
+  'grok-4-1-fast-non-reasoning': Object.freeze({
+    model: 'grok-4-1-fast-non-reasoning',
+    tier: 'fast',
+    contextWindow: 256_000,
     defaultTemperature: 0.4,
-    useCases: ['production-default', 'cost-aware-completions', 'stigmergy-recall'],
-  }),
-  'grok-3': Object.freeze({
-    model: 'grok-3',
-    tier: 'legacy',
-    contextWindow: 128_000,
-    defaultTemperature: 0.4,
-    useCases: ['compatibility', 'replay'],
-  }),
-  'grok-3-mini': Object.freeze({
-    model: 'grok-3-mini',
-    tier: 'legacy',
-    contextWindow: 128_000,
-    defaultTemperature: 0.4,
-    useCases: ['compatibility', 'ci-fixtures'],
+    useCases: ['production-default', 'cost-aware-completions', 'image-prompt-refinement'],
   }),
 });
 
 export const MAPPING_GROK_PRODUCTION_PROFILE = Object.freeze({
   id: 'mapping_grok',
   adapter: 'xai-grok',
-  defaultModel: 'grok-4-mini' as GrokModel,
-  fallbackModel: 'grok-3-mini' as GrokModel,
+  defaultModel: 'grok-4-1-fast-non-reasoning' as GrokModel,
+  fallbackModel: 'grok-4.20-0309-non-reasoning' as GrokModel,
   entropyTarget: 0.18,
   stigmergyHistory: Object.freeze({ limit: 10, label: 'mapping_grok', includeMetadata: true }),
   retry: Object.freeze({ maxRetries: 3, baseDelayMs: 500, maxDelayMs: 10_000, jitterRatio: 0.15 }),
@@ -254,18 +276,8 @@ export class GrokMCOPAdapter extends BaseAdapter<
   async getCapabilities(): Promise<AdapterCapabilities> {
     return {
       platform: 'xai-grok',
-      version: '2025-01',
-      models: [
-        'grok-4',
-        'grok-4-fast',
-        'grok-4-mini',
-        'grok-3',
-        'grok-3-fast',
-        'grok-3-mini',
-        'grok-3-mini-fast',
-        'grok-2',
-        'grok-beta',
-      ],
+      version: '2026-05',
+      models: Object.keys(GROK_MODEL_MAPPINGS),
       supportsAudit: true,
       features: [
         'chat-completions',
