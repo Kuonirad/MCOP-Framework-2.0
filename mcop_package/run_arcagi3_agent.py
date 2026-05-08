@@ -19,6 +19,7 @@ from typing import Any
 
 from mcop.adapters.arcagi3_agent import (
     GrokStrategy,
+    HolographicShadowStrategy,
     MCOPArcAgi3Agent,
     MappingGrokStrategy,
     RandomStrategy,
@@ -70,8 +71,13 @@ def main() -> int:
     )
     parser.add_argument(
         "--strategy",
-        choices=["random", "grok", "mapping-grok"],
+        choices=["random", "grok", "mapping-grok", "holographic"],
         default="random",
+        help=(
+            "Action selection strategy. ``holographic`` is the\n"
+            "online-only Holographic Shadow Consensus v2 strategy --\n"
+            "no LLM calls, fully ARC-AGI-3 compliant."
+        ),
     )
     parser.add_argument("--max-actions", type=int, default=200)
     parser.add_argument("--seed", type=int, default=None)
@@ -100,6 +106,8 @@ def main() -> int:
         strategy = GrokStrategy(model=args.grok_model)
     elif args.strategy == "mapping-grok":
         strategy = MappingGrokStrategy(model=args.grok_model)
+    elif args.strategy == "holographic":
+        strategy = HolographicShadowStrategy()
     else:
         strategy = RandomStrategy(seed=args.seed)
 
