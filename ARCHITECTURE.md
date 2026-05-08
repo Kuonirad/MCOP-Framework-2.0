@@ -120,6 +120,23 @@ curiosity lift when exploration is requested. This keeps the memory substrate
 homeostatic under bursty agent traffic while preserving the latest coordination
 traces for self-organization.
 
+## Decentralized Multi-Agent Coordination Substrate
+
+The same Stigmergy + Merkle machinery extends beyond LLM adapters into a
+decentralized coordination layer for heterogeneous agent swarms. Each agent can
+write a tamper-evident trace, read resonant prior traces, merge peer Merkle
+roots, and verify lineage without relying on a single central orchestrator.
+This addresses a common gap in multi-agent frameworks: coordination memory is
+often planner-local, opaque, or tied to one runtime, while MCOP treats the
+trace substrate itself as the shared environment.
+
+The pattern is deliberately modest and implementation-backed: append signed or
+hash-linked packets, rank them by resonance and policy, preserve human vetoes as
+first-class trace events, and keep trust scopes explicit. See
+[`docs/DECENTRALIZED_AGENT_COORDINATION.md`](./docs/DECENTRALIZED_AGENT_COORDINATION.md)
+for the portable packet shape, read/write/merge/verify operations, and safety
+boundaries.
+
 ## Boundary Contracts
 
 - **TypeScript ↔ Python:** canonical fixtures under `tests/parity` must hash
@@ -142,6 +159,7 @@ traces for self-organization.
 | Testing strategy | [`docs/adr/2026-04-25-testing-strategy.md`](./docs/adr/2026-04-25-testing-strategy.md) |
 | Meta-layer integration | [`docs/adr/2026-04-28-meta-layer-integration.md`](./docs/adr/2026-04-28-meta-layer-integration.md) |
 | Resonance-indexed Merkle forest preregistration | [`docs/preregistrations/RESONANCE_INDEXED_MERKLE_FOREST.md`](./docs/preregistrations/RESONANCE_INDEXED_MERKLE_FOREST.md) |
+| Decentralized agent coordination substrate | [`docs/DECENTRALIZED_AGENT_COORDINATION.md`](./docs/DECENTRALIZED_AGENT_COORDINATION.md) |
 
 ---
 
