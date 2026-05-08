@@ -62,7 +62,7 @@
     "web-vitals": "^5.2.0"
   },
   "devDependencies": {
-    "@cyclonedx/cdxgen": "^12.3.2",
+    "@cyclonedx/cdxgen": "^12.3.3",
     "@cyclonedx/cyclonedx-library": "^10",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.9.1",

@@ -253,11 +253,101 @@ def test_higgsfield_adapter_graceful_with_partial_raw_response():
     """The adapter must tolerate minimal / partial raw responses from the
     SDK (e.g. missing optional fields like video_url).
     """
-    client = FakeHiggsfield(override={"job_id": "minimal-1"})
-    # remove synthetic video_url the FakeHiggsfield would otherwise inject
-    del client._override["video_url"]
+    client = FakeHiggsfield(override={"job_id": "minimal-1", "video_url": None})
     adapter = HiggsfieldMCOPAdapter(client)
     response = adapter.optimize_cinematic_video("prompt", motion_refs=["pan"])
     assert response.result.job_id == "minimal-1"
     # video_url may be None when the job is still processing
     assert response.result.video_url is None or isinstance(response.result.video_url, str)
+
+
+# ---------------------------------------------------------------------------
+# Grok Images adapter
+# ---------------------------------------------------------------------------
+
+class FakeGrokImageClient:
+    def __init__(self) -> None:
+        self.calls: List[Dict[str, Any]] = []
+
+    def generate_image(
+        self,
+        *,
+        prompt: str,
+        model: str,
+        n: int,
+        response_format: str,
+        aspect_ratio: Optional[str] = None,
+        resolution: Optional[str] = None,
+        extra_body: Optional[Dict[str, Any]] = None,
+    ) -> List[Dict[str, Any]]:
+        self.calls.append(
+            {
+                "prompt": prompt,
+                "model": model,
+                "n": n,
+                "response_format": response_format,
+                "aspect_ratio": aspect_ratio,
+                "resolution": resolution,
+                "extra_body": extra_body,
+            }
+        )
+        if response_format == "b64_json":
+            return [{"b64_json": "ZmFrZS1pbWFnZQ=="}]
+        return [{"url": "https://cdn.example/grok-image.jpg"}]
+
+
+def test_grok_image_adapter_routes_refined_prompt_and_audit():
+    from mcop.adapters import GrokImageMCOPAdapter, GrokImageRequest
+
+    client = FakeGrokImageClient()
+    adapter = GrokImageMCOPAdapter(client)
+    response = adapter.generate(
+        GrokImageRequest(
+            prompt="a fractal forest at sunset",
+            model="grok-imagine-image",
+            n=2,
+            response_format="url",
+            aspect_ratio="16:9",
+            resolution="2k",
+        )
+    )
+
+    assert response.result.image_url == "https://cdn.example/grok-image.jpg"
+    assert response.result.audit_hash == response.merkle_root
+    assert response.provenance.refined_prompt == client.calls[0]["prompt"]
+    assert client.calls[0]["model"] == "grok-imagine-image"
+    assert client.calls[0]["n"] == 2
+    assert client.calls[0]["aspect_ratio"] == "16:9"
+    assert client.calls[0]["resolution"] == "2k"
+    assert client.calls[0]["extra_body"] is None
+
+
+def test_grok_image_adapter_promotes_generic_payload():
+    from mcop.adapters import AdapterRequest, GrokImageMCOPAdapter
+
+    client = FakeGrokImageClient()
+    adapter = GrokImageMCOPAdapter(client)
+    response = adapter.generate(
+        AdapterRequest(
+            prompt="glowing city",
+            domain="imaging",
+            payload={
+                "model": "grok-imagine-image-quality",
+                "n": 1,
+                "response_format": "b64_json",
+            },
+        )
+    )
+
+    assert response.result.images == [{"b64_json": "ZmFrZS1pbWFnZQ=="}]
+    assert response.result.response_format == "b64_json"
+    assert client.calls[0]["model"] == "grok-imagine-image-quality"
+
+
+def test_grok_image_payload_validation():
+    from mcop.adapters.grok_image_adapter import _payload
+
+    with pytest.raises(ValueError, match="non-empty"):
+        _payload(prompt=" ", model="grok-imagine-image", n=1, response_format="url")
+    with pytest.raises(ValueError, match="between 1 and 10"):
+        _payload(prompt="ok", model="grok-imagine-image", n=11, response_format="url")
