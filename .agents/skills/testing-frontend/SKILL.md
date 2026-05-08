@@ -8,8 +8,10 @@ This repo is a Next.js 16 + React 19 + Turbopack app with a jsdom-based jest
 suite. The canonical proof-of-correctness for any **client component** change
 (anything in `src/components/*` or anything with `"use client"` at the top of
 the file) is the existing jest suite — it runs components inside the same React
-19 reconciler the browser uses. As of 2026-05-01, the full suite reports **424
-passed tests across 43 passed suites** with 3 skipped suites.
+19 reconciler the browser uses. As of 2026-05-08, the full suite reports **593
+passed tests across 55 passed suites** with 3 skipped suites; this baseline
+shifts as the repo grows, so prefer asserting `0 failed` rather than an exact
+passed count.
 
 ## Commands
 
@@ -19,7 +21,12 @@ passed tests across 43 passed suites** with 3 skipped suites.
 COREPACK_ENABLE_DOWNLOAD_PROMPT=0 pnpm install
 
 # Full test suite:
-pnpm test -- --runInBand  # current baseline: 424 passed / 427 total, 43 passed suites
+pnpm test -- --runInBand
+
+# Single-suite filter (Jest 30+ uses --testPathPatterns, plural):
+pnpm test -- --runInBand --testPathPatterns=<glob>
+# Older `--testPathPattern` (singular) was REMOVED in Jest 30; using it errors
+# with "Option 'testPathPattern' was replaced by '--testPathPatterns'."
 
 # Lint / typecheck / build (all enforce zero warnings):
 pnpm lint            # eslint --max-warnings 0
@@ -138,6 +145,115 @@ finishing) that:
 Prefer Jest/ts-jest for this harness. Direct `pnpm dlx tsx` execution against
 repo internals may hit `canonicalize` package export resolution issues that Jest
 does not hit.
+
+## CUDA hardware-layer adaptive-probe runtime smoke (Φ1–Φ5 deployment ladder)
+
+For changes touching `src/hardware/CUDAHardwareLayer.ts`, `src/hardware/Accelerator.ts`,
+`src/adapters/baseAdapter.ts` (cudaLayer wiring), `src/core/provenanceTracer.ts`
+(cudaProvenance surfacing), or anything in the Φ-N deployment ladder documented
+in `docs/CUDA_PHI1_PHI5.md`, the canonical proof-of-correctness path is a
+runtime telemetry harness on the **actual** Devin VM substrate, not just
+mocked unit tests.
+
+Devin VMs are CPU-only without `onnxruntime-node` installed, which is the
+canonical "auto-not-capable" substrate that ARC-AGI-3 environments need to
+thrive on. The probe contract on this substrate is:
+
+- `detectCUDACapability()` returns `{ capable: false, reason: "onnxruntime-node not installed", probedProviders: [], durationMs: <number> }` in well under 100ms
+- The result is `Object.isFrozen(...) === true` and the probe never throws
+- `CUDAHardwareLayer.create({ enableCUDA: 'auto' })` resolves to `enableCUDA=false`, `resolvedFrom='auto-not-capable'`
+
+The `resolvedFrom` audit field (5 values: `explicit-on`, `explicit-off`,
+`default-off`, `auto-capable`, `auto-not-capable`) flows into every Merkle leaf
+produced by the layer, by `BaseAdapter.cudaLayer` wiring, and by
+`SynthesisProvenanceTracer`'s encode leaf — even when the layer is disabled.
+The enabled-only fields (`requestedDevice`, `substrateLineage` formatted as
+`<device>/<streams>`) are present **only** when `enableCUDA===true`, and absent
+otherwise. This is the asymmetric encoding the disabled-substrate test must
+verify.
+
+Minimum proof for any Φ-N PR:
+
+```bash
+pnpm test -- --runInBand --testPathPatterns=cudaPhi   # the existing Φ5 unit suite
+pnpm soak:cuda-verified-device                         # the 1000-step Φ4 soak
+```
+
+For stronger end-to-end runtime evidence, create temporary Jest specs (prefix
+them `_temp_` so they're easy to grep and delete; **delete before finishing**)
+that exercise the **real** dynamic-import probe path on this VM (no
+`ortInjection`), then a forced-capable path with `ortInjection` test double:
+
+1. Call `await detectCUDACapability()` with no injection. Assert `capable===false`,
+   `Object.isFrozen(result)===true`, and the reason matches
+   `/not[ -]installed|not in onnxruntime-node listSupportedBackends|listSupportedBackends\(\)/i`.
+2. `const layer = await CUDAHardwareLayer.create({ enableCUDA: 'auto' })` — assert
+   `layer.enableCUDA===false`, `layer.resolvedFrom==='auto-not-capable'`.
+3. Construct `new SynthesisProvenanceTracer(encoder, stigmergy, etch, new CPUFallback(), layer)`
+   and call `.synthesize('Φ-N audit', { note: '...' })`. Assert
+   `result.events[0].details.accelerator.resolvedFrom==='auto-not-capable'` and
+   that `requestedDevice` AND `substrateLineage` are both **`undefined`** on
+   the disabled path. The merkleRoot should match `/^[0-9a-f]+$/`.
+4. Build `ortInjection` returning `listSupportedBackends: () => ['CUDAExecutionProvider', 'CPUExecutionProvider']`,
+   `InferenceSession.create()` returning a session whose `endProfiling()` emits
+   `[{ args: { provider: 'CUDAExecutionProvider' } }]`. Pass it to
+   `CUDAHardwareLayer.create({ enableCUDA: 'auto', ortInjection: ort })`. Assert
+   `layer.enableCUDA===true`, `layer.resolvedFrom==='auto-capable'`. Run the
+   tracer again and assert the encode leaf carries
+   `requestedDevice===layer.device` (default `'cuda:0'`) and
+   `substrateLineage===\`${layer.device}/${layer.streams}\`` (default
+   `'cuda:0/per-op'`).
+
+For the `parseEnableCUDAEnv` env-var matrix, drive the function directly in a
+temp Jest spec rather than spawning child processes (ts-node is not installed
+in this repo). Verify the canonical mapping:
+
+- `undefined`, `''`, `'auto'`, `'AUTO'`, `'Auto'`, `'detect'`, `'DETECT'`, `' auto '` → `'auto'`
+- `'1'`, `'true'`, `'TRUE'`, `'on'` → `true`
+- `'0'`, `'false'`, `'off'`, `'garbage'`, `'yes'` → `false` (unknown values must
+  always fall safely to `false`, never silently auto)
+- With `delete process.env.MCOP_ENABLE_CUDA` + `jest.resetModules()` + a fresh
+  `require('../config/mcop.config')`, `MCOP_DEFAULT_ORCHESTRATOR.hardware.enableCUDA`
+  must be `'auto'`.
+
+Watch out: Jest's `it.each(rows)` infers a tuple union from the **first** row,
+which rejects later rows whose value type differs (e.g. mixing `'auto'` /
+`true` / `false` expected values). Either declare an explicit
+`type Row = readonly [string | undefined, 'auto' | true | false, string]`
+before the table or use a plain `for...of` loop emitting `it(label, fn)`
+entries. The bug surfaces as `TS2345: Source has 3 element(s) but target
+allows only 2`.
+
+### ARC-AGI-3 byte-stable Merkle root anchor
+
+The Φ4 1000-step verifiedDevice soak is the strongest invariant check that a
+Φ-N PR did not perturb the canonical Merkle encoding (e.g. by accidentally
+folding host-dependent probe details like `durationMs` or `probedProviders`
+into the digest):
+
+```bash
+pnpm soak:cuda-verified-device
+# completedSteps=1000 halted=false firstGhostGPUStep=null ghostGpuEvents=0
+# wrote .../cuda_verified_device_soak.json merkleRoot=75c65f3e56d4c9e7 halted=false
+
+grep merkleRoot docs/benchmarks/cuda_verified_device_soak.json
+# "merkleRoot": "75c65f3e56d4c9e74acfa27db84def44c85d20325d88bb074519b083b4392780"
+```
+
+The full Merkle root
+`75c65f3e56d4c9e74acfa27db84def44c85d20325d88bb074519b083b4392780` is
+committed in `docs/benchmarks/cuda_verified_device_soak.json` as the canonical
+byte-stable baseline (seed `0xC0FFEE`, mode `smoke`, 1000 steps across all 6
+op-sharded kernels). It must reproduce byte-identically across reruns and
+match the committed baseline. Any drift is an ARC-AGI-3 invariant violation
+and should block merge until understood.
+
+The full Φ5 unit-test surface lives in `src/__tests__/cudaPhi5AdaptiveProbe.test.ts`
+(probe + factory + 3-substrate soak), `src/__tests__/cudaVerifiedDeviceSoak.test.ts`
+(in-process gate + canary regression + standalone harness child-process), and
+`src/__tests__/cudaHardwareLayer.test.ts` (Φ1 layer surface). Future Φ-N PRs
+should extend these rather than add new top-level suites unless the surface is
+truly distinct.
 
 ## Automated SSR validation (LCP preload contract)
 
