@@ -210,6 +210,7 @@ function TweaksPanel({ title = 'Tweaks', noDeckControls = false, children }) {
   React.useEffect(() => {
     if (!hasDeckStage || railEnabled) return undefined;
     const onMsg = (e) => {
+      if (e.origin !== window.location.origin) return;
       if (e.data && e.data.type === '__omelette_rail_enabled') setRailEnabled(true);
     };
     window.addEventListener('message', onMsg);
