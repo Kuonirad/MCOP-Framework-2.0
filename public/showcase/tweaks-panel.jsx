@@ -252,19 +252,21 @@ function TweaksPanel({ title = 'Tweaks', noDeckControls = false, children }) {
   }, [open, clampToViewport]);
 
   React.useEffect(() => {
+    const trustedOrigin = window.location.origin;
     const onMsg = (e) => {
+      if (!e || e.origin !== trustedOrigin) return;
       const t = e?.data?.type;
       if (t === '__activate_edit_mode') setOpen(true);
       else if (t === '__deactivate_edit_mode') setOpen(false);
     };
     window.addEventListener('message', onMsg);
-    window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+    window.parent.postMessage({ type: '__edit_mode_available' }, trustedOrigin);
     return () => window.removeEventListener('message', onMsg);
   }, []);
 
   const dismiss = () => {
     setOpen(false);
-    window.parent.postMessage({ type: '__edit_mode_dismissed' }, '*');
+    window.parent.postMessage({ type: '__edit_mode_dismissed' }, window.location.origin);
   };
 
   const onDragStart = (e) => {
