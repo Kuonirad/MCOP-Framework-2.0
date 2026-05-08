@@ -221,6 +221,7 @@ provenance for you.
 | **NPM / PyPI package** | Publish `@kullailabs/mcop-adapters` and `mcop-adapters`. One-line import drops MCOP into existing pipelines.         |
 | **Docker sidecar**     | `docker run -e MCOP_ADAPTERS=magnific,higgsfield …` exposes adapter functionality over REST/gRPC.                     |
 | **MCP Server**         | Re-expose adapter methods as MCP tools for LLM orchestration frameworks (Magnific ships an MCP server).                 |
+| **Decentralized agent substrate** | Let heterogeneous agents publish/read Merkle-linked Stigmergy traces so coordination survives without one central orchestrator; see [`docs/DECENTRALIZED_AGENT_COORDINATION.md`](../DECENTRALIZED_AGENT_COORDINATION.md). |
 | **Next.js dashboard**  | Surface resonance metrics ("Magnific asset → Higgsfield shot continuity: 94 %") on the existing triad visualizer.        |
 | **Generic template**   | Copy `genericProductionAdapter.ts`, override `dispatch`, wire the new platform.                                      |
 

@@ -151,6 +151,7 @@ const result = await mcop.optimize(context, {
 | Public API and coverage surface | [`docs/api/README.md`](./docs/api/README.md) |
 | SBOM generation and validation | [`docs/sbom/README.md`](./docs/sbom/README.md) |
 | Due-diligence register | [`docs/DUE_DILIGENCE_REGISTER.md`](./docs/DUE_DILIGENCE_REGISTER.md) |
+| Decentralized agent coordination | [`docs/DECENTRALIZED_AGENT_COORDINATION.md`](./docs/DECENTRALIZED_AGENT_COORDINATION.md) |
 | Architecture overview | [`ARCHITECTURE.md`](./ARCHITECTURE.md) |
 | Supply-chain controls | [`docs/SUPPLY_CHAIN_TRUST.md`](./docs/SUPPLY_CHAIN_TRUST.md) |
 | Universal Adapter Protocol | [`docs/adapters/UNIVERSAL_ADAPTER_PROTOCOL.md`](./docs/adapters/UNIVERSAL_ADAPTER_PROTOCOL.md) |
