@@ -23,6 +23,8 @@ from mcop.adapters.arcagi3_agent import (
     MappingGrokStrategy,
     RandomStrategy,
     StepRecord,
+    _ForwardModel,
+    _GoalColorDetector,
     _StuckDetector,
     _build_prompt,
     _decide_action,
@@ -1333,3 +1335,218 @@ def test_holographic_strategy_complex_action_gets_default_coordinates() -> None:
     chosen, data = strat.choose(_HoloFrame(_grid_with_goal([])), [], {}, ["ACTION6"])
     assert chosen == "ACTION6"
     assert data == {"x": 10, "y": 20}
+
+
+# ---- _GoalColorDetector ----------------------------------------------------
+
+def _grid_with_color(color_positions: List[Tuple[int, int, int]]) -> List[List[List[int]]]:
+    """Build an 8x8 layer with arbitrary (row, col, color) cells."""
+    layer = [[0 for _ in range(8)] for _ in range(8)]
+    for r, c, val in color_positions:
+        layer[r][c] = val
+    return [layer]
+
+
+def test_goal_color_detector_returns_none_before_any_advance() -> None:
+    det = _GoalColorDetector()
+    prev = _HoloFrame(_grid_with_color([(0, 0, 7)]), levels_completed=0)
+    nxt = _HoloFrame(_grid_with_color([(1, 1, 7)]), levels_completed=0)
+    det.observe(prev, nxt)
+    assert det.current() is None
+
+
+def test_goal_color_detector_credits_color_present_in_advance_diff() -> None:
+    """A level advance that touches color 7 should make 7 the inferred goal."""
+    det = _GoalColorDetector()
+    prev = _HoloFrame(_grid_with_color([(0, 0, 7)]), levels_completed=0)
+    nxt = _HoloFrame(_grid_with_color([]), levels_completed=1)  # 7 vacated to 0
+    det.observe(prev, nxt)
+    assert det.current() == 7
+
+
+def test_goal_color_detector_excludes_background_color_zero() -> None:
+    """Even though every advance touches 0 (vacated cells), 0 must not win."""
+    det = _GoalColorDetector()
+    prev = _HoloFrame(_grid_with_color([(0, 0, 4), (1, 1, 4)]), levels_completed=0)
+    nxt = _HoloFrame(_grid_with_color([]), levels_completed=1)
+    det.observe(prev, nxt)
+    assert det.current() == 4
+
+
+def test_goal_color_detector_picks_highest_credit_when_multiple_colors() -> None:
+    det = _GoalColorDetector()
+    # Color 5 appears in 4 changed cells, color 9 in 2.
+    prev = _HoloFrame(
+        _grid_with_color(
+            [(0, 0, 5), (0, 1, 5), (1, 0, 5), (1, 1, 5), (2, 2, 9), (2, 3, 9)]
+        ),
+        levels_completed=0,
+    )
+    nxt = _HoloFrame(_grid_with_color([]), levels_completed=1)
+    det.observe(prev, nxt)
+    assert det.current() == 5
+
+
+def test_goal_color_detector_ignores_non_advance_steps() -> None:
+    det = _GoalColorDetector()
+    prev = _HoloFrame(_grid_with_color([(0, 0, 6)]), levels_completed=0)
+    nxt = _HoloFrame(_grid_with_color([(1, 1, 6)]), levels_completed=0)
+    det.observe(prev, nxt)
+    assert det.advances_seen == 0
+    assert det.current() is None
+
+
+def test_goal_color_detector_min_advances_gates_output() -> None:
+    det = _GoalColorDetector(min_advances=2)
+    prev = _HoloFrame(_grid_with_color([(0, 0, 7)]), levels_completed=0)
+    nxt = _HoloFrame(_grid_with_color([]), levels_completed=1)
+    det.observe(prev, nxt)
+    assert det.current() is None  # only 1 advance seen
+    # Second advance: now we cross the threshold.
+    prev2 = _HoloFrame(_grid_with_color([(2, 2, 7)]), levels_completed=1)
+    nxt2 = _HoloFrame(_grid_with_color([]), levels_completed=2)
+    det.observe(prev2, nxt2)
+    assert det.current() == 7
+
+
+# ---- _ForwardModel ---------------------------------------------------------
+
+def test_forward_model_returns_none_when_no_terminals_seen() -> None:
+    fm = _ForwardModel()
+    fm.add_transition("s0", "ACTION1", "s1", levels_delta=0)
+    assert fm.plan("s0", ["ACTION1", "ACTION2"]) is None
+
+
+def test_forward_model_direct_hit_returns_that_action() -> None:
+    fm = _ForwardModel()
+    fm.add_transition("s0", "ACTION2", "GOAL", levels_delta=1)
+    assert fm.plan("s0", ["ACTION1", "ACTION2"]) == "ACTION2"
+
+
+def test_forward_model_returns_first_action_of_shortest_path() -> None:
+    """Two-step path: s0 -ACTION1-> s1 -ACTION3-> GOAL must yield ACTION1."""
+    fm = _ForwardModel()
+    fm.add_transition("s0", "ACTION1", "s1", levels_delta=0)
+    fm.add_transition("s1", "ACTION3", "GOAL", levels_delta=1)
+    assert fm.plan("s0", ["ACTION1", "ACTION2", "ACTION3"]) == "ACTION1"
+
+
+def test_forward_model_prefers_direct_over_indirect() -> None:
+    """Direct (s0,ACTION3)->GOAL beats indirect (s0,ACTION1)->s1->GOAL."""
+    fm = _ForwardModel()
+    fm.add_transition("s0", "ACTION1", "s1", levels_delta=0)
+    fm.add_transition("s1", "ACTION2", "GOAL", levels_delta=1)
+    fm.add_transition("s0", "ACTION3", "GOAL", levels_delta=1)
+    assert fm.plan("s0", ["ACTION1", "ACTION2", "ACTION3"]) == "ACTION3"
+
+
+def test_forward_model_respects_max_plan_depth() -> None:
+    """A path longer than max_plan_depth must not be returned."""
+    fm = _ForwardModel(max_plan_depth=2)
+    # Depth-3 chain: s0 -> s1 -> s2 -> GOAL
+    fm.add_transition("s0", "ACTION1", "s1", levels_delta=0)
+    fm.add_transition("s1", "ACTION1", "s2", levels_delta=0)
+    fm.add_transition("s2", "ACTION1", "GOAL", levels_delta=1)
+    assert fm.plan("s0", ["ACTION1"]) is None
+
+
+def test_forward_model_reset_clears_graph_and_terminals() -> None:
+    fm = _ForwardModel()
+    fm.add_transition("s0", "ACTION1", "GOAL", levels_delta=1)
+    assert fm.plan("s0", ["ACTION1"]) == "ACTION1"
+    fm.reset()
+    assert fm.plan("s0", ["ACTION1"]) is None
+    assert fm.transitions == {}
+    assert fm.terminal_states == set()
+
+
+def test_forward_model_returns_none_when_no_actions_available() -> None:
+    fm = _ForwardModel()
+    fm.add_transition("s0", "ACTION1", "GOAL", levels_delta=1)
+    assert fm.plan("s0", []) is None
+
+
+# ---- HolographicShadowStrategy integration --------------------------------
+
+def test_holographic_strategy_uses_planner_over_score() -> None:
+    """Planner pick must override score-based pick when a path exists."""
+    strat = HolographicShadowStrategy(goal_color=8)
+    # Make ACTION1 look great on score so we know the planner overrode it.
+    strat.action_stats["ACTION1"] = {
+        "count": 10.0, "moved_count": 10.0, "total_centroid_delta": 10.0,
+    }
+    # Seed forward model: from start_hash, ACTION2 leads to a known terminal.
+    start_frame = _HoloFrame(_grid_with_goal([(0, 0)]))
+    start_hash = strat._state_hash(start_frame)
+    strat._forward_model.add_transition(
+        start_hash, "ACTION2", "TERMINAL_HASH", levels_delta=1,
+    )
+    chosen, _ = strat.choose(start_frame, [], {}, ["ACTION1", "ACTION2"])
+    assert chosen == "ACTION2"
+
+
+def test_holographic_strategy_falls_back_to_score_when_planner_empty() -> None:
+    """No terminals known -> planner returns None -> score-based pick."""
+    strat = HolographicShadowStrategy()
+    strat.action_stats["ACTION2"] = {
+        "count": 5.0, "moved_count": 5.0, "total_centroid_delta": 5.0,
+    }
+    chosen, _ = strat.choose(
+        _HoloFrame(_grid_with_goal([(1, 1)])), [], {}, ["ACTION1", "ACTION2"]
+    )
+    assert chosen == "ACTION2"
+
+
+def test_holographic_strategy_disable_planner_via_max_plan_depth_zero() -> None:
+    strat = HolographicShadowStrategy(max_plan_depth=0)
+    start_frame = _HoloFrame(_grid_with_goal([(0, 0)]))
+    start_hash = strat._state_hash(start_frame)
+    # Even with a baited terminal, max_plan_depth=0 must skip the planner.
+    strat._forward_model.add_transition(
+        start_hash, "ACTION2", "TERMINAL", levels_delta=1,
+    )
+    strat.action_stats["ACTION1"] = {
+        "count": 10.0, "moved_count": 10.0, "total_centroid_delta": 10.0,
+    }
+    chosen, _ = strat.choose(start_frame, [], {}, ["ACTION1", "ACTION2"])
+    assert chosen == "ACTION1"
+
+
+def test_holographic_strategy_records_transitions_into_forward_model() -> None:
+    strat = HolographicShadowStrategy(goal_color=8)
+    prev = _HoloFrame(_grid_with_goal([(0, 0)]), levels_completed=0)
+    nxt = _HoloFrame(_grid_with_goal([(3, 3)]), levels_completed=1)
+    strat._last_state_hash = strat._state_hash(prev)
+    strat._last_goal_centroid = strat._goal_centroid(prev)
+    strat.observe(prev, "ACTION1", nxt)
+    next_hash = strat._state_hash(nxt)
+    assert (strat._last_state_hash, "ACTION1") in strat._forward_model.transitions
+    assert next_hash in strat._forward_model.terminal_states
+
+
+def test_holographic_strategy_auto_discovery_flips_goal_color_and_resets_caches() -> None:
+    """A level advance involving color 7 should retarget goal_color and clear walls."""
+    strat = HolographicShadowStrategy(goal_color=8)  # initial guess: 8
+    # Pre-populate a wall under the OLD goal_color to verify it gets cleared.
+    strat.walls[("stale_hash", "ACTION9")] = 5
+    prev = _HoloFrame(_grid_with_color([(0, 0, 7)]), levels_completed=0)
+    nxt = _HoloFrame(_grid_with_color([]), levels_completed=1)
+    strat._last_state_hash = strat._state_hash(prev)
+    strat._last_goal_centroid = strat._goal_centroid(prev)
+    strat.observe(prev, "ACTION1", nxt)
+    assert strat.goal_color == 7
+    assert strat.walls.get(("stale_hash", "ACTION9")) is None  # reset
+
+
+def test_holographic_strategy_auto_discovery_can_be_disabled() -> None:
+    strat = HolographicShadowStrategy(
+        goal_color=8, auto_discover_goal_color=False
+    )
+    prev = _HoloFrame(_grid_with_color([(0, 0, 7)]), levels_completed=0)
+    nxt = _HoloFrame(_grid_with_color([]), levels_completed=1)
+    strat._last_state_hash = strat._state_hash(prev)
+    strat._last_goal_centroid = strat._goal_centroid(prev)
+    strat.observe(prev, "ACTION1", nxt)
+    assert strat.goal_color == 8  # unchanged
+    # Detector still runs (so discovery can be enabled later) but is not applied.
+    assert strat._goal_detector.current() == 7
