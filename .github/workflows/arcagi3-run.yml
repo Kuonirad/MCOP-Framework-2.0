@@ -37,11 +37,11 @@ on:
         required: false
         default: false
         type: boolean
-            goal_color:
-      description: "Pixel colour index of the goal tile (holographic strategy only). Leave blank to use library default (8)."
-      required: false
-      default: ""
-      type: string
+          goal_color:
+              description: "Pixel colour index of the goal tile (holographic strategy only). Leave blank to use library default (8)."
+        required: false
+        default: ""
+          type: string
 
 permissions:
   contents: read
