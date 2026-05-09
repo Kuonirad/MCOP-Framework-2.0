@@ -26,6 +26,7 @@ from mcop.adapters.arcagi3_agent import (
     DEFAULT_GROK_MODEL,
     LOW_MEMORY_ENCODER_DIMS,
     SDKUnavailable,
+    GOAL_COLOR,
 )
 
 
@@ -91,6 +92,21 @@ def main() -> int:
         ),
     )
     parser.add_argument("--verbose", action="store_true")
+    parser.add_argument(
+    "--goal-color",
+    type=int,
+    default=None,
+    help=(
+        "Pixel colour index of the goal tile for the holographic strategy. "
+        f"Defaults to HOLOGRAPHIC_GOAL_COLOR env var, then the library default ({GOAL_COLOR})."
+    ),
+    )
+    parser.add_argument(
+        "--player-color",
+        type=int,
+        default=None,
+        help="Pixel colour index of the player sprite (holographic strategy). Auto-detected if omitted.",
+    )
     args = parser.parse_args()
 
     logging.basicConfig(
@@ -107,7 +123,11 @@ def main() -> int:
     elif args.strategy == "mapping-grok":
         strategy = MappingGrokStrategy(model=args.grok_model)
     elif args.strategy == "holographic":
-        strategy = HolographicShadowStrategy()
+        strategy = HolographicShadowStrategy(
+            goal_color=args.goal_color
+            or int(os.environ.get("HOLOGRAPHIC_GOAL_COLOR", GOAL_COLOR)),
+            player_color=args.player_color,
+        )
     else:
         strategy = RandomStrategy(seed=args.seed)
 
