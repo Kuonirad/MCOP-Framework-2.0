@@ -150,6 +150,8 @@ const result = await mcop.optimize(context, {
 |:---|:---|
 | Public API and coverage surface | [`docs/api/README.md`](./docs/api/README.md) |
 | SBOM generation and validation | [`docs/sbom/README.md`](./docs/sbom/README.md) |
+| Workspace layout (monorepo) | [`docs/MONOREPO.md`](./docs/MONOREPO.md) |
+| Branch cleanup strategy | [`docs/audits/branch-cleanup-strategy.md`](./docs/audits/branch-cleanup-strategy.md) |
 | Due-diligence register | [`docs/DUE_DILIGENCE_REGISTER.md`](./docs/DUE_DILIGENCE_REGISTER.md) |
 | Decentralized agent coordination | [`docs/DECENTRALIZED_AGENT_COORDINATION.md`](./docs/DECENTRALIZED_AGENT_COORDINATION.md) |
 | Architecture overview | [`ARCHITECTURE.md`](./ARCHITECTURE.md) |
@@ -159,14 +161,15 @@ const result = await mcop.optimize(context, {
 
 ## 🏷️ Badge Legend
 
-| Badge | Meaning |
-|:---|:---|
-| Build and Test | Merge-blocking lint, typecheck, test, build, security, and package checks. |
-| CodeQL | Static analysis for JavaScript/TypeScript and security query suites. |
-| Coverage | Jest coverage snapshot for the documented API surface. |
-| Release | Latest GitHub release tag. |
-| License | BUSL-1.1 license with scheduled MIT conversion noted in `LICENSE`. |
-| Maintained | Governance and maintainer process are documented. |
+| Badge | Meaning | Source |
+|:---|:---|:---|
+| Build and Test | Merge-blocking lint, typecheck, test, build, security, and package checks. | [`.github/workflows/ci.yml`](./.github/workflows/ci.yml) |
+| CodeQL | Static analysis for JavaScript/TypeScript and security query suites. | [`.github/workflows/codeql.yml`](./.github/workflows/codeql.yml) |
+| Coverage | Jest coverage snapshot for the documented API surface; refreshed by `pnpm coverage:badge`. | [`docs/badges/coverage.svg`](./docs/badges/coverage.svg) · [`scripts/coverage-badge.mjs`](./scripts/coverage-badge.mjs) |
+| Release | Latest GitHub release tag. | [Releases](https://github.com/Kuonirad/MCOP-Framework-2.0/releases) |
+| License | BUSL-1.1 license with scheduled MIT conversion noted in `LICENSE`. | [`LICENSE`](./LICENSE) |
+| Maintained | Governance and maintainer process are documented. | [`GOVERNANCE.md`](./GOVERNANCE.md) |
+| Positive Impact | Eudaimonic / positive-resonance audit score; refreshed by `pnpm positive:audit`. | [`docs/badges/positive-impact.svg`](./docs/badges/positive-impact.svg) · [`docs/POSITIVE_IMPACT_REPORT.md`](./docs/POSITIVE_IMPACT_REPORT.md) |
 
 ---
 

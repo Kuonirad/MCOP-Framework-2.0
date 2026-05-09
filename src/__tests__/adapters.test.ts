@@ -474,6 +474,69 @@ describe('MagnificMCOPAdapter', () => {
     const result = await adapter.generateOptimizedImage('configured target');
     expect(result.provenance.refinedPrompt).toContain('configured target');
   });
+
+  /* ---------------------------------------------------------------- */
+  /*  Branch-coverage tests (audit remediation #546)                  */
+  /*  Target: lift magnificAdapter.ts from 82.6% to >=95% branch cov.  */
+  /* ---------------------------------------------------------------- */
+
+  it('estimateUpscaleCost falls back to the per-megapixel heuristic when no reference rows exist for the factor', () => {
+    const adapter = new MagnificMCOPAdapter({
+      ...baseTriad(),
+      client: magnificFixture(),
+    });
+    // Factor 16 has no rows in the volumetric table; the heuristic
+    // should still return a positive, finite EUR figure rounded to 2 dp.
+    const cost = adapter.estimateUpscaleCost(640, 480, 16);
+    expect(cost).toBeGreaterThan(0);
+    expect(cost).toBeLessThan(100);
+    expect(Number((cost * 100).toFixed(0))).toBe(Math.round(cost * 100));
+  });
+
+  it('estimateUpscaleCost runs the nearest-neighbour comparator when no exact row matches', () => {
+    const adapter = new MagnificMCOPAdapter({
+      ...baseTriad(),
+      client: magnificFixture(),
+    });
+    // 800×600 @ 2× has no exact row; factor 2 has 3 reference rows
+    // (640×480, 1280×720, 1920×1080), so the comparator at line 205
+    // is exercised at least twice during the sort.
+    const cost = adapter.estimateUpscaleCost(800, 600, 2);
+    expect(cost).toBeGreaterThan(0);
+    expect(cost).toBeLessThan(1);
+  });
+
+  it('rejects upscale calls when the estimated cost exceeds the per-call EUR ceiling', async () => {
+    const adapter = new MagnificMCOPAdapter({
+      ...baseTriad(),
+      client: magnificFixture(),
+      // 640×480 @ 2× is exactly €0.10 in the volumetric table; setting
+      // the ceiling to €0.05 drives the second guardrail (line 389)
+      // without first tripping the output-area guardrail.
+      maxCallCostEur: 0.05,
+      maxUpscaleOutputArea: 100_000_000,
+    });
+    await expect(
+      adapter.upscaleImage('https://cdn/cheap.png', {
+        scale: 2,
+        sourceWidth: 640,
+        sourceHeight: 480,
+      }),
+    ).rejects.toThrow(/exceeds.*hard-stop/);
+  });
+
+  it('rejects video-upscale calls without a source asset', async () => {
+    const adapter = new MagnificMCOPAdapter({
+      ...baseTriad(),
+      client: magnificFixture(),
+    });
+    await expect(
+      adapter.generate({
+        prompt: 'enhance footage',
+        payload: { kind: 'video-upscale' },
+      }),
+    ).rejects.toThrow(/video-upscale requires payload.sourceAssetUrl/);
+  });
 });
 
 describe('UtopaiMCOPAdapter', () => {
@@ -1057,6 +1120,130 @@ describe('defaultGrokClient', () => {
       messages: [{ role: 'user', content: 'hello' }],
       options: { model: 'grok-4-mini' },
     })).rejects.toBeInstanceOf(GrokApiError);
+  });
+
+  /* ---------------------------------------------------------------- */
+  /*  Branch-coverage tests (audit remediation #552)                  */
+  /*  Target: lift grokAdapter.ts from 88.7% to >=95% branch cov.      */
+  /* ---------------------------------------------------------------- */
+
+  it('throws when the response payload contains zero choices', async () => {
+    const fetchImpl = jest.fn(async () =>
+      okResponse({
+        id: 'cmpl-empty',
+        model: 'grok-3-mini',
+        choices: [],
+      }),
+    );
+    const client = defaultGrokClient({
+      apiKey: 'test-key',
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+    });
+    await expect(
+      client.createCompletion({
+        messages: [{ role: 'user', content: 'hi' }],
+        options: { model: 'grok-3-mini' },
+      }),
+    ).rejects.toThrow(/no choices/);
+  });
+
+  it('returns null usage and an empty content string when the response omits them', async () => {
+    const fetchImpl = jest.fn(async () =>
+      okResponse({
+        id: 'cmpl-noUsage',
+        model: 'grok-3-mini',
+        choices: [
+          {
+            index: 0,
+            message: { role: 'assistant' },
+            finish_reason: null,
+          },
+        ],
+      }),
+    );
+    const client = defaultGrokClient({
+      apiKey: 'test-key',
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+    });
+    const result = await client.createCompletion({
+      messages: [{ role: 'user', content: 'hi' }],
+      options: {},
+    });
+    expect(result.usage).toBeNull();
+    expect(result.content).toBe('');
+    expect(result.finishReason).toBeNull();
+    expect(result.model).toBe('grok-3-mini');
+  });
+
+  it('uses the configured backoff when the throttled response has no Retry-After header', async () => {
+    jest.useFakeTimers();
+    const throttled = errorResponse(429, 'Too Many Requests', '{}') as Response;
+    Object.defineProperty(throttled, 'headers', {
+      value: new Headers({ 'x-ratelimit-remaining-requests': '0' }),
+    });
+    const ok = okResponse({
+      id: 'cmpl-ok',
+      model: 'grok-3-mini',
+      choices: [{ index: 0, message: { role: 'assistant', content: 'ok' }, finish_reason: 'stop' }],
+      usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
+    }) as Response;
+    Object.defineProperty(ok, 'headers', { value: new Headers() });
+    const fetchImpl = jest.fn()
+      .mockResolvedValueOnce(throttled)
+      .mockResolvedValueOnce(ok);
+    const client = defaultGrokClient({
+      apiKey: 'test-key',
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+      retry: { maxRetries: 1, baseDelayMs: 1, maxDelayMs: 10 },
+    });
+
+    const pending = client.createCompletion({
+      messages: [{ role: 'user', content: 'hi' }],
+      options: { model: 'grok-3-mini' },
+    });
+    await Promise.resolve();
+    await jest.advanceTimersByTimeAsync(20);
+    const result = await pending;
+    expect(result.content).toBe('ok');
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    jest.useRealTimers();
+  });
+
+  it('parses an HTTP-date Retry-After value into a non-negative millisecond delay', async () => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-05-08T00:00:00Z'));
+    const throttled = errorResponse(429, 'Too Many Requests', '{}') as Response;
+    Object.defineProperty(throttled, 'headers', {
+      value: new Headers({ 'retry-after': 'Fri, 08 May 2026 00:00:00 GMT' }),
+    });
+    const ok = okResponse({
+      id: 'cmpl-ok2',
+      model: 'grok-3-mini',
+      choices: [{ index: 0, message: { role: 'assistant', content: 'ok' }, finish_reason: 'stop' }],
+    }) as Response;
+    Object.defineProperty(ok, 'headers', { value: new Headers() });
+    const fetchImpl = jest.fn()
+      .mockResolvedValueOnce(throttled)
+      .mockResolvedValueOnce(ok);
+    const onRateLimit = jest.fn();
+    const client = defaultGrokClient({
+      apiKey: 'test-key',
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+      retry: { maxRetries: 1 },
+      onRateLimit,
+    });
+
+    const pending = client.createCompletion({
+      messages: [{ role: 'user', content: 'hi' }],
+      options: { model: 'grok-3-mini' },
+    });
+    await Promise.resolve();
+    await jest.advanceTimersByTimeAsync(1);
+    await pending;
+    expect(onRateLimit).toHaveBeenCalledWith(
+      expect.objectContaining({ retryAfterMs: expect.any(Number) }),
+    );
+    expect(onRateLimit.mock.calls[0][0].retryAfterMs).toBeGreaterThanOrEqual(0);
+    jest.useRealTimers();
   });
 });
 

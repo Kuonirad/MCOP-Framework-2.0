@@ -47,6 +47,13 @@
  * gracefully falls back to printing setup instructions and exiting 0
  * (so it still smoke-tests in CI).
  *
+ * # Troubleshooting
+ *
+ * Hit `Cannot find module 'onnxruntime-node'`, `Failed to load model`,
+ * an Apple-Silicon binary error, or a tokenizer parse error? See
+ * [`ONNX_TROUBLESHOOTING.md`](./ONNX_TROUBLESHOOTING.md) for one-minute
+ * fixes for each of the four most common first-run failures.
+ *
  * # What it shows
  *
  * - Concrete `IEmbeddingBackend` implementation against a real neural model.
