@@ -415,11 +415,17 @@ export function DialecticalStudio({
           <h3 className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-200/80">
             Synthesis
           </h3>
+          <span id="dialectical-synthesis-help" className="sr-only">
+            Synthesis output. Renders one of three states: the refined prompt
+            an adapter would dispatch, a rose-coloured veto banner if a human
+            veto is in effect, or a placeholder asking for a non-empty thesis.
+          </span>
           <output
             htmlFor="dialectical-thesis-input dialectical-rewrite-input dialectical-notes-input"
             data-testid="dialectical-synthesis-output"
             aria-live="polite"
             aria-atomic="true"
+            aria-describedby="dialectical-synthesis-help"
             className="min-h-[7.5rem] whitespace-pre-wrap rounded-lg border border-white/10 bg-slate-950/60 px-3 py-2 font-mono text-sm text-slate-100"
           >
             {snapshot.vetoTriggered ? (

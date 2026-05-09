@@ -17,6 +17,7 @@
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "test:ssr-lcp": "node scripts/verify-ssr-lcp.mjs",
+    "verify": "pnpm lint && pnpm typecheck && pnpm test && pnpm sbom && pnpm sbom:validate",
     "postinstall": "cypress install || true",
     "cypress:open": "cypress open",
     "cypress:run": "cypress run",

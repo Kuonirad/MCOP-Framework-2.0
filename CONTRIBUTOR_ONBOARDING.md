@@ -114,6 +114,17 @@ git commit -m "Fix: Handle empty context arrays in StigmergyV5"
 git push origin fix/stigmergy-empty-context
 ```
 
+### Before you push
+
+Run the meta-verification script — it mirrors the merge-blocking CI surface
+locally so you catch issues 10× faster than waiting on CI:
+
+```bash
+pnpm verify   # lint + typecheck + test + sbom + sbom:validate
+```
+
+If `pnpm verify` is green, your PR is highly likely to pass CI on the first run.
+
 ### PR Guidelines
 - **Title:** Use conventional commits format (`feat:`, `fix:`, `docs:`, `test:`)
 - **Description:** Explain *why* (not just *what*)
