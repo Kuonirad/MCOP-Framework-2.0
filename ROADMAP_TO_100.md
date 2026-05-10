@@ -4,6 +4,51 @@
 > [CHANGELOG.md](CHANGELOG.md) for current maintainer priorities and release
 > cadence. This file is preserved for historical context only.
 
+---
+
+## 🚀 v2.4 Milestone — Logical Efficacy Escalation (May 2026)
+
+**Branch:** [`efficacy-escalation/v2.4`](https://github.com/Kuonirad/MCOP-Framework-2.0/tree/efficacy-escalation/v2.4) ·
+**Owner:** [@Kuonirad](https://github.com/Kuonirad) ·
+**Window:** 2026-05-10 → 2026-08-10 (90 days, 7 phases)
+
+The v2.4 line is an explicit **discoverability + adoption** push that compounds the
+production-grade core (96.6 % coverage, deterministic 4.4 ms / 22,700 ops/sec pipeline,
+Merkle-chained provenance, BUSL-1.1 → MIT 2030-04-26) without violating any of those
+invariants. Every escalation is etched via `ProvenanceMetadata` and gated by
+`pnpm positive:audit`, so the protocol is fully reversible.
+
+### Targets & exit criteria
+
+| Vector | Baseline (2026-05-10) | v2.4 target (T+90 d) | Verification |
+|:---|:---:|:---:|:---|
+| GitHub stars | 1 | **≥ 50** | Public repo metric |
+| Forks | 0 | **≥ 5** | Public repo metric |
+| External benchmark publication | — | **1 reproducible preprint** (notebook + Docker) | arXiv-style upload |
+| Contributor count (non-founding) | 0 | **≥ 3** | Merged PR authors |
+| `positive:audit` score | refresh | **monotonically non-decreasing** | CI `positive:audit` |
+| Test coverage | 96.6 % | **≥ 96.6 %** | Jest report |
+
+### Phases (per the Master Protocol)
+
+- **Phase 0 — Baseline Etch:** `pnpm positive:audit && pnpm benchmark:refresh && pnpm coverage:badge`; commit Merkle-anchored baseline; cut branch `efficacy-escalation/v2.4`.
+- **Phase 1 — Discoverability Amplification:** SEO-front-loaded README, cinematic Three.js showcase hero, "Why MCOP?" comparison table vs. LangChain / AutoGen / CrewAI, "Get Started in 90 seconds" terminal cast, this milestone entry.
+- **Phase 2 — Benchmark Externalization:** lift `src/benchmarks/promptingModes.ts` into a reproducible Jupyter + Docker bundle; publish a "Reproducible 22,700 ops/sec pipeline — verified 2026-05-10" preprint; add a verification badge.
+- **Phase 3 — Community Flywheel Activation:** curate ≥ 12 good-first-issues with `positive-impact` labels and an `EudaimonicEtch` bonus for merged PRs; ship `CONTRIBUTOR_JOY.md`.
+- **Phase 4 — Ecosystem Integration Deepening:** expand the Universal Adapter Protocol with native xAI/Grok tool-calling + image generation; add an MCP (Model Context Protocol) server example under `examples/`; submit MCOP-as-memory-layer integration PRs to LangChain, LlamaIndex, Haystack.
+- **Phase 5 — Narrative & Scarcity Weaponization:** publish "Source-Available until 2030" positioning (blog post + X thread) so the BUSL → MIT scheduled conversion reads as a temporal arbitrage for early adopters, not a restriction.
+- **Phase 6 — Measurement & Self-Correction:** GitHub Action posting a weekly **Efficacy Delta** comment (Δ stars · Δ benchmark · Δ contributor resonance); auto-trigger `positive:audit` escalation review on any vector dropping > 15 %.
+- **Phase 7 — MIT Conversion Narrative Prep:** begin drafting the 2030 "Legacy to Open" transition plan in [`GOVERNANCE.md`](./GOVERNANCE.md) so the license flip lands as earned graduation.
+
+### Invariants (non-negotiable)
+
+1. Every change must pass `pnpm lint && pnpm typecheck && pnpm test && pnpm positive:audit` before merge.
+2. No dilution of cryptographic lineage: SHA-256, Merkle chaining, ISO8601 timestamps, UUID-v4 traces, and rank-1 etch geometry stay byte-identical.
+3. BUSL-1.1 scarcity narrative is preserved verbatim until the `2030-04-26` Change Date.
+4. All escalations are etched via `ProvenanceMetadata` and live on a feature branch; `git revert` + re-etch fully restores prior efficacy state.
+
+---
+
 # 🎯 Roadmap to 100/100 Eco-Fitness Score
 ## From Pioneer Kelp Forest → Resilient Coral Reef
 
