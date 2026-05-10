@@ -320,6 +320,31 @@ See [POSITIVE_EVOLUTION.md](./POSITIVE_EVOLUTION.md) for the v2.3 Eudaimonic Blo
 
 ---
 
+## 🔗 Ecosystem Integrations
+
+> **Phase 4 of v2.4 — shipped.** MCOP plugs into LangChain, LlamaIndex, and Haystack as a Merkle-rooted memory layer, and exposes itself as a stdio MCP server for Claude Desktop / Cursor / Continue. Every shim lands in the host pipeline **without** a runtime dependency on the upstream library, so the same shim file is the basis for an upstream PR.
+
+| Target | TS shim | Python shim | Status |
+|---|---|---|:---:|
+| **LangChain** ([guide](docs/integrations/langchain.md)) | [`src/integrations/langchain.ts`](src/integrations/langchain.ts) | [`mcop_package/mcop/integrations/langchain.py`](mcop_package/mcop/integrations/langchain.py) | ![Shipped](https://img.shields.io/badge/SHIPPED-00ff88?style=flat-square) |
+| **LlamaIndex** ([guide](docs/integrations/llamaindex.md)) | [`src/integrations/llamaIndex.ts`](src/integrations/llamaIndex.ts) | [`mcop_package/mcop/integrations/llamaindex.py`](mcop_package/mcop/integrations/llamaindex.py) | ![Shipped](https://img.shields.io/badge/SHIPPED-00ff88?style=flat-square) |
+| **Haystack** ([guide](docs/integrations/haystack.md)) | [`src/integrations/haystack.ts`](src/integrations/haystack.ts) | [`mcop_package/mcop/integrations/haystack.py`](mcop_package/mcop/integrations/haystack.py) | ![Shipped](https://img.shields.io/badge/SHIPPED-00ff88?style=flat-square) |
+| **MCP Memory Server** ([guide](docs/integrations/mcp-memory-server.md)) | [`examples/mcop_memory_mcp_server/`](examples/mcop_memory_mcp_server/) | — | ![Shipped](https://img.shields.io/badge/SHIPPED-00ff88?style=flat-square) |
+
+The full upstream submission plan lives in [`docs/integrations/UPSTREAM_SUBMISSION_PLAN.md`](docs/integrations/UPSTREAM_SUBMISSION_PLAN.md).
+
+```ts
+// LangChain — drop-in BaseChatMessageHistory backed by MCOP triad
+import { createMCOPLangChainMemory } from '@kullailabs/mcop-core/integrations/langchain';
+
+const memory = createMCOPLangChainMemory({ sessionId: 'agent-007' });
+await memory.addMessages([{ type: 'human', content: 'who is paul atreides' }]);
+console.log((await memory.getMessages())[0].provenance?.merkleRoot);
+//=> "f3c1e7…"  ← byte-identical with the Python shim
+```
+
+---
+
 ## 🛡️ Security & Provenance
 
 ```
