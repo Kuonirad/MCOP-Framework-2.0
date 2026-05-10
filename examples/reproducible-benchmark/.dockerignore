@@ -1,0 +1,17 @@
+**/node_modules
+**/.next
+**/dist
+**/build
+**/coverage
+**/.venv
+**/__pycache__
+**/.pytest_cache
+**/.mypy_cache
+**/.ipynb_checkpoints
+**/.DS_Store
+**/.git
+**/.github
+**/.husky
+**/.vscode
+**/.idea
+out/

@@ -1,0 +1,73 @@
+# MCOP Framework 2.0 — reproducible benchmark bundle
+# ---------------------------------------------------------------------------
+# Builds a self-contained image that re-runs the deterministic prompting-mode
+# benchmark engine (`src/benchmarks/promptingModes.ts`) and proves the output
+# is byte-identical to the committed `docs/benchmarks/results.json` snapshot.
+#
+# Usage from the repo root:
+#
+#   docker build -t mcop-reproducible-benchmark \
+#     -f examples/reproducible-benchmark/Dockerfile .
+#   docker run --rm -v "$PWD/out:/out" mcop-reproducible-benchmark
+#
+# After the run, ./out/manifest.json carries the SHA-256 of the regenerated
+# results.json + verified-at ISO8601 + a PASS / FAIL for byte-identity vs.
+# the committed snapshot.
+# ---------------------------------------------------------------------------
+
+# Pinned Node 22.12.0 to match .nvmrc + the org blueprint.
+FROM node:22.12.0-bookworm-slim AS toolchain
+
+ENV PNPM_VERSION=9.15.0 \
+    COREPACK_ENABLE_DOWNLOAD_PROMPT=0 \
+    DEBIAN_FRONTEND=noninteractive \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+# Python 3.12 + jq (for manifest assembly) + git (for `git diff` byte-identity check).
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends \
+      python3 python3-pip python3-venv \
+      jq git ca-certificates \
+ && rm -rf /var/lib/apt/lists/*
+
+# Activate Corepack and pin pnpm exactly the way the repo's CI expects.
+RUN corepack enable \
+ && corepack prepare pnpm@${PNPM_VERSION} --activate
+
+WORKDIR /workspace
+
+# Copy only the files needed to install + run the benchmark suite. We do this
+# in two stages to maximise Docker layer cache reuse — the lockfile + manifest
+# layer changes far less often than the source tree.
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
+COPY packages/core/package.json packages/core/package.json
+
+RUN pnpm install --frozen-lockfile
+
+# Copy the rest of the workspace required by `pnpm benchmark:refresh`. The
+# benchmark engine pulls in `src/core` + `src/adapters` + `src/benchmarks` +
+# the jest config + the existing snapshot for byte-identity verification.
+COPY tsconfig.json jest.config.js jest.setup.js ./
+COPY src ./src
+COPY packages ./packages
+COPY docs/benchmarks/results.json ./docs/benchmarks/results.json
+
+# Python notebook dependencies.
+COPY examples/reproducible-benchmark/requirements.txt /tmp/requirements.txt
+RUN python3 -m pip install --break-system-packages --no-cache-dir -r /tmp/requirements.txt
+
+# Bundle scripts + notebook last so they invalidate the smallest cache layer.
+COPY examples/reproducible-benchmark/run-benchmark.sh /usr/local/bin/run-benchmark
+COPY examples/reproducible-benchmark/verify.sh        /usr/local/bin/verify-benchmark
+COPY examples/reproducible-benchmark/notebooks ./examples/reproducible-benchmark/notebooks
+RUN chmod +x /usr/local/bin/run-benchmark /usr/local/bin/verify-benchmark
+
+# Output directory that callers can mount.
+RUN mkdir -p /out
+VOLUME ["/out"]
+
+# Default entrypoint runs the deterministic regeneration + byte-identity check
+# + emits the manifest. Override with `docker run … bash` for an interactive
+# shell.
+ENTRYPOINT ["/usr/local/bin/run-benchmark"]
