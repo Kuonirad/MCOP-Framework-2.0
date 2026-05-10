@@ -1,0 +1,24 @@
+# Reproducible-benchmark compose profile.
+#
+# Brings the bundle up with one command from the repo root:
+#
+#   docker compose -f examples/reproducible-benchmark/compose.yml up --build
+#
+# Mounts ./out (relative to the bundle directory) so the manifest, regenerated
+# results.json, and committed baseline are all visible on the host after the
+# run completes.
+services:
+  reproducible-benchmark:
+    container_name: mcop-reproducible-benchmark
+    build:
+      context: ../..
+      dockerfile: examples/reproducible-benchmark/Dockerfile
+    image: mcop-reproducible-benchmark:latest
+    volumes:
+      - ./out:/out
+    # Pin the local TZ so the verified-at ISO8601 timestamp in manifest.json
+    # is unambiguous regardless of where the operator is running.
+    environment:
+      TZ: UTC
+    # The default entrypoint is run-benchmark.sh + verify-benchmark.sh; the
+    # container exits 0 on byte-identical PASS, 1 on drift FAIL.
