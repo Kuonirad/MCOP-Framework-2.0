@@ -5,6 +5,52 @@ based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [Unreleased] — Automated Evidence Retrieval & Guardian v0.2
+
+### Added
+- **`mcop.evidence_retrieval`** (Python). New `EvidenceRetriever` abstract
+  base + deterministic `InMemoryEvidenceRetriever` and
+  `CompositeEvidenceRetriever` backends. The engine now calls into an
+  attached retriever from `_gather_evidence`, drastically reducing the
+  manual overhead of populating `Hypothesis.evidence`. See
+  [`docs/features/automated-evidence-retrieval.md`](./docs/features/automated-evidence-retrieval.md).
+- **`mcop.guardian`** (Python) and `src/utils/guardianMetaReasoner.ts`
+  (TypeScript). The Guardian v0.1 calibration surface is promoted to an
+  active `GuardianMetaReasoner` that audits hypotheses, chains, and
+  solutions against a **configurable grounding threshold (minimum 0.70 in
+  strict mode)**. Verdicts attach to artefact metadata; below-floor
+  solutions surface a `Guardian contested (…)` entry in
+  `key_uncertainties`. Strict mode rejects sub-floor thresholds at
+  construction time.
+- **TypeScript `InMemoryEvidenceRetriever` + `CompositeEvidenceRetriever`**
+  in `src/utils/evidenceRetriever.ts` mirror the Python contract so
+  front-end and Node-side consumers can request evidence without a
+  cross-runtime hop.
+- **`CouncilScorer.score()` now accepts `{ retriever, guardian }`** in its
+  options, lifting the grounding dimension with retrieved similarity and
+  emitting a Guardian verdict alongside the composite score. Ratified
+  composite scores are downgraded to contested when the Guardian flags
+  `requires_human_review`, preserving human primacy.
+
+### Changed
+- **`MCOPConfig.grounding_threshold` default 0.40 → 0.70** to align the
+  engine's pass/fail bar with the Guardian floor. Callers that need the
+  old behaviour can either pass `grounding_threshold=0.40` plus
+  `enable_guardian=False`, or supply a non-strict `GuardianConfig`.
+- **`ReasoningChain` now carries a `metadata` dict** so Guardian verdicts
+  (and future per-chain annotations) have a stable home without a
+  separate side-channel.
+- Python package version bumped to `mcop==3.3.0`.
+
+### Human-Primacy Invariants Preserved
+- Retrieved evidence is *appended* to hypotheses; it never overwrites a
+  human-supplied Evidence item.
+- The Guardian never silently mutates an artefact: it writes its verdict
+  to metadata and surfaces deficits as explicit `key_uncertainties`.
+- `GuardianConfig(strict_mode=True)` refuses sub-floor thresholds — the
+  0.70 minimum is the framework's contribution to evidence hygiene, not
+  a knob to be tuned away by default.
+
 ## [2.3.1] - 2026-05-07 — mapping_grok Production Patch
 
 ### Added

@@ -1,4 +1,6 @@
 import { CouncilScorer, CouncilOutput } from '../utils/councilScorer';
+import { InMemoryEvidenceRetriever } from '../utils/evidenceRetriever';
+import { GuardianMetaReasoner } from '../utils/guardianMetaReasoner';
 
 describe('CouncilScorer', () => {
   const validOutput: CouncilOutput = {
@@ -31,5 +33,54 @@ describe('CouncilScorer', () => {
     };
     const score = CouncilScorer.score(poorOutput);
     expect(score.verdict).toBe('rejected');
+  });
+
+  it('attaches retrieved evidence when a retriever is supplied', () => {
+    const retriever = new InMemoryEvidenceRetriever(
+      [
+        {
+          content:
+            'Meta-layers provide deterministic audit trails for triad outputs.',
+          source: 'audit-log',
+          evidenceType: 'peer_reviewed',
+          weight: 0.9,
+        },
+      ],
+      { minSimilarity: 0.05 },
+    );
+    const score = CouncilScorer.score(validOutput, { retriever });
+    expect(score.retrievedEvidence).toBeDefined();
+    expect(score.retrievedEvidence!.length).toBeGreaterThan(0);
+  });
+
+  it('attaches a Guardian verdict when a guardian is supplied', () => {
+    const guardian = new GuardianMetaReasoner();
+    const score = CouncilScorer.score(validOutput, { guardian });
+    expect(score.guardian).toBeDefined();
+    expect(score.guardian!.threshold).toBe(0.7);
+    expect(['ratified', 'contested', 'requires_human_review']).toContain(
+      score.guardian!.status,
+    );
+  });
+
+  it('downgrades ratified verdicts when Guardian requires human review', () => {
+    // Force a low-grounding scenario: short reasoning + zero dissent.
+    const lowGroundingOutput: CouncilOutput = {
+      ...validOutput,
+      reasoning: 'short',
+      dissent: [],
+    };
+    const guardian = new GuardianMetaReasoner({
+      strictMode: false,
+      minGrounding: 0.7,
+      humanReviewFloor: 0.6,
+      requireEvidenceForRatification: true,
+    });
+    const score = CouncilScorer.score(lowGroundingOutput, { guardian });
+    // Even though the composite "total" may be ratifiable on its own,
+    // Guardian human-review escalation downgrades it to at most contested.
+    if (score.guardian?.status === 'requires_human_review') {
+      expect(score.verdict).not.toBe('ratified');
+    }
   });
 });

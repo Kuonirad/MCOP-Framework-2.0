@@ -101,6 +101,7 @@ class ReasoningChain:
     is_complete: bool = False
     final_synthesis: Optional[str] = None
     total_grounding: float = 0.0
+    metadata: Dict[str, Any] = field(default_factory=dict)
 
     def add_hypothesis(self, hypothesis: Hypothesis):
         """Add a hypothesis to the chain."""
