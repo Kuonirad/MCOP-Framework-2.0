@@ -103,4 +103,45 @@ describe('QwenMCOPAdapter catalog', () => {
       expect(caps.models).not.toContain(retired);
     }
   });
+
+  describe('Qwen3 catalog expansion (preview / vision / omni / long-context tiers)', () => {
+    const expansionTiers: ReadonlyArray<{
+      readonly model: string;
+      readonly tier: string;
+      readonly minContextWindow: number;
+    }> = [
+      { model: 'qwen3-max-preview', tier: 'preview', minContextWindow: 262_144 },
+      { model: 'qwen3-vl-plus', tier: 'vision', minContextWindow: 260_000 },
+      { model: 'qwen3-omni-flash', tier: 'omni', minContextWindow: 256_000 },
+      { model: 'qwen-long', tier: 'long-context', minContextWindow: 10_000_000 },
+    ];
+
+    it.each(expansionTiers)(
+      'includes $model at tier $tier with at least $minContextWindow tokens of context',
+      ({ model, tier, minContextWindow }) => {
+        const mapping = QWEN_MODEL_MAPPINGS[model];
+        expect(mapping).toBeDefined();
+        expect(mapping.tier).toBe(tier);
+        expect(mapping.contextWindow).toBeGreaterThanOrEqual(minContextWindow);
+        expect(mapping.useCases.length).toBeGreaterThan(0);
+      },
+    );
+
+    it('every tier id used in the catalog is in the expected union', () => {
+      const allowedTiers = new Set([
+        'flagship',
+        'fast',
+        'balanced',
+        'coder',
+        'legacy',
+        'preview',
+        'vision',
+        'omni',
+        'long-context',
+      ]);
+      for (const mapping of Object.values(QWEN_MODEL_MAPPINGS)) {
+        expect(allowedTiers).toContain(mapping.tier);
+      }
+    });
+  });
 });

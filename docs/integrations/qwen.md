@@ -173,6 +173,91 @@ stigmergy-history protocol, an orchestrator can route a single
 `AdapterRequest` to either provider depending on the entropy/resonance
 signals without translating the payload.
 
+## Multi-provider entropy router (Grok vs. Qwen)
+
+The single-provider routers above are generalised by
+[`chooseProviderAcrossGrokAndQwen`](../../src/adapters/multiProviderRouter.ts)
+([tests](../../src/__tests__/multiProviderRouter.test.ts)). It returns
+a `MultiProviderRoutingDecision` carrying not only the routing target
+(`'grok' | 'qwen' | 'local' | 'human-review'`) but also a concrete
+model id drawn from the chosen provider's production catalog, plus a
+human-readable `reason` string the orchestrator can write to its audit
+log.
+
+```ts
+import {
+  chooseProviderAcrossGrokAndQwen,
+} from '@kuonirad/mcop-framework';
+
+const decision = chooseProviderAcrossGrokAndQwen(
+  { entropy: 0.82, resonance: 0.4 },
+  {
+    costPreference: 'quality',          // 'cost' | 'balanced' | 'quality'
+    preferredProvider: 'auto',          // or 'grok' / 'qwen' to pin
+    unavailableProviders: [],           // e.g. ['grok'] when a circuit-breaker is open
+  },
+);
+
+if (decision.provider === 'qwen') {
+  // dispatch via QwenMCOPAdapter with decision.model
+} else if (decision.provider === 'grok') {
+  // dispatch via GrokMCOPAdapter with decision.model
+} else {
+  // serve locally or escalate to human review
+}
+```
+
+**Decision tree (in order):**
+
+1. `resonance >= highResonanceCeiling` (default `0.7`) → `local` (cache
+   hit).
+2. `entropy >= noveltyEntropyFloor && resonance < lowResonanceFloor`
+   (defaults `0.55` / `0.15`) → `human-review` (novel + low confidence).
+3. `entropy < noveltyEntropyFloor` → `local` (familiar prompt).
+4. Otherwise pick provider + model by `costPreference` and the
+   `highEntropyBand` (default `0.75`):
+
+   | `costPreference` | Entropy band                       | Auto provider | Model picked                                  |
+   | ---------------- | ---------------------------------- | ------------- | --------------------------------------------- |
+   | `cost`           | any                                | Qwen          | `qwen3.5-flash` (cheapest)                    |
+   | `balanced`       | `< highEntropyBand`                | Qwen          | `qwen3.5-plus` (`mapping_qwen` default)       |
+   | `balanced`       | `>= highEntropyBand`               | Qwen          | `qwen3-max` (promoted to flagship)            |
+   | `quality`        | `< highEntropyBand`                | Qwen          | `qwen3-max` (best Qwen flagship)              |
+   | `quality`        | `>= highEntropyBand`               | Grok          | `grok-4.20-0309-reasoning` (cross-verify)     |
+
+5. If the chosen provider is in `unavailableProviders`, the router fails
+   over to the other one (the `reason` field becomes
+   `preferred-<chosen>-unavailable-failover-<other>`). If both are
+   listed the decision degrades to `local` with reason
+   `all-providers-unavailable`.
+
+The router is **pure**: same inputs always produce the same decision,
+and it never mutates the supplied config. Use
+[`isCatalogedDecision`](../../src/adapters/multiProviderRouter.ts) to
+assert at the orchestrator boundary that the chosen model id is still
+in its provider's production catalog (guards against silent catalog
+drift).
+
+## Qwen3 catalog expansion (preview / vision / omni / long-context)
+
+`QWEN_MODEL_MAPPINGS` (refreshed 2026-05) ships dedicated tiers beyond
+the original `flagship / fast / balanced / coder / legacy` set so
+orchestrators can pick the right model by capability without hand-coding
+ids:
+
+| Model              | Tier           | Context     | Notes                                                           |
+| ------------------ | -------------- | ----------- | --------------------------------------------------------------- |
+| `qwen3-max`        | `flagship`     | 262,144     | Highest-capability text flagship. Default `quality` pick.       |
+| `qwen3-max-preview`| `preview`      | 262,144     | Pre-release flagship. Same context, prompt caching, reasoning. |
+| `qwen3-vl-plus`    | `vision`       | 262,144     | Vision + function-calling + reasoning for multimodal prompts.   |
+| `qwen3-omni-flash` | `omni`         | 262,144     | Text / image / speech / video input, streaming speech out.      |
+| `qwen-long`        | `long-context` | 10,000,000  | File-upload + `file-id` reference mechanism for archival RAG.   |
+
+The `qwenAdapter.catalog.test.ts` spec locks these entries (tier id,
+minimum context window, non-empty `useCases`) so a future hand-edit
+can't silently drop one and break orchestrators that depend on the
+multimodal or extreme-long-context paths.
+
 ## ARC-AGI-3 Qwen strategies
 
 The Python ARC-AGI-3 agent (`mcop_package/mcop/adapters/arcagi3_agent.py`)
