@@ -17,6 +17,7 @@ export * from './genericProductionAdapter';
 export * from './regulatedProvenanceAdapter';
 export * from './grokAdapter';
 export * from './grokImageAdapter';
+export * from './qwenAdapter';
 export * from './devinOrchestratorAdapter';
 export * from './linearSlackOrchestratorAdapter';
 
