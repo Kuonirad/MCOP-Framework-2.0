@@ -35,6 +35,10 @@ This is the same forensic equivalence the deterministic benchmark
 
 ## Upstream PR sequencing
 
+> **Ready-to-file PR drafts** for each step below live in
+> [`UPSTREAM_PR_KIT.md`](./UPSTREAM_PR_KIT.md) — copy the title and body
+> verbatim.
+
 Submission is staggered to maximise signal density per PR:
 
 1. **MCOP MCP Memory Server** — already a reference example; no upstream
