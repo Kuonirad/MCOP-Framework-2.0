@@ -50,12 +50,16 @@ import {
  */
 export type QwenModel =
   | 'qwen3-max'
+  | 'qwen3-max-preview'
   | 'qwen3.5-plus'
   | 'qwen3.5-flash'
   | 'qwen3.6-plus'
   | 'qwen3.6-flash'
   | 'qwen3-coder-plus'
   | 'qwen3-coder-flash'
+  | 'qwen3-vl-plus'
+  | 'qwen3-omni-flash'
+  | 'qwen-long'
   | 'qwen-plus'
   | 'qwen-flash'
   | 'qwen-turbo'
@@ -197,7 +201,16 @@ export interface QwenAdapterConfig extends BaseAdapterDeps {
 
 export interface QwenModelMapping {
   readonly model: QwenModel;
-  readonly tier: 'flagship' | 'fast' | 'balanced' | 'coder' | 'legacy';
+  readonly tier:
+    | 'flagship'
+    | 'fast'
+    | 'balanced'
+    | 'coder'
+    | 'legacy'
+    | 'preview'
+    | 'vision'
+    | 'omni'
+    | 'long-context';
   readonly contextWindow: number;
   readonly defaultTemperature: number;
   readonly useCases: ReadonlyArray<string>;
@@ -261,6 +274,54 @@ export const QWEN_MODEL_MAPPINGS: Readonly<Record<string, QwenModelMapping>> = O
     contextWindow: 1_000_000,
     defaultTemperature: 0.2,
     useCases: ['code-generation', 'low-latency-coding', 'cost-aware-coding'],
+  }),
+  'qwen3-max-preview': Object.freeze({
+    model: 'qwen3-max-preview',
+    tier: 'preview',
+    contextWindow: 262_144,
+    defaultTemperature: 0.3,
+    useCases: [
+      'preview-flagship',
+      'pre-release-evaluation',
+      'hard-reasoning',
+      'prompt-caching',
+    ],
+  }),
+  'qwen3-vl-plus': Object.freeze({
+    model: 'qwen3-vl-plus',
+    tier: 'vision',
+    contextWindow: 262_144,
+    defaultTemperature: 0.3,
+    useCases: [
+      'vision-language',
+      'image-reasoning',
+      'document-understanding',
+      'multimodal-tool-use',
+    ],
+  }),
+  'qwen3-omni-flash': Object.freeze({
+    model: 'qwen3-omni-flash',
+    tier: 'omni',
+    contextWindow: 262_144,
+    defaultTemperature: 0.4,
+    useCases: [
+      'audio-input',
+      'video-input',
+      'low-latency-multimodal',
+      'streaming-speech-output',
+    ],
+  }),
+  'qwen-long': Object.freeze({
+    model: 'qwen-long',
+    tier: 'long-context',
+    contextWindow: 10_000_000,
+    defaultTemperature: 0.4,
+    useCases: [
+      'extreme-long-context',
+      'multi-document-rag',
+      'file-upload-reference',
+      'archive-analysis',
+    ],
   }),
   'qwen-plus': Object.freeze({
     model: 'qwen-plus',
