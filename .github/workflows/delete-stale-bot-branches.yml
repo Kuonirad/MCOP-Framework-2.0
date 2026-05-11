@@ -23,47 +23,72 @@ jobs:
       - name: Setup GitHub CLI
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - name: Delete bot-prefixed branches older than 7 days
+      - name: Delete bot-prefixed branches older than threshold
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
-          DRY_RUN: ${{ github.event.inputs.dry_run || 'true' }}
+          # Scheduled runs delete by default. Manual workflow_dispatch may
+          # override via the dry_run input (defaults to 'true' in the UI).
+          DRY_RUN: ${{ github.event.inputs.dry_run || 'false' }}
+          # Branches must be older than this to be eligible for deletion.
+          AGE_DAYS: '30'
         run: |
           set -euo pipefail
-          
-          # Patterns that match automated / AI-agent prefixes.
-          # See docs/audits/branch-cleanup-strategy.md for rationale.
-          PATTERNS="bolt-|palette-|sentinel-|jules-"
-          
+
+          # Patterns that match automated / AI-agent branch names. Updated
+          # 2026-05-11 after audit found 47 stale branches that the original
+          # narrow allowlist (bolt|palette|sentinel|jules) missed. See
+          # docs/audits/branch-cleanup-2026-05-11.md for the audit, and
+          # docs/audits/branch-cleanup-strategy.md for the longer-form policy.
+          PATTERNS="bolt[-/]|palette[-/]|sentinel[-/]|jules[-/]|test-format-|testing[-/]|perf-|ux[-/]|feat-ui-|security[-/]|fix[-/]cli-|fix[-/]logger-|fix[-/]production-deployment-"
+
           echo "=== Branch Cleanup Report ==="
-          echo "Repository: $REPO"
-          echo "Dry run: $DRY_RUN"
-          echo "Patterns: $PATTERNS"
+          echo "Repository:  $REPO"
+          echo "Dry run:     $DRY_RUN"
+          echo "Age cutoff:  > $AGE_DAYS days"
+          echo "Patterns:    $PATTERNS"
           echo ""
-          
+
           deleted=0
           skipped=0
           page=1
-          
+
           while true; do
             branches=$(gh api "repos/$REPO/branches?per_page=100&page=$page" \
-              --jq '[.[].name | select(test("^('$PATTERNS')"))] | .[]' 2>/dev/null || true)
-            
+              --jq '[.[].name | select(test("^('"$PATTERNS"')"))] | .[]' 2>/dev/null || true)
+
             [ -z "$branches" ] && break
-            
+
             for branch in $branches; do
               branch_info=$(gh api "repos/$REPO/branches/$branch" 2>/dev/null || echo '{}')
               last_commit=$(echo "$branch_info" | jq -r '.commit.commit.committer.date // empty')
-              
+              protected=$(echo "$branch_info" | jq -r '.protected // false')
+
               if [ -z "$last_commit" ]; then
                 echo "SKIP: $branch (could not fetch info)"
                 skipped=$((skipped + 1))
                 continue
               fi
-              
+
+              if [ "$protected" = "true" ]; then
+                echo "SKIP: $branch (protected)"
+                skipped=$((skipped + 1))
+                continue
+              fi
+
+              # Skip if any OPEN PR has this branch as its head — never
+              # delete a branch with active review work.
+              open_prs=$(gh api "repos/$REPO/pulls?state=open&head=$(echo "$REPO" | cut -d/ -f1):$branch" \
+                --jq 'length' 2>/dev/null || echo "0")
+              if [ "$open_prs" != "0" ]; then
+                echo "SKIP: $branch (has $open_prs open PR(s))"
+                skipped=$((skipped + 1))
+                continue
+              fi
+
               days_old=$(( ($(date +%s) - $(date -d "$last_commit" +%s)) / 86400 ))
-              
-              if [ "$days_old" -gt 7 ]; then
+
+              if [ "$days_old" -gt "$AGE_DAYS" ]; then
                 if [ "$DRY_RUN" = "true" ]; then
                   echo "WOULD DELETE: $branch ($days_old days old)"
                 else
@@ -76,20 +101,15 @@ jobs:
                 fi
                 deleted=$((deleted + 1))
               else
-                echo "KEEP: $branch ($days_old days old, <= 7 days)"
+                echo "KEEP: $branch ($days_old days old, <= $AGE_DAYS days)"
                 skipped=$((skipped + 1))
               fi
             done
-            
+
             page=$((page + 1))
           done
-          
+
           echo ""
           echo "=== Summary ==="
           echo "Deleted/Would delete: $deleted"
-          echo "Kept/Skipped: $skipped"
-          
-          if [ "$DRY_RUN" = "false" ]; then
-            echo ""
-            echo "Deleted $deleted stale bot branches."
-          fi
+          echo "Kept/Skipped:         $skipped"
