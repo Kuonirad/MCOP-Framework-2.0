@@ -1,11 +1,11 @@
 """
-M-COP v3.2 - Meta-Cognitive Optimization Protocol
+M-COP v3.3 - Meta-Cognitive Optimization Protocol
 
 A universal reasoning framework that implements multi-modal reasoning,
 mycelial chaining, and evidence grounding for domain-agnostic problem solving.
 """
 
-__version__ = "3.2.0"
+__version__ = "3.3.0"
 
 # Core types
 from .mcop_types import (
@@ -72,6 +72,26 @@ except ImportError:
     GENERAL_HIERARCHY = None
     MEDICAL_HIERARCHY = None
     SCIENTIFIC_HIERARCHY = None
+
+# Automated evidence retrieval (v3.3)
+from .evidence_retrieval import (
+    EvidenceRetriever,
+    InMemoryEvidenceRetriever,
+    CompositeEvidenceRetriever,
+    RetrieverConfig,
+    RetrievalResult,
+    build_query_from_hypothesis,
+)
+
+# Guardian meta-reasoner (v3.3) — extends Guardian v0.1 calibration
+# into a real-time grounding-index checker.
+from .guardian import (
+    GuardianMetaReasoner,
+    GuardianConfig,
+    GuardianVerdict,
+    GuardianStatus,
+    MIN_GROUNDING_FLOOR,
+)
 
 # Domain adapters - with fallback handling
 domains_available = True
@@ -170,6 +190,21 @@ __all__ = [
     'GENERAL_HIERARCHY',
     'MEDICAL_HIERARCHY',
     'SCIENTIFIC_HIERARCHY',
+
+    # Automated evidence retrieval
+    'EvidenceRetriever',
+    'InMemoryEvidenceRetriever',
+    'CompositeEvidenceRetriever',
+    'RetrieverConfig',
+    'RetrievalResult',
+    'build_query_from_hypothesis',
+
+    # Guardian meta-reasoner
+    'GuardianMetaReasoner',
+    'GuardianConfig',
+    'GuardianVerdict',
+    'GuardianStatus',
+    'MIN_GROUNDING_FLOOR',
 
     # Domain adapters
     'GeneralDomainAdapter',

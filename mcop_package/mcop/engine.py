@@ -18,6 +18,8 @@ from .base import (
     BaseReasoningMode, CausalMode, StructuralMode,
     SelectiveMode, CompositionalMode
 )
+from .evidence_retrieval import EvidenceRetriever
+from .guardian import GuardianMetaReasoner, GuardianConfig, GuardianVerdict
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +30,10 @@ class MCOPConfig:
     max_iterations: int = 10
     max_hypotheses_per_mode: int = 5
     diversity_threshold: float = 0.3
-    grounding_threshold: float = 0.4
+    # Default grounding threshold raised to 0.70 — the Guardian floor.
+    # Set ``enable_guardian=False`` to opt out of the strict-mode floor;
+    # callers that need a softer threshold must do so explicitly.
+    grounding_threshold: float = 0.70
     confidence_threshold: float = 0.6
     min_alternatives: int = 2  # Preserve at least N alternatives
     enable_epistemic_challenge: bool = True
@@ -37,6 +42,12 @@ class MCOPConfig:
     # transitions, perspective reversal, distant analogies).  See
     # :mod:`mcop.xi_infinity` for the full rationale.
     enable_xi_infinity: bool = False
+    # When True (the default) the engine runs the Guardian meta-reasoner
+    # over hypotheses, chains, and the final solution and attaches the
+    # verdicts to artefact metadata. Disable for stateless smoke tests
+    # that don't want the Guardian to escalate sparse-evidence cases to
+    # REQUIRES_HUMAN_REVIEW.
+    enable_guardian: bool = True
     verbose: bool = False
 
 
@@ -55,7 +66,13 @@ class MCOPEngine:
     MCOPContext and returned in the Solution.
     """
 
-    def __init__(self, config: Optional[MCOPConfig] = None):
+    def __init__(
+        self,
+        config: Optional[MCOPConfig] = None,
+        *,
+        evidence_retriever: Optional[EvidenceRetriever] = None,
+        guardian: Optional[GuardianMetaReasoner] = None,
+    ):
         self.config = config or MCOPConfig()
 
         # Initialize reasoning modes
@@ -79,12 +96,40 @@ class MCOPEngine:
             from .xi_infinity import HiddenConstraintMode
             self.auxiliary_modes.append(HiddenConstraintMode())
 
+        # Optional evidence retriever — when supplied, every call into
+        # _gather_evidence() will request additional Evidence items and
+        # merge them alongside the synthetic baseline. Retrieved items
+        # never overwrite human-supplied evidence already on the
+        # hypothesis.
+        self.evidence_retriever = evidence_retriever
+
+        # Guardian meta-reasoner — built from config so callers can
+        # tune the strict-mode floor without supplying an instance.
+        if guardian is not None:
+            self.guardian = guardian
+        elif self.config.enable_guardian:
+            self.guardian = GuardianMetaReasoner(
+                GuardianConfig(min_grounding=self.config.grounding_threshold)
+            )
+        else:
+            self.guardian = None
+
         # Hooks for LLM integration (optional)
         self.llm_client = None
 
     def set_llm_client(self, client: Any):
         """Set LLM client for enhanced reasoning."""
         self.llm_client = client
+
+    def set_evidence_retriever(
+        self, retriever: Optional[EvidenceRetriever]
+    ) -> None:
+        """Attach (or detach) an evidence retriever after construction."""
+        self.evidence_retriever = retriever
+
+    def set_guardian(self, guardian: Optional[GuardianMetaReasoner]) -> None:
+        """Attach (or detach) a Guardian meta-reasoner after construction."""
+        self.guardian = guardian
 
     def solve(self, problem: Problem, initial_context: Optional[MCOPContext] = None) -> Solution:
         """
@@ -131,6 +176,19 @@ class MCOPEngine:
         # Phase 6: Epistemic Challenge (optional)
         if self.config.enable_epistemic_challenge:
             solution = self._epistemic_challenge(solution, context)
+
+        # Phase 7: Guardian sweep — meta-reasoner audits the final
+        # artefact against the configured grounding bar. Verdicts are
+        # attached to metadata; never used to silently drop content.
+        if self.guardian is not None:
+            verdict = self.guardian.check_solution(solution)
+            if self.config.verbose:
+                logger.debug("Guardian solution verdict: %s", verdict.to_dict())
+
+        # Reset retriever cache between solve() invocations to keep
+        # this engine instance reusable without leaking per-call state.
+        if self.evidence_retriever is not None:
+            self.evidence_retriever.reset_cache()
 
         return solution
 
@@ -269,17 +327,45 @@ class MCOPEngine:
         """
         Gather evidence for a hypothesis.
 
-        In production, this would:
-        - Query databases
-        - Call LLM for reasoning
-        - Access external APIs
+        Evidence is collected from two sources in order of priority:
 
-        For now, generates synthetic evidence based on hypothesis content.
+        1.  **Automated retrieval** — when an :class:`EvidenceRetriever`
+            is attached to the engine, we ask it for ``top_k`` items
+            relevant to the hypothesis. Retrieved items are added to
+            the hypothesis (and ``context.evidence_pool``) but never
+            replace human-supplied evidence already present.
+        2.  **Synthetic baseline** — if no retriever is attached (or
+            the retriever returns nothing), the engine falls back to
+            the deterministic synthetic generator so downstream phases
+            still have something to work with.
         """
-        evidence = []
+        evidence: List[Evidence] = []
 
-        # Synthetic evidence generation
-        # In production, replace with actual evidence gathering
+        if self.evidence_retriever is not None:
+            try:
+                results = self.evidence_retriever.retrieve_for_hypothesis(
+                    hypothesis, problem=context.problem
+                )
+                for result in results:
+                    evidence.append(result.evidence)
+                    context.evidence_pool.append(result.evidence)
+
+                if self.config.verbose and results:
+                    logger.debug(
+                        "Retrieved %d evidence items for hypothesis %s",
+                        len(results), hypothesis.id,
+                    )
+            except Exception as e:  # retriever errors must not crash solve()
+                logger.warning(
+                    "EvidenceRetriever %s failed: %s",
+                    getattr(self.evidence_retriever, "name", "?"), e,
+                )
+
+        if evidence:
+            return evidence
+
+        # Synthetic evidence fallback — preserves prior behavior for
+        # callers that don't attach a retriever.
         if hypothesis.iteration == 0:
             evidence.append(Evidence(
                 content=f"Initial analysis of: {hypothesis.content[:50]}",
@@ -369,6 +455,12 @@ class MCOPEngine:
                 )
                 if best:
                     best.state = EpistemicState.VALIDATED
+
+            # Guardian audit — non-blocking, attaches verdicts to
+            # chain metadata for downstream UIs to surface.
+            if self.guardian is not None:
+                verdict = self.guardian.check_chain(chain)
+                chain.metadata["guardian"] = verdict.to_dict()
 
         return chains
 

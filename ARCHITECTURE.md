@@ -65,6 +65,8 @@ decision was accepted, rejected, or routed.
 | `PositiveResonanceAmplifier` | audit growth event → Merkle-linked joy ledger | Records Positive Building events and reports contributor joy, adoption velocity, and beneficial outcome amplification. |
 | `vectorMath` | numeric primitives | Shared magnitude, cosine, padding, and dimensionality guard utilities. |
 | Adapter implementations | `AdapterRequest` → provider result | Isolate auth, retries, attribution, and provider-specific payloads. |
+| `EvidenceRetriever` (Python `mcop.evidence_retrieval`, TS `src/utils/evidenceRetriever.ts`) | query → ranked `RetrievalResult[]` | Plug-in retriever surface called from `MCOPEngine._gather_evidence` and `CouncilScorer.score`. Default `InMemoryEvidenceRetriever` is a deterministic cosine retriever; production deployments subclass for BM25/FAISS/etc. Retrieved evidence is appended, never overwriting human-supplied items. |
+| `GuardianMetaReasoner` (Python `mcop.guardian`, TS `src/utils/guardianMetaReasoner.ts`) | hypothesis/chain/solution → `GuardianVerdict` | Real-time grounding-index audit against a configurable threshold (minimum 0.70 in strict mode). Verdicts attach to artefact metadata and surface below-floor cases as explicit human-review escalations. |
 
 ### Code-level invariants
 
@@ -77,6 +79,14 @@ decision was accepted, rejected, or routed.
 - Low-confidence etches are retained in a dedicated audit ring, not committed
   into the accepted etch stream. Accepted etch hashes exclude additive
   flourishing metadata so canonical parity remains stable.
+- Guardian verdicts are *additive*. They land on artefact metadata and
+  `key_uncertainties`; the engine never silently drops a contested
+  hypothesis, chain, or solution. The minimum grounding floor (0.70)
+  cannot be configured below in `strict_mode=True` — this preserves
+  human-primacy in the evidence-hygiene contract.
+- Retrieved evidence is *appended* to hypotheses; the engine merges
+  retrieved items alongside human-supplied Evidence rather than
+  replacing them.
 
 
 ## Positive Identity Resonance
