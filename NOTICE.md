@@ -16,6 +16,14 @@ This relicense applies **going forward only**. Specifically:
   [`LICENSE-MIT-LEGACY`](./LICENSE-MIT-LEGACY).
 - **Every commit, tag, and release on or after the transition is
   governed by BUSL 1.1.**
+- **Ecosystem integration shim files** in
+  `src/integrations/{langchain,llamaIndex,haystack}.ts` and
+  `mcop_package/mcop/integrations/{langchain,llamaindex,haystack}.py`
+  are carved out under the MIT License per
+  [`LICENSE-MIT-INTEGRATIONS`](./LICENSE-MIT-INTEGRATIONS), so they
+  can be vendored into MIT- and Apache-2.0-licensed upstream agent
+  frameworks. Each carved-out file carries an
+  `SPDX-License-Identifier: MIT` header.
 
 ## What BUSL 1.1 means in practice
 

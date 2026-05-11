@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Kevin John Kull (Kuonirad) and KullAILABS MCOP Framework contributors
+# Carve-out from repo-wide BUSL-1.1; see LICENSE-MIT-INTEGRATIONS for full terms.
 """MCOP ↔ Haystack integration shim (Python).
 
 Implements the Haystack 2.x ``DocumentStore`` protocol shape without

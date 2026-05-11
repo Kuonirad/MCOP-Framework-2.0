@@ -57,8 +57,26 @@ Each PR will:
   for byte-identity guarantees.
 - Include a parity-checked test fixture proving cross-runtime
   Merkle-root identity.
-- Preserve the BUSL-1.1 → MIT 2030-04-26 narrative explicitly in the PR
-  description.
+- State that the vendored shim is MIT-licensed (per the
+  [`LICENSE-MIT-INTEGRATIONS`](../../LICENSE-MIT-INTEGRATIONS)
+  carve-out and the `SPDX-License-Identifier: MIT` header on each shim
+  file), keeping the upstream project's licence compatibility
+  (LangChain: MIT, LlamaIndex: MIT, Haystack: Apache-2.0) intact.
+
+## License compatibility
+
+The repository as a whole is BUSL-1.1, with a scheduled MIT conversion
+on 2030-04-26. To unblock upstream contribution well before that date,
+the six integration shim files (three TS + three Python) are carved
+out under MIT via [`LICENSE-MIT-INTEGRATIONS`](../../LICENSE-MIT-INTEGRATIONS).
+Each carved-out file carries an `SPDX-License-Identifier: MIT` header
+so automated licence scanners (REUSE, FOSSA, GitHub's licence
+detection) classify the vendored copy correctly.
+
+This carve-out applies **only** to verbatim, byte-identical copies of
+those six files. Derivative changes contributed back to this repo
+become BUSL-1.1 unless a contributor explicitly invokes the MIT grant
+in their commit. Upstream forks remain MIT in their own tree.
 
 ## Invariants preserved
 
