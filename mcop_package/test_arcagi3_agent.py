@@ -15,12 +15,16 @@ from unittest import mock
 
 from mcop.adapters.arcagi3_agent import (
     DEFAULT_GROK_MODEL,
+    DEFAULT_QWEN_BASE_URL,
+    DEFAULT_QWEN_MODEL,
     LOW_MEMORY_ENCODER_DIMS,
     LOW_MEMORY_MAX_TRACES,
     GameResult,
     GrokStrategy,
     HolographicShadowStrategy,
     MappingGrokStrategy,
+    MappingQwenStrategy,
+    QwenStrategy,
     RandomStrategy,
     StepRecord,
     _ForwardModel,
@@ -2079,6 +2083,75 @@ def test_run_arcagi3_agent_dispatches_holographic_strategy(
     assert captured["strategy_type"] == "HolographicShadowStrategy"
 
 
+def test_run_arcagi3_agent_dispatches_qwen_strategy(monkeypatch: Any) -> None:
+    """``--strategy qwen`` wires a ``QwenStrategy``. Locks the CLI
+    surface for the new dispatch path so the next workflow run can pick
+    Qwen without code changes."""
+    import sys
+    import run_arcagi3_agent  # type: ignore[import-not-found]
+
+    captured: Dict[str, Any] = {}
+
+    class _FakeAgent:
+        def __init__(self, **kwargs: Any) -> None:
+            captured["init_kwargs"] = kwargs
+            captured["strategy_type"] = type(kwargs["strategy"]).__name__
+
+        def list_games(self) -> List[str]:  # pragma: no cover
+            return []
+
+    monkeypatch.setenv("ARC_API_KEY", "test-key")
+    monkeypatch.setenv("QWEN_API_KEY", "sk-qwen")
+    monkeypatch.setattr(run_arcagi3_agent, "MCOPArcAgi3Agent", _FakeAgent)
+    monkeypatch.setattr(
+        sys, "argv", ["run_arcagi3_agent", "--strategy", "qwen"]
+    )
+
+    rc = run_arcagi3_agent.main()
+    assert rc == 0
+    assert captured["strategy_type"] == "QwenStrategy"
+
+
+def test_run_arcagi3_agent_dispatches_mapping_qwen_strategy(
+    monkeypatch: Any,
+) -> None:
+    """``--strategy mapping-qwen`` wires a ``MappingQwenStrategy`` and
+    threads ``--qwen-model`` through to the inner ``QwenStrategy``."""
+    import sys
+    import run_arcagi3_agent  # type: ignore[import-not-found]
+
+    captured: Dict[str, Any] = {}
+
+    class _FakeAgent:
+        def __init__(self, **kwargs: Any) -> None:
+            captured["init_kwargs"] = kwargs
+            captured["strategy"] = kwargs["strategy"]
+            captured["strategy_type"] = type(kwargs["strategy"]).__name__
+
+        def list_games(self) -> List[str]:  # pragma: no cover
+            return []
+
+    monkeypatch.setenv("ARC_API_KEY", "test-key")
+    monkeypatch.setenv("QWEN_API_KEY", "sk-qwen")
+    monkeypatch.setattr(run_arcagi3_agent, "MCOPArcAgi3Agent", _FakeAgent)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "run_arcagi3_agent",
+            "--strategy",
+            "mapping-qwen",
+            "--qwen-model",
+            "qwen3-max",
+        ],
+    )
+
+    rc = run_arcagi3_agent.main()
+    assert rc == 0
+    assert captured["strategy_type"] == "MappingQwenStrategy"
+    assert captured["strategy"].qwen.model == "qwen3-max"
+
+
 def test_run_arcagi3_agent_rejects_unknown_strategy(
     monkeypatch: Any,
     capsys: Any,
@@ -2099,3 +2172,292 @@ def test_run_arcagi3_agent_rejects_unknown_strategy(
         raise AssertionError("argparse accepted unknown strategy")
     err = capsys.readouterr().err
     assert "invalid choice" in err
+
+
+# ---- QwenStrategy / MappingQwenStrategy parity with Grok ------------------
+#
+# The Qwen variants mirror the Grok variants 1:1 (same prompt shape,
+# same snap-to-allowed, same fallback to RandomStrategy). These tests
+# lock the parity surfaces so the strategies cannot drift apart silently
+# -- if someone adds a new prompt block or parse hook to one, the other
+# must follow or the test grid fails.
+
+
+def test_qwen_strategy_default_model_and_base_url(monkeypatch: Any) -> None:
+    """ARC-Qwen runs default to the international DashScope endpoint and
+    the qwen3.5-flash model unless overridden, mirroring the TypeScript
+    ``mapping_qwen`` production profile."""
+    monkeypatch.delenv("QWEN_MODEL", raising=False)
+    monkeypatch.delenv("QWEN_BASE_URL", raising=False)
+    monkeypatch.delenv("DASHSCOPE_BASE_URL", raising=False)
+    strat = QwenStrategy(api_key="x")
+    assert strat.model == DEFAULT_QWEN_MODEL == "qwen3.5-flash"
+    assert strat.base_url == DEFAULT_QWEN_BASE_URL
+    assert strat.base_url.endswith("/compatible-mode/v1")
+
+
+def test_qwen_strategy_reads_qwen_api_key_env(monkeypatch: Any) -> None:
+    """Standard path: ``QWEN_API_KEY`` is the canonical env var."""
+    monkeypatch.delenv("DASHSCOPE_API_KEY", raising=False)
+    monkeypatch.setenv("QWEN_API_KEY", "sk-qwen-test")
+    strat = QwenStrategy()
+    assert strat.api_key == "sk-qwen-test"
+
+
+def test_qwen_strategy_falls_back_to_dashscope_api_key(
+    monkeypatch: Any,
+) -> None:
+    """Users coming from the upstream DashScope SDK use ``DASHSCOPE_API_KEY``;
+    the strategy must accept it as a documented fallback so neither env
+    layout breaks the runner."""
+    monkeypatch.delenv("QWEN_API_KEY", raising=False)
+    monkeypatch.setenv("DASHSCOPE_API_KEY", "sk-dashscope-test")
+    strat = QwenStrategy()
+    assert strat.api_key == "sk-dashscope-test"
+
+
+def test_qwen_strategy_explicit_kwargs_win_over_env(
+    monkeypatch: Any,
+) -> None:
+    """Explicit constructor kwargs must beat env vars so the CLI's
+    ``--qwen-model`` flag reliably picks the model regardless of what
+    the workflow exported."""
+    monkeypatch.setenv("QWEN_API_KEY", "sk-env")
+    monkeypatch.setenv("QWEN_MODEL", "qwen-turbo")
+    monkeypatch.setenv("QWEN_BASE_URL", "https://env.example/v1")
+    strat = QwenStrategy(
+        api_key="sk-explicit",
+        base_url="https://explicit.example/v1",
+        model="qwen3-coder-plus",
+    )
+    assert strat.api_key == "sk-explicit"
+    assert strat.base_url == "https://explicit.example/v1"
+    assert strat.model == "qwen3-coder-plus"
+
+
+def test_qwen_strategy_env_model_overrides_default(monkeypatch: Any) -> None:
+    monkeypatch.setenv("QWEN_MODEL", "qwen3-max")
+    assert QwenStrategy(api_key="x").model == "qwen3-max"
+
+
+def test_qwen_strategy_falls_back_to_random_without_api_key() -> None:
+    """No key -> no client -> choose() must delegate to the fallback
+    instead of crashing. Preserves the same defensive behaviour as
+    ``GrokStrategy``."""
+    strat = QwenStrategy(api_key="")
+    name, _ = strat.choose(_FakeFrame(), [], {}, ALLOWED_4)
+    assert name in ALLOWED_4
+
+
+def test_qwen_strategy_snaps_disallowed_action(caplog: Any) -> None:
+    """Qwen returns ``{"action": "ACTION5"}`` but the game only allows
+    ACTION1..ACTION4 -- exact parity with the Grok snap path."""
+    strat = QwenStrategy(api_key="x")
+    fake_client = mock.Mock()
+    fake_client.chat.completions.create.return_value = _make_completion(
+        '{"action": "ACTION5"}'
+    )
+    strat._client = fake_client
+    caplog.set_level(logging.WARNING, logger="mcop.adapters.arcagi3_agent")
+    name, data = strat.choose(_FakeFrame(), [], {"resonance": 0.0}, ALLOWED_4)
+    assert name == "ACTION4"
+    assert data == {}
+    snap_warnings = [
+        rec.getMessage()
+        for rec in caplog.records
+        if rec.levelno == logging.WARNING and "snapping" in rec.getMessage()
+    ]
+    assert len(snap_warnings) == 1
+    assert "qwen" in snap_warnings[0]
+    assert "ACTION5" in snap_warnings[0]
+    assert "ACTION4" in snap_warnings[0]
+
+
+def test_qwen_strategy_uses_chosen_model_in_request() -> None:
+    """The model kwarg / env var must reach the wire -- otherwise users
+    pinning ``qwen3-coder-plus`` would silently get the default."""
+    strat = QwenStrategy(api_key="x", model="qwen3-coder-plus")
+    fake_client = mock.Mock()
+    fake_client.chat.completions.create.return_value = _make_completion(
+        '{"action": "ACTION1"}'
+    )
+    strat._client = fake_client
+    strat.choose(_FakeFrame(), [], {}, ALLOWED_4)
+    fake_client.chat.completions.create.assert_called_once()
+    sent_model = fake_client.chat.completions.create.call_args.kwargs["model"]
+    assert sent_model == "qwen3-coder-plus"
+
+
+def test_qwen_strategy_system_prompt_constrains_to_available_actions() -> None:
+    """Same regression guard as the Grok system prompt test: the
+    instruction to pick from the ``Available actions`` list must survive
+    any future prompt refactor so DashScope's safety filter doesn't
+    converge on a refusal style."""
+    strat = QwenStrategy(api_key="x")
+    fake_client = mock.Mock()
+    fake_client.chat.completions.create.return_value = _make_completion(
+        '{"action": "ACTION2"}'
+    )
+    strat._client = fake_client
+    strat.choose(_FakeFrame(), [], {}, ALLOWED_4)
+    messages = fake_client.chat.completions.create.call_args.kwargs["messages"]
+    system_msg = next(m for m in messages if m["role"] == "system")
+    assert "Available actions" in system_msg["content"]
+    assert "ACTION3" in system_msg["content"]  # example action in prompt
+
+
+def test_mapping_qwen_strategy_forwards_model_kwarg() -> None:
+    """``MappingQwenStrategy(model=...)`` must thread through to the
+    inner ``QwenStrategy`` so the CLI's ``--qwen-model`` flag works for
+    both strategies."""
+    strat = MappingQwenStrategy(api_key="x", model="qwen3-max")
+    assert strat.qwen.model == "qwen3-max"
+
+
+def test_mapping_qwen_phase_a_logs_each_pick(caplog: Any) -> None:
+    """Same diagnostic discipline as ``mapping-grok``: every Phase A
+    pick must emit an INFO line tagged ``mapping-qwen phase-A pick``."""
+    strat = MappingQwenStrategy(api_key="")
+    caplog.set_level(logging.INFO, logger="mcop.adapters.arcagi3_agent")
+    available = ["ACTION1", "ACTION2", "ACTION3"]
+    fake_frame: Any = object()
+    picks: List[str] = []
+    for _ in range(3):
+        name, _data = strat.choose(fake_frame, [], {}, available)
+        picks.append(name)
+        strat._pending_mapping_action = name
+        strat.action_effects[name] = {
+            "n_changed": 1,
+            "samples": [],
+            "levels_delta": 0,
+            "state_change": False,
+            "curr_state": "PLAYING",
+        }
+        if strat._mapping_queue and strat._mapping_queue[0] == name:
+            strat._mapping_queue.pop(0)
+    assert picks == ["ACTION1", "ACTION2", "ACTION3"]
+    info_lines = [
+        rec.getMessage()
+        for rec in caplog.records
+        if rec.levelno == logging.INFO and "phase-A" in rec.getMessage()
+    ]
+    assert len(info_lines) == 3
+    assert all("mapping-qwen" in line for line in info_lines)
+
+
+def test_mapping_qwen_phase_a_does_not_initialize_qwen_client() -> None:
+    """Phase A is fully deterministic / online -- no LLM call needed.
+    Same compliance invariant as ``MappingGrokStrategy``: if the client
+    is instantiated during Phase A we have a regression."""
+    strat = MappingQwenStrategy(api_key="x")
+    strat.qwen._ensure_client = mock.Mock(  # type: ignore[method-assign]
+        side_effect=AssertionError("Phase A must not call Qwen")
+    )
+    name, data = strat.choose(_FakeFrame(), [], {}, ALLOWED_4)
+    assert name == "ACTION1"
+    assert data == {}
+    strat.qwen._ensure_client.assert_not_called()
+
+
+def test_mapping_qwen_exploit_snaps_disallowed_action(caplog: Any) -> None:
+    """Phase B end-to-end: Qwen returns a disallowed action; the
+    exploit path must snap to the nearest allowed neighbour and log
+    the parse outcome under the ``mapping-qwen`` tag."""
+    strat = MappingQwenStrategy(api_key="x")
+    strat._initialized = True
+    strat._mapping_queue = []
+    strat.action_effects = {
+        "ACTION1": {
+            "n_changed": 0,
+            "samples": [],
+            "levels_delta": 0,
+            "state_change": False,
+            "curr_state": "PLAYING",
+        }
+    }
+    fake_client = mock.Mock()
+    fake_client.chat.completions.create.return_value = _make_completion(
+        '{"action": "ACTION5"}'
+    )
+    strat.qwen._client = fake_client
+    caplog.set_level(logging.WARNING, logger="mcop.adapters.arcagi3_agent")
+    name, _ = strat._exploit(
+        _FakeFrame(), {"resonance": 0.0, "recent": []}, ALLOWED_4
+    )
+    assert name == "ACTION4"
+    snap_warnings = [
+        rec.getMessage()
+        for rec in caplog.records
+        if rec.levelno == logging.WARNING and "snapping" in rec.getMessage()
+    ]
+    assert len(snap_warnings) == 1
+    assert "mapping-qwen" in snap_warnings[0]
+
+
+def test_mapping_qwen_exploit_user_msg_mirrors_grok_blocks() -> None:
+    """Locks the prompt-shape parity surface: the Qwen exploit user
+    message must contain the same five named blocks the Grok exploit
+    uses (State, Levels completed, Available actions, Action mapping,
+    Memory resonance / Grid). If either side drifts, the routing
+    contract breaks."""
+    strat = MappingQwenStrategy(api_key="x")
+    strat._initialized = True
+    strat._mapping_queue = []
+    strat.action_effects = {
+        "ACTION1": {"n_changed": 3, "samples": [], "levels_delta": 0}
+    }
+    fake_client = mock.Mock()
+    fake_client.chat.completions.create.return_value = _make_completion(
+        '{"action": "ACTION1"}'
+    )
+    strat.qwen._client = fake_client
+    strat._exploit(
+        _FakeFrame(),
+        {"resonance": 0.42, "recent": ["ACTION1", "ACTION2"], "recent_levels": [0, 0]},
+        ALLOWED_4,
+    )
+    messages = fake_client.chat.completions.create.call_args.kwargs["messages"]
+    user_msg = next(m for m in messages if m["role"] == "user")["content"]
+    for block in (
+        "State:",
+        "Levels completed:",
+        "Available actions:",
+        "Action mapping",
+        "Memory resonance score:",
+        "Grid (truncated):",
+    ):
+        assert block in user_msg, f"missing prompt block: {block!r}"
+    # History block must surface oldest->newest action pairs.
+    assert "ACTION1->lvl0" in user_msg
+    assert "ACTION2->lvl0" in user_msg
+
+
+def test_mapping_qwen_exploit_falls_back_when_client_unavailable() -> None:
+    """No API key -> no client -> exploit falls through to the random
+    fallback instead of crashing. Same defensive path as Grok."""
+    strat = MappingQwenStrategy(api_key="")
+    strat._initialized = True
+    strat._mapping_queue = []
+    strat.action_effects = {}
+    name, _ = strat._exploit(
+        _FakeFrame(), {"resonance": 0.0, "recent": []}, ALLOWED_4
+    )
+    assert name in ALLOWED_4
+
+
+def test_mapping_qwen_observe_records_diff() -> None:
+    """``observe()`` parity: after a Phase A pick the observed diff is
+    recorded against the action and popped from the mapping queue."""
+    strat = MappingQwenStrategy(api_key="x")
+    strat._initialized = True
+    strat._mapping_queue = ["ACTION1"]
+    strat._pending_mapping_action = "ACTION1"
+    prev = _FakeFrame()
+    nxt = _FakeFrame()
+    nxt.frame = [[[1]]]  # one-cell diff
+    nxt.levels_completed = 1
+    strat.observe(prev, "ACTION1", nxt)
+    assert "ACTION1" in strat.action_effects
+    assert strat._mapping_queue == []
+    assert strat._pending_mapping_action is None
+    assert strat._last_action == "ACTION1"

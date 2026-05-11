@@ -63,6 +63,15 @@ LOW_MEMORY_ENCODER_DIMS = 32
 GOAL_COLOR = 8
 LOW_MEMORY_MAX_TRACES = 256
 
+# Production ARC-Qwen defaults: route through Qwen3.5-flash on the
+# international DashScope OpenAI-compatible endpoint. Mirrors the
+# TypeScript ``mapping_qwen`` production profile in
+# ``src/adapters/qwenAdapter.ts`` so the Python ARC pipeline picks the
+# same model as the cross-language Universal Adapter Protocol v2.1
+# router by default.
+DEFAULT_QWEN_MODEL = "qwen3.5-flash"
+DEFAULT_QWEN_BASE_URL = "https://dashscope-intl.aliyuncs.com/compatible-mode/v1"
+
 
 def _positive_int_env(name: str, fallback: int) -> int:
     raw = os.environ.get(name)
@@ -1102,6 +1111,303 @@ class MappingGrokStrategy:
             )
         except Exception as exc:  # pragma: no cover -- network path
             logger.warning("Grok exploit call failed: %s", exc)
+        return self.fallback.choose(
+            frame, [], memory_summary, available_action_names
+        )
+
+    def observe(
+        self,
+        prev_frame: Any,
+        action_name: str,
+        next_frame: Any,
+    ) -> None:
+        """Called by the agent after each step. Records the diff."""
+        if next_frame is None or prev_frame is None:
+            return
+        diff = _frame_diff(prev_frame, next_frame)
+        self._last_action = action_name
+        self._last_diff = diff
+        if (
+            self._pending_mapping_action is not None
+            and action_name == self._pending_mapping_action
+        ):
+            self.action_effects[action_name] = diff
+            if self._mapping_queue and self._mapping_queue[0] == action_name:
+                self._mapping_queue.pop(0)
+            self._pending_mapping_action = None
+
+
+class QwenStrategy:
+    """LLM-driven action selection via Alibaba Qwen (DashScope OpenAI-compatible).
+
+    Strict parity with :class:`GrokStrategy`. The only differences are:
+
+    * Default endpoint is the international DashScope compatible-mode
+      base URL (``https://dashscope-intl.aliyuncs.com/compatible-mode/v1``),
+      not ``https://api.x.ai/v1``.
+    * Default model is :data:`DEFAULT_QWEN_MODEL` (``"qwen3.5-flash"``)
+      to mirror the TypeScript ``mapping_qwen`` production profile in
+      ``src/adapters/qwenAdapter.ts``.
+    * Credentials are read from ``QWEN_API_KEY`` with a documented
+      fall-through to ``DASHSCOPE_API_KEY`` for users coming from the
+      upstream SDK naming convention.
+
+    Every other code path -- prompt building, snap-to-allowed,
+    parse-outcome logging, fallback to ``RandomStrategy`` -- is
+    bit-identical to ``GrokStrategy`` so the agent's compliance and
+    provenance surfaces are unchanged between providers.
+    """
+
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        base_url: Optional[str] = None,
+        model: Optional[str] = None,
+        fallback: Optional[Strategy] = None,
+    ) -> None:
+        self.api_key = (
+            api_key
+            or os.environ.get("QWEN_API_KEY")
+            or os.environ.get("DASHSCOPE_API_KEY")
+            or ""
+        )
+        self.base_url = (
+            base_url
+            or os.environ.get("QWEN_BASE_URL")
+            or os.environ.get("DASHSCOPE_BASE_URL")
+            or DEFAULT_QWEN_BASE_URL
+        )
+        self.model = model or os.environ.get("QWEN_MODEL", DEFAULT_QWEN_MODEL)
+        self.fallback = fallback or RandomStrategy()
+        self._client: Any = None
+
+    def _ensure_client(self) -> Any:
+        if self._client is not None:
+            return self._client
+        if not self.api_key:
+            return None
+        try:
+            from openai import OpenAI
+        except ImportError:
+            logger.warning(
+                "openai SDK missing; install with `pip install openai`. "
+                "Falling back to %s.",
+                type(self.fallback).__name__,
+            )
+            return None
+        self._client = OpenAI(api_key=self.api_key, base_url=self.base_url)
+        logger.info(
+            "Qwen client initialised: model=%s base_url=%s",
+            self.model,
+            self.base_url,
+        )
+        return self._client
+
+    def choose(
+        self,
+        frame: Any,
+        tensor: Sequence[float],
+        memory_summary: Dict[str, Any],
+        available_action_names: List[str],
+    ) -> Tuple[str, Dict[str, Any]]:
+        client = self._ensure_client()
+        if client is None or not available_action_names:
+            return self.fallback.choose(
+                frame, tensor, memory_summary, available_action_names
+            )
+
+        prompt = _build_prompt(frame, memory_summary, available_action_names)
+        try:
+            completion = client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {
+                        "role": "system",
+                        "content": (
+                            "This is the ARC-AGI-3 environment. Each turn "
+                            "you pick one action expected to make progress "
+                            "on the current level. Respond with a JSON "
+                            'object such as {"action": "ACTION3"}, choosing '
+                            "the name from the `Available actions` list in "
+                            "the user message. For ACTION6, also include "
+                            "integer x and y target coordinates."
+                        ),
+                    },
+                    {"role": "user", "content": prompt},
+                ],
+                temperature=0.2,
+                max_tokens=64,
+            )
+            text = completion.choices[0].message.content or ""
+            parsed, outcome = _decide_action(text, available_action_names)
+            if parsed is not None:
+                _log_parse_outcome("qwen", outcome, parsed[0])
+                return parsed
+            _log_parse_failure(
+                "qwen", outcome, text, available_action_names
+            )
+            return self.fallback.choose(
+                frame, tensor, memory_summary, available_action_names
+            )
+        except Exception as exc:  # pragma: no cover -- network path
+            logger.warning("Qwen call failed: %s; using fallback", exc)
+            return self.fallback.choose(
+                frame, tensor, memory_summary, available_action_names
+            )
+
+
+class MappingQwenStrategy:
+    """Map action semantics, then exploit them via Qwen.
+
+    Drop-in mirror of :class:`MappingGrokStrategy`. Phase A cycles every
+    available action once, observing :func:`_frame_diff`. Phase B hands
+    Qwen the learned mapping plus the last action's diff. Both phases
+    share the exact prompt shape used by Grok, so any prompt-engineering
+    improvement (history block, oscillation-break hint, mapping
+    summary) automatically benefits both providers.
+    """
+
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        base_url: Optional[str] = None,
+        model: Optional[str] = None,
+        fallback: Optional[Strategy] = None,
+        complex_action_default: Tuple[int, int] = (32, 32),
+    ) -> None:
+        self.qwen = QwenStrategy(
+            api_key=api_key, base_url=base_url, model=model, fallback=fallback
+        )
+        self.fallback = self.qwen.fallback
+        self.action_effects: Dict[str, Dict[str, Any]] = {}
+        self._mapping_queue: List[str] = []
+        self._initialized = False
+        self._last_action: Optional[str] = None
+        self._last_diff: Optional[Dict[str, Any]] = None
+        self._pending_mapping_action: Optional[str] = None
+        self._complex_default = complex_action_default
+
+    def _init_queue(self, available: List[str]) -> None:
+        simple = [a for a in available if a not in COMPLEX_ACTIONS]
+        complex_a = [a for a in available if a in COMPLEX_ACTIONS]
+        self._mapping_queue = simple + complex_a
+        self._initialized = True
+
+    def choose(
+        self,
+        frame: Any,
+        tensor: Sequence[float],
+        memory_summary: Dict[str, Any],
+        available_action_names: List[str],
+    ) -> Tuple[str, Dict[str, Any]]:
+        if not available_action_names:
+            return ("ACTION1", {})
+        if not self._initialized:
+            self._init_queue(available_action_names)
+
+        # Phase A: mapping. Skip already-mapped or unavailable entries.
+        while self._mapping_queue:
+            candidate = self._mapping_queue[0]
+            if candidate in self.action_effects or candidate not in available_action_names:
+                self._mapping_queue.pop(0)
+                continue
+            self._pending_mapping_action = candidate
+            data: Dict[str, Any] = {}
+            if candidate in COMPLEX_ACTIONS:
+                x, y = self._complex_default
+                data = {"x": x, "y": y}
+            logger.info(
+                "mapping-qwen phase-A pick: %s (learned=%d/%d)",
+                candidate,
+                len(self.action_effects),
+                len(self.action_effects) + len(self._mapping_queue),
+            )
+            return (candidate, data)
+
+        # Phase B: exploit.
+        self._pending_mapping_action = None
+        return self._exploit(frame, memory_summary, available_action_names)
+
+    def _exploit(
+        self,
+        frame: Any,
+        memory_summary: Dict[str, Any],
+        available_action_names: List[str],
+    ) -> Tuple[str, Dict[str, Any]]:
+        client = self.qwen._ensure_client()
+        if client is None:
+            return self.fallback.choose(
+                frame, [], memory_summary, available_action_names
+            )
+
+        grid = _grid_as_list(frame)
+        levels = getattr(frame, "levels_completed", 0)
+        state = getattr(getattr(frame, "state", None), "value", "?")
+        mapping_lines = [
+            f"  {name}: changed={eff['n_changed']} cells, "
+            f"levels_delta={eff['levels_delta']}, "
+            f"samples={eff['samples'][:3]}"
+            for name, eff in self.action_effects.items()
+        ]
+        last_block = (
+            f"Last action: {self._last_action} -> "
+            f"changed={self._last_diff['n_changed']} cells, "
+            f"levels_delta={self._last_diff['levels_delta']}\n"
+            if self._last_action and self._last_diff
+            else "Last action: (none)\n"
+        )
+        recent_actions = list(memory_summary.get("recent", []) or [])
+        recent_levels = list(memory_summary.get("recent_levels", []) or [])
+        user_msg = (
+            f"State: {state}\n"
+            f"Levels completed: {levels}\n"
+            f"Available actions: {available_action_names}\n"
+            f"Action mapping (action -> effect on grid):\n"
+            + "\n".join(mapping_lines)
+            + "\n"
+            + last_block
+            + _format_history(recent_actions, recent_levels)
+            + f"Memory resonance score: "
+            f"{memory_summary.get('resonance', 0):.3f}\n"
+            f"Grid (truncated): {json.dumps(grid, default=_json_default)[:1500]}\n"
+            "Pick the next action. Goal: increase levels_completed."
+        )
+        try:
+            completion = client.chat.completions.create(
+                model=self.qwen.model,
+                messages=[
+                    {
+                        "role": "system",
+                        "content": (
+                            "This is the ARC-AGI-3 environment. You have a "
+                            "learned mapping of what each action does on "
+                            "this game; use it to make purposeful moves "
+                            "that increase levels_completed. Respond with "
+                            'a JSON object such as {"action": "ACTION3"}, '
+                            "choosing the name from the `Available actions` "
+                            "list in the user message. For ACTION6, also "
+                            "include integer x and y target coordinates."
+                        ),
+                    },
+                    {"role": "user", "content": user_msg},
+                ],
+                temperature=0.2,
+                max_tokens=80,
+            )
+            text = completion.choices[0].message.content or ""
+            parsed, outcome = _decide_action(
+                text,
+                available_action_names,
+                complex_default=self._complex_default,
+            )
+            if parsed is not None:
+                _log_parse_outcome("mapping-qwen", outcome, parsed[0])
+                return parsed
+            _log_parse_failure(
+                "mapping-qwen", outcome, text, available_action_names
+            )
+        except Exception as exc:  # pragma: no cover -- network path
+            logger.warning("Qwen exploit call failed: %s", exc)
         return self.fallback.choose(
             frame, [], memory_summary, available_action_names
         )

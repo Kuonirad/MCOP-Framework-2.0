@@ -172,3 +172,75 @@ Because the two adapters share the same pipeline-hook surface and
 stigmergy-history protocol, an orchestrator can route a single
 `AdapterRequest` to either provider depending on the entropy/resonance
 signals without translating the payload.
+
+## ARC-AGI-3 Qwen strategies
+
+The Python ARC-AGI-3 agent (`mcop_package/mcop/adapters/arcagi3_agent.py`)
+ships two Qwen-backed strategies that mirror the Grok variants 1:1:
+
+| Strategy class             | Phase A (mapping)        | Phase B (exploit)                                  | Mirror of           |
+| -------------------------- | ------------------------ | -------------------------------------------------- | ------------------- |
+| `QwenStrategy`             | n/a                      | Single-step Qwen pick per turn, snap-to-allowed    | `GrokStrategy`        |
+| `MappingQwenStrategy`      | Deterministic queue walk | Qwen pick using learned action -> grid-diff map    | `MappingGrokStrategy` |
+
+Both classes accept the same constructor surface as their Grok
+counterparts (`api_key`, `base_url`, `model`, `fallback`), default to
+`qwen3.5-flash` on the international DashScope compatible-mode endpoint,
+and fall back to `RandomStrategy` whenever the API key is missing or the
+LLM response cannot be parsed.
+
+### CLI usage
+
+`mcop_package/run_arcagi3_agent.py` exposes the new strategies as
+`--strategy qwen` and `--strategy mapping-qwen`:
+
+```bash
+ARC_API_KEY=...  QWEN_API_KEY=... \
+    python -m mcop_package.run_arcagi3_agent ls20-9607627b \
+        --strategy mapping-qwen \
+        --qwen-model qwen3-max \
+        --max-actions 200
+```
+
+`--qwen-model` is the Qwen sibling of `--grok-model`; it threads through
+to the inner `QwenStrategy.model` so the CLI flag reliably overrides any
+`QWEN_MODEL` env var the workflow exported.
+
+### Compliance invariants
+
+The Qwen strategies preserve every ARC Prize / Kaggle compliance
+invariant the Grok strategies already satisfied:
+
+* **Official scorecard** — `MCOPArcAgi3Agent.play()` still routes through
+  the official `arc-agi` SDK, so the scorecard is opened at the start of
+  the run and closed in the SDK's `finally` block. The gated live test
+  asserts `result.scorecard_id is not None`.
+* **Online learning** — Phase A of `MappingQwenStrategy` cycles every
+  available action and observes the resulting frame diff before any LLM
+  dispatch fires. No pre-trained mapping is loaded from disk.
+* **Closed action vocabulary** — every chosen action is either a member
+  of `available_action_names` or snapped to the nearest allowed
+  neighbour. Unparseable responses fall through to `RandomStrategy`
+  rather than crashing the loop.
+* **Egress allow-list** — the gated live test (see below) wraps
+  `socket.getaddrinfo` and fails if any host other than
+  `*.arcprize.org` / `*.aliyuncs.com` is dialed.
+
+### Gated live ARC-AGI-3 e2e test
+
+`mcop_package/test_qwen_arcagi3_live.py` exercises both strategies end
+to end against a real arcprize.org game (`ls20-9607627b`, 40-action
+budget). The test is skipped unless `QWEN_LIVE_E2E=1` is set, so it
+never runs in CI by accident:
+
+```bash
+QWEN_LIVE_E2E=1 \
+    ARC_API_KEY=... \
+    QWEN_API_KEY=... \
+    python -m pytest mcop_package/test_qwen_arcagi3_live.py -s
+```
+
+On a successful run the test prints a JSON artefact tagged
+`=== QWEN ARC-AGI-3 LIVE ARTEFACT ===` containing the scorecard id,
+final state, step count, and the full set of hostnames dialed -- the
+same envelope shape used by the TS live spec above.
