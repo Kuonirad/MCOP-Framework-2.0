@@ -1,0 +1,55 @@
+INTEGRATION SHIMS MIT CARVE-OUT — KullAILABS MCOP Framework 2.0
+
+The files listed below are intentionally carved out of the
+Business Source License 1.1 ("BUSL-1.1") that otherwise governs this
+repository (see top-level LICENSE) and are instead made available under
+the MIT License reproduced below. Each carved-out file carries an
+`SPDX-License-Identifier: MIT` header to make the grant
+machine-readable.
+
+Rationale: these shims are thin, framework-agnostic adapters that
+exist specifically to be vendored verbatim into MIT- and
+Apache-2.0-licensed upstream agent frameworks (LangChain, LlamaIndex,
+Haystack). Distributing them under MIT removes the principal legal
+obstacle to upstream contribution and is consistent with the
+repository's BUSL → MIT conversion plan (Change Date 2030-04-26 per
+top-level LICENSE), which already telegraphs the eventual destination
+of the whole codebase.
+
+The MIT carve-out applies ONLY to the integration shim files
+enumerated below and to verbatim, byte-identical copies of those files
+distributed elsewhere. The BUSL-1.1 in LICENSE continues to govern
+every other file in this repository.
+
+Carved-out files:
+
+  src/integrations/langchain.ts
+  src/integrations/llamaIndex.ts
+  src/integrations/haystack.ts
+  mcop_package/mcop/integrations/langchain.py
+  mcop_package/mcop/integrations/llamaindex.py
+  mcop_package/mcop/integrations/haystack.py
+
+-----------------------------------------------------------------------
+
+MIT License
+
+Copyright (c) 2026 Kevin John Kull (Kuonirad) and KullAILABS MCOP Framework contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
