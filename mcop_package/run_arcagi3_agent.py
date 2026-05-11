@@ -22,8 +22,11 @@ from mcop.adapters.arcagi3_agent import (
     HolographicShadowStrategy,
     MCOPArcAgi3Agent,
     MappingGrokStrategy,
+    MappingQwenStrategy,
+    QwenStrategy,
     RandomStrategy,
     DEFAULT_GROK_MODEL,
+    DEFAULT_QWEN_MODEL,
     LOW_MEMORY_ENCODER_DIMS,
     SDKUnavailable,
     GOAL_COLOR,
@@ -72,12 +75,22 @@ def main() -> int:
     )
     parser.add_argument(
         "--strategy",
-        choices=["random", "grok", "mapping-grok", "holographic"],
+        choices=[
+            "random",
+            "grok",
+            "mapping-grok",
+            "qwen",
+            "mapping-qwen",
+            "holographic",
+        ],
         default="random",
         help=(
             "Action selection strategy. ``holographic`` is the\n"
             "online-only Holographic Shadow Consensus v2 strategy --\n"
-            "no LLM calls, fully ARC-AGI-3 compliant."
+            "no LLM calls, fully ARC-AGI-3 compliant. ``qwen`` /\n"
+            "``mapping-qwen`` mirror the Grok variants 1:1 but route\n"
+            "through DashScope's OpenAI-compatible endpoint using\n"
+            "QWEN_API_KEY (fallback DASHSCOPE_API_KEY)."
         ),
     )
     parser.add_argument("--max-actions", type=int, default=200)
@@ -89,6 +102,15 @@ def main() -> int:
             "xAI model name for grok / mapping-grok strategies. "
             "Defaults to the GROK_MODEL env var, then to the "
             f"library default ({DEFAULT_GROK_MODEL!r})."
+        ),
+    )
+    parser.add_argument(
+        "--qwen-model",
+        default=None,
+        help=(
+            "Alibaba DashScope model name for qwen / mapping-qwen "
+            "strategies. Defaults to the QWEN_MODEL env var, then "
+            f"to the library default ({DEFAULT_QWEN_MODEL!r})."
         ),
     )
     parser.add_argument("--verbose", action="store_true")
@@ -122,6 +144,10 @@ def main() -> int:
         strategy = GrokStrategy(model=args.grok_model)
     elif args.strategy == "mapping-grok":
         strategy = MappingGrokStrategy(model=args.grok_model)
+    elif args.strategy == "qwen":
+        strategy = QwenStrategy(model=args.qwen_model)
+    elif args.strategy == "mapping-qwen":
+        strategy = MappingQwenStrategy(model=args.qwen_model)
     elif args.strategy == "holographic":
         strategy = HolographicShadowStrategy(
             goal_color=args.goal_color
