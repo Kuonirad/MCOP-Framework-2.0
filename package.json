@@ -57,11 +57,11 @@
   "packageManager": "pnpm@9.15.0",
   "dependencies": {
     "canonicalize": "^3.0.0",
-    "next": "16.2.4",
+    "next": "16.2.6",
     "openai": "^6.37.0",
     "pino": "^10.1.0",
-    "react": "19.2.5",
-    "react-dom": "19.2.5",
+    "react": "19.2.6",
+    "react-dom": "19.2.6",
     "web-vitals": "^5.2.0"
   },
   "devDependencies": {
