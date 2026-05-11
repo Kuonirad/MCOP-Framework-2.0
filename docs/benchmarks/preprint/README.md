@@ -33,17 +33,8 @@ itself — never hard-coded.
 ## Workflow
 
 1. **Run the bundle** — `docker run --rm -v "$PWD/examples/reproducible-benchmark/out:/out" mcop-reproducible-benchmark`. This emits `manifest.json` and (via the notebook) `figures/figure-1-latency.png` + `figures/figure-2-triad-vs-llm.png`.
-2. **Refresh `paper.md`** — substitute the manifest's `verifiedAt`,
-   `sha256_regenerated`, and headline-budget numbers into the placeholder
-   spans. The `paper.md` template is split into sections so a small
-   script (or an LLM with structural awareness) can do this without
-   risking prose drift.
-3. **Refresh `submission.md`** — pin the bundle's git SHA + the manifest
-   SHA-256 + the verifier's `verifiedAt` timestamp.
-4. **Render** — convert `paper.md` to PDF outside the repo (e.g., via
-   `pandoc paper.md -o paper.pdf --citeproc`). The PDF and any final
-   LaTeX intermediates do **not** get committed back; they are uploaded
-   to arXiv / zenodo / Hugging Face directly.
+2. **Fill the templates** — `pnpm preprint:fill --image-digest <sha256:...>`. This reads `manifest.json` + `docs/benchmarks/results.json`, substitutes every `<…>` span, and writes `paper.filled.md` + `submission.filled.md` into `examples/reproducible-benchmark/out/preprint/`. It refuses to run if `manifest.verdict != "pass"` or any placeholder is unresolved, so a successful exit is a structural attestation that the preprint is submission-ready.
+3. **Render** — convert the filled paper to PDF outside the repo (e.g., via `pandoc examples/reproducible-benchmark/out/preprint/paper.filled.md -o paper.pdf --citeproc --pdf-engine=xelatex -V geometry:margin=1in`). The PDF and any final LaTeX intermediates do **not** get committed back; they are uploaded to arXiv / zenodo / Hugging Face directly.
 
 ---
 
