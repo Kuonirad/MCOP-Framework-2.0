@@ -18,15 +18,19 @@ submission process itself is auditable.
 docker run --rm -v "$PWD/examples/reproducible-benchmark/out:/out" \
   mcop-reproducible-benchmark
 
-# 2. Confirm verdict=pass.
-jq -e '.verdict == "pass"' examples/reproducible-benchmark/out/manifest.json
+# 2. Materialise the filled preprint files from the manifest +
+#    results.json. Refuses to run if manifest.verdict != "pass" or any
+#    placeholder is unresolved.
+pnpm preprint:fill --image-digest "$(docker image inspect mcop-reproducible-benchmark --format '{{index .RepoDigests 0}}')"
 
-# 3. Capture the SHA-256 of the regenerated snapshot for citation.
-jq -r '.snapshot.sha256_regenerated' examples/reproducible-benchmark/out/manifest.json
+# 3. The filled files now live at:
+#      examples/reproducible-benchmark/out/preprint/paper.filled.md
+#      examples/reproducible-benchmark/out/preprint/submission.filled.md
 ```
 
-If step (2) fails the snapshot has drifted; do **not** submit until the
-PR that introduced the drift is reviewed.
+If step (2) fails (`verdict != pass` or a placeholder is missing) the
+snapshot has drifted or the bundle output is incomplete; do **not**
+submit until the PR that introduced the drift is reviewed.
 
 ---
 
@@ -44,7 +48,7 @@ PR that introduced the drift is reviewed.
   Docker image digest `<image-digest>`, manifest SHA `<manifest-sha>`.
 * **Render command.**
   ```bash
-  pandoc docs/benchmarks/preprint/paper.md \
+  pandoc examples/reproducible-benchmark/out/preprint/paper.filled.md \
     -o paper.pdf \
     --citeproc \
     --pdf-engine=xelatex \
