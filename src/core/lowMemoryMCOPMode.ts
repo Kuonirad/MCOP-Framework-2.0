@@ -185,6 +185,37 @@ export const GROK_4_3_LOW_MEMORY_MCOP_PRESET: Required<
   preservePromptTailTokens: DEFAULTS.preservePromptTailTokens,
 };
 
+/**
+ * Low-memory MCOP preset for the Qwen3 / Qwen3.5 flagship family.
+ *
+ * Mirrors the {@link GROK_4_3_LOW_MEMORY_MCOP_PRESET} so the Qwen adapter
+ * achieves full feature parity with the Grok adapter — same compact
+ * triad sizing, same deterministic prompt pruning, same Float32Array
+ * payload-side encoding. The two presets are intentionally identical
+ * value-objects so an orchestrator can swap providers without touching
+ * the triad configuration; if the Qwen catalog later needs distinct
+ * sizing (e.g. for the 1M-token context window of `qwen3.5-plus`),
+ * fork this constant rather than diverging the Grok preset.
+ */
+export const QWEN3_LOW_MEMORY_MCOP_PRESET: Required<
+  Omit<LowMemoryMCOPModeConfig, 'growthLedger'>
+> = {
+  maxTraces: DEFAULTS.maxTraces,
+  tensorDim: DEFAULTS.tensorDim,
+  useTypedArrays: DEFAULTS.useTypedArrays,
+  resonanceEarlyExit: DEFAULTS.resonanceEarlyExit,
+  provenanceLazy: DEFAULTS.provenanceLazy,
+  growthBias: DEFAULTS.growthBias,
+  resonanceThreshold: DEFAULTS.resonanceThreshold,
+  confidenceFloor: DEFAULTS.confidenceFloor,
+  maxEtches: DEFAULTS.maxEtches,
+  encoderBackend: DEFAULTS.encoderBackend,
+  normalize: DEFAULTS.normalize,
+  promptTokenBudget: DEFAULTS.promptTokenBudget,
+  preservePromptHeadTokens: DEFAULTS.preservePromptHeadTokens,
+  preservePromptTailTokens: DEFAULTS.preservePromptTailTokens,
+};
+
 function normalizeConfig(config: LowMemoryMCOPModeConfig): LowMemoryMCOPProfile['settings'] {
   const merged = { ...DEFAULTS, ...config };
   const promptTokenBudget = positiveInt(merged.promptTokenBudget, DEFAULTS.promptTokenBudget);

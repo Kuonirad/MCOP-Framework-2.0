@@ -8,7 +8,9 @@ import {
   AdapterRequest,
   chooseLinearSlackAction,
   chooseProviderByEntropyResonance,
+  chooseQwenByEntropyResonance,
   defaultGrokClient,
+  defaultQwenClient,
   DevinOrchestratorAdapter,
   DialecticalSynthesizer,
   FreepikClient,
@@ -30,6 +32,10 @@ import {
   mockLinearClient,
   mockSlackClient,
   mockSubAgentClient,
+  QwenApiError,
+  QwenClient,
+  QwenMCOPAdapter,
+  MAPPING_QWEN_PRODUCTION_PROFILE,
   runResearcherCoderReviewer,
   SubAgentClient,
   UtopaiClient,
@@ -1244,6 +1250,474 @@ describe('defaultGrokClient', () => {
     );
     expect(onRateLimit.mock.calls[0][0].retryAfterMs).toBeGreaterThanOrEqual(0);
     jest.useRealTimers();
+  });
+});
+
+const qwenFixture = (
+  overrides: Partial<Awaited<ReturnType<QwenClient['createCompletion']>>> = {},
+): QwenClient => ({
+  createCompletion: jest.fn(async ({ messages, options }) => ({
+    model: options.model ?? 'qwen3.5-flash',
+    content: `echo:${messages[messages.length - 1]?.content ?? ''}`,
+    finishReason: 'stop',
+    usage: { promptTokens: 4, completionTokens: 4, totalTokens: 8 },
+    ...overrides,
+  })),
+});
+
+describe('QwenMCOPAdapter', () => {
+  it('rejects empty prompts', async () => {
+    const adapter = new QwenMCOPAdapter({
+      ...baseTriad(),
+      client: qwenFixture(),
+    });
+    await expect(adapter.generate({ prompt: '' })).rejects.toThrow(
+      /non-empty/,
+    );
+  });
+
+  it('routes refined prompt through Qwen and surfaces provenance + usage', async () => {
+    const client = qwenFixture();
+    const adapter = new QwenMCOPAdapter({ ...baseTriad(), client });
+
+    const response = await adapter.generateOptimizedCompletion(
+      'design a research agenda for stigmergic AI',
+      { model: 'qwen3.5-flash', temperature: 0.2 },
+    );
+
+    expect(response.result.model).toBe('qwen3.5-flash');
+    expect(response.result.content.startsWith('echo:')).toBe(true);
+    expect(response.result.usage?.totalTokens).toBe(8);
+    expect(client.createCompletion).toHaveBeenCalledTimes(1);
+
+    // Provenance bundle is fully populated.
+    expect(response.merkleRoot).toMatch(/^[0-9a-f]{64}$/);
+    expect(response.provenance.tensorHash).toMatch(/^[0-9a-f]{64}$/);
+    expect(response.provenance.refinedPrompt).toContain(
+      'design a research agenda',
+    );
+
+    // The refined prompt is what was dispatched, not the raw input.
+    const call = (client.createCompletion as jest.Mock).mock.calls[0][0] as {
+      messages: ReadonlyArray<{ role: string; content: string }>;
+    };
+    expect(call.messages[call.messages.length - 1].content).toBe(
+      response.provenance.refinedPrompt,
+    );
+  });
+
+  it('prunes low-memory prompts before dispatch and strips routing-only options', async () => {
+    const client = qwenFixture();
+    const adapter = new QwenMCOPAdapter({ ...baseTriad(), client });
+
+    const response = await adapter.generateOptimizedCompletion(
+      'one two three four five six seven eight',
+      {
+        model: 'qwen3-max',
+        lowMemory: {
+          promptTokenBudget: 6,
+          preservePromptHeadTokens: 2,
+          preservePromptTailTokens: 2,
+        },
+      },
+    );
+
+    expect(response.provenance.refinedPrompt).toContain(
+      '[mcop-low-memory-pruned:4-tokens]',
+    );
+    const call = (client.createCompletion as jest.Mock).mock.calls[0][0] as {
+      messages: ReadonlyArray<{ role: string; content: string }>;
+      options: Record<string, unknown>;
+    };
+    expect(call.messages[call.messages.length - 1].content).toContain(
+      '[mcop-low-memory-pruned:4-tokens]',
+    );
+    expect(call.options).toEqual({ model: 'qwen3-max' });
+  });
+
+  it('prepends the system prompt when supplied', async () => {
+    const client = qwenFixture();
+    const adapter = new QwenMCOPAdapter({ ...baseTriad(), client });
+    await adapter.generateOptimizedCompletion('q', {
+      systemPrompt: 'You are MCOP-aware.',
+    });
+    const call = (client.createCompletion as jest.Mock).mock.calls[0][0] as {
+      messages: ReadonlyArray<{ role: string; content: string }>;
+    };
+    expect(call.messages[0]).toEqual({
+      role: 'system',
+      content: 'You are MCOP-aware.',
+    });
+  });
+
+  it('injects prior Stigmergy Merkle history into Qwen without leaking routing-only options', async () => {
+    const client = qwenFixture();
+    const adapter = new QwenMCOPAdapter({ ...baseTriad(), client });
+
+    await adapter.generateOptimizedCompletion(
+      'ARC step 1: observe blue cell symmetry',
+      { model: 'qwen3.5-flash' },
+      {
+        metadata: {
+          arcTaskId: 'arc-demo-1',
+          phase: 'observation',
+          apiToken: 'do-not-leak',
+        },
+      },
+    );
+
+    await adapter.generateOptimizedCompletion(
+      'ARC step 2: test mirror transform',
+      {
+        model: 'qwen3.5-flash',
+        stigmergyHistory: { limit: 1, label: 'ARC arc-demo-1' },
+      },
+      { metadata: { arcTaskId: 'arc-demo-1', phase: 'hypothesis' } },
+    );
+
+    const call = (client.createCompletion as jest.Mock).mock.calls[1][0] as {
+      messages: ReadonlyArray<{ role: string; content: string }>;
+      options: Record<string, unknown>;
+    };
+    const memoryMessage = call.messages.find((message) =>
+      message.content.startsWith('MCOP Stigmergy v5 Merkle memory'),
+    );
+
+    expect(memoryMessage?.content).toContain('ARC arc-demo-1');
+    expect(memoryMessage?.content).toContain('arc-demo-1');
+    expect(memoryMessage?.content).toContain('hash=');
+    expect(memoryMessage?.content).toContain('apiToken":"[redacted]');
+    expect(memoryMessage?.content).not.toContain('do-not-leak');
+    expect(call.options).toEqual({ model: 'qwen3.5-flash' });
+  });
+
+  it('honours human veto from the dialectical synthesizer', async () => {
+    const adapter = new QwenMCOPAdapter({
+      ...baseTriad(),
+      client: qwenFixture(),
+    });
+    await expect(
+      adapter.generateOptimizedCompletion(
+        'sensitive prompt',
+        {},
+        { humanFeedback: { veto: true } satisfies HumanFeedback },
+      ),
+    ).rejects.toThrow(HumanVetoError);
+  });
+
+  it('surfaces capabilities for orchestrators', async () => {
+    const adapter = new QwenMCOPAdapter({
+      ...baseTriad(),
+      client: qwenFixture(),
+    });
+    const caps = await adapter.getCapabilities();
+    expect(caps.platform).toBe('alibaba-qwen');
+    expect(caps.features).toContain('entropy-resonance-routing');
+    expect(caps.models.length).toBeGreaterThan(0);
+    expect(caps.supportsAudit).toBe(true);
+  });
+
+  it('defaults to the mapping_qwen production profile and fires MCOP pipeline hooks', async () => {
+    const beforeDispatch = jest.fn();
+    const afterDispatch = jest.fn();
+    const client = qwenFixture();
+    const adapter = new QwenMCOPAdapter({
+      ...baseTriad(),
+      client,
+      hooks: { beforeDispatch, afterDispatch },
+    });
+
+    await adapter.generateOptimizedCompletion('profile defaults');
+
+    expect(MAPPING_QWEN_PRODUCTION_PROFILE.id).toBe('mapping_qwen');
+    const call = (client.createCompletion as jest.Mock).mock.calls[0][0] as {
+      options: Record<string, unknown>;
+    };
+    expect(call.options.model).toBe(MAPPING_QWEN_PRODUCTION_PROFILE.defaultModel);
+    expect(beforeDispatch).toHaveBeenCalledWith(expect.objectContaining({
+      dispatch: expect.objectContaining({ provenance: expect.any(Object) }),
+    }));
+    expect(afterDispatch).toHaveBeenCalledWith(expect.objectContaining({
+      result: expect.objectContaining({ model: MAPPING_QWEN_PRODUCTION_PROFILE.defaultModel }),
+    }));
+  });
+});
+
+describe('defaultQwenClient', () => {
+  it('throws when no API key is available', () => {
+    const originalQwen = process.env.QWEN_API_KEY;
+    const originalDashScope = process.env.DASHSCOPE_API_KEY;
+    delete process.env.QWEN_API_KEY;
+    delete process.env.DASHSCOPE_API_KEY;
+    try {
+      expect(() => defaultQwenClient()).toThrow(/QWEN_API_KEY/);
+    } finally {
+      if (originalQwen !== undefined) process.env.QWEN_API_KEY = originalQwen;
+      if (originalDashScope !== undefined) process.env.DASHSCOPE_API_KEY = originalDashScope;
+    }
+  });
+
+  const okResponse = (
+    payload: unknown,
+  ): Pick<Response, 'ok' | 'status' | 'statusText' | 'json' | 'text'> => ({
+    ok: true,
+    status: 200,
+    statusText: 'OK',
+    json: async () => payload,
+    text: async () => JSON.stringify(payload),
+  });
+
+  const errorResponse = (
+    status: number,
+    statusText: string,
+    body: string,
+  ): Pick<Response, 'ok' | 'status' | 'statusText' | 'json' | 'text'> => ({
+    ok: false,
+    status,
+    statusText,
+    json: async () => JSON.parse(body),
+    text: async () => body,
+  });
+
+  it('POSTs an OpenAI-compatible body to the DashScope chat-completions endpoint', async () => {
+    const fetchImpl = jest.fn(async () =>
+      okResponse({
+        id: 'cmpl-1',
+        model: 'qwen3.5-flash',
+        choices: [
+          {
+            index: 0,
+            message: { role: 'assistant', content: 'hi' },
+            finish_reason: 'stop',
+          },
+        ],
+        usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
+      }),
+    );
+    const client = defaultQwenClient({
+      apiKey: 'test-key',
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+    });
+    const result = await client.createCompletion({
+      messages: [{ role: 'user', content: 'hello' }],
+      options: { model: 'qwen3.5-flash', temperature: 0.1, enableThinking: true },
+    });
+    expect(result.content).toBe('hi');
+    expect(result.usage?.totalTokens).toBe(2);
+    const calls = fetchImpl.mock.calls as unknown as Array<
+      [string, RequestInit]
+    >;
+    expect(calls.length).toBe(1);
+    const [url, init] = calls[0];
+    expect(url).toBe(
+      'https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions',
+    );
+    const headers = init.headers as Record<string, string>;
+    expect(headers.Authorization).toBe('Bearer test-key');
+    const body = JSON.parse(init.body as string);
+    expect(body.model).toBe('qwen3.5-flash');
+    expect(body.temperature).toBe(0.1);
+    expect(body.enable_thinking).toBe(true);
+    expect(body.messages[0].content).toBe('hello');
+  });
+
+  it('surfaces vendor error bodies in the thrown message', async () => {
+    const fetchImpl = jest.fn(async () =>
+      errorResponse(401, 'Unauthorized', '{"error":"unauthorized"}'),
+    );
+    const client = defaultQwenClient({
+      apiKey: 'bad',
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+    });
+    await expect(
+      client.createCompletion({
+        messages: [{ role: 'user', content: 'x' }],
+        options: {},
+      }),
+    ).rejects.toThrow(/401/);
+  });
+
+  it('retries DashScope rate limits using Retry-After and exposes rate-limit metadata', async () => {
+    jest.useFakeTimers();
+    const onRateLimit = jest.fn();
+    const throttled = errorResponse(429, 'Too Many Requests', '{"error":"slow down"}') as Response;
+    Object.defineProperty(throttled, 'headers', {
+      value: new Headers({
+        'retry-after': '0.01',
+        'x-ratelimit-remaining-requests': '0',
+      }),
+    });
+    const ok = okResponse({
+      id: 'cmpl-2',
+      model: 'qwen3.5-flash',
+      choices: [{ index: 0, message: { role: 'assistant', content: 'ok' }, finish_reason: 'stop' }],
+      usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
+    }) as Response;
+    Object.defineProperty(ok, 'headers', {
+      value: new Headers({ 'x-ratelimit-remaining-requests': '9' }),
+    });
+    const fetchImpl = jest.fn()
+      .mockResolvedValueOnce(throttled)
+      .mockResolvedValueOnce(ok);
+    const client = defaultQwenClient({
+      apiKey: 'test-key',
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+      retry: { maxRetries: 1 },
+      onRateLimit,
+    });
+
+    const pending = client.createCompletion({
+      messages: [{ role: 'user', content: 'hello' }],
+      options: { model: 'qwen3.5-flash' },
+    });
+    await Promise.resolve();
+    await jest.advanceTimersByTimeAsync(10);
+    const result = await pending;
+
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    expect(onRateLimit).toHaveBeenCalledWith(expect.objectContaining({
+      status: 429,
+      retryAfterMs: 10,
+      rateLimit: expect.objectContaining({ remainingRequests: '0' }),
+    }));
+    expect(result.rateLimit?.remainingRequests).toBe('9');
+    jest.useRealTimers();
+  });
+
+  it('throws a typed QwenApiError after retry exhaustion', async () => {
+    const throttled = errorResponse(429, 'Too Many Requests', '{"error":"slow down"}') as Response;
+    Object.defineProperty(throttled, 'headers', { value: new Headers({ 'retry-after': '0' }) });
+    const fetchImpl = jest.fn(async () => throttled);
+    const client = defaultQwenClient({
+      apiKey: 'test-key',
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+      retry: { maxRetries: 0 },
+    });
+
+    await expect(client.createCompletion({
+      messages: [{ role: 'user', content: 'hello' }],
+      options: { model: 'qwen3.5-flash' },
+    })).rejects.toBeInstanceOf(QwenApiError);
+  });
+
+  it('throws when the response payload contains zero choices', async () => {
+    const fetchImpl = jest.fn(async () =>
+      okResponse({
+        id: 'cmpl-empty',
+        model: 'qwen3.5-flash',
+        choices: [],
+      }),
+    );
+    const client = defaultQwenClient({
+      apiKey: 'test-key',
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+    });
+    await expect(
+      client.createCompletion({
+        messages: [{ role: 'user', content: 'hi' }],
+        options: { model: 'qwen3.5-flash' },
+      }),
+    ).rejects.toThrow(/no choices/);
+  });
+
+  it('returns null usage and an empty content string when the response omits them', async () => {
+    const fetchImpl = jest.fn(async () =>
+      okResponse({
+        id: 'cmpl-noUsage',
+        model: 'qwen3.5-flash',
+        choices: [
+          {
+            index: 0,
+            message: { role: 'assistant' },
+            finish_reason: null,
+          },
+        ],
+      }),
+    );
+    const client = defaultQwenClient({
+      apiKey: 'test-key',
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+    });
+    const result = await client.createCompletion({
+      messages: [{ role: 'user', content: 'hi' }],
+      options: {},
+    });
+    expect(result.usage).toBeNull();
+    expect(result.content).toBe('');
+    expect(result.finishReason).toBeNull();
+    expect(result.model).toBe('qwen3.5-flash');
+  });
+
+  it('falls back to DASHSCOPE_API_KEY when QWEN_API_KEY is unset', async () => {
+    const originalQwen = process.env.QWEN_API_KEY;
+    const originalDashScope = process.env.DASHSCOPE_API_KEY;
+    delete process.env.QWEN_API_KEY;
+    process.env.DASHSCOPE_API_KEY = 'dashscope-key';
+    try {
+      const fetchImpl = jest.fn(async () =>
+        okResponse({
+          id: 'cmpl-fallback',
+          model: 'qwen3.5-flash',
+          choices: [
+            {
+              index: 0,
+              message: { role: 'assistant', content: 'ok' },
+              finish_reason: 'stop',
+            },
+          ],
+        }),
+      );
+      const client = defaultQwenClient({ fetchImpl: fetchImpl as unknown as typeof fetch });
+      await client.createCompletion({
+        messages: [{ role: 'user', content: 'hi' }],
+        options: {},
+      });
+      const init = (fetchImpl.mock.calls[0] as unknown as [string, RequestInit])[1];
+      const headers = init.headers as Record<string, string>;
+      expect(headers.Authorization).toBe('Bearer dashscope-key');
+    } finally {
+      if (originalQwen !== undefined) process.env.QWEN_API_KEY = originalQwen;
+      if (originalDashScope !== undefined) {
+        process.env.DASHSCOPE_API_KEY = originalDashScope;
+      } else {
+        delete process.env.DASHSCOPE_API_KEY;
+      }
+    }
+  });
+});
+
+describe('chooseQwenByEntropyResonance', () => {
+  it('routes high-resonance prompts to local cache', () => {
+    expect(
+      chooseQwenByEntropyResonance({ entropy: 0.9, resonance: 0.85 }),
+    ).toBe('local');
+  });
+
+  it('routes novel low-resonance prompts to qwen', () => {
+    expect(
+      chooseQwenByEntropyResonance({ entropy: 0.7, resonance: 0.3 }),
+    ).toBe('qwen');
+  });
+
+  it('escalates very-low-confidence novel prompts to human review', () => {
+    expect(
+      chooseQwenByEntropyResonance({ entropy: 0.7, resonance: 0.05 }),
+    ).toBe('human-review');
+  });
+
+  it('keeps stable prompts local even with mid-range resonance', () => {
+    expect(
+      chooseQwenByEntropyResonance({ entropy: 0.2, resonance: 0.4 }),
+    ).toBe('local');
+  });
+
+  it('respects custom thresholds', () => {
+    expect(
+      chooseQwenByEntropyResonance(
+        { entropy: 0.3, resonance: 0.5 },
+        { noveltyEntropyFloor: 0.25, highResonanceCeiling: 0.9 },
+      ),
+    ).toBe('qwen');
   });
 });
 
