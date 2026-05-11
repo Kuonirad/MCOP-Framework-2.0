@@ -252,7 +252,7 @@ export function useVSIPredictor(
   const { compute } = useVSIWorker();
   const lcp = useLCPProfiler();
   const lcpAttributionRef = useRef(lcp.attribution);
-  lcpAttributionRef.current = lcp.attribution;
+  useEffect(() => { lcpAttributionRef.current = lcp.attribution; }, [lcp.attribution]);
 
   useEffect(() => {
     const enrich = (
