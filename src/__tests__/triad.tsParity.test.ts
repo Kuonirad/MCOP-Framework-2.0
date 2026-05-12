@@ -26,6 +26,8 @@
 
 import { NovaNeoEncoder as AppEncoder } from '@/core/novaNeoEncoder';
 import { NovaNeoEncoder as PkgEncoder } from '../../packages/core/src/novaNeoEncoder';
+import { StigmergyV5 as AppStigmergy } from '@/core/stigmergyV5';
+import { StigmergyV5 as PkgStigmergy } from '../../packages/core/src/stigmergyV5';
 import { canonicalDigest as appCanonicalDigest } from '@/core/canonicalEncoding';
 import { canonicalDigest as pkgCanonicalDigest } from '../../packages/core/src/canonicalEncoding';
 
@@ -83,6 +85,98 @@ describe('TS↔TS triad parity (src/core vs packages/core/src)', () => {
       )).toBe(true);
     });
   });
+
+
+
+  describe('StigmergyV5 semantic parity', () => {
+    const TRACE_FIXTURES: ReadonlyArray<{ context: number[]; synthesis: number[]; label: string }> = [
+      { context: [1, 0], synthesis: [1, 0], label: 'perfect' },
+      { context: [1, 0], synthesis: [0.5, Math.sqrt(3) / 2], label: 'partial' },
+      { context: [1, 0], synthesis: [0, 1], label: 'orthogonal' },
+    ];
+
+    function buildPairedMemories() {
+      const config = {
+        resonanceThreshold: 0.2,
+        maxTraces: 8,
+        adaptiveThreshold: true,
+        hysteresisBand: 0,
+        calibrationWindow: 3,
+        curiosityBonus: 0.1,
+        growthBias: 0.15,
+      } as const;
+      const app = new AppStigmergy(config);
+      const pkg = new PkgStigmergy(config);
+
+      for (const fixture of TRACE_FIXTURES) {
+        const appTrace = app.recordTrace(fixture.context, fixture.synthesis, { label: fixture.label });
+        const pkgTrace = pkg.recordTrace(fixture.context, fixture.synthesis, { label: fixture.label });
+        expect(appTrace.weight).toBeCloseTo(pkgTrace.weight, 15);
+        expect(appTrace.magnitude).toBeCloseTo(pkgTrace.magnitude ?? 0, 15);
+        expect(appTrace.metadata).toEqual(pkgTrace.metadata);
+      }
+
+      return { app, pkg };
+    }
+
+    it('uses the same adaptive threshold and resonance score after calibration', () => {
+      const { app, pkg } = buildPairedMemories();
+      const appResult = app.getResonance([1, 0]);
+      const pkgResult = pkg.getResonance([1, 0]);
+
+      expect(appResult.score).toBeCloseTo(pkgResult.score, 15);
+      expect(appResult.thresholdUsed).toBeDefined();
+      expect(pkgResult.thresholdUsed).toBeDefined();
+      expect(appResult.thresholdUsed ?? 0).toBeCloseTo(pkgResult.thresholdUsed ?? 0, 15);
+      expect(appResult.positiveFeedbackScore).toBeCloseTo(pkgResult.positiveFeedbackScore ?? 0, 15);
+      expect(appResult.trace?.metadata).toEqual(pkgResult.trace?.metadata);
+      expect(appResult.thresholdUsed ?? 0).toBeGreaterThan(0.2);
+      expect(appResult.thresholdUsed ?? 0).toBeLessThan(0.3);
+    });
+
+    it('keeps the positive-feedback hysteresis baseline in sync after an accepted match', () => {
+      const { app, pkg } = buildPairedMemories();
+      app.getResonance([1, 0]);
+      pkg.getResonance([1, 0]);
+
+      expect(app.getPositiveFeedbackHysteresisScore(0.4)).toBeCloseTo(
+        pkg.getPositiveFeedbackHysteresisScore(0.4),
+        15,
+      );
+      expect(app.getAdaptiveResonanceThreshold()).toBeCloseTo(
+        pkg.getAdaptiveResonanceThreshold(),
+        15,
+      );
+    });
+
+    it('ranks resonant recent traces with identical curiosity lifts', () => {
+      const { app, pkg } = buildPairedMemories();
+      const appRecent = app.getResonantRecent(3, { context: [1, 0], includeLowResonance: true });
+      const pkgRecent = pkg.getResonantRecent(3, { context: [1, 0], includeLowResonance: true });
+
+      expect(appRecent.map((trace) => trace.metadata?.label)).toEqual(
+        pkgRecent.map((trace) => trace.metadata?.label),
+      );
+      for (let i = 0; i < appRecent.length; i++) {
+        expect(appRecent[i].resonanceScore).toBeCloseTo(pkgRecent[i].resonanceScore, 15);
+        expect(appRecent[i].curiosityLift).toBeCloseTo(pkgRecent[i].curiosityLift, 15);
+      }
+    });
+
+    it('honors adaptiveThreshold=false in both implementations', () => {
+      const app = new AppStigmergy({ resonanceThreshold: 0.2, adaptiveThreshold: false });
+      const pkg = new PkgStigmergy({ resonanceThreshold: 0.2, adaptiveThreshold: false });
+      for (const fixture of TRACE_FIXTURES) {
+        app.recordTrace(fixture.context, fixture.synthesis, { label: fixture.label });
+        pkg.recordTrace(fixture.context, fixture.synthesis, { label: fixture.label });
+      }
+
+      expect(app.getAdaptiveResonanceThreshold()).toBe(0.2);
+      expect(pkg.getAdaptiveResonanceThreshold()).toBe(0.2);
+      expect(app.getResonance([1, 0]).thresholdUsed).toBe(pkg.getResonance([1, 0]).thresholdUsed);
+    });
+  });
+
 
   describe('canonicalDigest', () => {
     const CANONICAL_FIXTURES: ReadonlyArray<unknown> = [

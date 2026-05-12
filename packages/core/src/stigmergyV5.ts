@@ -1,5 +1,3 @@
-import { randomUUID } from 'node:crypto';
-import { canonicalDigest } from './canonicalEncoding';
 import {
   ContextTensor,
   PheromoneTrace,
@@ -7,34 +5,41 @@ import {
   ResonantRecentQueryOptions,
   ResonantRecentTrace,
 } from './types';
-import { cosineWithMagnitudes, magnitude } from './vectorMath';
+import { cosineWithMagnitudes, magnitude, padVector } from './vectorMath';
 import { CircularBuffer } from './circularBuffer';
+import { canonicalDigest } from './canonicalEncoding';
+import { randomUUID } from 'node:crypto';
 
 export interface StigmergyConfig {
   resonanceThreshold?: number;
-  adaptiveThreshold?: number; // 2026-05-03 audit → v2.2.1
   maxTraces?: number;
+  adaptiveThreshold?: number | boolean; // 2026-05-03 audit → v2.2.1 (numeric override or boolean toggle)
+  hysteresisBand?: number;
+  calibrationWindow?: number;
   curiosityBonus?: number;
   /** Positive Feedback Hysteresis lift for high-resonance beneficial patterns. */
   growthBias?: number;
 }
 
-function clamp01(x: number): number {
-  if (!Number.isFinite(x)) return 0;
-  if (x < 0) return 0;
-  if (x > 1) return 1;
-  return x;
-}
-
 export class StigmergyV5 {
   private readonly resonanceThreshold: number;
   private readonly traces: CircularBuffer<PheromoneTrace>;
+  private readonly adaptiveThreshold: boolean;
+  private readonly hysteresisBand: number;
+  private readonly calibrationWindow: number;
+  private lastAcceptedThreshold: number;
   private readonly curiosityBonus: number;
   private readonly growthBias: number;
 
   constructor(config: StigmergyConfig = {}) {
-    this.resonanceThreshold = config.adaptiveThreshold ?? config.resonanceThreshold ?? 0.65;
+    const adaptive = config.adaptiveThreshold;
+    const numericAdaptive = typeof adaptive === 'number' ? adaptive : undefined;
+    this.resonanceThreshold = clamp01(numericAdaptive ?? config.resonanceThreshold ?? 0.65);
     this.traces = new CircularBuffer<PheromoneTrace>(config.maxTraces ?? 2048);
+    this.adaptiveThreshold = typeof adaptive === 'boolean' ? adaptive : true;
+    this.hysteresisBand = Math.max(0, config.hysteresisBand ?? 0.05);
+    this.calibrationWindow = Math.max(2, config.calibrationWindow ?? 32);
+    this.lastAcceptedThreshold = this.resonanceThreshold;
     this.curiosityBonus = clamp01(config.curiosityBonus ?? 0.08);
     this.growthBias = clamp01(config.growthBias ?? 0.15);
   }
@@ -56,7 +61,19 @@ export class StigmergyV5 {
 
     const contextMag = magnitude(context);
     const synthesisMag = magnitude(synthesisVector);
-    const weight = cosineWithMagnitudes(context, synthesisVector, contextMag, synthesisMag);
+    const { a: comparableContext, b: comparableSynthesis } = alignVectors(context, synthesisVector);
+    const comparableContextMag = comparableContext === context
+      ? contextMag
+      : magnitude(comparableContext);
+    const comparableSynthesisMag = comparableSynthesis === synthesisVector
+      ? synthesisMag
+      : magnitude(comparableSynthesis);
+    const weight = cosineWithMagnitudes(
+      comparableContext,
+      comparableSynthesis,
+      comparableContextMag,
+      comparableSynthesisMag,
+    );
 
     const payload = { id, context, synthesisVector, metadata, weight };
     const hash = this.merkleHash(payload, parentHash);
@@ -81,34 +98,49 @@ export class StigmergyV5 {
 
   getResonance(context: ContextTensor): ResonanceResult {
     const queryMag = magnitude(context);
-    if (queryMag === 0) return { score: 0, thresholdUsed: this.resonanceThreshold };
+    if (queryMag === 0) {
+      return { score: 0, thresholdUsed: this.resonanceThreshold };
+    }
 
     let bestScore = 0;
     let bestTrace: PheromoneTrace | undefined;
 
-    for (const trace of this.traces.values()) {
-      const traceMag = trace.magnitude ?? magnitude(trace.context);
-      if (traceMag === 0) continue;
+    this.traces.forEach((trace) => {
+      const { a: comparableContext, b: comparableTraceContext } = alignVectors(context, trace.context);
+      const comparableQueryMag = comparableContext === context
+        ? queryMag
+        : magnitude(comparableContext);
+      const traceMag = comparableTraceContext === trace.context
+        ? trace.magnitude ?? magnitude(trace.context)
+        : magnitude(comparableTraceContext);
+      if (traceMag === 0 || comparableQueryMag === 0) return;
 
-      const score = cosineWithMagnitudes(context, trace.context, queryMag, traceMag);
+      const score = cosineWithMagnitudes(
+        comparableContext,
+        comparableTraceContext,
+        comparableQueryMag,
+        traceMag,
+      );
       const positiveScore = this.getPositiveFeedbackHysteresisScore(score);
       if (positiveScore > this.getPositiveFeedbackHysteresisScore(bestScore)) {
         bestScore = score;
         bestTrace = trace;
       }
-    }
+    });
 
+    const threshold = this.getAdaptiveResonanceThreshold();
     const positiveFeedbackScore = this.getPositiveFeedbackHysteresisScore(bestScore);
-    if (bestTrace && positiveFeedbackScore >= this.resonanceThreshold) {
+    if (bestTrace && positiveFeedbackScore >= threshold) {
+      this.lastAcceptedThreshold = threshold;
       return {
         score: bestScore,
         trace: bestTrace,
-        thresholdUsed: this.resonanceThreshold,
+        thresholdUsed: threshold,
         positiveFeedbackScore,
       };
     }
 
-    return { score: 0, thresholdUsed: this.resonanceThreshold, positiveFeedbackScore };
+    return { score: 0, thresholdUsed: threshold, positiveFeedbackScore };
   }
 
   getMerkleRoot(): string | undefined {
@@ -132,21 +164,28 @@ export class StigmergyV5 {
     const safeLimit = Number.isFinite(limit) ? Math.max(0, Math.floor(limit)) : this.traces.size;
     if (safeLimit === 0) return [];
 
-    const threshold = this.resonanceThreshold;
+    const threshold = this.getAdaptiveResonanceThreshold();
     const queryMag = options.context ? magnitude(options.context) : 0;
     const curiosity = clamp01(options.curiosityBonus ?? this.curiosityBonus);
     const ranked: ResonantRecentTrace[] = [];
 
-    for (const trace of this.traces.values()) {
+    this.traces.forEach((trace) => {
       let contextualScore = Math.max(0, trace.weight);
       if (options.context && queryMag > 0) {
-        const traceMag = trace.magnitude ?? magnitude(trace.context);
-        contextualScore = traceMag === 0
+        const { a: comparableContext, b: comparableTraceContext } =
+          alignVectors(options.context, trace.context);
+        const comparableQueryMag = comparableContext === options.context
+          ? queryMag
+          : magnitude(comparableContext);
+        const traceMag = comparableTraceContext === trace.context
+          ? trace.magnitude ?? magnitude(trace.context)
+          : magnitude(comparableTraceContext);
+        contextualScore = traceMag === 0 || comparableQueryMag === 0
           ? 0
           : Math.max(0, this.getPositiveFeedbackHysteresisScore(cosineWithMagnitudes(
-            options.context,
-            trace.context,
-            queryMag,
+            comparableContext,
+            comparableTraceContext,
+            comparableQueryMag,
             traceMag,
           )));
       }
@@ -160,22 +199,11 @@ export class StigmergyV5 {
         resonanceScore: clamp01(contextualScore + curiosityLift),
         curiosityLift,
       });
-    }
+    });
 
     ranked.sort((a, b) => b.resonanceScore - a.resonanceScore ||
       Date.parse(b.timestamp) - Date.parse(a.timestamp));
     return ranked.slice(0, safeLimit);
-  }
-
-
-  /**
-   * Positive Feedback Hysteresis gently lifts beneficial high-resonance scores
-   * above the configured threshold while preserving raw cosine traces.
-   */
-  getPositiveFeedbackHysteresisScore(score: number): number {
-    const raw = clamp01(score);
-    const lift = Math.max(0, raw - this.resonanceThreshold) * this.growthBias;
-    return clamp01(raw + lift);
   }
 
   /** Observability: expose buffer fill statistics for dashboards. */
@@ -186,4 +214,54 @@ export class StigmergyV5 {
       lifetimePushes: this.traces.lifetimePushes,
     };
   }
+
+  /**
+   * Positive Feedback Hysteresis gently lifts beneficial high-resonance scores
+   * above the current accepted threshold while preserving raw cosine traces.
+   */
+  getPositiveFeedbackHysteresisScore(score: number): number {
+    const raw = clamp01(score);
+    const lift = Math.max(0, raw - this.lastAcceptedThreshold) * this.growthBias;
+    return clamp01(raw + lift);
+  }
+
+  getAdaptiveResonanceThreshold(): number {
+    if (!this.adaptiveThreshold) return this.resonanceThreshold;
+    const recentWeights = this.traces
+      .recent(this.calibrationWindow)
+      .map((trace) => Math.max(0, trace.weight))
+      .filter(Number.isFinite);
+    if (recentWeights.length < 3) return this.resonanceThreshold;
+
+    let sum = 0;
+    for (const weight of recentWeights) sum += weight;
+    const mean = sum / recentWeights.length;
+    let variance = 0;
+    for (const weight of recentWeights) {
+      const delta = weight - mean;
+      variance += delta * delta;
+    }
+    const stddev = Math.sqrt(variance / recentWeights.length);
+    const calibrated = clamp01(mean - stddev * 0.5);
+    if (Math.abs(calibrated - this.lastAcceptedThreshold) < this.hysteresisBand) {
+      return this.lastAcceptedThreshold;
+    }
+    return calibrated;
+  }
+}
+
+function alignVectors(a: ContextTensor, b: number[]): { a: number[] | ContextTensor; b: number[] } {
+  if (a.length === b.length) return { a, b };
+  const length = Math.max(a.length, b.length);
+  return {
+    a: padVector(a, length),
+    b: padVector(b, length),
+  };
+}
+
+function clamp01(x: number): number {
+  if (!Number.isFinite(x)) return 0;
+  if (x < 0) return 0;
+  if (x > 1) return 1;
+  return x;
 }

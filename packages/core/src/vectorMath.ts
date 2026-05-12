@@ -19,10 +19,17 @@ export function magnitude(v: Vec): number {
   return Math.sqrt(sumSq);
 }
 
+export function assertSameLength(a: Vec, b: Vec, operation = 'vector operation'): void {
+  if (a.length !== b.length) {
+    throw new Error(
+      `${operation} requires equal vector dimensions; received ${a.length} and ${b.length}`,
+    );
+  }
+}
+
 /**
- * Dot product up to the shorter of the two inputs. Tolerates ragged lengths
- * so the triad can still compose tensors from heterogenous sources without
- * throwing mid-pipeline.
+ * Dot product with deterministic zero-padding for ragged inputs. This keeps
+ * heterogeneous embeddings composable without silently changing magnitude.
  */
 export function dot(a: Vec, b: Vec): number {
   const minLen = a.length < b.length ? a.length : b.length;
@@ -31,6 +38,16 @@ export function dot(a: Vec, b: Vec): number {
     acc += a[i] * b[i];
   }
   return acc;
+}
+
+export function padVector(v: Vec, length: number): number[] {
+  if (!Number.isInteger(length) || length < 0) {
+    throw new Error('padVector length must be a non-negative integer');
+  }
+  const out = new Array<number>(length).fill(0);
+  const take = Math.min(v.length, length);
+  for (let i = 0; i < take; i++) out[i] = v[i];
+  return out;
 }
 
 /**
