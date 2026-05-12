@@ -48,7 +48,9 @@
     "soak:cuda-verified-device:canary": "node scripts/cuda-verified-device-soak.mjs --steps=1000 --canary=500 --mode=smoke",
     "cuda:serve": "python -m mcop_cuda_server --port 8765 --device cuda:0",
     "dev:cuda": "concurrently \"pnpm dev\" \"pnpm cuda:serve\"",
-    "registry:telemetry": "node scripts/registry-telemetry.mjs --pretty"
+    "registry:telemetry": "node scripts/registry-telemetry.mjs --pretty",
+    "ci:workflow-hygiene": "node scripts/verify-workflow-hygiene.mjs",
+    "ci:pr-checklist": "node scripts/verify-pr-checklist.mjs"
   },
   "engines": {
     "node": "^20.17.0 || >=22.9.0",

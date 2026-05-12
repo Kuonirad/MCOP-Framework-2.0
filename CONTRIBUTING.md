@@ -77,7 +77,7 @@ The framework rewards small, traceable interventions:
 
 The repository uses **pnpm@9.15.0** (pinned via `packageManager` in
 `package.json`) and **Node.js 22.12.0** (pinned via `.nvmrc`). CI also accepts
-modern Node 20 releases that satisfy `^20.17.0`. The Python surface targets
+modern Node 22+ releases; CI exercises Node 22.x and 24.x. The Python surface targets
 **3.11+**.
 
 ```bash

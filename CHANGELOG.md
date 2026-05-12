@@ -8,6 +8,7 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased] — Automated Evidence Retrieval & Guardian v0.2
 
 ### Added
+- **May 2026 audit execution ledger and guardrails.** Added `docs/audits/audit-execution-ledger-2026-05.md`, `docs/RELEASE_PLAYBOOK.md`, PR checklist enforcement, workflow hygiene verification, Node 22/24 CI runtime guardrails, and a Python package metadata parity test so audit findings become reviewable, test-backed outcomes.
 - **`mcop.evidence_retrieval`** (Python). New `EvidenceRetriever` abstract
   base + deterministic `InMemoryEvidenceRetriever` and
   `CompositeEvidenceRetriever` backends. The engine now calls into an
