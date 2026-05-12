@@ -18,7 +18,7 @@
     "test:coverage": "jest --coverage",
     "test:ssr-lcp": "node scripts/verify-ssr-lcp.mjs",
     "verify": "pnpm lint && pnpm typecheck && pnpm test && pnpm sbom && pnpm sbom:validate",
-    "postinstall": "cypress install || true",
+    "postinstall": "node -e \"try { require('child_process').execSync('cypress install', {stdio:'inherit', shell:true}); } catch(e) { console.log('Cypress install skipped:', e.message); } process.exit(0); \"",
     "cypress:open": "cypress open",
     "cypress:run": "cypress run",
     "test:hybrid": "concurrently --kill-others-on-fail --names jest,cypress,playwright \"pnpm test\" \"pnpm cypress:run\" \"if [ \\\"$PLAYWRIGHT_ENABLED\\\" = '1' ]; then pnpm exec playwright test; else echo 'playwright skipped (PLAYWRIGHT_ENABLED!=1)'; fi\"",
