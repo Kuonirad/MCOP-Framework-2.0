@@ -48,7 +48,7 @@ jobs:
           cache: 'pnpm'
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --no-frozen-lockfile # TODO(PR #680): revert to --frozen-lockfile once pnpm-lock.yaml is regenerated for next@15.3.3
 
       - name: Build production standalone server
         run: pnpm build
