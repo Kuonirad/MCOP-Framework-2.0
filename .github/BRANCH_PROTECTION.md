@@ -20,8 +20,8 @@ Apply to: `main` branch
 #### ✅ Require status checks to pass before merging
 - **Require branches to be up to date before merging**: ✅
 - **Status checks that are required**:
-  - `test (18.x)`
-  - `test (20.x)`
+  - `test (24.x)`
+  - `test (22.x)`
   - `security`
   - `build`
 
@@ -57,8 +57,8 @@ Apply to: `main` branch
    - ☑️ Include administrators
 
 5. In the **Status checks that are required** section, search for and add:
-   - `test (18.x)`
-   - `test (20.x)`
+   - `test (24.x)`
+   - `test (22.x)`
    - `security`
    - `build`
 
@@ -68,8 +68,8 @@ Apply to: `main` branch
 
 Based on the `.github/workflows/ci.yml` file, the following status checks will be available:
 
-1. **test (18.x)** - Tests running on Node.js 18
-2. **test (20.x)** - Tests running on Node.js 20
+1. **test (24.x)** - Tests running on Node.js 24
+2. **test (22.x)** - Tests running on Node.js 22
 3. **security** - Security audit and vulnerability checks
 4. **build** - Application build verification
 

@@ -74,7 +74,7 @@ rather than replacement:
 
 | Layer | Tool | Scope | Runs in CI |
 |---|---|---|---|
-| L1 — unit / component | **jest** + jsdom | Pure logic, hooks, components, SSR HTML contract | Always, **blocking** (matrix on Node 20.x and 22.x) |
+| L1 — unit / component | **jest** + jsdom | Pure logic, hooks, components, SSR HTML contract | Always, **blocking** (matrix on Node 22.x and 24.x) |
 | L1.5 — SSR HTML invariants | `scripts/verify-ssr-lcp.mjs` | LCP preload contract on the live standalone server | Always, **blocking** (inside the Cypress workflow, before Cypress runs) |
 | L2 — E2E (live browser) | **Cypress** against the **standalone production server** | Real hydration, Performance HUD interactions, self-verifying live LCP / INP / CLS / VSI | Always, **blocking** (as of PR #487; previously `continue-on-error: true`) — confirmed against real GitHub Actions Chromium |
 | L3 — cross-browser (optional) | **Playwright** (not installed yet) | Future Firefox / WebKit coverage when the audit calls for it | Only when `PLAYWRIGHT_ENABLED=1` |

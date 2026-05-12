@@ -1,0 +1,44 @@
+name: Pull Request Checklist
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: pr-checklist-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  checklist:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: Setup project environment without install
+        uses: ./.github/actions/setup-project
+        with:
+          node-version: 24.x
+          install-deps: 'false'
+          enable-cache: 'false'
+
+      - name: Collect changed files
+        run: |
+          set -euo pipefail
+          git diff --name-only "origin/${{ github.base_ref }}...HEAD" > changed-files.txt
+          cat changed-files.txt
+
+      - name: Verify completed PR checklist
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+          CHANGED_FILES_FILE: changed-files.txt
+        run: |
+          printf '%s' "$PR_BODY" > pr-body.txt
+          PR_BODY_FILE=pr-body.txt pnpm ci:pr-checklist
