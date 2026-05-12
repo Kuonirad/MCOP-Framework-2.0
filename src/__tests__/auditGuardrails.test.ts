@@ -74,10 +74,18 @@ describe('audit remediation guardrail scripts', () => {
 
     expect(result.status).toBe(0);
 
-    const fixtureResult = spawnSync('node', ['-e', `import('./scripts/verify-workflow-hygiene.mjs').then(({verifyWorkflowHygiene}) => { const r = verifyWorkflowHygiene([${JSON.stringify(workflow)}]); if (r.ok) process.exit(2); console.error(r.errors.join('\\n')); })`], {
-      cwd: process.cwd(),
-      encoding: 'utf8',
-    });
+    const fixtureResult = spawnSync(
+      'node',
+      [
+        '-e',
+        "import('./scripts/verify-workflow-hygiene.mjs').then(({verifyWorkflowHygiene}) => { const workflowPath = process.env.WORKFLOW_PATH; const r = verifyWorkflowHygiene([workflowPath]); if (r.ok) process.exit(2); console.error(r.errors.join('\\n')); })",
+      ],
+      {
+        cwd: process.cwd(),
+        env: { ...process.env, WORKFLOW_PATH: workflow },
+        encoding: 'utf8',
+      },
+    );
     expect(fixtureResult.status).toBe(0);
     expect(fixtureResult.stderr).toContain('actions/checkout@v4');
     expect(fixtureResult.stderr).toContain('minimum CI runtime is Node 22.x');
