@@ -39,4 +39,6 @@ jobs:
         env:
           PR_BODY: ${{ github.event.pull_request.body }}
           CHANGED_FILES_FILE: changed-files.txt
-        run: pnpm ci:pr-checklist
+                run: |
+          printf '%s' "$PR_BODY" > pr-body.txt
+          PR_BODY_FILE=pr-body.txt pnpm ci:pr-checklist
