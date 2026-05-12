@@ -16,7 +16,7 @@ function readChangedFiles() {
 const CHECKED = /- \[(x|X)\]/;
 const SECTION_PATTERNS = {
   type: /##\s*🚀\s*Type of Change([\s\S]*?)(?=\n##\s|$)/i,
-  checklist: /##\s*📊\s*Checklist([\s\S]*?)(?=\n##\s|$)/i,
+      checklist: /##\s*\S*\s*Checklist([\s\S]*?)(?=\n##\s|$)/i,
   testing: /##\s*🧪\s*Testing([\s\S]*?)(?=\n##\s|$)/i,
   metrics: /##\s*📊\s*MCOP Framework Metrics([\s\S]*?)(?=\n##\s|$)/i,
 };
@@ -65,7 +65,7 @@ export function verifyPullRequestChecklist(body, files = []) {
 
   const metricsSection = section(normalized, 'metrics');
   for (const metric of ['Entropy Impact', 'Confidence Level', 'Performance Impact']) {
-    const metricBlock = metricsSection.match(new RegExp(`\\*\\*${metric}\\*\\*:?([\\s\\S]*?)(?=\\n\\*\\*|$)`, 'i'))?.[1] ?? '';
+        const metricBlock = metricsSection.match(new RegExp(`\\*\\*${metric}:?\\*\\*:?([\\s\\S]*?)(?=\\n\\*\\*|$)`, 'i'))?.[1] ?? '';
     if (countChecked(metricBlock) !== 1) errors.push(`Select exactly one ${metric} checkbox.`);
   }
 
