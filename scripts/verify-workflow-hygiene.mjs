@@ -40,7 +40,8 @@ export function verifyWorkflowHygiene(files = workflowFiles()) {
   return { ok: errors.length === 0, errors };
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+import { pathToFileURL } from 'node:url';
+if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   const result = verifyWorkflowHygiene();
   if (!result.ok) {
     console.error('Workflow hygiene verification failed:');
