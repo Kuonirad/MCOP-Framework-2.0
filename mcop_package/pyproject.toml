@@ -13,7 +13,7 @@ authors = [
   { name = "M-COP Development Team" },
 ]
 maintainers = [
-  { name = "Kevin John Kull (Kuonirad)", email = "kevin@kullailabs.com" },
+  { name = "Kevin John Kull (Kuonirad)", email = "kevinkull.kk@gmail.com" },
 ]
 license = { text = "Business Source License 1.1" }
 keywords = [
@@ -52,7 +52,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=7", "pytest-cov>=4"]
+dev = ["pytest>=7", "pytest-cov>=4", "tomli>=2.0; python_version < '3.11'"]
 llm = ["openai>=1.0"]
 
 [project.urls]
