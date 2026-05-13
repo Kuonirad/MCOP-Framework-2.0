@@ -209,9 +209,9 @@ export class StigmergyV5 {
     const threshold = this.getAdaptiveResonanceThreshold();
     const queryMag = options.context ? magnitude(options.context) : 0;
     const curiosity = clamp01(options.curiosityBonus ?? this.curiosityBonus);
-    const ranked: ResonantRecentTrace[] = [];
+    const ranked: Array<{ trace: ResonantRecentTrace; insertionOrder: number }> = [];
 
-    this.traces.forEach((trace) => {
+    this.traces.forEach((trace, insertionOrder) => {
       let contextualScore = Math.max(0, trace.weight);
       if (options.context && queryMag > 0) {
         const { a: comparableContext, b: comparableTraceContext } =
@@ -237,15 +237,20 @@ export class StigmergyV5 {
         ? 0
         : curiosity * lowResonanceGap;
       ranked.push({
-        ...trace,
-        resonanceScore: clamp01(contextualScore + curiosityLift),
-        curiosityLift,
+        trace: {
+          ...trace,
+          resonanceScore: clamp01(contextualScore + curiosityLift),
+          curiosityLift,
+        },
+        insertionOrder,
       });
     });
 
-    ranked.sort((a, b) => b.resonanceScore - a.resonanceScore ||
-      Date.parse(b.timestamp) - Date.parse(a.timestamp));
-    return ranked.slice(0, safeLimit);
+    ranked.sort((a, b) =>
+      b.trace.resonanceScore - a.trace.resonanceScore ||
+      b.insertionOrder - a.insertionOrder,
+    );
+    return ranked.slice(0, safeLimit).map(({ trace }) => trace);
   }
 
   /** Observability: expose buffer fill statistics for dashboards. */

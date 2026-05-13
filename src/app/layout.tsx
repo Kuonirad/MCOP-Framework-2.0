@@ -39,6 +39,7 @@ const SITE_URL =
   "https://kuonirad.github.io/MCOP-Framework-2.0";
 
 const SITE_NAME = "MCOP Framework 2.0";
+const DEFAULT_DOCUMENT_TITLE = `${SITE_NAME} | Meta-Cognitive Optimization Protocol`;
 const SITE_DESCRIPTION =
   "Meta-Cognitive Optimization Protocol — deterministic, auditable triad orchestration with crystalline entropy, Merkle-tracked pheromones, and rank-1 holographic etches.";
 
@@ -60,7 +61,7 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: `${SITE_NAME} | Meta-Cognitive Optimization Protocol`,
+    default: DEFAULT_DOCUMENT_TITLE,
     template: `%s · ${SITE_NAME}`,
   },
   description: SITE_DESCRIPTION,
@@ -228,6 +229,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" dir="ltr">
+      <head>
+        <title>{DEFAULT_DOCUMENT_TITLE}</title>
+        <meta name="description" content={SITE_DESCRIPTION} />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
