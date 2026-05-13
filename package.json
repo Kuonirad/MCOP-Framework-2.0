@@ -68,6 +68,7 @@
   "devDependencies": {
     "@cyclonedx/cdxgen": "^12.3.3",
     "@cyclonedx/cyclonedx-library": "^10",
+    "@eslint/eslintrc": "^3.3.3",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",

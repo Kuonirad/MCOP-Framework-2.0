@@ -46,6 +46,7 @@
 import { createHash } from 'node:crypto';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const DEFAULT_SEED = 0xC0FFEE;
 const DEFAULT_STEPS = 1000;
@@ -332,7 +333,7 @@ async function main() {
 const isCliEntry = (() => {
   if (typeof process === 'undefined' || !process.argv?.[1]) return false;
   const invoked = resolve(process.argv[1]);
-  const here = resolve(new URL(import.meta.url).pathname);
+  const here = resolve(fileURLToPath(import.meta.url));
   return invoked === here;
 })();
 

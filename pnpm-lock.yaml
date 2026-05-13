@@ -50,6 +50,9 @@ importers:
       '@cyclonedx/cyclonedx-library':
         specifier: ^10
         version: 10.0.0(ajv-formats-draft2019@1.6.1(ajv@8.20.0))(ajv-formats@3.0.1(ajv@8.20.0))(ajv@8.20.0)(packageurl-js@1.0.2)(spdx-expression-parse@4.0.0)
+      '@eslint/eslintrc':
+        specifier: ^3.3.3
+        version: 3.3.3
       '@tailwindcss/postcss':
         specifier: ^4
         version: 4.2.4
