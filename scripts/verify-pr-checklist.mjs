@@ -73,6 +73,7 @@ export function verifyPullRequestChecklist(body, files = []) {
   return { ok: errors.length === 0, errors };
 }
 
+import { pathToFileURL } from 'node:url';
 const invokedUrl = process.argv[1] ? pathToFileURL(process.argv[1]).href : undefined;
 if (import.meta.url === invokedUrl) {
   const result = verifyPullRequestChecklist(readInput(), readChangedFiles());
