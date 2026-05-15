@@ -49,7 +49,11 @@
     "dev:cuda": "concurrently \"pnpm dev\" \"pnpm cuda:serve\"",
     "registry:telemetry": "node scripts/registry-telemetry.mjs --pretty",
     "ci:workflow-hygiene": "node scripts/verify-workflow-hygiene.mjs",
-    "ci:pr-checklist": "node scripts/verify-pr-checklist.mjs"
+    "ci:pr-checklist": "node scripts/verify-pr-checklist.mjs",
+    "audit:claims": "bash scripts/audit-repo-claims.sh",
+    "docs:check": "node scripts/check-readme-code-blocks.mjs",
+    "determinism:test": "node scripts/test-determinism.mjs",
+    "bench:smoke": "node scripts/bench-smoke.mjs"
   },
   "engines": {
     "node": "^20.17.0 || >=22.9.0",
