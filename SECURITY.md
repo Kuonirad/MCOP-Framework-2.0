@@ -89,10 +89,11 @@ We adhere to a **90-day responsible disclosure policy**. When a report is receiv
 - GitHub Actions workflows use SHA-pinned dependencies for the release/security paths
 - Static Code Analysis (CodeQL) for JS/TS and Python (`.github/workflows/codeql.yml`)
 - Trojan Source detection is enabled (`.github/workflows/guard-trojan-source.yml`)
-- **SBOM generation and validation are shipped today** via `pnpm sbom` /
-  `pnpm sbom:validate` (CycloneDX, see `scripts/generate-sbom.mjs`,
-  `scripts/validate-sbom.mjs`, and `docs/SUPPLY_CHAIN_TRUST.md`). The
-  pre-release `pnpm verify` gate refuses to advance without a green SBOM.
+- **CycloneDX SBOM generation and schema validation are active release controls**
+  via `pnpm sbom` / `pnpm sbom:validate` (see
+  `scripts/generate-sbom.mjs`, `scripts/validate-sbom.mjs`, and
+  `docs/SUPPLY_CHAIN_TRUST.md`). The pre-release `pnpm verify` gate refuses
+  to advance without a green SBOM.
 - npm Trusted Publishing with OIDC provenance — no `NPM_TOKEN` stored
   (`.github/workflows/publish-npm.yml`)
 - Dependabot weekly updates grouped per ecosystem (`.github/dependabot.yml`)
