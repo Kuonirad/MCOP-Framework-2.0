@@ -48,7 +48,7 @@ lint:
 
 # Run security audit
 audit:
-    pnpm audit --audit-level=moderate
+    pnpm audit --audit-level=high
 
 # Run all CI checks locally
 ci: lint build test audit

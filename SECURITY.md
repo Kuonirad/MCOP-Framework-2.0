@@ -84,7 +84,7 @@ We adhere to a **90-day responsible disclosure policy**. When a report is receiv
 - GitHub Actions workflows use SHA-pinned dependencies
 - Static Code Analysis (CodeQL) for JS/TS and Python
 - Trojan Source detection is enabled
-- SBOM generation for releases (planned)
+- CycloneDX SBOM generation and schema validation are active release controls via `pnpm sbom` and `pnpm sbom:validate`
 
 ### Runtime Security
 
@@ -94,7 +94,7 @@ We adhere to a **90-day responsible disclosure policy**. When a report is receiv
 
 ## Contact
 
-For security concerns: **security@kullailabs-mcop.example.com**
+For security concerns, use GitHub's [Private Vulnerability Reporting](https://github.com/Kuonirad/MCOP-Framework-2.0/security/advisories/new).
 
 For general questions: Open a GitHub Discussion
 

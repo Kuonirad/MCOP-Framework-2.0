@@ -467,7 +467,7 @@ run_proof_gates() {
 
   run_pnpm_script_required "build"
 
-  run_cmd "pnpm audit moderate+" pnpm audit --audit-level=moderate
+  run_cmd "pnpm audit high+" pnpm audit --audit-level=high
 
   if has_pnpm_script "sbom"; then
     run_cmd "pnpm script: sbom" pnpm run sbom
