@@ -1,0 +1,58 @@
+name: OpenSSF Scorecard
+
+# Phase VII (Supply-Chain & Provenance Integrity) of the v2.0 audit directive:
+# the canonical Scorecard workflow that docs/SUPPLY_CHAIN_TRUST.md describes
+# as "ship it now". Publishes results to the public Scorecard dashboard and
+# uploads SARIF to GitHub Code Scanning so checks become a required-status
+# signal in branch protection.
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '17 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: scorecard-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  scorecard:
+    name: Scorecard analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      # Needed to upload SARIF to code-scanning.
+      security-events: write
+      # Needed for keyless publishing of Scorecard results.
+      id-token: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Run OpenSSF Scorecard
+        uses: ossf/scorecard-action@4eaacf0543bb3f2c246792bd56e8cdeffafb205a # v2.4.3
+        with:
+          results_file: scorecard-results.sarif
+          results_format: sarif
+          publish_results: true
+
+      - name: Upload Scorecard SARIF to GitHub Code Scanning
+        uses: github/codeql-action/upload-sarif@95e58e9a2cdfd71adc6e0353d5c52f41a045d225 # v4.35.2
+        with:
+          sarif_file: scorecard-results.sarif
+
+      - name: Upload Scorecard SARIF as workflow artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: scorecard-sarif
+          path: scorecard-results.sarif
+          if-no-files-found: error
+          retention-days: 30
