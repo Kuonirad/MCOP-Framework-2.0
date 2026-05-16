@@ -76,9 +76,9 @@ The framework rewards small, traceable interventions:
 ## 🛠️ Development setup
 
 The repository uses **pnpm@9.15.0** (pinned via `packageManager` in
-`package.json`) and **Node.js 22.12.0** (pinned via `.nvmrc`). CI also accepts
-modern Node 22+ releases; CI exercises Node 22.x and 24.x. The Python surface targets
-**3.11+**.
+`package.json`) and **Node.js 22.22.2** (pinned via `.nvmrc`). CI exercises the
+same Node runtime to keep local, container, and workflow behavior aligned. The
+Python surface targets **3.11+**.
 
 ```bash
 # Clone your fork
@@ -86,7 +86,7 @@ git clone https://github.com/<YOUR_USER>/MCOP-Framework-2.0.git
 cd MCOP-Framework-2.0
 
 # Activate the pinned Node version (recommended: nvm or Volta)
-nvm use                              # picks 22.12.0 from .nvmrc
+nvm use                              # picks 22.22.2 from .nvmrc
 
 # Activate pnpm via corepack (first time only)
 corepack enable
@@ -530,8 +530,8 @@ fix(stigmergy): bound circular buffer reads to active capacity
   suite scans for these patterns.
 - Pin all GitHub Actions to a SHA, not a tag.
 - Direct dependency upgrades go through `pnpm deps:check` first; any
-  moderate+ advisory must be triaged in the PR body.
-- Reproduce supply-chain reports against `pnpm audit --audit-level=moderate`
+  high+ advisory must be triaged in the PR body.
+- Reproduce supply-chain reports against `pnpm audit --audit-level=high`
   before claiming "no impact".
 
 See [SECURITY.md](./SECURITY.md) for the responsible-disclosure process.

@@ -95,7 +95,7 @@ notes and the rationale behind every field.
 ### 4.1 Bundle
 
 `examples/reproducible-benchmark/` is a self-contained Docker bundle that
-pins Node 22.12.0, pnpm 9.15.0, Python 3.12, and the workspace's exact
+pins Node 22.22.2, pnpm 9.15.0, Python 3.12, and the workspace's exact
 `pnpm-lock.yaml`. The default container entrypoint:
 
 1. Saves the committed `docs/benchmarks/results.json` baseline.

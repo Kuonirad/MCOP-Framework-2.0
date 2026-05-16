@@ -93,7 +93,7 @@ jobs:
           MCOP_LOW_MEMORY_MODE: "grok-4.3"
           MCOP_ENCODER_DIMS: "32"
           MCOP_MAX_TRACES: "256"
-                      HOLOGRAPHIC_GOAL_COLOR: ${{ inputs.goal_color }}
+          HOLOGRAPHIC_GOAL_COLOR: ${{ inputs.goal_color }}
         # GitHub Actions' default shell is `bash --noprofile --norc -eo
         # pipefail`, which aborts the step the moment the pipeline
         # fails. We need the post-pipe branch to run anyway so we can
@@ -108,7 +108,7 @@ jobs:
             "${{ inputs.game_id }}" \
             --strategy "${{ inputs.strategy }}" \
             --max-actions "${{ inputs.max_actions }}" \
-                      ${{ inputs.goal_color != '' && format('--goal-color {0}', inputs.goal_color) || '' }} \
+            ${{ inputs.goal_color != '' && format('--goal-color {0}', inputs.goal_color) || '' }} \
             ${{ inputs.verbose && '--verbose' || '' }} \
             | tee result.json || status=${PIPESTATUS[0]}
           if [ "$status" -eq 130 ]; then

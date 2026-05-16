@@ -86,7 +86,7 @@ Output lands in `./examples/reproducible-benchmark/out/`.
 
 ### Option C — Host-only (no Docker)
 
-If you have Node 22.12.0 + pnpm 9.15.0 + Python 3.12 already installed:
+If you have Node 22.22.2 + pnpm 9.15.0 + Python 3.12 already installed:
 
 ```bash
 pnpm install --frozen-lockfile
@@ -107,7 +107,7 @@ drifts from the committed snapshot.
 ```
 examples/reproducible-benchmark/
 ├── README.md                               # This file
-├── Dockerfile                              # Pinned Node 22.12.0 + pnpm 9.15.0 + Python 3.12
+├── Dockerfile                              # Pinned Node 22.22.2 + pnpm 9.15.0 + Python 3.12
 ├── compose.yml                             # One-line `docker compose up`
 ├── run-benchmark.sh                        # Container entrypoint — regenerate + verify
 ├── verify.sh                               # Byte-identity check + manifest emitter
