@@ -9,8 +9,12 @@
 # - Production dependencies only in final image
 # - pnpm (via Corepack) is the canonical package manager for this repo
 
-# Base image is pinned by digest for reproducibility; update NODE_IMAGE intentionally.
-ARG NODE_IMAGE=node:20-bookworm-slim@sha256:1b38aaddff63cd0d3a9b5b03863a71fd33ee62047dd2e915f494d96b4b9c18cc
+# Base image is pinned by multi-arch index digest for reproducibility; update NODE_IMAGE intentionally.
+# Node 22 LTS — matches `.nvmrc` (22.12.0), README quick-start, CI matrix (22.x/24.x),
+# and `engines.node` in package.json. Resolves the Phase I Node runtime drift
+# finding (Dockerfile/engines/.nvmrc/CI parity) recorded in
+# docs/audits/audit-execution-ledger-2026-05-v2.md.
+ARG NODE_IMAGE=node:22-bookworm-slim@sha256:689c11043dad91472750cd824c97dd5e2318e9dd6f954e492fe7af0135d33ceb
 
 # =============================================================================
 # Stage 0: Base — activates the pnpm version declared in package.json#packageManager
@@ -20,7 +24,7 @@ FROM ${NODE_IMAGE} AS base
 ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
 
-# Corepack ships with Node 20 and honours packageManager in package.json.
+# Corepack ships with Node 22 and honours packageManager in package.json.
 RUN corepack enable
 
 # =============================================================================
