@@ -33,7 +33,7 @@ jobs:
       - name: Setup project environment
         uses: ./.github/actions/setup-project
         with:
-          node-version: 22.x
+          node-version: 22.22.2
 
       - name: Build Next.js app
         run: pnpm build

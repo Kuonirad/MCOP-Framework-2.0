@@ -22,8 +22,8 @@
     "cypress:run": "cypress run",
     "test:hybrid": "concurrently --kill-others-on-fail --names jest,cypress,playwright \"pnpm test\" \"pnpm cypress:run\" \"if [ \\\"$PLAYWRIGHT_ENABLED\\\" = '1' ]; then pnpm exec playwright test; else echo 'playwright skipped (PLAYWRIGHT_ENABLED!=1)'; fi\"",
     "test:ci": "pnpm test && pnpm cypress:run && (if [ \"$PLAYWRIGHT_ENABLED\" = \"1\" ]; then pnpm exec playwright test; else echo 'playwright skipped (PLAYWRIGHT_ENABLED!=1)'; fi)",
-    "deps:check": "pnpm outdated && pnpm audit --audit-level=moderate",
-    "deps:audit": "pnpm audit --audit-level=moderate",
+    "deps:check": "pnpm outdated && pnpm audit --audit-level=high",
+    "deps:audit": "pnpm audit --audit-level=high",
     "deps:update-check": "pnpm outdated",
     "eco:audit": "node scripts/eco-audit.mjs",
     "parity:check": "node scripts/parity-guardian.mjs",
@@ -56,7 +56,7 @@
     "bench:smoke": "node scripts/bench-smoke.mjs"
   },
   "engines": {
-    "node": "^20.17.0 || >=22.9.0",
+    "node": "22.22.2",
     "pnpm": ">=9.0.0"
   },
   "packageManager": "pnpm@9.15.0",

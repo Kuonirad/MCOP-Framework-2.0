@@ -10,7 +10,7 @@
 # - pnpm (via Corepack) is the canonical package manager for this repo
 
 # Base image is pinned by digest for reproducibility; update NODE_IMAGE intentionally.
-ARG NODE_IMAGE=node:20-bookworm-slim@sha256:1b38aaddff63cd0d3a9b5b03863a71fd33ee62047dd2e915f494d96b4b9c18cc
+ARG NODE_IMAGE=node:22.22.2-bookworm-slim@sha256:9f6d5975c7dca860947d3915877f85607946403fc55349f39b4bc3688448bb6e
 
 # =============================================================================
 # Stage 0: Base — activates the pnpm version declared in package.json#packageManager
@@ -20,7 +20,7 @@ FROM ${NODE_IMAGE} AS base
 ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
 
-# Corepack ships with Node 20 and honours packageManager in package.json.
+# Corepack ships with Node 22 and honours packageManager in package.json.
 RUN corepack enable
 
 # =============================================================================

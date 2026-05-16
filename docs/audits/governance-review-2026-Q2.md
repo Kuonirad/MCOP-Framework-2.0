@@ -167,7 +167,7 @@ No external candidates have crossed the 10-commit / 60-day threshold this quarte
 ### Recommendations
 
 1. **Add a periodic `pnpm.overrides` sweep** to the quarterly cadence. Overrides accrete; some may become unnecessary once direct deps catch up. Suggested check: `pnpm why <pkg>` for every entry in `pnpm.overrides`, dropping overrides where the resolved transitive dep is already at or above the patched version naturally.
-2. **Adopt `cosign attest --predicate <sbom>.cdx.json`** in v2.3.0 to push CycloneDX SBOMs as Sigstore attestations alongside the existing Sigstore artefact provenance. Closes the `SECURITY.md § "Supply Chain Security" → SBOM generation for releases (planned)` line item that is now no longer planned but shipping.
+2. **Adopt `cosign attest --predicate <sbom>.cdx.json`** in v2.3.0 to push CycloneDX SBOMs as Sigstore attestations alongside the existing Sigstore artefact provenance. Builds on the active `SECURITY.md` SBOM generation and validation control.
 
 ---
 
