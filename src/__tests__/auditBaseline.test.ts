@@ -33,6 +33,11 @@ describe('audit remediation baseline', () => {
     expect(ci).toContain(`node-version: [${canonicalNode}]`);
     expect(ci).toContain(`node-version: ${canonicalNode}`);
     expect(ci).toContain(`node-version: '${canonicalNode}'`);
+
+    expect(read('.github/actions/setup-project/action.yml')).toContain(`default: '${canonicalNode}'`);
+    expect(read('.github/workflows/cypress.yml')).toContain(`node-version: '${canonicalNode}'`);
+    expect(read('.github/workflows/lighthouse.yml')).toContain(`node-version: ${canonicalNode}`);
+    expect(read('.github/workflows/pr-checklist.yml')).toContain(`node-version: ${canonicalNode}`);
   });
 
   it('treats high-severity dependency advisories as the audit gate', () => {
