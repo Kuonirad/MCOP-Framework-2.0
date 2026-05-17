@@ -6,12 +6,14 @@ on:
   workflow_dispatch:
 
 permissions:
-  pull-requests: write
-  contents: write
+  contents: read
 
 jobs:
   close-bot-prs:
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: write
     steps:
       - name: Close bot-pattern PRs and delete their branches
         uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0

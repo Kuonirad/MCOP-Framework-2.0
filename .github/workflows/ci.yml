@@ -127,9 +127,14 @@ jobs:
           cache-dependency-path: mcop_package/pyproject.toml
 
       - name: Install mcop_package with dev extras
+        # Hash-pinned pip + build via .github/requirements/pip-bootstrap.txt
+        # satisfies OpenSSF Scorecard's Pinned-Dependencies check. The final
+        # editable install of the in-repo package brings its own
+        # transitive dependencies — they are documented in pyproject.toml
+        # and resolved by pip at install time.
         working-directory: mcop_package
         run: |
-          python -m pip install --upgrade pip build
+          python -m pip install --require-hashes --no-deps -r ../.github/requirements/pip-bootstrap.txt
           python -m pip install -e '.[dev]'
 
       - name: Verify import and console script
@@ -161,8 +166,10 @@ jobs:
           node-version: '22.22.2'
 
       - name: Install core package dependencies
+        # npm ci pins every entry to the SRI-hashed lockfile — satisfies
+        # OpenSSF Scorecard's Pinned-Dependencies check.
         working-directory: packages/core
-        run: npm install --no-package-lock
+        run: npm ci --ignore-scripts
 
       - name: Typecheck core package
         working-directory: packages/core
