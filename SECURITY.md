@@ -4,8 +4,9 @@
 
 | Version | Supported          |
 |--------:|:------------------:|
+| 2.3.x   | :white_check_mark: |
 | 2.2.x   | :white_check_mark: |
-| 2.1.x   | :white_check_mark: |
+| 2.1.x   | :x: (please upgrade) |
 | 2.0.x   | :x: (please upgrade) |
 | 1.0.x   | :x: (please upgrade) |
 | < 1.0   | :x:                |
@@ -32,7 +33,11 @@ CVE issuance when appropriate.
 
 ### PGP Encryption (Optional)
 
-If you prefer to encrypt your communications, you may use PGP encryption. Contact us first to exchange public keys.
+GitHub Private Vulnerability Reporting is already encrypted in transit and at
+rest, so PGP is **not required**. If you nevertheless need to exchange a
+secondary out-of-band channel (e.g. you are sharing exploit binaries that
+exceed GitHub's attachment quota), request a key fingerprint inside the
+private advisory thread before sending anything sensitive.
 
 ## Disclosure Policy
 
@@ -81,10 +86,17 @@ We adhere to a **90-day responsible disclosure policy**. When a report is receiv
 
 ### Supply Chain Security
 
-- GitHub Actions workflows use SHA-pinned dependencies
-- Static Code Analysis (CodeQL) for JS/TS and Python
-- Trojan Source detection is enabled
-- CycloneDX SBOM generation and schema validation are active release controls via `pnpm sbom` and `pnpm sbom:validate`
+- GitHub Actions workflows use SHA-pinned dependencies for the release/security paths
+- Static Code Analysis (CodeQL) for JS/TS and Python (`.github/workflows/codeql.yml`)
+- Trojan Source detection is enabled (`.github/workflows/guard-trojan-source.yml`)
+- **CycloneDX SBOM generation and schema validation are active release controls**
+  via `pnpm sbom` / `pnpm sbom:validate` (see
+  `scripts/generate-sbom.mjs`, `scripts/validate-sbom.mjs`, and
+  `docs/SUPPLY_CHAIN_TRUST.md`). The pre-release `pnpm verify` gate refuses
+  to advance without a green SBOM.
+- npm Trusted Publishing with OIDC provenance — no `NPM_TOKEN` stored
+  (`.github/workflows/publish-npm.yml`)
+- Dependabot weekly updates grouped per ecosystem (`.github/dependabot.yml`)
 
 ### Runtime Security
 
@@ -94,9 +106,13 @@ We adhere to a **90-day responsible disclosure policy**. When a report is receiv
 
 ## Contact
 
-For security concerns, use GitHub's [Private Vulnerability Reporting](https://github.com/Kuonirad/MCOP-Framework-2.0/security/advisories/new).
+Use **[GitHub Private Vulnerability Reporting](https://github.com/Kuonirad/MCOP-Framework-2.0/security/advisories/new)**
+as the primary intake. It is the only channel guaranteed to reach the
+maintainer team with the necessary access to investigate, patch, and
+coordinate disclosure.
 
-For general questions: Open a GitHub Discussion
+For non-sensitive questions: open a
+[GitHub Discussion](https://github.com/Kuonirad/MCOP-Framework-2.0/discussions).
 
 ---
 

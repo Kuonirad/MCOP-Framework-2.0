@@ -197,7 +197,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        legacy-runtime: ['20.x']
+        legacy-runtime: ['22.x', '20.x']
     steps:
       - name: Report legacy compat status
         run: |

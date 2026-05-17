@@ -10,6 +10,9 @@
 # - pnpm (via Corepack) is the canonical package manager for this repo
 
 # Base image is pinned by digest for reproducibility; update NODE_IMAGE intentionally.
+# Node 22.22.2 matches `.nvmrc`, README quick-start, CI, and `engines.node`.
+# This closes the Phase I Node runtime drift recorded in
+# docs/audits/audit-execution-ledger-2026-05-v2.md.
 ARG NODE_IMAGE=node:22.22.2-bookworm-slim@sha256:9f6d5975c7dca860947d3915877f85607946403fc55349f39b4bc3688448bb6e
 
 # =============================================================================
