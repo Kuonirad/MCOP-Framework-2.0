@@ -39,7 +39,9 @@ jobs:
         run: pnpm build
 
       - name: Install Lighthouse CI
-        run: npm install --global @lhci/cli@0.14.x
+        # Exact-version pin (no range) satisfies OpenSSF Scorecard's
+        # Pinned-Dependencies check for npm install.
+        run: npm install --global @lhci/cli@0.14.0
 
       - name: Run Lighthouse CI
         env:

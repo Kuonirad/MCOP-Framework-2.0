@@ -1,0 +1,7 @@
+# Top-level pip + build toolchain pins for CI bootstrap.
+# Regenerate the lockfile with:
+#   pip-compile --allow-unsafe --generate-hashes -o .github/requirements/pip-bootstrap.txt .github/requirements/pip-bootstrap.in
+pip==24.3.1
+build==1.2.2.post1
+setuptools==75.6.0
+wheel==0.45.1

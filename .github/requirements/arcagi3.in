@@ -1,0 +1,5 @@
+# Top-level ARC-AGI-3 agent dependencies for CI.
+# Regenerate the lockfile with:
+#   pip-compile --generate-hashes -o .github/requirements/arcagi3.txt .github/requirements/arcagi3.in
+arc-agi==0.9.8
+openai==2.37.0

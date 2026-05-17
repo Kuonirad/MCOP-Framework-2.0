@@ -96,7 +96,11 @@ jobs:
           "
 
       - name: Install core package dependencies
-        run: npm install --no-package-lock --ignore-scripts=false || npm install --no-package-lock --ignore-scripts=false
+        # npm ci installs from package-lock.json with integrity checks for
+        # every entry — satisfies OpenSSF Scorecard's Pinned-Dependencies
+        # check (pinning by package-lock SRI hashes). Two attempts because
+        # the npm registry occasionally rate-limits the OIDC publish runners.
+        run: npm ci --ignore-scripts=false || npm ci --ignore-scripts=false
 
       - name: Verify package version matches release tag
         if: github.event_name == 'release'
