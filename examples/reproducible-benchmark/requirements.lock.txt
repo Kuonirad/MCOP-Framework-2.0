@@ -1,7 +1,17 @@
 #
 # Hash-pinned benchmark notebook dependencies.
-# Regenerate with:
-#   pip-compile --allow-unsafe --generate-hashes -o examples/reproducible-benchmark/requirements.lock.txt examples/reproducible-benchmark/requirements.txt
+# Compiled against Python 3.11 to match the node:22.22.2-bookworm-slim base
+# image used by examples/reproducible-benchmark/Dockerfile (Debian Bookworm
+# ships python3.11 from `apt-get install python3`). Regenerate inside the
+# same image with:
+#   docker run --rm -v "$PWD/examples/reproducible-benchmark":/work -w /work \
+#     node:22.22.2-bookworm-slim bash -c '
+#       apt-get update -qq && apt-get install -y -qq --no-install-recommends \
+#         python3 python3-pip python3-venv >/dev/null && \
+#       python3 -m venv /tmp/v && . /tmp/v/bin/activate && \
+#       pip install --quiet pip-tools && \
+#       pip-compile --allow-unsafe --generate-hashes \
+#         -o /work/requirements.lock.txt /work/requirements.txt'
 #
 anyio==4.13.0 \
     --hash=sha256:08b310f9e24a9594186fd75b4f73f4a4152069e3853f1ed8bfbf58369f4ad708 \
@@ -556,7 +566,7 @@ jsonschema[format-nongpl]==4.23.0 \
     --hash=sha256:d71497fef26351a33265337fa77ffeb82423f3ea21283cd9467bb03999266bc4 \
     --hash=sha256:fbadb6f8b144a8f8cf9f0b89ba94501d143e50411a1278633f56a7acf7fd5566
     # via
-    #   -r /home/ubuntu/repos/MCOP-Framework-2-0/examples/reproducible-benchmark/requirements.txt
+    #   -r /work/requirements.txt
     #   jupyter-events
     #   jupyterlab-server
     #   nbformat
@@ -568,7 +578,7 @@ jupyter==1.0.0 \
     --hash=sha256:3e1f86076bbb7c8c207829390305a2b1fe836d471ed54be66a3b8c41e7f46cc7 \
     --hash=sha256:5b290f93b98ffbc21c0c7e749f054b3267782166d72fa5e3ed1ed4eaf34a2b78 \
     --hash=sha256:d9dc4b3318f310e34c82951ea5d6683f67bed7def4b259fafbfe4f1beb1d8e5f
-    # via -r /home/ubuntu/repos/MCOP-Framework-2-0/examples/reproducible-benchmark/requirements.txt
+    # via -r /work/requirements.txt
 jupyter-client==8.8.0 \
     --hash=sha256:d556811419a4f2d96c869af34e854e3f059b7cc2d6d01a9cd9c85c267691be3e \
     --hash=sha256:f93a5b99c5e23a507b773d3a1136bd6e16c67883ccdbd9a829b0bbdb98cd7d7a
@@ -887,7 +897,7 @@ matplotlib==3.9.2 \
     --hash=sha256:f32c7410c7f246838a77d6d1eff0c0f87f3cb0e7c4247aebea71a6d5a68cab49 \
     --hash=sha256:f6ee45bc4245533111ced13f1f2cace1e7f89d1c793390392a80c139d6cf0e6c \
     --hash=sha256:f7c0410f181a531ec4e93bbc27692f2c71a15c2da16766f5ba9761e7ae518413
-    # via -r /home/ubuntu/repos/MCOP-Framework-2-0/examples/reproducible-benchmark/requirements.txt
+    # via -r /work/requirements.txt
 matplotlib-inline==0.2.2 \
     --hash=sha256:3c821cf1c209f59fb2d2d64abbf5b23b67bcb2210d663f9918dd851c6da1fcf6 \
     --hash=sha256:72f3fe8fce36b70d4a5b612f899090cd0401deddc4ea90e1572b9f4bfb058c79
@@ -906,7 +916,7 @@ nbconvert==7.17.1 \
     --hash=sha256:34d0d0a7e73ce3cbab6c5aae8f4f468797280b01fd8bd2ca746da8569eddd7d2 \
     --hash=sha256:aa85c087b435e7bf1ffd03319f658e285f2b89eccab33bc1ba7025495ab3e7c8
     # via
-    #   -r /home/ubuntu/repos/MCOP-Framework-2-0/examples/reproducible-benchmark/requirements.txt
+    #   -r /work/requirements.txt
     #   jupyter
     #   jupyter-server
 nbformat==5.10.4 \
@@ -1007,6 +1017,10 @@ numpy==2.4.5 \
     #   contourpy
     #   matplotlib
     #   pandas
+overrides==7.7.0 \
+    --hash=sha256:55158fa3d93b98cc75299b1e67078ad9003ca27945c76162c1c0766d6f91820a \
+    --hash=sha256:c7ed9d062f78b8e4c1a7b70bd8796b35ead4d9f510227ef9c5dc7626c60d7e49
+    # via jupyter-server
 packaging==26.2 \
     --hash=sha256:5fc45236b9446107ff2415ce77c807cee2862cb6fac22b8a73826d0693b0980e \
     --hash=sha256:ff452ff5a3e828ce110190feff1178bb1f2ea2281fa2075aadb987c2fb221661
@@ -1063,7 +1077,7 @@ pandas==2.2.3 \
     --hash=sha256:f00d1345d84d8c86a63e476bb4955e46458b304b9575dcf71102b5c705320015 \
     --hash=sha256:f3a255b2c19987fbbe62a9dfd6cff7ff2aa9ccab3fc75218fd4b7530f01efa24 \
     --hash=sha256:fffb8ae78d8af97f849404f21411c95062db1496aeb3e56f146f0355c9989319
-    # via -r /home/ubuntu/repos/MCOP-Framework-2-0/examples/reproducible-benchmark/requirements.txt
+    # via -r /work/requirements.txt
 pandocfilters==1.5.1 \
     --hash=sha256:002b4a555ee4ebc03f8b66307e287fa492e4a77b4ea14d3f934328297bb4939e \
     --hash=sha256:93be382804a9cdb0a7267585f157e5d1731bbe5545a85b268d6f5fe6232de2bc
@@ -1644,6 +1658,7 @@ typing-extensions==4.15.0 \
     # via
     #   anyio
     #   beautifulsoup4
+    #   ipython
     #   referencing
 tzdata==2026.2 \
     --hash=sha256:9173fde7d80d9018e02a662e168e5a2d04f87c41ea174b139fbef642eda62d10 \
