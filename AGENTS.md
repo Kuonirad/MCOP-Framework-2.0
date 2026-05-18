@@ -33,6 +33,14 @@ MCOP Framework 2.0 is a Next.js 16 + React 19 monorepo with a TypeScript core li
 | Tests | `cd mcop_package && python3 -m pytest -q` |
 | CLI | `mcop --help` |
 
+### Key commands (Python `cuda_server/` — CUDA HTTP bridge)
+
+| Task | Command |
+|---|---|
+| Install | `pip install -e './cuda_server[dev]'` |
+| Tests | `python3 -m pytest -q cuda_server/tests` |
+| Run (dev) | `pnpm cuda:serve` (sets `PYTHONPATH=cuda_server`) |
+
 ### Dev server caveats
 
 - `pnpm dev` starts a Turbopack dev server on port 3000. Client hydration may fail in headless/VM environments due to a known Next.js 16 Turbopack runtime issue (`Error: Connection closed`). This is an upstream issue, not a repo bug. See `.agents/skills/testing-frontend/SKILL.md` for the accepted workaround: use `pnpm test -- --runInBand` (jsdom) as the canonical client-component correctness gate, and SSR HTML inspection (`curl localhost:3000`) for LCP/rendering verification.

@@ -10,7 +10,7 @@
 
 | Provider | File | Flag | Default | Bridge style |
 | -------- | ---- | ---- | ------- | ------------ |
-| `CUDAProvider` (microservice / HTTP) | `src/hardware/Accelerator.ts` (#632, #633) | `MCOP_USE_CUDA=1` / `useCUDA: true` | off | Out-of-process Python sidecar (`pnpm cuda:serve`). Used today for all non-blocking CUDA bridges. |
+| `CUDAProvider` (microservice / HTTP) | `src/hardware/Accelerator.ts` (#632, #633) | `MCOP_USE_CUDA=1` / `useCUDA: true` | off | Out-of-process Python bridge (`pnpm cuda:serve` → `cuda_server/` package, module `mcop_cuda_server`). |
 | `CUDAHardwareLayer` (in-process op-sharded ONNX) | `src/hardware/CUDAHardwareLayer.ts` (this PR) | `MCOP_ENABLE_CUDA=1` / `enableCUDA: true` | off | One `onnxruntime-node` `InferenceSession` per kernel (`encode`, `graphAggregate`, `holographicUpdate`, `cosineRecall`, `evolveScore`, `homeostasis`). Per-op CUDA streams + verifiedDevice gate. |
 
 The flags are **independent**. Either, neither, or both providers may be on

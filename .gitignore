@@ -19,6 +19,7 @@ packages/*/dist/
 cypress/screenshots/
 cypress/videos/
 cypress/downloads/
+.pytest_cache/
 
 # generated API docs (TypeDoc)
 docs/api/core/
@@ -34,6 +35,8 @@ docs/sbom/*.cdx.json
 /build
 dist/
 *.egg-info/
+__pycache__/
+*.py[cod]
 
 # misc
 .DS_Store

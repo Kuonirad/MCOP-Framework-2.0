@@ -1,0 +1,9 @@
+services:
+  mcop-cuda:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8765:8765"
+    environment:
+      - MCOP_CUDA_DEVICE=cuda:0
