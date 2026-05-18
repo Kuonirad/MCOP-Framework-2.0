@@ -110,6 +110,27 @@ resonance, and preserve enough metadata for independent replay.
 - **Conflict is explicit.** Competing traces are kept as sibling branches with
   different Merkle roots; policy chooses which branch to trust for a task.
 
+## Cluster-mode extension
+
+Distributed cluster mode is the planned v3 evolution of this substrate. It keeps
+the single-node contract intact while adding node IDs, shard IDs, membership
+heartbeats, remote inclusion proofs, and deterministic root merges.
+
+Required cluster invariants:
+
+- Nodes converge on the same Merkle root for the same accepted time window.
+- Local deterministic replay remains valid when a node is offline.
+- Human veto events propagate before score-based conflict resolution.
+- Resonance scores are comparable only when scoring metadata and substrate
+  lineage versions match.
+- Capability exchange records provider, CUDA availability, kernel manifest, and
+  software version before shard assignment.
+
+The formal implementation gates for `ClusterStigmergy`,
+`ClusterProvenance`, gossip/pubsub transport, `cluster:replay`, and production
+security live in
+[`docs/TRUST_SUBSTRATE_ROADMAP.md`](./TRUST_SUBSTRATE_ROADMAP.md#track-b-distributed-cluster-mode).
+
 ## Current repository mapping
 
 | Concern | File(s) |

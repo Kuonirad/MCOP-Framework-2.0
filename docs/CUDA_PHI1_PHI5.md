@@ -5,6 +5,12 @@
 > states. This document is the canonical map for the in-process op-sharded
 > ONNX layer (`CUDAHardwareLayer`); the existing HTTP/microservice provider
 > (`CUDAProvider`) is unaffected and continues to ship as before.
+>
+> Production rollout gates for model artifacts, the export pipeline, the Python
+> server, GPU CI, and hot-path unification live in
+> [`docs/CUDA_PRODUCTION.md`](./CUDA_PRODUCTION.md). The broader hardware,
+> cluster-node, and hosted-ledger lineage model lives in
+> [`docs/TRUST_SUBSTRATE_ROADMAP.md`](./TRUST_SUBSTRATE_ROADMAP.md).
 
 ## Provider matrix
 
