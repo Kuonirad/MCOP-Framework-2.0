@@ -39,6 +39,11 @@ const validBody = `# Pull Request
 - [ ] 🟢 Improvement
 `;
 
+const validBodyWithHeadingMetrics = validBody
+  .replace('**Entropy Impact**:', '### Entropy Impact')
+  .replace('**Confidence Level**:', '### Confidence Level')
+  .replace('**Performance Impact**:', '### Performance Impact');
+
 describe('audit remediation guardrail scripts', () => {
   it('rejects empty PR checklists so unchecked templates cannot merge silently', () => {
     const result = spawnSync('node', ['scripts/verify-pr-checklist.mjs'], {
@@ -56,6 +61,14 @@ describe('audit remediation guardrail scripts', () => {
     execFileSync('node', ['scripts/verify-pr-checklist.mjs'], {
       cwd: process.cwd(),
       env: { ...process.env, PR_BODY: validBody, CHANGED_FILES: 'src/index.ts' },
+      encoding: 'utf8',
+    });
+  });
+
+  it('accepts checklist metrics written as markdown headings', () => {
+    execFileSync('node', ['scripts/verify-pr-checklist.mjs'], {
+      cwd: process.cwd(),
+      env: { ...process.env, PR_BODY: validBodyWithHeadingMetrics, CHANGED_FILES: 'src/index.ts' },
       encoding: 'utf8',
     });
   });

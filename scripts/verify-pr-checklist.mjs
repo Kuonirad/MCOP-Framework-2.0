@@ -30,6 +30,16 @@ function countChecked(text) {
   return text.split(/\r?\n/).filter((line) => CHECKED.test(line)).length;
 }
 
+function metricBlock(metricsSection, metric) {
+  const escapedMetric = metric.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return metricsSection.match(
+    new RegExp(
+      `(?:^|\\n)(?:#{3,}\\s*${escapedMetric}\\s*|\\*\\*${escapedMetric}:?\\*\\*:?)([\\s\\S]*?)(?=\\n(?:#{3,}\\s*|\\*\\*)|$)`,
+      'i',
+    ),
+  )?.[1] ?? '';
+}
+
 function isDocsFile(file) {
   return /(^docs\/|^\.github\/ISSUE_TEMPLATE\/|\.md$|\.mdx$|^README\.md$|^CHANGELOG\.md$|^GOVERNANCE\.md$|^CONTRIBUTING\.md$|^SECURITY\.md$)/.test(file);
 }
@@ -94,8 +104,9 @@ export function verifyPullRequestChecklist(body, files = []) {
 
   const metricsSection = section(normalized, 'metrics');
   for (const metric of ['Entropy Impact', 'Confidence Level', 'Performance Impact']) {
-        const metricBlock = metricsSection.match(new RegExp(`\\*\\*${metric}:?\\*\\*:?([\\s\\S]*?)(?=\\n\\*\\*|$)`, 'i'))?.[1] ?? '';
-    if (countChecked(metricBlock) !== 1) errors.push(`Select exactly one ${metric} checkbox.`);
+    if (countChecked(metricBlock(metricsSection, metric)) !== 1) {
+      errors.push(`Select exactly one ${metric} checkbox.`);
+    }
   }
 
   return { ok: errors.length === 0, errors };
