@@ -14,6 +14,12 @@ packages/*/dist/
 !.yarn/releases
 !.yarn/versions
 
+# python caches
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
 # testing
 /coverage
 cypress/screenshots/

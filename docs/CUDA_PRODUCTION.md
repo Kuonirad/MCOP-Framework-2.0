@@ -1,121 +1,171 @@
-# CUDA Productionization
+# CUDA Hardware Layer — Production Runbook
 
-**Status:** production roadmap. The TypeScript in-process ONNX layer, HTTP
-accelerator bridge, smoke benchmarks, soak harness, and Phi5 auto-probe exist in
-this repository. Kernel model artifacts, the deterministic export pipeline, the
-Python CUDA server, GPU CI, and complete hot-path unification are tracked here as
-remaining production work.
+> Companion to [`docs/CUDA_PHI1_PHI5.md`](./CUDA_PHI1_PHI5.md). The Φ-ladder
+> document describes how the in-process layer was built; this file is the
+> operator-facing runbook for turning it on in production, alongside the
+> HTTP microservice (`CUDAProvider`) and the export pipeline.
 
-## Current shipped surface
+## TL;DR — enable CUDA in 3 lines
 
-| Surface | Path | Status |
-| --- | --- | --- |
-| In-process ONNX layer | `src/hardware/CUDAHardwareLayer.ts` | Shipped; disabled or auto-probed unless explicitly enabled. |
-| HTTP accelerator bridge | `src/hardware/Accelerator.ts`, `src/hardware/CUDAAccelerator.ts` | Shipped client contract; server implementation remains planned. |
-| Config defaults | `src/config/mcop.config.ts` | Shipped `hardware.useCUDA`, `hardware.provider`, `hardware.enableCUDA`, and `hardware.kernelDir`. |
-| Benchmarks | `scripts/benchmark-cuda-graph.mjs` | Shipped CPU-stable smoke and full-mode harness for all six ops. |
-| Verified-device soak | `scripts/cuda-verified-device-soak.mjs` | Shipped structural soak and GhostGPU canary path. |
-| Canonical Phi1-Phi5 record | `docs/CUDA_PHI1_PHI5.md` | Shipped implementation notes and exit criteria. |
+```ts
+import { resolveHardwareLayer } from '@kuonirad/mcop-framework';
 
-## Six kernel operations
+const { accelerator, cudaLayer, resolved } = await resolveHardwareLayer();
+// `resolved` is sealed audit-ready provenance:
+//   { useCUDA, provider, enableCUDA, kernelDir, resolvedFrom }
+```
 
-| Kernel op | Canonical accelerator op | Hot path target |
-| --- | --- | --- |
-| `encode` | `nova-neo-encode` | Encoder context vectorization. |
-| `graphAggregate` | `proteome-graph-step` | Stigmergy graph propagation and aggregate recall. |
-| `holographicUpdate` | `holographic-write` | Holographic Etch rank-1 updates. |
-| `cosineRecall` | `cosine-recall` | StigmergyV5 resonance scan hot path. |
-| `evolveScore` | `nova-evolve-score` | Meta-tuning and mutation candidate scoring. |
-| `homeostasis` | `homeostasis` | Threshold, decay, and bounded feedback maintenance. |
+That's it. The factory consults `MCOP_DEFAULT_ORCHESTRATOR.hardware`
+(populated from env vars), runs the Φ5 capability probe when
+`enableCUDA: 'auto'`, and returns a unified
+`{ accelerator, cudaLayer, resolved }` triple. Every hot path that
+already uses `Accelerator.accelerate(op, input)` keeps working
+unchanged; consumers that want the in-process op-sharded layer call
+`cudaLayer.accelerate(op, feeds)` directly.
 
-## Phase gates
+## Architecture
 
-### Gate 0: audit and baseline
+```
+                ┌──────────────────────────────────────────────┐
+                │             MCOP TypeScript core             │
+                │  (BaseAdapter, SynthesisProvenanceTracer,    │
+                │   NovaEvolveTuner, …)                        │
+                └────────────┬──────────────────────┬──────────┘
+                             │                      │
+                             ▼                      ▼
+        ┌──────────────────────────────┐   ┌────────────────────────────┐
+        │   resolveHardwareLayer()     │   │  cudaLayer.accelerate(op,  │
+        │  → { accelerator, cudaLayer, │   │    feeds)                  │
+        │      resolved }              │   │   (in-process op-sharded   │
+        └──────────────┬───────────────┘   │    ONNX, ghost-GPU gate)   │
+                       │                   └────────────┬───────────────┘
+                       ▼                                │
+            ┌──────────────────┐                        │
+            │ Accelerator      │                        │
+            │ (CPU / CUDAProv) │                        │
+            └────────┬─────────┘                        │
+                     │ HTTP POST /cuda/<op>             │
+                     ▼                                  ▼
+         ┌─────────────────────────┐       ┌────────────────────────┐
+         │ mcop_cuda_server         │       │ onnxruntime-node /     │
+         │ (FastAPI / stdlib HTTP)  │       │ onnxruntime-node-gpu   │
+         │                          │       │ (in-process)           │
+         │  - verifies provider     │       │  - one session per op  │
+         │  - attaches Merkle root  │       │  - per-op streams      │
+         │  - GhostGPUError → 502   │       │  - GhostGPUError       │
+         └─────────────────────────┘       └────────────────────────┘
+```
 
-- Run `pnpm benchmark:cuda-ops:smoke` and
-  `pnpm soak:cuda-verified-device:canary` on CPU-only CI to prove deterministic
-  fallback and GhostGPU canary behavior.
-- Run `pnpm benchmark:cuda-ops` and `pnpm soak:cuda-verified-device` on a real
-  GPU host after model artifacts exist.
-- Inventory the six ops above against `vectorMath`, encoder, stigmergy recall,
-  Holographic Etch, and adapter provenance paths.
-- Keep `docs/CUDA_PHI1_PHI5.md` as the low-level implementation ledger and this
-  file as the production checklist.
+## Configuration matrix
 
-### Gate 1: kernel artifact supply chain
+| `useCUDA` | `provider`     | `enableCUDA` | Accelerator route                 | In-process layer |
+| :-------- | :------------- | :----------- | :--------------------------------- | :--------------- |
+| `false`   | any            | `false`      | `CPUFallback`                      | disabled         |
+| `false`   | any            | `'auto'`     | `CPUFallback`                      | Φ5 probe         |
+| `true`    | `microservice` | any          | `CUDAProvider` → `mcop_cuda_server` | follows `enableCUDA` |
+| `true`    | `onnx`         | `true`       | `CPUFallback` (layer is sole CUDA) | enabled          |
+| `true`    | `onnx`         | `'auto'`     | `CPUFallback`                      | Φ5 probe         |
+| `true`    | `native`       | any          | reserved (degrades to microservice)| follows `enableCUDA` |
 
-- Add `scripts/export_cuda_kernels.py` or `scripts/export_cuda_kernels/` to emit
-  one ONNX model per kernel: `models/mcop_encode.onnx`,
-  `models/mcop_graphAggregate.onnx`, `models/mcop_holographicUpdate.onnx`,
-  `models/mcop_cosineRecall.onnx`, `models/mcop_evolveScore.onnx`, and
-  `models/mcop_homeostasis.onnx`.
-- Emit precision variants under explicit names, for example
-  `models/fp32/mcop_encode.onnx`, `models/fp16/mcop_encode.onnx`, and
-  `models/int8/mcop_encode.onnx`.
-- Write a checked-in manifest that records op, input shapes, output names,
-  precision, exporter version, ONNX opset, expected provider, SHA-256 digest,
-  and Merkle root over the weight digests.
-- Include the model digest in `AcceleratorProvenance` through
-  `substrateLineage` or an additive model-artifact field before any speedup
-  claim is published.
+The `resolved` block surfaces the *final* values for sealing into the
+orchestrator's Merkle leaf.
 
-### Gate 2: orchestrator and dual-provider unification
+## Environment variables
 
-- Keep provider selection explicit:
-  `hardware: { enableCUDA: 'auto' | true | false, provider: 'onnx' | 'microservice' }`.
-- Map `provider: 'onnx'` to `CUDAHardwareLayer.create(...)`.
-- Map `provider: 'microservice'` to `CUDAProvider` through the existing
-  `CUDAAccelerator` bridge.
-- Route hot paths through a single accelerator boundary and require every
-  accelerated result to pass through `attachAcceleratorProvenance`.
-- Preserve CPU determinism: `enableCUDA: false` and failed auto-probes must keep
-  existing byte-identical CPU behavior while sealing `resolvedFrom`.
+| Variable                   | Default     | Notes                                                                                            |
+| -------------------------- | ----------- | ------------------------------------------------------------------------------------------------ |
+| `MCOP_USE_CUDA`            | `0`         | Sets `useCUDA: true` for the microservice provider.                                              |
+| `MCOP_CUDA_ENDPOINT`       | `http://localhost:8765` | Endpoint for `CUDAProvider`.                                                          |
+| `MCOP_CUDA_DEVICE`         | `cuda:0`    | Logical device tag sealed into provenance.                                                       |
+| `MCOP_ENABLE_CUDA`         | `auto`      | Tri-state for the in-process layer. `1`/`0`/`auto`.                                              |
+| `MCOP_CUDA_KERNEL_DIR`     | `./models`  | Where `mcop_<op>.onnx` files live.                                                               |
+| `MCOP_CUDA_REQUIRE`        | `0`         | When `1`, the microservice rejects CPU dispatch with HTTP 502 (`error: "ghost_gpu"`).            |
+| `MCOP_CUDA_STREAMS`        | `per-op`    | `per-op | shared`. Sealed into `substrateLineage`.                                               |
 
-### Gate 3: Python CUDA server
+## Phase 1 — kernel artifact pipeline
 
-- Add `mcop_cuda_server` with a stateless FastAPI entry point matching the
-  existing client contract: `POST /cuda/{op}`.
-- Add `GET /health` for process liveness and `GET /capabilities` for provider,
-  device, precision, kernel, and model-digest discovery.
-- Use `onnxruntime-gpu` first; CuPy/custom kernels may be added only behind the
-  same op contract and provenance envelope.
-- Reuse GhostGPU semantics: if CUDA was requested but profiler/capability data
-  proves CPU execution, return a structured GhostGPU error instead of a silent
-  fallback.
-- Return provenance-ready payloads with provider, requested device, verified
-  device, substrate lineage, model digest, duration, and fallback reason.
-- Ship `Dockerfile.cuda` plus a `docker-compose.cuda.yml` example for local
-  sidecar use.
+```bash
+# Deterministic CI placeholders (no torch dependency):
+python3 scripts/export_cuda_kernels/export.py --out-dir models --backend reference
 
-### Gate 4: CI and Phi5 hardening
+# Real PyTorch export on a GPU box:
+pip install torch onnx
+python3 scripts/export_cuda_kernels/export.py --out-dir models --backend pytorch --fp-variant fp16
+```
 
-- Add GPU-runner workflow jobs behind labels or `workflow_dispatch` so ordinary
-  CPU CI remains deterministic.
-- Run CPU adversarial tests that request CUDA while forcing CPU execution; these
-  must fail through GhostGPU detection.
-- Run `pnpm benchmark:cuda-ops:smoke` in regular CI.
-- Run full GPU benchmarks and the verified-device soak only when CUDA hardware
-  and model artifacts are present.
-- Store benchmark JSON artifacts with model digest, driver version, runtime
-  provider, verified-device fields, Merkle root, and speedup summary.
+`models/manifest.json` carries a Merkle digest of every exported file
+in the schema `mcop-cuda-kernel-manifest/1.0`. Embed the manifest
+into your release artifact and reference it in `substrateLineage` so a
+runtime mismatch is detectable.
 
-### Gate 5: documentation and release evidence
+## Phase 3 — running the Python microservice
 
-- Update README and architecture docs only after the corresponding artifacts
-  exist in the repository.
-- Publish a minimal enablement example for both providers.
-- Publish CPU versus CUDA tables only from committed benchmark artifacts.
-- Document compatibility: the HTTP bridge and in-process ONNX layer are separate
-  providers with separate failure modes and independent provenance.
+```bash
+# Stateless, stdlib-only (CI, dev):
+python3 -m mcop_cuda_server --port 8765 --device cuda:0
 
-## Acceptance criteria
+# Production (FastAPI + Uvicorn):
+pip install fastapi 'uvicorn[standard]' rfc8785
+uvicorn mcop_cuda_server.fastapi_app:app --host 0.0.0.0 --port 8765
 
-- `enableCUDA: 'auto'` on a GPU host loads all six kernels for `provider: 'onnx'`.
-- `provider: 'microservice'` reaches `mcop_cuda_server` and returns the same op
-  shapes as the in-process layer.
-- Every accelerated leaf includes requested device, verified device, provider,
-  substrate lineage, `resolvedFrom`, model digest, timestamp, and Merkle root.
-- Forced CPU execution while CUDA is requested raises GhostGPU detection.
-- CPU-only hosts fall back cleanly with provenance that records the fallback.
-- Encode and recall benchmarks show measurable speedup from committed GPU
-  artifacts before public acceleration claims are updated.
+# Docker:
+docker compose --profile cuda up -d
+```
+
+The microservice exposes `GET /health`, `GET /capabilities`,
+`POST /cuda/<op>`, `POST /cuda` (batch). All responses include a
+Merkle-rooted `_provenance` envelope.
+
+### Forcing CUDA-only dispatch
+
+Set `MCOP_CUDA_REQUIRE=1` (or `--require-cuda`) to refuse any CPU
+fallback at the HTTP boundary. Any request whose verified provider is
+not `CUDAExecutionProvider` returns HTTP 502 with:
+
+```json
+{ "error": "ghost_gpu", "op": "encode", "verifiedProvider": "CPUExecutionProvider" }
+```
+
+## Phase 4 — verifiedDevice gate hardening
+
+The 1 000-step soak is already wired (`pnpm soak:cuda-verified-device`
++ `pnpm soak:cuda-verified-device:canary`). Every leaf carries
+`resolvedFrom`. On a real GPU box, run both with
+`MCOP_ENABLE_CUDA=1`:
+
+```bash
+MCOP_ENABLE_CUDA=1 MCOP_CUDA_KERNEL_DIR=./models pnpm soak:cuda-verified-device
+```
+
+## Phase 5 — auto-detect default-on
+
+`MCOP_ENABLE_CUDA=auto` (the default) makes the layer probe at boot
+via `detectCUDACapability()`. CPU-only hosts seal `auto-not-capable`
+into every leaf; GPU hosts seal `auto-capable`. Explicit overrides
+`MCOP_ENABLE_CUDA=1` / `MCOP_ENABLE_CUDA=0` always win and seal
+`explicit-on` / `explicit-off`.
+
+## Performance comparison template
+
+When you run the benchmarks on a real GPU host, paste the numbers
+below verbatim. The schema is intentionally minimal so the diff is
+easy to review.
+
+| Op                | CPU (ms) | CUDA (ms) | Speedup | verifiedDevice         | resolvedFrom   |
+| ----------------- | -------- | --------- | ------- | ---------------------- | -------------- |
+| `encode`          |   _TBD_  |   _TBD_   | _TBD_   | `CUDAExecutionProvider`| `auto-capable` |
+| `graphAggregate`  |   _TBD_  |   _TBD_   | _TBD_   | `CUDAExecutionProvider`| `auto-capable` |
+| `holographicUpdate`|  _TBD_  |   _TBD_   | _TBD_   | `CUDAExecutionProvider`| `auto-capable` |
+| `cosineRecall`    |   _TBD_  |   _TBD_   | _TBD_   | `CUDAExecutionProvider`| `auto-capable` |
+| `evolveScore`     |   _TBD_  |   _TBD_   | _TBD_   | `CUDAExecutionProvider`| `auto-capable` |
+| `homeostasis`     |   _TBD_  |   _TBD_   | _TBD_   | `CUDAExecutionProvider`| `auto-capable` |
+
+(Use `pnpm benchmark:cuda-ops` to produce the numbers.)
+
+## Reversibility
+
+`MCOP_USE_CUDA=0` + `MCOP_ENABLE_CUDA=0` restores pre-Φ1 behaviour
+exactly. Both providers are independent, both are off by default in
+the synchronous constructor path, and removing `onnxruntime-node`
+from the install only fails at the moment a caller asks the in-process
+layer to load a kernel — never at module-load time.
