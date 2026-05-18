@@ -1,0 +1,20 @@
+apiVersion: v2
+name: mcop-ledger
+description: |
+  MCOP Hosted Provenance Ledger — multi-tenant Merkle forest service
+  exposing /etch, /query, /verify, /export. Backed by an in-memory
+  storage adapter in v0.1; future versions plug Postgres + S3
+  adapters via the same LedgerStorageAdapter interface.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords:
+  - mcop
+  - provenance
+  - merkle
+  - audit
+maintainers:
+  - name: Kuonirad
+    url: https://github.com/Kuonirad/MCOP-Framework-2.0
+sources:
+  - https://github.com/Kuonirad/MCOP-Framework-2.0
