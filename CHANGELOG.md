@@ -324,7 +324,7 @@ test coverage. Ships alongside `@kullailabs/mcop-core@0.2.0` (npm) and
 - CodeQL alert on sensitive data exposure in CLI logs.
 - Accessibility: decorative icons marked `aria-hidden`, alt text tightened on
   File / Window / Globe icons in `src/app/page.tsx`.
-- ESLint configuration reconciled with Next.js 16.
+- ESLint configuration reconciled with Next.js 15.5.
 
 ## [2.0.2] — 2026-04-09
 

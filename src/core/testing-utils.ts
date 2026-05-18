@@ -2,7 +2,7 @@
  * @fileoverview Reusable testing utilities for SSR / LCP invariants.
  *
  * The MCOP audit accepts a documented testing constraint: live-Chrome
- * hydration is currently blocked by the Next.js 16 + Turbopack runtime
+ * hydration is currently blocked by the Next.js 15.5 + Turbopack runtime
  * chunk on the Devin VMs (see `.agents/skills/testing-frontend/SKILL.md`).
  * The project's accepted substitute for headless-browser testing is a
  * combination of jsdom unit tests and SSR HTML inspection. These
@@ -65,7 +65,7 @@ const FETCH_PRIORITY_HIGH = /fetch[Pp]riority\s*=\s*"high"/g;
 /**
  * Match a `<link rel="preload" ... fetchpriority="high" ...>` tag in
  * any attribute order. `[\s\S]` (rather than `.`) tolerates line
- * breaks inside the tag — Next.js 16's SSR output occasionally wraps
+ * breaks inside the tag — Next.js 15.5's SSR output occasionally wraps
  * long attribute lists across multiple lines.
  */
 const PRELOAD_LINK_TAG = /<link\b[^>]*\brel\s*=\s*"preload"[^>]*>/gi;

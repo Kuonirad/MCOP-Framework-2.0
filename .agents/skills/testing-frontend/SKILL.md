@@ -4,7 +4,7 @@ description: Test the MCOP-Framework-2.0 frontend, production SSR/API surface, a
 ---
 # Testing the MCOP-Framework-2.0 frontend
 
-This repo is a Next.js 16 + React 19 + Turbopack app with a jsdom-based jest
+This repo is a Next.js 15.5 + React 19 + Turbopack app with a jsdom-based jest
 suite. The canonical proof-of-correctness for any **client component** change
 (anything in `src/components/*` or anything with `"use client"` at the top of
 the file) is the existing jest suite — it runs components inside the same React
@@ -351,7 +351,7 @@ standalone production server in a real browser:
   dispatch, verifies rewrite recovery, commits a resonance trace, and asserts
   resonance is not `—`.
 
-**Why "exploratory":** the Next.js 16 hydration block may reproduce in
+**Why "exploratory":** the Next.js 15.5 hydration block may reproduce in
 headless Chrome on Devin VMs against the standalone production build
 too, not just the Turbopack dev server. Cypress is therefore wired in
 `.github/workflows/cypress.yml` with `continue-on-error: true` until we

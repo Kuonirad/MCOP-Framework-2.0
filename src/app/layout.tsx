@@ -79,7 +79,7 @@ export const metadata: Metadata = {
     "NOVA-NEO encoder",
     "Merkle lineage",
     "Universal Adapter Protocol",
-    "Next.js 16",
+    "Next.js 15.5",
     "React 19",
   ],
   authors: [

@@ -32,7 +32,7 @@ Each `.md` file uses a consistent template:
 
 ## Relationship to ADRs
 
-`docs/adr/` records **architectural** decisions (why we chose Next.js 16).
+`docs/adr/` records **architectural** decisions (why we chose Next.js 15.5).
 `.jules/` records **operational** lessons (why `Array.prototype.reduce` is
 slow in V8). Both are required reading for new maintainers; ADRs are
 ceremonial, jules are tactical.

@@ -37,7 +37,7 @@ cannot see.
 
 ## Context
 
-The MCOP Visualizer ships on Next.js 16 with Turbopack and React 19. The
+The MCOP Visualizer ships on Next.js 15.5 with Turbopack and React 19. The
 v10 master prompt audit converged on three findings that this ADR
 formalises into a testing strategy:
 
@@ -53,7 +53,7 @@ formalises into a testing strategy:
    on Devin VMs raises the same `Error: Connection closed` from
    `/_next/static/chunks/<hash>.js` against
    `node .next/standalone/server.js` as it does against
-   `next dev --turbopack`. The block is therefore a Next.js 16 +
+   `next dev --turbopack`. The block is therefore a Next.js 15.5 +
    headless-Chrome interaction, not a Turbopack-only dev-mode
    issue. Whether real GitHub Actions runners (different Chromium
    binary, different network stack) behave the same way is
@@ -84,7 +84,7 @@ rather than replacement:
 - **Audit caveat #1 — live-Chrome hydration.** Cypress is wired
   against the production standalone server (which strips
   Turbopack's dev hot-reload runtime) but the underlying
-  Next.js 16 / headless-Chrome chunk-fetch failure still
+  Next.js 15.5 / headless-Chrome chunk-fetch failure still
   reproduces locally on Devin VMs. The Cypress workflow was
   initially wired as a **non-blocking exploratory CI signal**
   (`continue-on-error: true`) until we had a confirming GitHub

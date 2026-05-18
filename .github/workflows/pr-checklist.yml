@@ -41,4 +41,4 @@ jobs:
           CHANGED_FILES_FILE: changed-files.txt
         run: |
           printf '%s' "$PR_BODY" > pr-body.txt
-          PR_BODY_FILE=pr-body.txt pnpm ci:pr-checklist
+                      PR_BODY_FILE=pr-body.txt node scripts/verify-pr-checklist.mjs
