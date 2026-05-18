@@ -63,7 +63,7 @@ def create_app(config: ServerConfig | None = None) -> Any:  # pragma: no cover -
                 status_code=502,
                 content={
                     "error": "ghost_gpu",
-                    "detail": str(exc),
+                    "detail": "CUDA backend request failed.",
                     "op": exc.op,
                     "requestedDevice": exc.requested_device,
                     "verifiedProvider": exc.verified_provider,
