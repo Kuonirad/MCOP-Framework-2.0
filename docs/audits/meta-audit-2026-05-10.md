@@ -62,7 +62,7 @@ Cross-runtime parity validated by `pnpm parity:check` (1818 ms · radiating).
 |---|---|---|
 | **B-10** | v2.2.0 GitHub Release page **deleted** during attempt to flip `immutable: true` for SBOM attachment | **"Treat release pages as append-only; SBOMs are added via re-anchored successor releases (e.g., v2.2.1) with cross-linked provenance; document the procedure in `docs/RELEASE_PLAYBOOK.md` so no maintainer ever deletes an immutable tag again."** |
 | **B-11** | `eco-fitness` math utility produced incorrect score (v2.0.2) | **"Property-test eco-fitness math with monotonicity invariants (`score(better-input) ≥ score(worse-input)`); regenerate the audit baseline on every kernel change."** |
-| **B-12** | ESLint rules drifted from Next.js 16 conventions (v2.1.0) | **"Reconcile ESLint config with each Next.js minor bump; add a CI smoke test that builds a minimal Next.js 16 app importing `@kullailabs/mcop-core`."** |
+| **B-12** | ESLint rules drifted from Next.js 15.5 conventions (v2.1.0) | **"Reconcile ESLint config with each Next.js minor bump; add a CI smoke test that builds a minimal Next.js 15.5 app importing `@kullailabs/mcop-core`."** |
 | **B-13** | OIDC trusted-publishing failed with misleading 404/ENEEDAUTH (npm/cli #8730 referenced) | **"Maintain `packages/core/BOOTSTRAP.md` documenting the manual first-publish; subsequent releases use OIDC only; surface auth-debug output via `--loglevel verbose` in publish workflow."** |
 | **B-14** | `0.2.1` published as no-op release purely to validate publish pipeline | **"Codify a 'pipeline canary' release ritual: every quarter, ship a no-functional-change patch through the full OIDC + SBOM + provenance trail; the canary itself becomes a positive trust signal."** |
 
@@ -131,7 +131,7 @@ Cross-runtime parity validated by `pnpm parity:check` (1818 ms · radiating).
 | **2.3.0** *Eudaimonic Bloom* | 2026-05-06 | `NovaNeoWeb` portable SHA-256 · `ResonantRecentQuery` · `SelfHealingDimension` · `EudaimonicEtch` · CircularBuffer + HashingTrick bugfixes (B-01, B-02) |
 | **2.2.1** | 2026-05-03 / 04-30 | `confidenceFloor` 0.80→0.65 + `adaptiveThreshold` + `curiosityBonus` (B-19) · v2.2.0 release-page restoration with SBOMs (B-10) |
 | **2.2.0** | 2026-04-30 | CycloneDX SBOM gen+validate · ONNX `IEmbeddingBackend` example · pnpm workspaces · Shared-docs guardian · TypeDoc · Coverage badge · Independent-audit response landed |
-| **2.1.0** | 2026-04-19 | Release-drafter, stale, auto-close, delete-merged-branches workflows · GOVERNANCE.md · Pino redact hardening (B-05) · `actions/upload-artifact@v4` SHA fix (B-06) · ESLint Next.js 16 reconciliation (B-12) · Accessibility patches (B-15) |
+| **2.1.0** | 2026-04-19 | Release-drafter, stale, auto-close, delete-merged-branches workflows · GOVERNANCE.md · Pino redact hardening (B-05) · `actions/upload-artifact@v4` SHA fix (B-06) · ESLint Next.js 15.5 reconciliation (B-12) · Accessibility patches (B-15) |
 | **2.0.2** | 2026-04-09 | `crypto.randomUUID` trace IDs · Container health-check · Eco-fitness audit script · CSP/HSTS expansion · CodeQL log fix (B-05) · `publish.yml` syntax fix (B-07) · eco-fitness math fix (B-11) |
 | **2.0.1** | 2025-12-31 | CONTRIBUTOR_ONBOARDING.md · ROADMAP_TO_100.md · package-lock.json · CI v6 · Next 16.0.10→16.1.0 · Docs accessibility (B-16) |
 | **2.0.0** | 2025-12-19 | Full MCOP v3.1 reasoning engine · TS frontend · Docker/CI · CodeQL + Trojan-source guard · Reproducible Makefile · CoC · SECURITY.md |

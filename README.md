@@ -34,7 +34,7 @@
 ```
 
 ### Recursive triad orchestration · Deterministic · Cryptographically-linked provenance
-### Built on **Next.js 16 + TypeScript** · Production-hardened · Hardware-acceleration-ready
+### Built on **Next.js 15.5 + TypeScript** · Production-hardened · Hardware-acceleration-ready
 
 </div>
 
@@ -186,7 +186,7 @@ pnpm test
 # 5. Generate the Positive Impact Report + Merkle-anchored audit badge (≈5 s)
 pnpm positive:audit
 
-# 6. Launch the production server (Next.js 16 SSR, port 3000)
+# 6. Launch the production server (Next.js 15.5 SSR, port 3000)
 pnpm build && pnpm start
 
 # 7. Optional — open the Three.js cinematic showcase locally
@@ -199,7 +199,7 @@ open http://localhost:3000/showcase/index.html
 > with `pnpm add @kullailabs/mcop-core` (or `npm i @kullailabs/mcop-core`).
 
 ```typescript
-import { MCOPOrchestrator } from '@mcop/core';
+import { MCOPOrchestrator } from '@kullailabs/mcop-core';
 
 // Initialize the recursive triad
 const mcop = new MCOPOrchestrator({

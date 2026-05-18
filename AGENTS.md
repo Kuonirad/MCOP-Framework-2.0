@@ -4,7 +4,7 @@
 
 ### Overview
 
-MCOP Framework 2.0 is a Next.js 16 + React 19 monorepo with a TypeScript core library (`packages/core/`) and a Python package (`mcop_package/`). It is stateless — no database or external infrastructure is required. All commands are documented in `package.json` scripts and the `justfile`.
+MCOP Framework 2.0 is a Next.js 15.5 + React 19 monorepo with a TypeScript core library (`packages/core/`) and a Python package (`mcop_package/`). It is stateless — no database or external infrastructure is required. All commands are documented in `package.json` scripts and the `justfile`.
 
 ### Node.js / pnpm
 
@@ -43,7 +43,7 @@ MCOP Framework 2.0 is a Next.js 16 + React 19 monorepo with a TypeScript core li
 
 ### Dev server caveats
 
-- `pnpm dev` starts a Turbopack dev server on port 3000. Client hydration may fail in headless/VM environments due to a known Next.js 16 Turbopack runtime issue (`Error: Connection closed`). This is an upstream issue, not a repo bug. See `.agents/skills/testing-frontend/SKILL.md` for the accepted workaround: use `pnpm test -- --runInBand` (jsdom) as the canonical client-component correctness gate, and SSR HTML inspection (`curl localhost:3000`) for LCP/rendering verification.
+- `pnpm dev` starts a Turbopack dev server on port 3000. Client hydration may fail in headless/VM environments due to a known Next.js 15.5 Turbopack runtime issue (`Error: Connection closed`). This is an upstream issue, not a repo bug. See `.agents/skills/testing-frontend/SKILL.md` for the accepted workaround: use `pnpm test -- --runInBand` (jsdom) as the canonical client-component correctness gate, and SSR HTML inspection (`curl localhost:3000`) for LCP/rendering verification.
 - The `/api/health` endpoint returns `{"status":"ok","timestamp":"..."}` and is a quick way to confirm the server is running.
 - The Dialectical Studio is at `/dialectical`.
 

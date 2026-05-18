@@ -433,7 +433,7 @@ footer .legal{display:flex;gap:24px;flex-wrap:wrap}
     <span>Append-Only Ledger<span class="dot"></span></span>
     <span>Deterministic<span class="dot"></span></span>
     <span>Replayable<span class="dot"></span></span>
-    <span>Next.js 16<span class="dot"></span></span>
+    <span>Next.js 15.5<span class="dot"></span></span>
     <span>TypeScript 5<span class="dot"></span></span>
     <span>SBOM Validated<span class="dot"></span></span>
     <span>CodeQL Hardened<span class="dot"></span></span>
@@ -582,7 +582,7 @@ footer .legal{display:flex;gap:24px;flex-wrap:wrap}
       <div class="bench">
         <span class="b-label">Throughput</span>
         <div><span class="b-value"><span data-count="10">0</span>K</span><span class="b-unit">req/s</span></div>
-        <span class="b-sub">Sustained on a single Next.js 16 runtime.</span>
+        <span class="b-sub">Sustained on a single Next.js 15.5 runtime.</span>
       </div>
       <div class="bench">
         <span class="b-label">Uptime</span>
@@ -708,7 +708,7 @@ footer .legal{display:flex;gap:24px;flex-wrap:wrap}
 <span class="c-prompt">$</span> pnpm positive:audit <span class="c-com"># positive impact report</span>
 <span class="c-prompt">$</span> pnpm build &amp;&amp; pnpm start</pre>
 
-          <pre class="code-block code-pane" data-pane="ts"><button class="copy-btn" data-copy="import { MCOPOrchestrator } from '@mcop/core';" data-label="copy">copy</button><span class="c-key">import</span> { MCOPOrchestrator } <span class="c-key">from</span> <span class="c-str">'@mcop/core'</span>;
+          <pre class="code-block code-pane" data-pane="ts"><button class="copy-btn" data-copy="import { MCOPOrchestrator } from '@kullailabs/mcop-core';" data-label="copy">copy</button><span class="c-key">import</span> { MCOPOrchestrator } <span class="c-key">from</span> <span class="c-str">'@kullailabs/mcop-core'</span>;
 
 <span class="c-com">// initialize the recursive triad</span>
 <span class="c-key">const</span> mcop = <span class="c-key">new</span> MCOPOrchestrator({
@@ -744,11 +744,11 @@ result = mcop.optimize(context)
       </div>
 
       <div class="install-prose">
-        <h3>Built on Next.js 16 + TypeScript. <em>Cross-runtime parity with Python.</em></h3>
+        <h3>Built on Next.js 15.5 + TypeScript. <em>Cross-runtime parity with Python.</em></h3>
         <p>Canonical hashes use RFC 8785 JSON serialization. Every TypeScript ↔ Python boundary is parity-guarded by CI — fixtures must hash byte-identically across runtimes or the build fails.</p>
         <p>The encoder path is portable: <code style="font-family:var(--mono);font-size:13px">UniversalEncoder</code> uses portable SHA-256, so client and edge runtimes don't require Node <code style="font-family:var(--mono);font-size:13px">crypto</code> or <code style="font-family:var(--mono);font-size:13px">Buffer</code>.</p>
         <div class="kbd-list">
-          <span>Next.js 16</span>
+          <span>Next.js 15.5</span>
           <span>TypeScript 5</span>
           <span>Node 20+</span>
           <span>Docker ready</span>

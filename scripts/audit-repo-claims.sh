@@ -134,24 +134,31 @@ search_claims() {
   local label="$1"
   local pattern="$2"
   local severity="$3"
+  local extra_glob="${4:-}"
   local outfile="$REPORT_DIR/${label//[^A-Za-z0-9_]/_}.txt"
 
   : > "$outfile"
 
   if command -v rg >/dev/null 2>&1; then
-    rg \
-      --hidden \
-      --line-number \
-      --no-heading \
-      --glob '!node_modules/**' \
-      --glob '!dist/**' \
-      --glob '!build/**' \
-      --glob '!coverage/**' \
-      --glob '!.next/**' \
-      --glob '!.git/**' \
-      --glob '!pnpm-lock.yaml' \
-      --glob '!audit-artifacts/**' \
-      -S "$pattern" . >"$outfile" || true
+    local rg_cmd=(
+      rg
+      --hidden
+      --line-number
+      --no-heading
+      --glob '!node_modules/**'
+      --glob '!dist/**'
+      --glob '!build/**'
+      --glob '!coverage/**'
+      --glob '!.next/**'
+      --glob '!.git/**'
+      --glob '!pnpm-lock.yaml'
+      --glob '!audit-artifacts/**'
+    )
+    if [[ -n "$extra_glob" ]]; then
+      rg_cmd+=(--glob "$extra_glob")
+    fi
+    rg_cmd+=(-S "$pattern" .)
+    "${rg_cmd[@]}" >"$outfile" || true
   else
     git grep -n -E "$pattern" -- . \
       ':(exclude)node_modules' \
@@ -287,8 +294,11 @@ else warn("No Next.js dependency found in root package.json");
 
 const readme = exists("README.md") ? fs.readFileSync("README.md", "utf8") : "";
 
-if (/Next\.js\s+16/i.test(readme) && nextMajor !== 16) {
-  fail(`README mentions Next.js 16, but package.json uses next='${nextSpec}'`);
+const readmeNext = readme.match(/Next\.js\s+(\d+)/i);
+if (readmeNext && nextMajor != null && Number(readmeNext[1]) !== nextMajor) {
+  fail(
+    `README documents Next.js major ${readmeNext[1]} while package.json resolves next='${nextSpec}' (major ${nextMajor})`,
+  );
 }
 
 if (/MIT License|MIT-licensed|permissive for research and commercial use/i.test(readme)) {
@@ -340,8 +350,10 @@ for (const file of packageFiles) {
   if (pkg.dependencies?.next || pkg.devDependencies?.next) {
     const spec = pkg.dependencies?.next || pkg.devDependencies?.next;
     const major = Number((spec.match(/\d+/) || [NaN])[0]);
-    if (/Next\.js\s+16/i.test(readme) && major !== 16) {
-      fail(`${file}: README says Next.js 16 but this package uses '${spec}'`);
+    if (readmeNext && Number.isFinite(major) && Number(readmeNext[1]) !== major) {
+      fail(
+        `${file}: README documents Next.js major ${readmeNext[1]} but this package uses next='${spec}' (major ${major})`,
+      );
     }
   }
 }
@@ -400,7 +412,8 @@ audit_claim_drift() {
     search_claims \
       "Import alias drift" \
       '@mcop/core' \
-      "FAIL"
+      "FAIL" \
+      '!scripts/audit-repo-claims.sh'
   fi
 
   if [[ ! -s "$CLAIMS_REPORT" ]]; then

@@ -3,7 +3,7 @@
 Thanks for advancing the triad. This guide keeps contributions deterministic,
 auditable, and easy to review.
 
-> The repository is a **multi-language monorepo**: a Next.js 16 / React 19
+> The repository is a **multi-language monorepo**: a Next.js 15.5 / React 19
 > TypeScript surface, a `packages/core/` ESM+CJS distribution, and a Python
 > implementation under `mcop_package/`. Coordination across these boundaries
 > is the central concern of this document.
@@ -124,7 +124,7 @@ pnpm triad:fingerprint  # Deterministic triad fingerprint
 ```
 .
 ├── src/
-│   ├── app/             Next.js 16 App Router routes + server components
+│   ├── app/             Next.js 15.5 App Router routes + server components
 │   ├── components/      Client components (HUD, VSI Coach, hooks)
 │   ├── core/            Triad kernels (Encoder, Stigmergy, Etch)
 │   ├── adapters/        TypeScript Universal Adapter Protocol implementations
@@ -241,11 +241,11 @@ mypy mcop_package
 - For performance-critical paths (encoder hot loops, resonance scoring),
   add a micro-benchmark or an O(n) reasoning paragraph in the PR body.
 
-### Browser testing constraints (Next.js 16 + Turbopack)
+### Browser testing constraints (Next.js 15.5 + Turbopack)
 
 The framework deliberately accepts a **jsdom + SSR HTML inspection** path as
 the canonical proof-of-correctness for client components. Live-Chrome
-hydration is currently blocked by a Next.js 16 / Turbopack runtime-chunk
+hydration is currently blocked by a Next.js 15.5 / Turbopack runtime-chunk
 issue (`Error: Connection closed` from
 `/_next/static/chunks/<hash>.js` on Devin VMs and similar headless CI
 environments — both `next start` and the standalone `node .next/standalone/server.js`
@@ -315,7 +315,7 @@ production server (`node .next/standalone/server.js`) in a real browser.
 It is **additive** — the jest + jsdom + SSR HTML inspection path remains
 the canonical correctness gate. Cypress is wired as a **non-blocking
 exploratory CI signal** (`continue-on-error: true` in
-`.github/workflows/cypress.yml`) because the Next.js 16 hydration block
+`.github/workflows/cypress.yml`) because the Next.js 15.5 hydration block
 described above empirically reproduces in headless Chrome against the
 standalone build too, not just the Turbopack dev server. Whether real
 GitHub Actions runners hit the same constraint is the open question

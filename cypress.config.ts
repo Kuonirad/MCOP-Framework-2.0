@@ -5,7 +5,7 @@ import { defineConfig } from "cypress";
  * (`node .next/standalone/server.js`) rather than the Turbopack
  * dev server. This is intentional and load-bearing:
  *
- *   - The documented hydration block (Next.js 16 + Turbopack
+ *   - The documented hydration block (Next.js 15.5 + Turbopack
  *     `Error: Connection closed`) is a *dev-mode* runtime-chunk
  *     issue. The production build uses the standard Next.js
  *     pipeline and is unaffected, so Cypress can drive the real

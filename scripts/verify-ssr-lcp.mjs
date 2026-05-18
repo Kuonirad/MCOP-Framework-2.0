@@ -2,7 +2,7 @@
 /**
  * @fileoverview Automated SSR validation for the LCP preload contract.
  *
- * The Devin VMs and CI cannot reliably hydrate the Next.js 16 +
+ * The Devin VMs and CI cannot reliably hydrate the Next.js 15.5 +
  * Turbopack production bundle (see `.agents/skills/testing-frontend/SKILL.md`
  * for the full diagnosis). The accepted substitute for headless-browser
  * testing is **SSR HTML inspection**: the server-rendered HTML proves

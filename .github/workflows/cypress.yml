@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     # Cypress is a blocking gate as of PR #487 (2026-04-26). The
-    # Next.js 16 hydration block (Error: Connection closed from
+    # Next.js 15.5 hydration block (Error: Connection closed from
     # /_next/static/chunks/<hash>.js) reproduces in headless Chrome
     # on Devin VMs but does NOT reproduce on real GitHub-hosted
     # runners — confirmed by two consecutive green Cypress runs on

@@ -70,7 +70,7 @@ const techArticleJsonLd = {
   url: SITE_URL,
   mainEntityOfPage: SITE_URL,
   proficiencyLevel: "Expert",
-  dependencies: "Next.js 16, React 19, TypeScript 5.9, Node.js 20+",
+  dependencies: "Next.js 15.5, React 19, TypeScript 5.9, Node.js 20+",
   keywords:
     "MCOP, deterministic AI, stigmergy, holographic etch, Merkle lineage, Universal Adapter Protocol",
   publisher: { "@id": `${SITE_URL}#organization` },
