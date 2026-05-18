@@ -14,6 +14,15 @@ concurrency:
 
 jobs:
   checklist:
+    # Skip for bot-authored PRs (Dependabot, release-drafter, etc.). Their
+    # auto-generated PR bodies do not follow the project's manual PR
+    # template, and the bots cannot meaningfully tick the human-review
+    # checkboxes. Branch protection still gates merges via the other
+    # required checks (lint, typecheck, tests, CodeQL, license guard).
+    if: >-
+      github.event.pull_request.user.login != 'dependabot[bot]' &&
+      github.event.pull_request.user.login != 'github-actions[bot]' &&
+      github.event.pull_request.user.login != 'release-drafter[bot]'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
