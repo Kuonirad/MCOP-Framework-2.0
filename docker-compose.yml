@@ -10,7 +10,28 @@ services:
       - "3000:3000"
     environment:
       - NODE_ENV=production
+      - MCOP_USE_CUDA=${MCOP_USE_CUDA:-0}
+      - MCOP_CUDA_ENDPOINT=http://mcop-cuda-server:8765
     restart: unless-stopped
+
+  # Phase 3 of the CUDA productionization plan: HTTP microservice
+  # providing the six op-sharded kernels for `CUDAProvider` to call.
+  # Toggle on by setting MCOP_USE_CUDA=1 in the environment.
+  mcop-cuda-server:
+    build:
+      context: .
+      dockerfile: mcop_cuda_server/Dockerfile
+    container_name: mcop-cuda-server
+    ports:
+      - "8765:8765"
+    environment:
+      - MCOP_CUDA_HOST=0.0.0.0
+      - MCOP_CUDA_PORT=8765
+      - MCOP_CUDA_DEVICE=${MCOP_CUDA_DEVICE:-cuda:0}
+      - MCOP_CUDA_REQUIRE=${MCOP_CUDA_REQUIRE:-0}
+    restart: unless-stopped
+    profiles:
+      - cuda
 
   # Optional common services (comment out if not needed)
   # postgres:
