@@ -147,6 +147,17 @@ first-class trace events, and keep trust scopes explicit. See
 for the portable packet shape, read/write/merge/verify operations, and safety
 boundaries.
 
+## Trust Substrate Roadmap
+
+The next architecture boundary is the trust substrate that makes execution
+environment lineage auditable across hardware, cluster nodes, and hosted ledger
+services. The shipped core already records local Merkle lineage, eudaimonic
+scores, Guardian verdicts, and CUDA `substrateLineage` / `resolvedFrom` fields.
+The planned extensions add node-specific roots for cluster mode and
+service-rooted receipts for optional hosted ledgers without weakening local
+determinism. See [`docs/TRUST_SUBSTRATE_ROADMAP.md`](./docs/TRUST_SUBSTRATE_ROADMAP.md)
+for the formal invariants, merge rules, and acceptance gates.
+
 ## Boundary Contracts
 
 - **TypeScript ↔ Python:** canonical fixtures under `tests/parity` must hash

@@ -228,6 +228,8 @@ const result = await mcop.optimize(context, {
 | Workspace layout (monorepo) | [`docs/MONOREPO.md`](./docs/MONOREPO.md) |
 | Branch cleanup strategy | [`docs/audits/branch-cleanup-strategy.md`](./docs/audits/branch-cleanup-strategy.md) |
 | Due-diligence register | [`docs/DUE_DILIGENCE_REGISTER.md`](./docs/DUE_DILIGENCE_REGISTER.md) |
+| Trust-substrate roadmap | [`docs/TRUST_SUBSTRATE_ROADMAP.md`](./docs/TRUST_SUBSTRATE_ROADMAP.md) |
+| CUDA productionization | [`docs/CUDA_PRODUCTION.md`](./docs/CUDA_PRODUCTION.md) |
 | Decentralized agent coordination | [`docs/DECENTRALIZED_AGENT_COORDINATION.md`](./docs/DECENTRALIZED_AGENT_COORDINATION.md) |
 | Architecture overview | [`ARCHITECTURE.md`](./ARCHITECTURE.md) |
 | Supply-chain controls | [`docs/SUPPLY_CHAIN_TRUST.md`](./docs/SUPPLY_CHAIN_TRUST.md) |
@@ -426,51 +428,45 @@ MCOP-Framework-2.0/
 | 🟢 Universal Adapter Protocol | ![Done](https://img.shields.io/badge/COMPLETE-00ff88?style=flat-square) | v2.1 |
 | 🟢 Merkle-Chained Stigmergy | ![Done](https://img.shields.io/badge/COMPLETE-00ff88?style=flat-square) | v2.2 |
 | 🟢 CUDA Hardware Layer (Φ1–Φ5 scaffolding) | ![Scaffolded](https://img.shields.io/badge/SCAFFOLDED-00ff88?style=flat-square) | v2.3 |
+| 🟡 CUDA Productionization | ![Roadmap](https://img.shields.io/badge/ROADMAP-ffd700?style=flat-square) | v2.3+ |
 | 🔵 Distributed Cluster Mode | ![Planned](https://img.shields.io/badge/PLANNED-7b2dff?style=flat-square) | v3.0 |
+| 🔵 Hosted Provenance Ledger | ![Planned](https://img.shields.io/badge/PLANNED-7b2dff?style=flat-square) | v3.x |
 | 🔵 WebAssembly Runtime | ![Planned](https://img.shields.io/badge/PLANNED-7b2dff?style=flat-square) | v3.1 |
 
 </div>
 
 ## 🚀 v2.3 Hardware Acceleration (CUDA Layer)
 
-The v2.3 release scaffolds the optional **CUDA Hardware Layer** end-to-end — surface-by-surface, all six op-sharded ONNX kernels committed, Φ5 auto-probe wired into the Devin sub-agent orchestrator, and a clean CPU fallback when no verified device is present. The triad still byte-identically reproduces on CPU; the hardware layer is strictly opt-in and provenance-attested.
+The v2.3 release scaffolds the optional **CUDA Hardware Layer** around two provider surfaces: the in-process ONNX layer and the HTTP accelerator bridge. The triad still byte-identically reproduces on CPU; CUDA remains provenance-attested and disabled or probe-driven unless explicitly enabled. Kernel model artifacts, the deterministic export script, the Python CUDA server, GPU CI, and full hot-path unification are productionization work tracked in [`docs/CUDA_PRODUCTION.md`](./docs/CUDA_PRODUCTION.md).
 
 ### Shipped surfaces
 
 | Surface | File | Role |
 |:---|:---|:---|
-| Hardware layer (Φ1–Φ4) | [`src/hardware/CUDAHardwareLayer.ts`](src/hardware/CUDAHardwareLayer.ts) | Device discovery, verified-device provenance, CPU fallback |
-| Φ5 auto-probe accelerator | [`src/hardware/CUDAHardwareLayerAccelerator.ts`](src/hardware/CUDAHardwareLayerAccelerator.ts) | New — Φ5 ladder + accelerator dispatch over the six committed kernels |
-| Op-sharded ONNX kernels | [`models/`](models) | Six committed `mcop_*.onnx` kernels |
-| Kernel export pipeline | [`scripts/export_cuda_kernels.py`](scripts/export_cuda_kernels.py) | New — deterministic Python → ONNX export for all six ops |
-| Sub-agent orchestration wiring | [`examples/devin_sub_agent_orchestration/orchestrator.ts`](examples/devin_sub_agent_orchestration/orchestrator.ts) | Wired — `bootstrapMCOPTriad()` consumes the Φ5 accelerator when available |
+| In-process ONNX layer | [`src/hardware/CUDAHardwareLayer.ts`](src/hardware/CUDAHardwareLayer.ts) | Phi5 `enableCUDA: 'auto'` probe, verified-device gate, `substrateLineage`, and `resolvedFrom` provenance |
+| HTTP bridge client | [`src/hardware/Accelerator.ts`](src/hardware/Accelerator.ts), [`src/hardware/CUDAAccelerator.ts`](src/hardware/CUDAAccelerator.ts) | `CUDAProvider` client contract with CPU fallback |
+| Config surface | [`src/config/mcop.config.ts`](src/config/mcop.config.ts) | `hardware.useCUDA`, `hardware.provider`, `hardware.enableCUDA`, and `hardware.kernelDir` defaults |
+| Benchmarks | [`scripts/benchmark-cuda-graph.mjs`](scripts/benchmark-cuda-graph.mjs) | CPU-stable smoke and full-mode harness across all six logical ops |
+| Verified-device soak | [`scripts/cuda-verified-device-soak.mjs`](scripts/cuda-verified-device-soak.mjs) | Structural soak plus GhostGPU canary |
 
-### Bootstrapping the triad with the CUDA layer
+### Productionization gaps
 
-```ts
-import { bootstrapMCOPTriad } from './examples/devin_sub_agent_orchestration/orchestrator';
+| Gap | Required artifact |
+|:---|:---|
+| Kernel supply chain | `models/mcop_*.onnx` plus a Merkle-rooted model manifest |
+| Export pipeline | `scripts/export_cuda_kernels.py` or `scripts/export_cuda_kernels/` |
+| Python sidecar | `mcop_cuda_server` implementing `GET /health`, `GET /capabilities`, and `POST /cuda/{op}` |
+| GPU CI | Optional GPU runner jobs for full benchmarks and verified-device soak |
+| Hot-path unification | Encode, recall, etch, evolve, and homeostasis calls routed through one provenance-attached accelerator boundary |
 
-// Φ5 auto-probe: returns a verified-device accelerator if CUDA is present,
-// otherwise falls back to the deterministic CPU path. Same triad, same
-// Merkle-chained provenance, same byte-identical etches.
-const triad = await bootstrapMCOPTriad({
-  hardware: { cuda: 'auto' },           // 'auto' | 'require' | 'off'
-  provenance: { verifiedDevice: true }, // attach device fingerprint to etches
-});
-
-const result = await triad.optimize(context, { deterministic: true });
-console.log(result.provenance.device); // 'cuda:0' or 'cpu' depending on probe
-```
-
-### Regression coverage (Φ-ladder test suites · 25/25 passing)
+### Regression coverage
 
 | Suite | Covers |
 |:---|:---|
-| `src/hardware/__tests__/CUDAHardwareLayer.test.ts` | Φ1–Φ4: device discovery, verified-device provenance, CPU fallback |
-| `src/hardware/__tests__/CUDAHardwareLayerAccelerator.test.ts` | Φ5: auto-probe, accelerator dispatch, six-kernel sharding |
-| `examples/devin_sub_agent_orchestration/__tests__/orchestrator.test.ts` | `bootstrapMCOPTriad()` end-to-end with and without the hardware layer |
-
-Verification gate: `pnpm typecheck` ✅ · `pnpm lint --max-warnings 0` ✅ · `pnpm test -- --testPathPatterns=page|sitemap` → **25 / 25 passed** across 4 suites (including the homepage test).
+| `src/__tests__/cudaHardwareLayer.test.ts` | Layer defaults, disabled path, verified-device provenance, stream lineage, GhostGPU parsing |
+| `src/__tests__/cudaPhi5AdaptiveProbe.test.ts` | `enableCUDA: 'auto'`, explicit overrides, `resolvedFrom`, and substrate-conditional lineage |
+| `src/__tests__/cudaVerifiedDeviceSoak.test.ts` | 1,000-step structural soak and adversarial CPU canary |
+| `src/__tests__/cudaBenchmarkHarness.test.ts` | Deterministic benchmark records for the six logical ops |
 
 ---
 
