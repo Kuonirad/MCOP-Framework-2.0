@@ -121,6 +121,23 @@ resonance, and preserve enough metadata for independent replay.
 | Multi-agent adapter example | `src/adapters/devinOrchestratorAdapter.ts`, `docs/integrations/devin_sub_agents.md` |
 | Regulated lineage envelope | `src/adapters/regulatedProvenanceAdapter.ts`, `docs/adapters/REGULATED_PROVENANCE_ADAPTER.md` |
 
+## Roadmap: cluster and hosted ledger
+
+The next substrate expansion has two separable tracks:
+
+- **Cluster mode:** multiple MCOP nodes exchange trace roots, request proof
+  bundles, preserve local determinism, and converge on a deterministic global
+  Merkle root for a bounded time window.
+- **Hosted or self-hosted provenance ledger:** teams can outsource etch/query/
+  verify storage while retaining the ability to export proofs and replay the
+  ledger locally.
+
+The formal implementation gates, invariants, and success criteria are specified
+in
+[`docs/STIGMERGIC_TRUST_SUBSTRATE_ROADMAP.md`](./STIGMERGIC_TRUST_SUBSTRATE_ROADMAP.md).
+That roadmap treats human vetoes, positive resonance scores, cluster membership
+changes, and hardware substrate lineage as first-class audit events.
+
 ## Minimal TypeScript pattern
 
 ```ts

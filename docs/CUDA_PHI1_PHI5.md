@@ -312,3 +312,17 @@ strategies on the substrate class that proved robust.
 - Replacement of `CUDAProvider`: explicitly *not* a goal. Both providers
   ship side-by-side under independent flags. See the provider matrix at
   the top of this document.
+
+## Productionization follow-up
+
+The Phi ladder above records what has shipped and what remains gated by real GPU
+hardware, ONNX artifacts, and the missing Python sidecar. The consolidated
+production roadmap lives in
+[`docs/STIGMERGIC_TRUST_SUBSTRATE_ROADMAP.md`](./STIGMERGIC_TRUST_SUBSTRATE_ROADMAP.md#track-a-cuda-and-hardware-substrate).
+It is the canonical follow-up contract for:
+
+- versioned `mcop_<op>.onnx` kernel manifests and model digests;
+- unifying `CUDAHardwareLayer` and `CUDAProvider` behind one hardware policy;
+- implementing `mcop_cuda_server` for `pnpm cuda:serve`;
+- GPU-runner CI, GhostGPU canaries, and production benchmark artifacts;
+- `docs/CUDA_PRODUCTION.md` examples once real GPU measurements exist.
