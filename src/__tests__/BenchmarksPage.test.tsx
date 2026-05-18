@@ -1,6 +1,7 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 
 import BenchmarksPage from '../app/benchmarks/page';
+import TaskUploader from '../app/benchmarks/BenchmarksClient';
 
 describe('BenchmarksPage', () => {
   it('renders the summary table for all three modes', () => {
@@ -64,5 +65,51 @@ describe('BenchmarksPage', () => {
     expect(headerTexts.some((t) => /likert/i.test(t))).toBe(true);
     expect(headerTexts.some((t) => /auto/i.test(t))).toBe(true);
     expect(headerTexts.some((t) => /latency/i.test(t))).toBe(true);
+  });
+});
+
+describe('TaskUploader', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it('opens the preview page with encoded task JSON', () => {
+    const open = jest.spyOn(window, 'open').mockImplementation(() => null);
+    const alert = jest.spyOn(window, 'alert').mockImplementation(() => {});
+    const task = {
+      id: 'custom-task',
+      domain: 'generic',
+      humanPrompt: 'Summarize the launch plan.',
+      goalKeywords: ['launch', 'summary'],
+    };
+
+    render(<TaskUploader />);
+    fireEvent.change(screen.getByRole('textbox'), {
+      target: { value: JSON.stringify([task]) },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /preview scoring/i }));
+
+    expect(alert).not.toHaveBeenCalled();
+    expect(open).toHaveBeenCalledWith(
+      expect.stringContaining('/benchmarks/preview?tasks='),
+      '_blank',
+    );
+    const [url] = open.mock.calls[0] as [string, string];
+    const encodedTasks = new URL(`http://localhost${url}`).searchParams.get('tasks');
+    expect(JSON.parse(encodedTasks ?? 'null')).toEqual([task]);
+  });
+
+  it('shows an alert instead of navigating for invalid JSON', () => {
+    const open = jest.spyOn(window, 'open').mockImplementation(() => null);
+    const alert = jest.spyOn(window, 'alert').mockImplementation(() => {});
+
+    render(<TaskUploader />);
+    fireEvent.change(screen.getByRole('textbox'), {
+      target: { value: '{"not": "an array"}' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /preview scoring/i }));
+
+    expect(open).not.toHaveBeenCalled();
+    expect(alert).toHaveBeenCalledWith(expect.stringContaining('Expected an array'));
   });
 });
