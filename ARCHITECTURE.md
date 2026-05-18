@@ -145,7 +145,9 @@ hash-linked packets, rank them by resonance and policy, preserve human vetoes as
 first-class trace events, and keep trust scopes explicit. See
 [`docs/DECENTRALIZED_AGENT_COORDINATION.md`](./docs/DECENTRALIZED_AGENT_COORDINATION.md)
 for the portable packet shape, read/write/merge/verify operations, and safety
-boundaries.
+boundaries. The production roadmap for CUDA substrate lineage, cluster roots,
+and optional hosted provenance is tracked in
+[`docs/STIGMERGIC_TRUST_SUBSTRATE_ROADMAP.md`](./docs/STIGMERGIC_TRUST_SUBSTRATE_ROADMAP.md).
 
 ## Trust Substrate Roadmap
 
@@ -181,6 +183,7 @@ for the formal invariants, merge rules, and acceptance gates.
 | Meta-layer integration | [`docs/adr/2026-04-28-meta-layer-integration.md`](./docs/adr/2026-04-28-meta-layer-integration.md) |
 | Resonance-indexed Merkle forest preregistration | [`docs/preregistrations/RESONANCE_INDEXED_MERKLE_FOREST.md`](./docs/preregistrations/RESONANCE_INDEXED_MERKLE_FOREST.md) |
 | Decentralized agent coordination substrate | [`docs/DECENTRALIZED_AGENT_COORDINATION.md`](./docs/DECENTRALIZED_AGENT_COORDINATION.md) |
+| Stigmergic trust substrate roadmap | [`docs/STIGMERGIC_TRUST_SUBSTRATE_ROADMAP.md`](./docs/STIGMERGIC_TRUST_SUBSTRATE_ROADMAP.md) |
 
 ---
 
