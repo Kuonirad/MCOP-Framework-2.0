@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "mcop-ledger.fullname" . }}
+  labels:
+    {{- include "mcop-ledger.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "mcop-ledger.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "mcop-ledger.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: mcop-ledger
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8767
+              protocol: TCP
+          env:
+            - name: MCOP_LEDGER_HOST
+              value: "0.0.0.0"
+            - name: MCOP_LEDGER_PORT
+              value: "8767"
+            {{- if .Values.apiKey }}
+            - name: MCOP_LEDGER_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "mcop-ledger.fullname" . }}-secret
+                  key: apiKey
+            {{- end }}
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 3
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 30
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
