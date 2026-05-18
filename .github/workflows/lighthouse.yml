@@ -38,15 +38,13 @@ jobs:
       - name: Build Next.js app
         run: pnpm build
 
-      - name: Install Lighthouse CI
-        # Exact-version pin (no range) satisfies OpenSSF Scorecard's
-        # Pinned-Dependencies check for npm install.
-        run: npm install --global @lhci/cli@0.14.0
-
       - name: Run Lighthouse CI
+        # @lhci/cli is pinned via pnpm-lock.yaml (integrity-hashed), so
+        # invoking it through `pnpm exec` satisfies OpenSSF Scorecard's
+        # Pinned-Dependencies check without an ad-hoc `npm install`.
         env:
           LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
-        run: lhci autorun --config=./lighthouserc.json
+        run: pnpm exec lhci autorun --config=./lighthouserc.json
 
       - name: Upload Lighthouse reports
         if: always()
