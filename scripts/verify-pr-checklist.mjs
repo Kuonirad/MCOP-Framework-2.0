@@ -67,6 +67,7 @@ export function verifyPullRequestChecklist(body, files = []) {
     return { ok: false, errors };
   }
 
+  const docsOnly = isDocsOnly(files);
   if (hasAutomatedDocsSummary(normalized, files)) {
     return { ok: true, errors };
   }
@@ -86,7 +87,6 @@ export function verifyPullRequestChecklist(body, files = []) {
     if (!line || !CHECKED.test(line)) errors.push(`Complete required checklist item matching: ${label}`);
   }
 
-  const docsOnly = isDocsOnly(files);
   const testingSection = section(normalized, 'testing');
   if (!docsOnly && countChecked(testingSection) < 1) {
     errors.push('Select at least one Testing checkbox for non-docs-only changes.');
