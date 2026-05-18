@@ -127,15 +127,16 @@ jobs:
           cache-dependency-path: mcop_package/pyproject.toml
 
       - name: Install mcop_package with dev extras
-        # Hash-pinned pip + build via .github/requirements/pip-bootstrap.txt
-        # satisfies OpenSSF Scorecard's Pinned-Dependencies check. The final
-        # editable install of the in-repo package brings its own
-        # transitive dependencies — they are documented in pyproject.toml
-        # and resolved by pip at install time.
+        # Hash-pinned pip + build + runtime + dev deps via the
+        # ``.github/requirements/*.txt`` lockfiles satisfies OpenSSF
+        # Scorecard's Pinned-Dependencies check end-to-end. The final
+        # editable install of the in-repo package uses ``--no-deps`` so
+        # nothing is fetched from PyPI without an integrity hash.
         working-directory: mcop_package
         run: |
           python -m pip install --require-hashes --no-deps -r ../.github/requirements/pip-bootstrap.txt
-          python -m pip install -e '.[dev]'
+          python -m pip install --require-hashes -r ../.github/requirements/mcop-package-dev.txt
+          python -m pip install --no-deps -e '.'
 
       - name: Verify import and console script
         working-directory: mcop_package

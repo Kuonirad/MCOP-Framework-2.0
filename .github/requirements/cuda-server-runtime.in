@@ -1,0 +1,11 @@
+# Top-level runtime deps for the mcop_cuda_server Docker image
+# (the package itself uses only the stdlib; FastAPI is optional and only
+# imported on demand by mcop_cuda_server.fastapi_app:create_app).
+# Regenerate with:
+#   python -m piptools compile --allow-unsafe --generate-hashes \
+#     -o .github/requirements/cuda-server-runtime.txt \
+#     .github/requirements/cuda-server-runtime.in
+fastapi>=0.110
+uvicorn[standard]>=0.30
+rfc8785>=0.1.4
+httpx>=0.27
