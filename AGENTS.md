@@ -8,7 +8,7 @@ MCOP Framework 2.0 is a Next.js 16 + React 19 monorepo with a TypeScript core li
 
 ### Node.js / pnpm
 
-- Node.js version is pinned to **22.12.0** via `.nvmrc`; any Node `>=22.9.0` works per `engines` in `package.json`.
+- Node.js version is pinned to **22.22.2** via `.nvmrc` and `engines` in `package.json`.
 - pnpm **9.15.0** is pinned via `packageManager` in `package.json`. Enable it with `corepack enable && corepack prepare pnpm@9.15.0 --activate`.
 - `.npmrc` has `engine-strict=true` — mismatched engines will hard-fail.
 - Use `COREPACK_ENABLE_DOWNLOAD_PROMPT=0 pnpm install` (not `--frozen-lockfile`) in agent environments; the lockfile variant may silently skip newly-added deps.
@@ -49,3 +49,24 @@ MCOP Framework 2.0 is a Next.js 16 + React 19 monorepo with a TypeScript core li
 ### Python path note
 
 `pip install` in agent environments installs to `~/.local/bin` which may not be on PATH. Use `python3 -m pytest` instead of bare `pytest` to avoid PATH issues.
+
+### pnpm version workaround
+
+The VM ships with pnpm **10.x** globally (`npm install -g pnpm`). Because `packageManager` in `package.json` specifies `pnpm@9.15.0`, pnpm 10's auto-manage feature will try to download 9.15.0. If the download fails (e.g. network restrictions), set `manage-package-manager-versions=false` globally:
+
+```bash
+pnpm config set manage-package-manager-versions false --global
+```
+
+After this, the global pnpm 10.x will be used directly, which is compatible with the lockfile. If corepack has removed the `pnpm` bin shim (after `corepack disable`), re-link it:
+
+```bash
+ln -sf ../lib/node_modules/pnpm/bin/pnpm.cjs /home/ubuntu/.nvm/versions/node/v22.22.2/bin/pnpm
+```
+
+### TLS network restrictions in Cloud Agent VMs
+
+Some Cloud Agent sessions restrict outbound HTTPS to only `github.com` / `api.github.com`. In that case `pnpm install` and `pip install` from their default registries will fail with `ECONNRESET` during the TLS handshake. Workarounds:
+
+- **Python packages**: install from GitHub sources via `pip install --no-build-isolation --no-deps "git+https://github.com/OWNER/REPO.git@TAG"`.
+- **Node packages**: no reliable workaround exists for the npm registry; retry `pnpm install` and it will succeed when the network allows full HTTPS.
