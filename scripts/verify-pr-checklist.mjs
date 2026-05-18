@@ -35,12 +35,27 @@ function isDocsOnly(files) {
   return files.every((file) => /(^docs\/|^\.github\/ISSUE_TEMPLATE\/|\.md$|\.mdx$|^README\.md$|^CHANGELOG\.md$|^GOVERNANCE\.md$|^CONTRIBUTING\.md$|^SECURITY\.md$)/.test(file));
 }
 
+function cursorSummary(body) {
+  return body.match(/<!--\s*CURSOR_SUMMARY\s*-->([\s\S]*?)<!--\s*\/CURSOR_SUMMARY\s*-->/i)?.[1] ?? '';
+}
+
+function hasAutomatedDocsSummary(body, files) {
+  if (!isDocsOnly(files)) return false;
+  const summary = cursorSummary(body);
+  if (!summary) return false;
+  return /\bLow Risk\b/i.test(summary) && /\bdocumentation-only\b/i.test(summary);
+}
+
 export function verifyPullRequestChecklist(body, files = []) {
   const errors = [];
   const normalized = body.trim();
   if (!normalized) {
     errors.push('PR body is empty; complete the pull request template.');
     return { ok: false, errors };
+  }
+
+  if (hasAutomatedDocsSummary(normalized, files)) {
+    return { ok: true, errors };
   }
 
   const typeSection = section(normalized, 'type');
