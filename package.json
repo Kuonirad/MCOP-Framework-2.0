@@ -46,6 +46,8 @@
     "soak:cuda-verified-device": "node scripts/cuda-verified-device-soak.mjs --steps=1000 --mode=smoke",
     "soak:cuda-verified-device:canary": "node scripts/cuda-verified-device-soak.mjs --steps=1000 --canary=500 --mode=smoke",
     "cuda:serve": "python3 -m mcop_cuda_server --port 8765 --device cuda:0",
+    "ledger:serve": "node --experimental-strip-types services/ledger/src/server.ts",
+    "ledger:verify": "node scripts/mcop-ledger-verify.mjs",
     "cuda:export-kernels": "python3 scripts/export_cuda_kernels/export.py --out-dir models --backend reference",
     "cuda:export-kernels:pytorch": "python3 scripts/export_cuda_kernels/export.py --out-dir models --backend pytorch --fp-variant fp16",
     "dev:cuda": "concurrently \"pnpm dev\" \"pnpm cuda:serve\"",

@@ -14,6 +14,24 @@ services:
       - MCOP_CUDA_ENDPOINT=http://mcop-cuda-server:8765
     restart: unless-stopped
 
+  # Hosted Provenance Ledger (v3.0). Exposes /etch, /query, /verify,
+  # /export with multi-tenant Merkle forests. Toggle on by including
+  # `--profile ledger` on `docker compose up`.
+  mcop-ledger:
+    build:
+      context: .
+      dockerfile: services/ledger/Dockerfile
+    container_name: mcop-ledger
+    ports:
+      - "8767:8767"
+    environment:
+      - MCOP_LEDGER_HOST=0.0.0.0
+      - MCOP_LEDGER_PORT=8767
+      - MCOP_LEDGER_API_KEY=${MCOP_LEDGER_API_KEY:-}
+    restart: unless-stopped
+    profiles:
+      - ledger
+
   # Phase 3 of the CUDA productionization plan: HTTP microservice
   # providing the six op-sharded kernels for `CUDAProvider` to call.
   # Toggle on by setting MCOP_USE_CUDA=1 in the environment.
