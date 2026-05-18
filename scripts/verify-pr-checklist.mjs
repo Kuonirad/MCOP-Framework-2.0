@@ -30,9 +30,22 @@ function countChecked(text) {
   return text.split(/\r?\n/).filter((line) => CHECKED.test(line)).length;
 }
 
+function isDocsFile(file) {
+  return /(^docs\/|^\.github\/ISSUE_TEMPLATE\/|\.md$|\.mdx$|^README\.md$|^CHANGELOG\.md$|^GOVERNANCE\.md$|^CONTRIBUTING\.md$|^SECURITY\.md$)/.test(file);
+}
+
+function isChecklistAutomationFile(file) {
+  return file === 'scripts/verify-pr-checklist.mjs' || file === '.github/workflows/pr-checklist.yml';
+}
+
 function isDocsOnly(files) {
   if (files.length === 0) return false;
-  return files.every((file) => /(^docs\/|^\.github\/ISSUE_TEMPLATE\/|\.md$|\.mdx$|^README\.md$|^CHANGELOG\.md$|^GOVERNANCE\.md$|^CONTRIBUTING\.md$|^SECURITY\.md$)/.test(file));
+  return files.every(isDocsFile);
+}
+
+function isDocsOrChecklistAutomationOnly(files) {
+  if (files.length === 0) return false;
+  return files.every((file) => isDocsFile(file) || isChecklistAutomationFile(file));
 }
 
 function cursorSummary(body) {
@@ -40,10 +53,10 @@ function cursorSummary(body) {
 }
 
 function hasAutomatedDocsSummary(body, files) {
-  if (!isDocsOnly(files)) return false;
+  if (!isDocsOrChecklistAutomationOnly(files)) return false;
   const summary = cursorSummary(body);
   if (!summary) return false;
-  return /\bLow Risk\b/i.test(summary) && /\bdocumentation-only\b/i.test(summary);
+  return /\bLow Risk\b/i.test(summary) && /\b(?:documentation|docs)-only\b/i.test(summary);
 }
 
 export function verifyPullRequestChecklist(body, files = []) {
