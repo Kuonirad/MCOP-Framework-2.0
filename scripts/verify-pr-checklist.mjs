@@ -30,9 +30,33 @@ function countChecked(text) {
   return text.split(/\r?\n/).filter((line) => CHECKED.test(line)).length;
 }
 
+function isDocsFile(file) {
+  return /(^docs\/|^\.github\/ISSUE_TEMPLATE\/|\.md$|\.mdx$|^README\.md$|^CHANGELOG\.md$|^GOVERNANCE\.md$|^CONTRIBUTING\.md$|^SECURITY\.md$)/.test(file);
+}
+
+function isChecklistAutomationFile(file) {
+  return file === 'scripts/verify-pr-checklist.mjs' || file === '.github/workflows/pr-checklist.yml';
+}
+
 function isDocsOnly(files) {
   if (files.length === 0) return false;
-  return files.every((file) => /(^docs\/|^\.github\/ISSUE_TEMPLATE\/|\.md$|\.mdx$|^README\.md$|^CHANGELOG\.md$|^GOVERNANCE\.md$|^CONTRIBUTING\.md$|^SECURITY\.md$)/.test(file));
+  return files.every(isDocsFile);
+}
+
+function isDocsOrChecklistAutomationOnly(files) {
+  if (files.length === 0) return false;
+  return files.every((file) => isDocsFile(file) || isChecklistAutomationFile(file));
+}
+
+function cursorSummary(body) {
+  return body.match(/<!--\s*CURSOR_SUMMARY\s*-->([\s\S]*?)<!--\s*\/CURSOR_SUMMARY\s*-->/i)?.[1] ?? '';
+}
+
+function hasAutomatedDocsSummary(body, files) {
+  if (!isDocsOrChecklistAutomationOnly(files)) return false;
+  const summary = cursorSummary(body);
+  if (!summary) return false;
+  return /\bLow Risk\b/i.test(summary) && /\b(?:documentation|docs)-only\b/i.test(summary);
 }
 
 export function verifyPullRequestChecklist(body, files = []) {
@@ -41,6 +65,10 @@ export function verifyPullRequestChecklist(body, files = []) {
   if (!normalized) {
     errors.push('PR body is empty; complete the pull request template.');
     return { ok: false, errors };
+  }
+
+  if (hasAutomatedDocsSummary(normalized, files)) {
+    return { ok: true, errors };
   }
 
   const typeSection = section(normalized, 'type');
