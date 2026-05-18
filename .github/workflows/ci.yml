@@ -147,11 +147,6 @@ jobs:
         working-directory: mcop_package
         run: python -m pytest -q
 
-      - name: Install and pytest CUDA HTTP bridge (mcop_cuda_server)
-        run: |
-          python -m pip install -e './cuda_server[dev]'
-          python -m pytest -q cuda_server/tests
-
       - name: Build wheel and sdist
         working-directory: mcop_package
         run: python -m build

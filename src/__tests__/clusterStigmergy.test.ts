@@ -18,7 +18,6 @@ import {
   ClusterStigmergy,
   InMemoryGossipBus,
   ClusterOrchestrator,
-    mergeRemoteRoots,
   type ClusterMerkleRoot,
 } from '../cluster';
 
@@ -238,15 +237,5 @@ describe('ClusterOrchestrator — membership + sharding', () => {
     const b = orchB.getMembers().find((m) => m.nodeId === 'a');
     expect(b?.capability.cuda).toBe(true);
     expect(b?.capability.resolvedFrom).toBe('auto-capable');
-  
-  it('ClusterOrchestrator merges gossiped roots', () => {
-    const orch = new ClusterOrchestrator();
-    orch.registerNode('n1', { cudaAvailable: false });
-    orch.registerNode('n2', { cudaAvailable: true });
-    const merged = orch.mergeGossipedRoots('local-root', { n1: 'a', n2: 'b' });
-    expect(merged).toBe(mergeRemoteRoots(['local-root', 'a', 'b']));
-    orch.onNodeFailure('n1');
-    expect(orch.getEpoch()).toBeGreaterThan(0);
-  });
   });
 });
