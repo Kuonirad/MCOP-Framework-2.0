@@ -119,8 +119,12 @@ export const app = createServer(async (req, res) => {
     const result = await handler(body);
     writeJson(res, 200, result);
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    writeJson(res, 400, { error: 'bad_request', detail: message });
+    if (err instanceof Error) {
+      console.error('Request handling failed:', err.stack ?? err.message);
+    } else {
+      console.error('Request handling failed:', String(err));
+    }
+    writeJson(res, 400, { error: 'bad_request' });
   }
 });
 
