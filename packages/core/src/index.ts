@@ -22,3 +22,5 @@ export { NovaNeoEncoder as ContextTensorEncoder } from './novaNeoEncoder';
 export { StigmergyV5 as SharedTraceMemoryV5 } from './stigmergyV5';
 export { HolographicEtch as ChangeAuditLogger } from './holographicEtch';
 export type { PheromoneTrace as MemoryTraceRecord } from './types';
+
+export * from './eudaimonicScoring';
