@@ -28,6 +28,7 @@ Works in Node.js 18+ (ESM and CommonJS).
 | `StigmergyV5` | Cosine-similarity pheromone store with Merkle-chained trace hashes and Positive Feedback Hysteresis. |
 | `HolographicEtch` | Rank-1 micro-updates with configurable confidence floor, audit log, and optional growth ledger. |
 | `PositiveResonanceAmplifier` | Merkle-chained Positive Building event ledger with contributor joy metrics. |
+| `EudaimonicScoringLedger` | First-class scorer ontology with scorer definitions, episode scoring, and meta-evaluation selection. |
 
 ## Quick start
 
@@ -79,6 +80,7 @@ All primitives are fully typed. Key exports:
 - `ResonanceResult` — `{ score, trace? }`
 - `EtchRecord` — audit log entry
 - `PositiveGrowthEvent`, `PositiveImpactMetrics` — growth-ledger records
+- `ScoreDefinition`, `EpisodeScore`, `ScoreMetaEvaluation` — scorer-ledger records
 - `NovaNeoConfig`, `StigmergyConfig`, `HolographicEtchConfig`
 
 ## Supply-chain posture
