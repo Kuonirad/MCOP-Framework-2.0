@@ -50,6 +50,17 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # `pnpm install` does not always trigger Cypress's postinstall binary
+      # download under pnpm's default isolated linker, which causes the
+      # cypress-io/github-action (run with `install: false`) to fail with
+      # "The cypress npm package is installed, but the Cypress binary is
+      # missing" — see e.g. cypress-io/github-action#522. Running
+      # `cypress install` explicitly is idempotent (no-op if the binary is
+      # already cached at $HOME/.cache/Cypress/<version>/) so it's safe to
+      # always run here.
+      - name: Ensure Cypress binary is installed
+        run: pnpm exec cypress install
+
       - name: Build production standalone server
         run: pnpm build
 
