@@ -72,6 +72,25 @@ const nextConfig: NextConfig = {
         : h,
     );
 
+    // The /homepage/* motion-glass prototype is fully self-contained — only
+    // external resource is Google Fonts CSS + font files. Tighter than the
+    // showcase override (no unpkg, no 'unsafe-eval'); just relaxes style-src
+    // and font-src for fonts.googleapis.com / fonts.gstatic.com.
+    const homepageSecurityHeaders = securityHeaders.map((h) =>
+      h.key === 'Content-Security-Policy'
+        ? {
+            key: 'Content-Security-Policy',
+            value:
+              "default-src 'self'; " +
+              "script-src 'self' 'unsafe-inline'; " +
+              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
+              "font-src 'self' https://fonts.gstatic.com data:; " +
+              "img-src 'self' blob: data:; " +
+              "connect-src 'self'; object-src 'none'; base-uri 'self';",
+          }
+        : h,
+    );
+
     // Note: Next already sets immutable Cache-Control for `/_next/static/*`,
     // so we avoid re-declaring it here (it triggers a dev-mode warning).
     // Order matters — when multiple rules set the same header key, the
@@ -85,6 +104,7 @@ const nextConfig: NextConfig = {
         headers: [immutableCache],
       },
       { source: '/showcase/:path*', headers: showcaseSecurityHeaders },
+      { source: '/homepage/:path*', headers: homepageSecurityHeaders },
     ];
   },
 };

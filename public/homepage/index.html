@@ -1,0 +1,1452 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>MCOP Framework 2.0 — Deterministic Cognition for Production AI</title>
+<meta name="description" content="A recursive triad orchestration protocol. Deterministic. Cryptographically-linked provenance at every step." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600&family=JetBrains+Mono:wght@300;400;500&display=swap" />
+<style>
+:root{
+  --bg:           #06060b;
+  --bg-deep:      #030308;
+  --ink:          #f5f1e8;
+  --ink-soft:     rgba(245,241,232,.72);
+  --ink-mute:     rgba(245,241,232,.46);
+  --ink-faint:    rgba(245,241,232,.18);
+  --rule:         rgba(245,241,232,.10);
+  --rule-strong:  rgba(245,241,232,.22);
+  --glass-bg:     rgba(20,20,30,.36);
+  --glass-edge:   rgba(255,255,255,.10);
+  --glass-glint:  rgba(255,255,255,.06);
+
+  --aurora-1:     oklch(0.74 0.18 280);   /* violet */
+  --aurora-2:     oklch(0.78 0.16 220);   /* cyan   */
+  --aurora-3:     oklch(0.84 0.14 70);    /* amber  */
+  --aurora-4:     oklch(0.70 0.20 330);   /* magenta*/
+
+  --serif:'Instrument Serif','Times New Roman',serif;
+  --sans:'Geist',system-ui,sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg-deep);color:var(--ink);font-family:var(--sans);font-weight:400;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+body{overflow-x:hidden;line-height:1.5;position:relative;min-height:100vh}
+img,svg,canvas{display:block;max-width:100%}
+a{color:inherit;text-decoration:none}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+::selection{background:var(--aurora-1);color:var(--bg-deep)}
+
+/* ───────────────────────────────── ATMOSPHERE ───────────────────────────────── */
+.atmosphere{
+  position:absolute;top:0;left:0;right:0;bottom:0;height:100%;
+  z-index:0;pointer-events:none;overflow:hidden;
+  background:
+    radial-gradient(1200px 800px at 15% 4%, color-mix(in oklch, var(--aurora-1) 38%, transparent) 0%, transparent 60%),
+    radial-gradient(1100px 700px at 110% 12%, color-mix(in oklch, var(--aurora-2) 32%, transparent) 0%, transparent 65%),
+    radial-gradient(1400px 900px at 50% 50%, color-mix(in oklch, var(--aurora-4) 18%, transparent) 0%, transparent 70%),
+    radial-gradient(1400px 900px at 30% 95%, color-mix(in oklch, var(--aurora-1) 22%, transparent) 0%, transparent 70%),
+    var(--bg-deep);
+}
+.atmosphere .veil{
+  position:absolute;left:-20%;right:-20%;top:0;height:100vh;
+  background:
+    conic-gradient(from 220deg at 30% 40%,
+      transparent 0deg,
+      color-mix(in oklch, var(--aurora-2) 40%, transparent) 80deg,
+      transparent 160deg,
+      color-mix(in oklch, var(--aurora-1) 36%, transparent) 240deg,
+      transparent 320deg);
+  filter: blur(80px) saturate(140%);
+  opacity:.45;
+  animation:drift 38s linear infinite;
+}
+.atmosphere .veil.b{
+  position:absolute;left:-20%;right:-20%;bottom:0;height:100vh;
+  background:
+    conic-gradient(from 40deg at 70% 60%,
+      transparent 0deg,
+      color-mix(in oklch, var(--aurora-3) 36%, transparent) 90deg,
+      transparent 180deg,
+      color-mix(in oklch, var(--aurora-4) 30%, transparent) 260deg,
+      transparent 340deg);
+  filter:blur(80px) saturate(140%);
+  animation:drift 54s linear infinite reverse;
+  opacity:.45;
+  top:auto;
+}
+@keyframes drift{to{transform:rotate(360deg)}}
+.atmosphere .grain{
+  position:absolute;inset:0;mix-blend-mode:overlay;opacity:.35;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.96 0 0 0 0 0.94 0 0 0 0 0.91 0 0 0 0.05 0'/></filter><rect width='240' height='240' filter='url(%23n)'/></svg>");
+  background-repeat:repeat;
+}
+.atmosphere .scan{
+  position:absolute;inset:0;pointer-events:none;
+  background-image:repeating-linear-gradient(180deg, rgba(255,255,255,.012) 0 1px, transparent 1px 3px);
+  mix-blend-mode:overlay;opacity:.4;
+}
+
+/* ───────────────────────────────── PRIMITIVES ───────────────────────────────── */
+.shell{max-width:1380px;margin:0 auto;padding:0 32px;width:100%;position:relative;z-index:2}
+.mono{font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase}
+.eyebrow{
+  display:inline-flex;align-items:center;gap:14px;
+  font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-soft);
+}
+.eyebrow .pulse{
+  width:7px;height:7px;border-radius:50%;
+  background:color-mix(in oklch, var(--aurora-2) 100%, transparent);
+  box-shadow:0 0 16px color-mix(in oklch, var(--aurora-2) 80%, transparent);
+  animation:pulse 1.8s ease-in-out infinite;
+}
+@keyframes pulse{0%,100%{opacity:.5;transform:scale(.85)}50%{opacity:1;transform:scale(1.15)}}
+
+/* Glass surface — the core of the design language */
+.glass{
+  position:relative;
+  background:var(--glass-bg);
+  backdrop-filter: blur(28px) saturate(160%);
+  -webkit-backdrop-filter: blur(28px) saturate(160%);
+  border:1px solid var(--glass-edge);
+  border-radius:18px;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.10),
+    inset 0 -1px 0 rgba(0,0,0,.30),
+    0 30px 80px -30px rgba(0,0,0,.60),
+    0 1px 0 rgba(255,255,255,.04);
+  overflow:hidden;
+}
+.glass::before{
+  /* refractive top sheen */
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.10) 0%, rgba(255,255,255,0) 30%, transparent 100%),
+    radial-gradient(60% 80% at 20% 0%, rgba(255,255,255,.10), transparent 60%);
+  opacity:.9;
+}
+.glass::after{
+  /* slow gossamer travel */
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(115deg, transparent 30%, rgba(255,255,255,.07) 50%, transparent 70%);
+  transform:translateX(-30%);
+  animation:gossamer 14s ease-in-out infinite;
+}
+@keyframes gossamer{
+  0%{transform:translateX(-40%)}
+  50%{transform:translateX(40%)}
+  100%{transform:translateX(-40%)}
+}
+.glass.subtle{background:rgba(20,20,30,.22);box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 18px 50px -28px rgba(0,0,0,.55)}
+.glass.flat{border-radius:0}
+
+/* ───────────────────────────────── HEADER ───────────────────────────────── */
+.site-header{
+  position:fixed;top:18px;left:18px;right:18px;z-index:80;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 18px 12px 22px;
+  border-radius:999px;
+  background:rgba(8,8,14,.42);
+  border:1px solid var(--glass-edge);
+  backdrop-filter: blur(22px) saturate(160%);
+  -webkit-backdrop-filter: blur(22px) saturate(160%);
+  box-shadow:0 20px 60px -30px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.08);
+}
+.brand{display:flex;align-items:center;gap:12px;font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase}
+.brand-mark{
+  width:22px;height:22px;position:relative;display:grid;place-items:center;
+}
+.brand-mark svg{position:absolute;inset:0;width:100%;height:100%}
+.brand .ver{color:var(--ink-mute)}
+.nav{display:flex;gap:26px;font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-soft)}
+.nav a{position:relative;padding:6px 0;transition:color .25s}
+.nav a:hover{color:var(--ink)}
+.nav a::after{content:"";position:absolute;left:0;right:0;bottom:0;height:1px;background:color-mix(in oklch, var(--aurora-2) 100%, transparent);transform:scaleX(0);transform-origin:left;transition:transform .35s ease}
+.nav a:hover::after{transform:scaleX(1)}
+.cta-link{
+  display:inline-flex;align-items:center;gap:10px;
+  font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;
+  padding:9px 16px;border:1px solid var(--rule-strong);border-radius:999px;
+  background:rgba(255,255,255,.04);
+  transition:border-color .2s,background .2s,transform .2s;
+}
+.cta-link:hover{border-color:var(--ink);background:rgba(255,255,255,.08);transform:translateY(-1px)}
+.cta-link .arr{display:inline-block;transition:transform .25s}
+.cta-link:hover .arr{transform:translateX(3px)}
+@media(max-width:880px){.nav{display:none}}
+
+/* ───────────────────────────────── HERO ───────────────────────────────── */
+.hero{
+  position:relative;min-height:100vh;
+  padding:140px 32px 60px;
+  display:grid;align-items:end;
+}
+.hero-inner{max-width:1380px;margin:0 auto;width:100%;position:relative;z-index:3;display:grid;gap:34px}
+.hero h1{
+  font-family:var(--serif);font-weight:400;
+  font-size:clamp(56px,10.5vw,178px);line-height:.92;letter-spacing:-.025em;
+  text-wrap:balance;color:var(--ink);
+}
+.hero h1 .it{font-style:italic;color:rgba(245,241,232,.92)}
+.hero h1 .iridescent{
+  background:linear-gradient(110deg,
+    color-mix(in oklch, var(--aurora-3) 100%, transparent) 0%,
+    color-mix(in oklch, var(--aurora-1) 100%, transparent) 35%,
+    color-mix(in oklch, var(--aurora-2) 100%, transparent) 70%,
+    color-mix(in oklch, var(--aurora-4) 100%, transparent) 100%);
+  background-size:220% 100%;
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 0 24px color-mix(in oklch, var(--aurora-1) 40%, transparent));
+  animation:iridescent 12s ease-in-out infinite;
+  font-style:italic;
+}
+@keyframes iridescent{
+  0%,100%{background-position:0% 0}
+  50%{background-position:100% 0}
+}
+
+.hero-lede{
+  font-family:var(--serif);font-size:clamp(20px,1.6vw,26px);line-height:1.35;
+  max-width:680px;color:rgba(245,241,232,.86);text-wrap:pretty;
+}
+
+.hero-row{
+  display:grid;grid-template-columns: 1.6fr 1fr 1fr 1fr;gap:18px;align-items:stretch;
+}
+.hero-row .glass{padding:22px 22px 20px}
+.cta-cell{display:flex;flex-direction:column;justify-content:space-between;gap:18px}
+.cta-cell .actions{display:flex;flex-wrap:wrap;gap:10px}
+.btn{
+  display:inline-flex;align-items:center;gap:10px;
+  font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;
+  padding:13px 18px;border-radius:999px;border:1px solid var(--rule-strong);
+  background:rgba(255,255,255,.05);transition:transform .2s,background .2s,border-color .2s;
+  position:relative;overflow:hidden;
+}
+.btn:hover{transform:translateY(-1px);border-color:var(--ink);background:rgba(255,255,255,.10)}
+.btn.primary{
+  background:linear-gradient(110deg,
+    color-mix(in oklch, var(--aurora-1) 100%, transparent),
+    color-mix(in oklch, var(--aurora-2) 100%, transparent));
+  border-color:transparent;color:#0a0814;
+  box-shadow:0 14px 40px -14px color-mix(in oklch, var(--aurora-1) 70%, transparent);
+}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn .arr{transition:transform .25s}
+.btn:hover .arr{transform:translateX(3px)}
+
+.metric .k{font-family:var(--mono);font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-mute);display:block;margin-bottom:14px}
+.metric .v{
+  font-family:var(--serif);font-size:clamp(38px,3.4vw,52px);line-height:.9;letter-spacing:-.02em;
+  display:flex;align-items:baseline;gap:6px;
+}
+.metric .v em{font-family:var(--mono);font-style:normal;font-size:15px;color:var(--ink-soft);letter-spacing:.04em;font-weight:400}
+.metric .sub{margin-top:10px;font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-mute);line-height:1.5}
+
+/* live hash strip */
+.hashline{display:flex;align-items:center;gap:14px;font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-mute);margin-top:8px}
+.hashline .live{color:color-mix(in oklch, var(--aurora-2) 100%, transparent);display:inline-flex;align-items:center;gap:8px}
+.hashline .live::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;box-shadow:0 0 10px currentColor;animation:pulse 1.4s ease-in-out infinite}
+.hashline .digest{font-family:var(--mono);color:var(--ink);font-size:11px;letter-spacing:.06em;text-transform:none}
+
+@media(max-width:1080px){.hero-row{grid-template-columns:1fr 1fr}}
+@media(max-width:640px){.hero-row{grid-template-columns:1fr}}
+
+/* ───────────────────────────────── TICKER ───────────────────────────────── */
+.ticker-wrap{
+  position:relative;z-index:2;
+  margin:60px 0 0;
+  border-top:1px solid var(--rule);
+  border-bottom:1px solid var(--rule);
+  background:rgba(8,8,14,.30);
+  backdrop-filter:blur(18px) saturate(140%);
+  -webkit-backdrop-filter:blur(18px) saturate(140%);
+  overflow:hidden;
+}
+.ticker{
+  display:flex;gap:42px;padding:15px 0;white-space:nowrap;
+  animation:slide 80s linear infinite;width:max-content;
+  font-family:var(--mono);font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--ink-mute);
+}
+.ticker span{display:inline-flex;align-items:center;gap:14px}
+.ticker .dot{width:4px;height:4px;border-radius:50%;background:color-mix(in oklch, var(--aurora-3) 80%, transparent);box-shadow:0 0 8px color-mix(in oklch, var(--aurora-3) 60%, transparent)}
+.ticker .hot{color:var(--ink)}
+@keyframes slide{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+
+/* ───────────────────────────────── SECTIONS ───────────────────────────────── */
+section{padding:140px 32px;position:relative;z-index:2}
+section + section{padding-top:0}
+.section-head{display:grid;grid-template-columns:auto 1fr;gap:60px;align-items:end;margin-bottom:64px}
+.section-head .num{font-family:var(--mono);font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--ink-mute)}
+.section-head h2{font-family:var(--serif);font-weight:400;font-size:clamp(42px,6vw,86px);line-height:1;letter-spacing:-.02em;text-wrap:balance}
+.section-head h2 em{font-style:italic;color:rgba(245,241,232,.78)}
+.section-head .desc{max-width:540px;font-size:15px;color:var(--ink-soft);line-height:1.6;justify-self:end}
+@media(max-width:900px){.section-head{grid-template-columns:1fr;gap:20px}.section-head .desc{justify-self:start}}
+
+[data-reveal]{opacity:0;transform:translateY(36px);transition:opacity 1s ease, transform 1s cubic-bezier(.2,.7,.2,1)}
+[data-reveal].is-revealed{opacity:1;transform:none}
+
+/* ───────────────────────────────── TRIAD ───────────────────────────────── */
+.triad{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.triad .card{padding:0;display:grid;grid-template-rows:auto 1fr auto;min-height:520px;position:relative}
+.triad .card .top{
+  padding:22px 26px 0;display:flex;justify-content:space-between;align-items:flex-start;
+  font-family:var(--mono);font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-mute);position:relative;z-index:2;
+}
+.triad .card .top .idx{font-family:var(--serif);font-style:italic;font-size:22px;color:var(--ink-soft);letter-spacing:0;text-transform:none;line-height:1}
+.triad .card .canvas-wrap{position:relative;height:240px;margin:0 0 8px;overflow:hidden}
+.triad .card canvas{position:absolute;inset:0;width:100%;height:100%}
+.triad .card .body{padding:0 26px 24px;display:grid;gap:12px;position:relative;z-index:2}
+.triad .card .body h3{font-family:var(--serif);font-size:34px;line-height:1.05;font-weight:400;letter-spacing:-.01em}
+.triad .card .body h3 em{font-style:italic;color:rgba(245,241,232,.82)}
+.triad .card .body p{font-size:14px;color:var(--ink-soft);line-height:1.6;max-width:42ch}
+.triad .card .tag{
+  display:inline-flex;align-items:center;gap:10px;
+  font-family:var(--mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;
+  color:color-mix(in oklch, var(--aurora-3) 100%, transparent);margin-top:6px;
+}
+.triad .card .tag::before{content:"";width:20px;height:1px;background:currentColor;opacity:.8}
+.triad .card[data-hue="violet"] .tag{color:color-mix(in oklch, var(--aurora-1) 100%, transparent)}
+.triad .card[data-hue="cyan"]   .tag{color:color-mix(in oklch, var(--aurora-2) 100%, transparent)}
+.triad .card[data-hue="amber"]  .tag{color:color-mix(in oklch, var(--aurora-3) 100%, transparent)}
+@media(max-width:980px){.triad{grid-template-columns:1fr}}
+
+/* ───────────────────────────────── CHAIN ───────────────────────────────── */
+.chain-grid{display:grid;grid-template-columns:1fr 1.05fr;gap:32px;align-items:stretch}
+.chain-vis{padding:28px;display:grid;grid-template-rows:1fr auto;min-height:560px;position:relative}
+#chain-canvas{position:absolute;inset:0;width:100%;height:100%}
+.chain-vis .corner{position:relative;z-index:2;display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-mute);align-self:start}
+.chain-vis .legend{position:relative;z-index:2;align-self:end;display:flex;gap:18px;flex-wrap:wrap;font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-soft)}
+.chain-vis .legend .swatch{width:10px;height:10px;border-radius:2px;display:inline-block;margin-right:8px;vertical-align:middle}
+.chain-steps{padding:8px 0}
+.chain-step{
+  display:grid;grid-template-columns:48px 1fr auto;gap:18px;
+  padding:22px 28px;border-bottom:1px solid var(--rule);align-items:center;
+  transition:background .3s;
+}
+.chain-step:last-child{border-bottom:0}
+.chain-step:hover{background:rgba(255,255,255,.025)}
+.chain-step .n{font-family:var(--serif);font-style:italic;font-size:30px;color:var(--ink-soft);line-height:1}
+.chain-step h4{font-family:var(--serif);font-size:22px;font-weight:400;line-height:1.15}
+.chain-step p{font-family:var(--mono);font-size:10px;color:var(--ink-mute);letter-spacing:.12em;text-transform:uppercase;margin-top:4px}
+.chain-step .hash{font-family:var(--mono);font-size:11px;color:color-mix(in oklch, var(--aurora-3) 100%, transparent);letter-spacing:.08em;white-space:nowrap}
+
+.console{
+  margin-top:32px;display:grid;grid-template-columns:1fr 1fr;gap:18px;
+}
+.console-cell{padding:24px 26px}
+.console-cell .label{display:flex;justify-content:space-between;align-items:center;font-family:var(--mono);font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-mute);margin-bottom:18px}
+.console-cell .live{color:color-mix(in oklch, var(--aurora-2) 100%, transparent);display:inline-flex;align-items:center;gap:8px}
+.console-cell .live::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;box-shadow:0 0 10px currentColor;animation:pulse 1.4s ease-in-out infinite}
+.hash-line{font-family:var(--mono);font-size:13px;color:var(--ink);word-break:break-all;line-height:1.75}
+.hash-line .lk{color:var(--ink-mute);margin-right:8px}
+.resonance{display:grid;gap:14px;margin-top:6px}
+.bar-track{height:3px;background:var(--ink-faint);position:relative;overflow:hidden;border-radius:2px}
+.bar-track .bar{position:absolute;inset:0;background:linear-gradient(90deg, color-mix(in oklch, var(--aurora-2) 100%, transparent), color-mix(in oklch, var(--aurora-3) 100%, transparent));transform-origin:left;transform:scaleX(.94);transition:transform .3s linear}
+@media(max-width:980px){.chain-grid{grid-template-columns:1fr}.console{grid-template-columns:1fr}}
+
+/* ───────────────────────────────── BENCHMARKS ───────────────────────────────── */
+.bench-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+.bench{padding:30px 26px;display:grid;gap:14px;min-height:230px;align-content:space-between;position:relative}
+.bench .lbl{font-family:var(--mono);font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-mute)}
+.bench .val{font-family:var(--serif);font-size:clamp(46px,4.5vw,72px);line-height:.9;letter-spacing:-.02em;display:flex;align-items:baseline;gap:6px}
+.bench .val em{font-family:var(--mono);font-style:normal;font-size:14px;color:var(--ink-soft);letter-spacing:.06em;font-weight:400}
+.bench .sub{font-size:13px;color:var(--ink-soft);line-height:1.5}
+.bench .spark{height:36px}
+@media(max-width:980px){.bench-grid{grid-template-columns:1fr 1fr}}
+
+.perf-table{margin-top:32px;padding:6px 0}
+.perf-row{
+  display:grid;grid-template-columns:2fr 1fr 1.4fr 1fr;
+  padding:18px 28px;border-bottom:1px solid var(--rule);align-items:center;
+  font-family:var(--mono);font-size:13px;color:var(--ink-soft);
+}
+.perf-row:last-child{border-bottom:0}
+.perf-row.head{font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-mute)}
+.perf-row .op{font-family:var(--sans);font-size:15px;letter-spacing:0;text-transform:none;color:var(--ink)}
+.perf-row .v{color:var(--ink)}
+.perf-bar{height:3px;background:var(--ink-faint);position:relative;overflow:hidden;border-radius:2px}
+.perf-bar i{position:absolute;inset:0;background:linear-gradient(90deg, color-mix(in oklch, var(--aurora-2) 100%, transparent), color-mix(in oklch, var(--aurora-3) 100%, transparent));transform-origin:left}
+.perf-row.total .op,.perf-row.total .v{color:color-mix(in oklch, var(--aurora-3) 100%, transparent)}
+.perf-row.total .perf-bar i{background:linear-gradient(90deg, color-mix(in oklch, var(--aurora-3) 100%, transparent), color-mix(in oklch, var(--aurora-1) 100%, transparent))}
+
+/* ───────────────────────────────── ADAPTERS ───────────────────────────────── */
+.orbit-stage{padding:0;min-height:640px;position:relative;display:grid;grid-template-columns:1fr 1.2fr;gap:0;align-items:stretch}
+.orbit-side{padding:38px;display:grid;align-content:space-between;gap:30px;border-right:1px solid var(--rule);position:relative;z-index:2}
+.orbit-side > div:first-child{display:flex;flex-direction:column}
+.orbit-side h3{font-family:var(--serif);font-size:42px;line-height:1.05;font-weight:400;letter-spacing:-.01em;text-wrap:balance;margin:0 0 22px}
+.orbit-side p{margin:0}
+.orbit-side h3 em{font-style:italic;color:rgba(245,241,232,.82)}
+.orbit-side p{font-size:15px;color:var(--ink-soft);line-height:1.6;max-width:42ch}
+.adapter-table{display:grid;gap:0;border-top:1px solid var(--rule)}
+.adapter-table .ar{display:grid;grid-template-columns:auto 1fr auto;gap:16px;padding:14px 0;border-bottom:1px solid var(--rule);align-items:center;font-family:var(--mono);font-size:11px;letter-spacing:.06em;color:var(--ink-soft)}
+.adapter-table .ar:last-child{border-bottom:0}
+.adapter-table .name{color:var(--ink);font-family:var(--sans);text-transform:none;letter-spacing:0;font-size:14px}
+.adapter-table .proto{color:var(--ink-mute);text-transform:uppercase;letter-spacing:.16em;font-size:10px}
+.adapter-table .stat{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:color-mix(in oklch, var(--aurora-2) 100%, transparent);display:inline-flex;align-items:center;gap:8px}
+.adapter-table .stat::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;box-shadow:0 0 8px currentColor}
+
+.orbit-vis{position:relative;min-height:640px;overflow:hidden}
+#orbit-canvas{position:absolute;inset:0;width:100%;height:100%}
+.orbit-pins{position:absolute;inset:0;pointer-events:none}
+.pin{
+  position:absolute;
+  font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;
+  padding:9px 14px;border-radius:999px;
+  background:rgba(8,8,14,.55);backdrop-filter:blur(10px);
+  border:1px solid var(--glass-edge);
+  color:var(--ink);
+  display:inline-flex;align-items:center;gap:10px;white-space:nowrap;
+  box-shadow:0 8px 24px -10px rgba(0,0,0,.6);
+}
+.pin .lamp{width:6px;height:6px;border-radius:50%;background:color-mix(in oklch, var(--aurora-2) 100%, transparent);box-shadow:0 0 10px currentColor}
+@media(max-width:980px){.orbit-stage{grid-template-columns:1fr}.orbit-side{border-right:0;border-bottom:1px solid var(--rule)}}
+
+/* ───────────────────────────────── INSTALL ───────────────────────────────── */
+.install{display:grid;grid-template-columns:1.15fr 1fr;gap:24px;align-items:stretch}
+.code-card{padding:0;overflow:hidden}
+.code-tabs{display:flex;border-bottom:1px solid var(--rule)}
+.code-tab{padding:14px 22px;font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-mute);border-right:1px solid var(--rule);transition:color .25s,background .25s;position:relative}
+.code-tab.is-active{color:var(--ink);background:rgba(255,255,255,.04)}
+.code-tab.is-active::after{content:"";position:absolute;left:14px;right:14px;bottom:-1px;height:1px;background:color-mix(in oklch, var(--aurora-2) 100%, transparent)}
+.code-pane{display:none;padding:26px 28px;font-family:var(--mono);font-size:13px;line-height:1.75;color:var(--ink-soft);white-space:pre-wrap;position:relative}
+.code-pane.is-active{display:block}
+.copy{
+  position:absolute;top:18px;right:18px;
+  font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--ink-mute);padding:7px 11px;border:1px solid var(--rule);border-radius:999px;background:rgba(8,8,14,.5);
+  transition:color .2s,border-color .2s;
+}
+.copy:hover{color:var(--ink);border-color:var(--rule-strong)}
+.copy.copied{color:color-mix(in oklch, var(--aurora-3) 100%, transparent);border-color:color-mix(in oklch, var(--aurora-3) 100%, transparent)}
+.code-pane .c-com{color:var(--ink-mute);font-style:italic}
+.code-pane .c-prompt{color:color-mix(in oklch, var(--aurora-2) 100%, transparent)}
+.code-pane .c-key{color:color-mix(in oklch, var(--aurora-1) 100%, transparent)}
+.code-pane .c-str{color:color-mix(in oklch, var(--aurora-3) 100%, transparent)}
+.code-pane .c-name{color:var(--ink)}
+
+.install-prose{padding:34px;display:grid;gap:18px;align-content:start}
+.install-prose h3{font-family:var(--serif);font-size:42px;font-weight:400;line-height:1.05;letter-spacing:-.01em;text-wrap:balance}
+.install-prose h3 em{font-style:italic;color:rgba(245,241,232,.82)}
+.install-prose p{font-size:15px;color:var(--ink-soft);line-height:1.6}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.chip{font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;padding:7px 12px;border-radius:999px;border:1px solid var(--rule-strong);color:var(--ink-soft);background:rgba(255,255,255,.03)}
+@media(max-width:980px){.install{grid-template-columns:1fr}}
+
+/* ───────────────────────────────── COMPARE ───────────────────────────────── */
+.compare{padding:32px}
+.compare-table{display:grid;gap:0}
+.compare-row{
+  display:grid;grid-template-columns: 2.3fr repeat(4, 1fr);
+  padding:16px 4px;border-bottom:1px solid var(--rule);align-items:center;
+  font-family:var(--mono);font-size:12px;color:var(--ink-soft);
+}
+.compare-row.head{font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-mute)}
+.compare-row .feat{font-family:var(--sans);font-size:14px;color:var(--ink);text-transform:none;letter-spacing:0}
+.compare-row .cell{text-align:center}
+.compare-row.head .cell{color:var(--ink)}
+.compare-row.head .cell.us{color:color-mix(in oklch, var(--aurora-3) 100%, transparent)}
+.tick{color:color-mix(in oklch, var(--aurora-3) 100%, transparent);font-weight:500}
+.cross{color:rgba(245,241,232,.28)}
+.partial{color:color-mix(in oklch, var(--aurora-1) 100%, transparent)}
+
+/* ───────────────────────────────── OUTRO ───────────────────────────────── */
+.outro{padding:160px 32px;display:grid;place-items:center;text-align:center;position:relative;z-index:2}
+.outro .glass{padding:80px 60px;max-width:1100px;width:100%}
+.outro h2{font-family:var(--serif);font-weight:400;font-size:clamp(48px,7.5vw,128px);line-height:.95;letter-spacing:-.02em;max-width:18ch;margin:0 auto 28px}
+.outro h2 em{font-style:italic}
+.outro h2 .iridescent{
+  background:linear-gradient(110deg,
+    color-mix(in oklch, var(--aurora-3) 100%, transparent),
+    color-mix(in oklch, var(--aurora-1) 100%, transparent),
+    color-mix(in oklch, var(--aurora-2) 100%, transparent));
+  background-size:200% 100%;
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  animation:iridescent 10s ease-in-out infinite;
+  font-style:italic;
+}
+.outro p{max-width:580px;margin:0 auto 36px;font-size:17px;color:var(--ink-soft);line-height:1.55}
+.btn-row{display:flex;gap:14px;flex-wrap:wrap;justify-content:center}
+
+/* ───────────────────────────────── FOOTER ───────────────────────────────── */
+footer{
+  border-top:1px solid var(--rule);padding:36px 32px;
+  display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap;align-items:center;
+  font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-mute);
+  position:relative;z-index:2;
+  background:rgba(6,6,11,.6);backdrop-filter:blur(18px);
+}
+footer .legal{display:flex;gap:22px;flex-wrap:wrap}
+footer a:hover{color:var(--ink)}
+</style>
+</head>
+<body>
+
+<!-- ───────────────────────── ATMOSPHERE ───────────────────────── -->
+<div class="atmosphere" aria-hidden="true">
+  <div class="veil"></div>
+  <div class="veil b"></div>
+  <div class="scan"></div>
+  <div class="grain"></div>
+</div>
+
+<h1 class="sr-only" style="position:absolute;left:-9999px">MCOP Framework 2.0 — Deterministic Cognition for Production AI</h1>
+
+<!-- ───────────────────────── HEADER ───────────────────────── -->
+<header class="site-header">
+  <a href="#" class="brand" aria-label="MCOP home">
+    <span class="brand-mark" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none">
+        <defs>
+          <linearGradient id="bm" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse">
+            <stop offset="0" stop-color="#b39bff"/>
+            <stop offset=".5" stop-color="#9bd6ff"/>
+            <stop offset="1" stop-color="#e8c98a"/>
+          </linearGradient>
+        </defs>
+        <path d="M12 1.5L22.5 12 12 22.5 1.5 12Z" stroke="url(#bm)" stroke-width="1.4"/>
+        <path d="M12 7L17 12 12 17 7 12Z" fill="url(#bm)" opacity=".9"/>
+      </svg>
+    </span>
+    <span>MCOP <span class="ver">· v2.3.0</span></span>
+  </a>
+  <nav class="nav" aria-label="primary">
+    <a href="#triad">Triad</a>
+    <a href="#chain">Provenance</a>
+    <a href="#perf">Performance</a>
+    <a href="#adapters">Adapters</a>
+    <a href="#compare">Vs.</a>
+    <a href="#install">Install</a>
+  </nav>
+  <a class="cta-link" href="https://github.com/Kuonirad/MCOP-Framework-2.0" target="_blank" rel="noopener">
+    GitHub <span class="arr">→</span>
+  </a>
+</header>
+
+<!-- ───────────────────────── HERO ───────────────────────── -->
+<section class="hero" data-screen-label="01 Hero">
+  <div class="hero-inner">
+    <div class="eyebrow" data-reveal><span class="pulse"></span><span>Meta-Cognitive Optimization Protocol · Framework 2.0</span></div>
+    <h1 data-reveal>
+      <span class="it">Recursive</span> triad,<br/>
+      <span class="iridescent">cryptographically</span><br/>
+      linked at every step.
+    </h1>
+    <p class="hero-lede" data-reveal>
+      A deterministic 4.4&nbsp;ms reasoning pipeline. Encoder, stigmergic memory, and a holographic etch ledger
+      — composed into one replayable, byte-identical chain of custody for production AI.
+    </p>
+
+    <div class="hero-row" data-reveal>
+      <div class="glass cta-cell">
+        <div class="actions">
+          <a class="btn primary" href="https://github.com/Kuonirad/MCOP-Framework-2.0" target="_blank" rel="noopener">
+            Open on GitHub <span class="arr">→</span>
+          </a>
+          <a class="btn" href="#install">
+            Quick start <span class="arr">→</span>
+          </a>
+        </div>
+        <div class="hashline">
+          <span class="live">live</span>
+          <span class="lk" style="color:var(--ink-mute)">sha256</span>
+          <span class="digest" id="hero-hash">a3f8c2d1e4b7f9a2…</span>
+        </div>
+      </div>
+
+      <div class="glass metric">
+        <span class="k">Pipeline</span>
+        <div class="v"><span data-count="4.4" data-decimals="1">0</span><em>ms</em></div>
+        <div class="sub">22,700 ops/sec<br/>full triad</div>
+      </div>
+
+      <div class="glass metric">
+        <span class="k">Coverage</span>
+        <div class="v"><span data-count="96.6" data-decimals="1">0</span><em>%</em></div>
+        <div class="sub">jest · documented surface</div>
+      </div>
+
+      <div class="glass metric">
+        <span class="k">License</span>
+        <div class="v" style="font-size:clamp(28px,2.6vw,38px)">BUSL <em style="font-family:var(--serif);font-style:italic;font-size:.7em;color:var(--ink-soft)">1.1</em></div>
+        <div class="sub">→ MIT · 2030-04-26</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────────────── TICKER ───────────────────────── -->
+<div class="ticker-wrap" aria-hidden="true">
+  <div class="ticker">
+    <span class="hot">SHA-256<span class="dot"></span></span>
+    <span>UUID-v4<span class="dot"></span></span>
+    <span>ISO 8601<span class="dot"></span></span>
+    <span class="hot">Merkle-Chained<span class="dot"></span></span>
+    <span>RFC 8785<span class="dot"></span></span>
+    <span>Rank-1 Tensor<span class="dot"></span></span>
+    <span class="hot">Cosine Resonance<span class="dot"></span></span>
+    <span>Append-Only Ledger<span class="dot"></span></span>
+    <span>Deterministic<span class="dot"></span></span>
+    <span class="hot">Byte-Identical<span class="dot"></span></span>
+    <span>Next.js 15.5<span class="dot"></span></span>
+    <span>TypeScript 5<span class="dot"></span></span>
+    <span class="hot">SBOM Validated<span class="dot"></span></span>
+    <span>CodeQL Hardened<span class="dot"></span></span>
+    <span>Trusted Publishing<span class="dot"></span></span>
+    <span class="hot">Eudaimonic Bloom<span class="dot"></span></span>
+    <!-- duplicate for seamless marquee -->
+    <span class="hot">SHA-256<span class="dot"></span></span>
+    <span>UUID-v4<span class="dot"></span></span>
+    <span>ISO 8601<span class="dot"></span></span>
+    <span class="hot">Merkle-Chained<span class="dot"></span></span>
+    <span>RFC 8785<span class="dot"></span></span>
+    <span>Rank-1 Tensor<span class="dot"></span></span>
+    <span class="hot">Cosine Resonance<span class="dot"></span></span>
+    <span>Append-Only Ledger<span class="dot"></span></span>
+    <span>Deterministic<span class="dot"></span></span>
+    <span class="hot">Byte-Identical<span class="dot"></span></span>
+    <span>Next.js 15.5<span class="dot"></span></span>
+    <span>TypeScript 5<span class="dot"></span></span>
+    <span class="hot">SBOM Validated<span class="dot"></span></span>
+    <span>CodeQL Hardened<span class="dot"></span></span>
+    <span>Trusted Publishing<span class="dot"></span></span>
+    <span class="hot">Eudaimonic Bloom<span class="dot"></span></span>
+  </div>
+</div>
+
+<!-- ───────────────────────── TRIAD ───────────────────────── -->
+<section id="triad" data-screen-label="02 Triad">
+  <div class="shell">
+    <div class="section-head" data-reveal>
+      <span class="num">§ 01 — The Deterministic Triad</span>
+      <h2>Three kernels.<br/><em>One replayable engine.</em></h2>
+      <p class="desc">Coordination through environmental traces — like ant colonies via pheromones. Each kernel is independently auditable; together they form the chain of custody for every synthesis.</p>
+    </div>
+
+    <div class="triad" data-reveal>
+
+      <article class="glass card" data-hue="violet">
+        <div class="top"><span>NovaNeoEncoder</span><span class="idx">i.</span></div>
+        <div class="canvas-wrap"><canvas data-triad="encoder"></canvas></div>
+        <div class="body">
+          <h3>Context becomes <em>tensor.</em></h3>
+          <p>A deterministic hashing pipeline producing fixed-dimension tensors with optional normalization and entropy estimates. Two backends — SHA-256 hash-trick and n-gram feature embedding — both byte-identical across Node, browser and edge.</p>
+          <span class="tag">Entropy-normalized · Crystalline</span>
+        </div>
+      </article>
+
+      <article class="glass card" data-hue="cyan">
+        <div class="top"><span>StigmergyV5</span><span class="idx">ii.</span></div>
+        <div class="canvas-wrap"><canvas data-triad="stigmergy"></canvas></div>
+        <div class="body">
+          <h3>Memory as <em>resonance.</em></h3>
+          <p>A vector pheromone store with cosine resonance scoring, adaptive thresholding, and Merkle-tracked roots. Bounded memory pressure via a deterministic circular buffer; positive-feedback hysteresis rewards beneficial patterns.</p>
+          <span class="tag">Cosine recall · 125,000 ops/s</span>
+        </div>
+      </article>
+
+      <article class="glass card" data-hue="amber">
+        <div class="top"><span>HolographicEtch</span><span class="idx">iii.</span></div>
+        <div class="canvas-wrap"><canvas data-triad="etch"></canvas></div>
+        <div class="body">
+          <h3>Confidence, <em>etched.</em></h3>
+          <p>Append-only rank-1 micro-etch accumulator. Tracks confidence deltas across alignment, magnitude health, static-floor margin, and recency stability — and exposes a replayable, hash-verified audit trail.</p>
+          <span class="tag">Append-only · Eudaimonic Bloom</span>
+        </div>
+      </article>
+
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────────────── CHAIN ───────────────────────── -->
+<section id="chain" data-screen-label="03 Provenance">
+  <div class="shell">
+    <div class="section-head" data-reveal>
+      <span class="num">§ 02 — Cryptographic Chain of Custody</span>
+      <h2>Every step.<br/><em>Hash-linked. Replayable.</em></h2>
+      <p class="desc">A complete traceability record for every adapter call — tensor hash, trace hash, resonance score, etch hash, refined prompt, ISO-8601 timestamp. Persist it to replay or audit any decision later.</p>
+    </div>
+
+    <div class="chain-grid" data-reveal>
+      <div class="glass chain-vis">
+        <div class="corner">
+          <span>Provenance Stream</span>
+          <span>RFC 8785 · SHA-256</span>
+        </div>
+        <canvas id="chain-canvas"></canvas>
+        <div class="legend">
+          <span><span class="swatch" style="background:color-mix(in oklch, var(--aurora-1) 100%, transparent)"></span>Encode</span>
+          <span><span class="swatch" style="background:color-mix(in oklch, var(--aurora-2) 100%, transparent)"></span>Recall</span>
+          <span><span class="swatch" style="background:color-mix(in oklch, var(--aurora-3) 100%, transparent)"></span>Etch</span>
+        </div>
+      </div>
+
+      <div class="glass chain-steps">
+        <div class="chain-step">
+          <span class="n">i.</span>
+          <div><h4>Input received</h4><p>UUID-v4 assigned · provenance opened</p></div>
+          <span class="hash" data-hashdrift="12">550e8400e29b</span>
+        </div>
+        <div class="chain-step">
+          <span class="n">ii.</span>
+          <div><h4>Nova-Neo encoding</h4><p>RFC 8785 · entropy-normalized tensor</p></div>
+          <span class="hash" data-hashdrift="12">a3f8c2d1e4b7</span>
+        </div>
+        <div class="chain-step">
+          <span class="n">iii.</span>
+          <div><h4>Stigmergy recall</h4><p>Merkle root · cosine 0.9923</p></div>
+          <span class="hash" data-hashdrift="12">8f4a2c1d9e7b</span>
+        </div>
+        <div class="chain-step">
+          <span class="n">iv.</span>
+          <div><h4>Holographic etch</h4><p>Rank-1 tensor sealed · ISO-8601</p></div>
+          <span class="hash" data-hashdrift="12">1c4f8a2e6d9b</span>
+        </div>
+        <div class="chain-step">
+          <span class="n">v.</span>
+          <div><h4>Provenance closed</h4><p>SHA-256 verified · ledger sealed</p></div>
+          <span class="hash" data-hashdrift="12">d5e9f2c4a8b1</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="console" data-reveal>
+      <div class="glass subtle console-cell">
+        <div class="label"><span>Last canonical digest</span><span class="live">live</span></div>
+        <div class="hash-line"><span class="lk">sha256:</span><span data-hashdrift="48">a3f8c2d1e4b7f9a2c5d8e1f4a7b2c5d8e1f4a7b2c5d8e1f4</span></div>
+        <div class="hash-line" style="margin-top:8px"><span class="lk">merkle:</span><span data-hashdrift="48">8f4a2c1d9e7b3f5a8c2d4e6f8a1b3c5d8f4a2c1d9e7b3f5a</span></div>
+      </div>
+      <div class="glass subtle console-cell">
+        <div class="label"><span>Resonance · cosine similarity</span><span id="live-iso">2026-05-19T00:00:00Z</span></div>
+        <div class="resonance">
+          <div class="hash-line" style="display:flex;justify-content:space-between"><span class="lk">resonance</span><span id="resonance-val" style="color:color-mix(in oklch, var(--aurora-3) 100%, transparent)">0.9923</span></div>
+          <div class="bar-track"><div class="bar" id="resonance-bar"></div></div>
+          <div class="hash-line" style="display:flex;justify-content:space-between;margin-top:4px"><span class="lk">eudaimonic</span><span id="eudaimon-val" style="color:color-mix(in oklch, var(--aurora-2) 100%, transparent)">0.987</span></div>
+          <div class="bar-track"><div class="bar" id="eudaimon-bar" style="background:linear-gradient(90deg, color-mix(in oklch, var(--aurora-1) 100%, transparent), color-mix(in oklch, var(--aurora-2) 100%, transparent));transform:scaleX(.987)"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────────────── PERFORMANCE ───────────────────────── -->
+<section id="perf" data-screen-label="04 Performance">
+  <div class="shell">
+    <div class="section-head" data-reveal>
+      <span class="num">§ 03 — Deterministic Benchmarks</span>
+      <h2>Production-hardened.<br/><em>Microsecond-budgeted.</em></h2>
+      <p class="desc">Regression budgets generated by <code style="font-family:var(--mono);font-size:13px;color:var(--ink)">src/benchmarks/promptingModes.ts</code>. Re-runnable with <code style="font-family:var(--mono);font-size:13px;color:var(--ink)">pnpm benchmark:refresh</code> and byte-identity-reproducible in 90 s via Docker.</p>
+    </div>
+
+    <div class="bench-grid" data-reveal>
+      <div class="glass bench">
+        <span class="lbl">Response time</span>
+        <div class="val">&lt;<span data-count="50">0</span><em>ms</em></div>
+        <canvas class="spark" data-spark="r"></canvas>
+        <span class="sub">P99 across the documented API surface.</span>
+      </div>
+      <div class="glass bench">
+        <span class="lbl">Throughput</span>
+        <div class="val"><span data-count="22.7" data-decimals="1">0</span>K<em>req/s</em></div>
+        <canvas class="spark" data-spark="t"></canvas>
+        <span class="sub">Sustained on a single Next.js 15.5 runtime.</span>
+      </div>
+      <div class="glass bench">
+        <span class="lbl">Uptime</span>
+        <div class="val"><span data-count="99.99" data-decimals="2">0</span><em>%</em></div>
+        <canvas class="spark" data-spark="u"></canvas>
+        <span class="sub">Multi-region deployment target.</span>
+      </div>
+      <div class="glass bench">
+        <span class="lbl">Memory ceiling</span>
+        <div class="val">&lt;<span data-count="128">0</span><em>MB</em></div>
+        <canvas class="spark" data-spark="m"></canvas>
+        <span class="sub">Bounded by deterministic circular buffer.</span>
+      </div>
+    </div>
+
+    <div class="glass perf-table" data-reveal>
+      <div class="perf-row head">
+        <span>Operation</span><span>Latency</span><span>Throughput</span><span>Δ load</span>
+      </div>
+      <div class="perf-row"><span class="op">Context encoding</span><span class="v">2.1 ms</span><span class="v">47,600 ops/sec</span><span class="perf-bar"><i style="transform:scaleX(.42)"></i></span></div>
+      <div class="perf-row"><span class="op">NovaNeoWeb encoding</span><span class="v">2.1 ms</span><span class="v">47,600 ops/sec</span><span class="perf-bar"><i style="transform:scaleX(.42)"></i></span></div>
+      <div class="perf-row"><span class="op">Stigmergy recall</span><span class="v">0.8 ms</span><span class="v">125,000 ops/sec</span><span class="perf-bar"><i style="transform:scaleX(.86)"></i></span></div>
+      <div class="perf-row"><span class="op">ResonantRecentQuery</span><span class="v">0.8 ms</span><span class="v">125,000 ops/sec</span><span class="perf-bar"><i style="transform:scaleX(.86)"></i></span></div>
+      <div class="perf-row"><span class="op">Holographic etch write</span><span class="v">1.2 ms</span><span class="v">83,300 ops/sec</span><span class="perf-bar"><i style="transform:scaleX(.66)"></i></span></div>
+      <div class="perf-row"><span class="op">Eudaimonic etch score</span><span class="v">0.1 ms</span><span class="v">1,000,000+ ops/sec</span><span class="perf-bar"><i style="transform:scaleX(1)"></i></span></div>
+      <div class="perf-row"><span class="op">Provenance hash</span><span class="v">0.3 ms</span><span class="v">333,000 ops/sec</span><span class="perf-bar"><i style="transform:scaleX(.94)"></i></span></div>
+      <div class="perf-row total"><span class="op">Full pipeline</span><span class="v">4.4 ms</span><span class="v">22,700 ops/sec</span><span class="perf-bar"><i style="transform:scaleX(.36)"></i></span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────────────── ADAPTERS ───────────────────────── -->
+<section id="adapters" data-screen-label="05 Adapters">
+  <div class="shell">
+    <div class="section-head" data-reveal>
+      <span class="num">§ 04 — Universal Adapter Protocol</span>
+      <h2>Seven providers.<br/><em>One typed contract.</em></h2>
+      <p class="desc">A single <code style="font-family:var(--mono);font-size:13px;color:var(--ink)">IMCOPAdapter</code> contract. Plug the triad into any LLM stack or MCP-compatible service — without modifying the core. Native bridges for OpenAI, Anthropic, Google, Grok (xAI), Ollama, Groq, and Together AI.</p>
+    </div>
+
+    <div class="glass orbit-stage" data-reveal>
+      <div class="orbit-side">
+        <div>
+          <h3>Every adapter call lands in the <em>same Merkle root.</em></h3>
+          <p>Drop-in providers share one cryptographic spine. Switch backends without rewriting the upstream — provenance, replay, and audit semantics are guaranteed by the core.</p>
+        </div>
+        <div class="adapter-table">
+          <div class="ar"><span class="name">OpenAI · GPT</span><span class="proto">REST / SSE</span><span class="stat">Active</span></div>
+          <div class="ar"><span class="name">Anthropic · Claude</span><span class="proto">REST</span><span class="stat">Active</span></div>
+          <div class="ar"><span class="name">Google · Gemini</span><span class="proto">gRPC / REST</span><span class="stat">Active</span></div>
+          <div class="ar"><span class="name">xAI · Grok</span><span class="proto">REST · img-gen</span><span class="stat">Active</span></div>
+          <div class="ar"><span class="name">Ollama · Local</span><span class="proto">REST</span><span class="stat">Active</span></div>
+          <div class="ar"><span class="name">Groq</span><span class="proto">REST</span><span class="stat">Active</span></div>
+          <div class="ar"><span class="name">Together AI</span><span class="proto">REST</span><span class="stat">Active</span></div>
+        </div>
+      </div>
+      <div class="orbit-vis">
+        <canvas id="orbit-canvas"></canvas>
+        <div class="orbit-pins">
+          <span class="pin" style="top:7%;left:50%;transform:translateX(-50%)"><span class="lamp"></span>OpenAI · GPT</span>
+          <span class="pin" style="top:24%;right:6%"><span class="lamp"></span>Claude</span>
+          <span class="pin" style="bottom:24%;right:6%"><span class="lamp"></span>Gemini</span>
+          <span class="pin" style="bottom:6%;left:50%;transform:translateX(-50%)"><span class="lamp"></span>Grok · xAI</span>
+          <span class="pin" style="bottom:24%;left:6%"><span class="lamp"></span>Ollama</span>
+          <span class="pin" style="top:24%;left:6%"><span class="lamp"></span>Groq · Together</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────────────── COMPARE ───────────────────────── -->
+<section id="compare" data-screen-label="06 Vs">
+  <div class="shell">
+    <div class="section-head" data-reveal>
+      <span class="num">§ 05 — Why MCOP</span>
+      <h2>Not a wrapper.<br/><em>A substrate.</em></h2>
+      <p class="desc">MCOP isn't a chain-of-thought wrapper or a retrieval shim — it's a deterministic, cryptographically-verifiable substrate any LLM stack can sit on top of. Qualitative feature comparison against mainstream agent frameworks (public docs, May 2026).</p>
+    </div>
+
+    <div class="glass compare" data-reveal>
+      <div class="compare-table">
+        <div class="compare-row head">
+          <span>Capability</span>
+          <span class="cell us">MCOP 2.0</span>
+          <span class="cell">LangChain</span>
+          <span class="cell">AutoGen</span>
+          <span class="cell">CrewAI</span>
+        </div>
+        <div class="compare-row"><span class="feat">Byte-identical pipeline (Node + browser + edge)</span><span class="cell tick">✓</span><span class="cell cross">—</span><span class="cell cross">—</span><span class="cell cross">—</span></div>
+        <div class="compare-row"><span class="feat">Merkle-chained provenance per reasoning step</span><span class="cell tick">✓</span><span class="cell cross">—</span><span class="cell cross">—</span><span class="cell cross">—</span></div>
+        <div class="compare-row"><span class="feat">Append-only confidence ledger · replayable etches</span><span class="cell tick">✓</span><span class="cell cross">—</span><span class="cell cross">—</span><span class="cell cross">—</span></div>
+        <div class="compare-row"><span class="feat">Eudaimonic / positive-resonance scoring</span><span class="cell tick">✓</span><span class="cell cross">—</span><span class="cell cross">—</span><span class="cell cross">—</span></div>
+        <div class="compare-row"><span class="feat">Self-healing dimension · bounded-curiosity recall</span><span class="cell tick">✓</span><span class="cell cross">—</span><span class="cell cross">—</span><span class="cell cross">—</span></div>
+        <div class="compare-row"><span class="feat">Universal Adapter Protocol (7 providers)</span><span class="cell tick">✓</span><span class="cell tick">✓</span><span class="cell partial">~</span><span class="cell partial">~</span></div>
+        <div class="compare-row"><span class="feat">Native xAI Grok adapter (text + image gen)</span><span class="cell tick">✓</span><span class="cell partial">~</span><span class="cell cross">—</span><span class="cell cross">—</span></div>
+        <div class="compare-row"><span class="feat">Documented test coverage</span><span class="cell tick">96.6%</span><span class="cell cross">—</span><span class="cell cross">—</span><span class="cell cross">—</span></div>
+        <div class="compare-row"><span class="feat">Reference benchmark (full pipeline)</span><span class="cell tick">4.4 ms</span><span class="cell cross">—</span><span class="cell cross">—</span><span class="cell cross">—</span></div>
+        <div class="compare-row"><span class="feat">CodeQL + SBOM (CycloneDX) + Trojan-Source in CI</span><span class="cell tick">✓</span><span class="cell partial">~</span><span class="cell partial">~</span><span class="cell partial">~</span></div>
+        <div class="compare-row"><span class="feat">Trusted publishing (OIDC, secretless)</span><span class="cell tick">✓</span><span class="cell cross">—</span><span class="cell cross">—</span><span class="cell cross">—</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────────────── INSTALL ───────────────────────── -->
+<section id="install" data-screen-label="07 Install">
+  <div class="shell">
+    <div class="section-head" data-reveal>
+      <span class="num">§ 06 — Quick Start</span>
+      <h2>Clone the<br/><em>cinematic intelligence engine.</em></h2>
+      <p class="desc">Production container, 96.6% test coverage, hardware-acceleration-ready. Activate the toolchain and you're four commands from a sealed provenance ledger.</p>
+    </div>
+
+    <div class="install" data-reveal>
+      <div class="glass code-card">
+        <div class="code-tabs">
+          <button class="code-tab is-active" data-tab="bash">bash</button>
+          <button class="code-tab" data-tab="ts">typescript</button>
+          <button class="code-tab" data-tab="py">python</button>
+          <button class="code-tab" data-tab="docker">docker</button>
+        </div>
+
+<pre class="code-pane is-active" data-pane="bash"><button class="copy" data-copy="git clone https://github.com/Kuonirad/MCOP-Framework-2.0.git">copy</button><span class="c-com"># clone the cinematic intelligence engine</span>
+<span class="c-prompt">$</span> git clone https://github.com/Kuonirad/<span class="c-name">MCOP-Framework-2.0</span>.git
+<span class="c-prompt">$</span> cd MCOP-Framework-2.0
+
+<span class="c-com"># activate the pinned toolchain</span>
+<span class="c-prompt">$</span> nvm use                          <span class="c-com"># Node 22.22.2</span>
+<span class="c-prompt">$</span> corepack enable
+<span class="c-prompt">$</span> corepack prepare pnpm@<span class="c-str">9.15.0</span> --activate
+
+<span class="c-com"># install · test · audit · launch</span>
+<span class="c-prompt">$</span> pnpm install
+<span class="c-prompt">$</span> pnpm test                        <span class="c-com"># 96.6% coverage</span>
+<span class="c-prompt">$</span> pnpm positive:audit              <span class="c-com"># merkle-anchored impact report</span>
+<span class="c-prompt">$</span> pnpm build &amp;&amp; pnpm start</pre>
+
+<pre class="code-pane" data-pane="ts"><button class="copy" data-copy="pnpm add @kullailabs/mcop-core">copy</button><span class="c-prompt">$</span> pnpm add <span class="c-str">@kullailabs/mcop-core</span>
+
+<span class="c-key">import</span> { MCOPOrchestrator } <span class="c-key">from</span> <span class="c-str">'@kullailabs/mcop-core'</span>;
+
+<span class="c-com">// initialise the recursive triad</span>
+<span class="c-key">const</span> mcop = <span class="c-key">new</span> MCOPOrchestrator({
+  encoder:    <span class="c-str">'nova-neo-v2'</span>,
+  memory:     <span class="c-str">'stigmergy-v5'</span>,
+  ledger:     <span class="c-str">'holographic-etch'</span>,
+  provenance: { algorithm: <span class="c-str">'SHA-256'</span>, standard: <span class="c-str">'ISO8601'</span> }
+});
+
+<span class="c-com">// execute with cryptographic provenance at every step</span>
+<span class="c-key">const</span> result = <span class="c-key">await</span> mcop.optimize(context, {
+  deterministic:     <span class="c-str">true</span>,
+  entropyNormalized: <span class="c-str">true</span>,
+  merkleChained:     <span class="c-str">true</span>,
+});
+
+console.log(result.provenance.merkleRoot);
+<span class="c-com">// → "f3c1e7…"  byte-identical with the Python shim</span></pre>
+
+<pre class="code-pane" data-pane="py"><button class="copy" data-copy="pip install mcop">copy</button><span class="c-prompt">$</span> pip install mcop
+
+<span class="c-key">from</span> mcop <span class="c-key">import</span> MCOPOrchestrator
+
+<span class="c-com"># cross-language parity guardian — bit-for-bit with TS</span>
+mcop = MCOPOrchestrator(
+    encoder=<span class="c-str">"nova-neo-v2"</span>,
+    memory=<span class="c-str">"stigmergy-v5"</span>,
+    deterministic=<span class="c-str">True</span>,
+)
+
+result = mcop.optimize(context)
+<span class="c-key">assert</span> result.provenance.merkle_root.verify()</pre>
+
+<pre class="code-pane" data-pane="docker"><button class="copy" data-copy="docker build -t mcop-reproducible-benchmark -f examples/reproducible-benchmark/Dockerfile .">copy</button><span class="c-com"># 90-second byte-identity verification — anyone, any host</span>
+<span class="c-prompt">$</span> docker build \
+    -t mcop-reproducible-benchmark \
+    -f examples/reproducible-benchmark/Dockerfile .
+
+<span class="c-prompt">$</span> docker run --rm \
+    -v <span class="c-str">"$PWD/examples/reproducible-benchmark/out:/out"</span> \
+    mcop-reproducible-benchmark
+
+<span class="c-com"># → manifest.json carrying verdict + SHA-256 of regenerated artefact</span></pre>
+
+      </div>
+
+      <div class="glass install-prose">
+        <h3>Built on Next.js 15.5 + TypeScript. <em>Cross-runtime parity with Python.</em></h3>
+        <p>Canonical hashes use RFC 8785 JSON serialization. Every TypeScript ↔ Python boundary is parity-guarded by CI — fixtures must hash byte-identically across runtimes or the build fails.</p>
+        <p>The encoder path is portable: <code style="font-family:var(--mono);font-size:13px">UniversalEncoder</code> uses portable SHA-256, so client and edge runtimes don't require Node <code style="font-family:var(--mono);font-size:13px">crypto</code> or <code style="font-family:var(--mono);font-size:13px">Buffer</code>.</p>
+        <div class="chips">
+          <span class="chip">Next.js 15.5</span>
+          <span class="chip">TypeScript 5</span>
+          <span class="chip">Node 22.22.2</span>
+          <span class="chip">pnpm 9.15.0</span>
+          <span class="chip">Python 3.12</span>
+          <span class="chip">Docker</span>
+          <span class="chip">Jest 96.6%</span>
+          <span class="chip">ESLint strict</span>
+          <span class="chip">CodeQL</span>
+          <span class="chip">SBOM</span>
+          <span class="chip">OIDC publish</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────────────── OUTRO ───────────────────────── -->
+<section class="outro" data-screen-label="08 Outro">
+  <div class="glass" data-reveal>
+    <h2>Determinism is a <span class="iridescent">design choice.</span></h2>
+    <p>Identical inputs, identical triad state, identical outputs — no hidden randomness. Crystalline cognition for the systems you can't afford to misremember.</p>
+    <div class="btn-row">
+      <a class="btn primary" href="https://github.com/Kuonirad/MCOP-Framework-2.0" target="_blank" rel="noopener">Open on GitHub <span class="arr">→</span></a>
+      <a class="btn" href="https://github.com/Kuonirad/MCOP-Framework-2.0/blob/main/docs/api/README.md" target="_blank" rel="noopener">Read the docs <span class="arr">→</span></a>
+      <a class="btn" href="https://github.com/Kuonirad/MCOP-Framework-2.0/blob/main/ARCHITECTURE.md" target="_blank" rel="noopener">Architecture <span class="arr">→</span></a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div>MCOP Framework 2.0 · v2.3.0 · <a href="https://github.com/Kuonirad" style="border-bottom:1px solid var(--rule)">@Kuonirad</a></div>
+  <div class="legal">
+    <span>BUSL 1.1</span>
+    <span>→ MIT 2030-04-26</span>
+    <span>SHA-256 sealed</span>
+    <span>RFC 8785</span>
+  </div>
+</footer>
+
+<script>
+/* ────────────────────────────────────────────────────────────────────
+   Motion + scripts: reveal, counters, hash drift, sparks, triad canvases,
+   chain canvas, orbit canvas, code tabs, copy.
+   ──────────────────────────────────────────────────────────────────── */
+
+// ===== reveal on scroll =====
+const io = new IntersectionObserver(es => {
+  es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('is-revealed'); io.unobserve(e.target); } });
+}, { threshold: .12, rootMargin: '0px 0px -10% 0px' });
+document.querySelectorAll('[data-reveal]').forEach(el => io.observe(el));
+
+// ===== animated counters =====
+function animateCount(el){
+  const target = parseFloat(el.dataset.count);
+  const decimals = parseInt(el.dataset.decimals || '0', 10);
+  const dur = 1600;
+  const start = performance.now();
+  function tick(t){
+    const p = Math.min(1, (t - start) / dur);
+    const eased = 1 - Math.pow(1 - p, 3);
+    const val = target * eased;
+    el.textContent = decimals ? val.toFixed(decimals) : Math.round(val).toLocaleString();
+    if (p < 1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+const countIO = new IntersectionObserver(es => {
+  es.forEach(e => { if (e.isIntersecting){ animateCount(e.target); countIO.unobserve(e.target); }});
+}, { threshold:.4 });
+document.querySelectorAll('[data-count]').forEach(el => countIO.observe(el));
+
+// ===== hash drift (live-feeling, deterministic-ish from a seed) =====
+const HEX = '0123456789abcdef';
+function randHex(n){
+  let s = '';
+  for(let i=0;i<n;i++) s += HEX[(Math.random()*16)|0];
+  return s;
+}
+function startHashDrift(){
+  const targets = document.querySelectorAll('[data-hashdrift]');
+  function step(){
+    targets.forEach(t => {
+      const n = parseInt(t.dataset.hashdrift, 10);
+      // drift only a few positions at a time so it reads as "live" not chaotic
+      const cur = t.textContent;
+      let arr = cur.split('');
+      const k = Math.max(1, Math.floor(n * 0.15));
+      for (let i = 0; i < k; i++){
+        const idx = Math.floor(Math.random() * n);
+        arr[idx] = HEX[(Math.random() * 16) | 0];
+      }
+      t.textContent = arr.join('').slice(0, n);
+    });
+    const hero = document.getElementById('hero-hash');
+    if (hero) hero.textContent = randHex(16) + '…';
+  }
+  // initial seed
+  targets.forEach(t => { t.textContent = randHex(parseInt(t.dataset.hashdrift,10)); });
+  setInterval(step, 220);
+}
+startHashDrift();
+
+// ===== resonance + eudaimonic live values =====
+(function liveResonance(){
+  const v = document.getElementById('resonance-val');
+  const b = document.getElementById('resonance-bar');
+  const ev = document.getElementById('eudaimon-val');
+  const eb = document.getElementById('eudaimon-bar');
+  const iso = document.getElementById('live-iso');
+  function step(){
+    const r = 0.985 + Math.random() * 0.014;
+    const e = 0.965 + Math.random() * 0.030;
+    v.textContent = r.toFixed(4);
+    b.style.transform = 'scaleX(' + r.toFixed(4) + ')';
+    ev.textContent = e.toFixed(3);
+    eb.style.transform = 'scaleX(' + e.toFixed(3) + ')';
+    iso.textContent = new Date().toISOString().replace(/\.\d+/, '');
+  }
+  step();
+  setInterval(step, 1200);
+})();
+
+// ===== code tabs =====
+document.querySelectorAll('.code-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    const k = tab.dataset.tab;
+    const card = tab.closest('.code-card');
+    card.querySelectorAll('.code-tab').forEach(t => t.classList.toggle('is-active', t === tab));
+    card.querySelectorAll('.code-pane').forEach(p => p.classList.toggle('is-active', p.dataset.pane === k));
+  });
+});
+
+// ===== copy =====
+document.querySelectorAll('.copy').forEach(btn => {
+  btn.addEventListener('click', () => {
+    navigator.clipboard.writeText(btn.dataset.copy || '').catch(()=>{});
+    btn.textContent = 'copied';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'copy'; btn.classList.remove('copied'); }, 1400);
+  });
+});
+
+/* ===== TRIAD canvases ===== */
+function dprFit(canvas){
+  const ratio = window.devicePixelRatio || 1;
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  canvas.width = w * ratio; canvas.height = h * ratio;
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(ratio,0,0,ratio,0,0);
+  return ctx;
+}
+
+document.querySelectorAll('[data-triad]').forEach(canvas => {
+  const kind = canvas.dataset.triad;
+  let ctx = dprFit(canvas);
+  let t = 0;
+  let running = true;
+
+  const palette = {
+    encoder:   ['#b39bff','#9bd6ff'],
+    stigmergy: ['#9bd6ff','#e8c98a'],
+    etch:      ['#e8c98a','#b39bff']
+  }[kind];
+
+  function resize(){ ctx = dprFit(canvas); }
+  window.addEventListener('resize', resize);
+  const vis = new IntersectionObserver(es => {
+    es.forEach(e => running = e.isIntersecting);
+  }, { threshold: .05 });
+  vis.observe(canvas);
+
+  function loop(){
+    if (running){
+      const w = canvas.clientWidth, h = canvas.clientHeight;
+      ctx.clearRect(0,0,w,h);
+
+      if (kind === 'encoder'){
+        // crystalline lattice tessellating into a tensor field
+        const cx = w/2, cy = h/2;
+        const ring = Math.min(w,h) * 0.36;
+        ctx.strokeStyle = 'rgba(245,241,232,.08)';
+        ctx.lineWidth = 1;
+        for(let r = 1; r <= 6; r++){
+          ctx.beginPath();
+          ctx.arc(cx, cy, ring * r/6, 0, Math.PI*2);
+          ctx.stroke();
+        }
+        // tensor nodes
+        const N = 26;
+        for (let i = 0; i < N; i++){
+          const a = (i / N) * Math.PI * 2 + t * 0.0006;
+          const r = ring + Math.sin(t * 0.002 + i) * 8;
+          const x = cx + Math.cos(a) * r;
+          const y = cy + Math.sin(a) * r;
+          ctx.beginPath();
+          ctx.arc(x, y, 1.6, 0, Math.PI*2);
+          ctx.fillStyle = i % 3 === 0 ? palette[0] : palette[1];
+          ctx.globalAlpha = .85;
+          ctx.fill();
+        }
+        // inner pulse
+        const grad = ctx.createRadialGradient(cx,cy,0,cx,cy,ring*0.7);
+        grad.addColorStop(0, palette[0] + '40');
+        grad.addColorStop(1, palette[0] + '00');
+        ctx.globalAlpha = .8;
+        ctx.fillStyle = grad;
+        ctx.fillRect(0,0,w,h);
+        ctx.globalAlpha = 1;
+
+      } else if (kind === 'stigmergy'){
+        // pheromone field — drifting trails with cosine resonance arcs
+        const trails = 14;
+        for (let i = 0; i < trails; i++){
+          const phase = i * 0.6 + t * 0.0008;
+          ctx.beginPath();
+          for (let x = 0; x <= w; x += 6){
+            const y = h/2
+              + Math.sin(x*0.02 + phase) * (h*0.18)
+              + Math.cos(x*0.011 + phase*1.4) * (h*0.10);
+            if (x === 0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+          }
+          const g = ctx.createLinearGradient(0,0,w,0);
+          g.addColorStop(0, palette[0] + '00');
+          g.addColorStop(.5, palette[i%2 ? 1 : 0] + 'a0');
+          g.addColorStop(1, palette[1] + '00');
+          ctx.strokeStyle = g;
+          ctx.lineWidth = 1;
+          ctx.globalAlpha = .35 + 0.35 * Math.sin(phase);
+          ctx.stroke();
+        }
+        ctx.globalAlpha = 1;
+
+      } else if (kind === 'etch'){
+        // append-only ledger: rank-1 strata accumulating
+        const rows = 7;
+        const rowH = h / (rows + 2);
+        for (let r = 0; r < rows; r++){
+          const y = rowH * (r + 1.5);
+          const phase = t * 0.0015 + r;
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          for (let x = 0; x <= w; x += 4){
+            const offs = Math.sin(x*0.03 + phase) * 4;
+            ctx.lineTo(x, y + offs);
+          }
+          ctx.strokeStyle = r === rows-1 ? palette[0] + 'd0' : palette[1] + ((r * 24 + 60).toString(16).padStart(2,'0'));
+          ctx.lineWidth = r === rows-1 ? 1.6 : 1;
+          ctx.globalAlpha = .8;
+          ctx.stroke();
+        }
+        // sparkle markers
+        for (let i = 0; i < 18; i++){
+          const a = (i*73 + t*0.04) % w;
+          const b = ((i*131 + t*0.02) % h);
+          ctx.fillStyle = palette[i%2];
+          ctx.globalAlpha = (i % 5 === 0) ? .9 : .35;
+          ctx.fillRect(a, b, 1.4, 1.4);
+        }
+        ctx.globalAlpha = 1;
+      }
+
+      t += 16;
+    }
+    requestAnimationFrame(loop);
+  }
+  resize();
+  requestAnimationFrame(loop);
+});
+
+/* ===== Chain canvas — particles flowing through a triadic spine ===== */
+(function chainCanvas(){
+  const canvas = document.getElementById('chain-canvas');
+  if (!canvas) return;
+  let ctx = dprFit(canvas);
+  let t = 0;
+  let running = true;
+  const palette = ['#b39bff','#9bd6ff','#e8c98a'];
+
+  // particles travelling along three Bezier-like spines
+  const particles = [];
+  const N = 80;
+  for (let i = 0; i < N; i++){
+    particles.push({
+      lane: i % 3,
+      p: Math.random(),
+      speed: 0.0018 + Math.random()*0.002,
+      size: 1 + Math.random()*1.6,
+    });
+  }
+
+  function resize(){ ctx = dprFit(canvas); }
+  window.addEventListener('resize', resize);
+  const vis = new IntersectionObserver(es => {
+    es.forEach(e => running = e.isIntersecting);
+  }, { threshold: .05 });
+  vis.observe(canvas);
+
+  function lanePoint(lane, p, w, h){
+    // 3 wavy spines stacked
+    const baseY = h * (0.30 + lane * 0.20);
+    const phase = t * 0.0006 + lane * 1.4;
+    const x = p * w;
+    const y = baseY + Math.sin(x*0.012 + phase) * h*0.06;
+    return [x, y];
+  }
+
+  function loop(){
+    if (running){
+      const w = canvas.clientWidth, h = canvas.clientHeight;
+      // soft fade trail
+      ctx.fillStyle = 'rgba(6,6,11,.18)';
+      ctx.fillRect(0,0,w,h);
+
+      // spines
+      for (let lane = 0; lane < 3; lane++){
+        ctx.beginPath();
+        for (let p = 0; p <= 1; p += 0.02){
+          const [x,y] = lanePoint(lane,p,w,h);
+          if (p === 0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+        }
+        ctx.strokeStyle = palette[lane] + '30';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+
+      // particles
+      for (const par of particles){
+        par.p += par.speed;
+        if (par.p > 1) par.p -= 1;
+        const [x,y] = lanePoint(par.lane, par.p, w, h);
+        ctx.beginPath();
+        ctx.arc(x, y, par.size, 0, Math.PI*2);
+        const c = palette[par.lane];
+        ctx.fillStyle = c;
+        ctx.shadowColor = c;
+        ctx.shadowBlur = 8;
+        ctx.globalAlpha = .9;
+        ctx.fill();
+      }
+      ctx.shadowBlur = 0;
+      ctx.globalAlpha = 1;
+
+      t += 16;
+    }
+    requestAnimationFrame(loop);
+  }
+  resize();
+  requestAnimationFrame(loop);
+})();
+
+/* ===== Orbit canvas — adapters circling a luminous core ===== */
+(function orbitCanvas(){
+  const canvas = document.getElementById('orbit-canvas');
+  if (!canvas) return;
+  let ctx = dprFit(canvas);
+  let t = 0;
+  let running = true;
+
+  function resize(){ ctx = dprFit(canvas); }
+  window.addEventListener('resize', resize);
+  const vis = new IntersectionObserver(es => {
+    es.forEach(e => running = e.isIntersecting);
+  }, { threshold: .05 });
+  vis.observe(canvas);
+
+  function loop(){
+    if (running){
+      const w = canvas.clientWidth, h = canvas.clientHeight;
+      ctx.clearRect(0,0,w,h);
+      const cx = w/2, cy = h/2;
+      const rMax = Math.min(w,h) * 0.42;
+
+      // concentric rings
+      ctx.lineWidth = 1;
+      for (let i = 1; i <= 4; i++){
+        ctx.strokeStyle = 'rgba(245,241,232,'+ (0.10 - i*0.015) +')';
+        ctx.beginPath();
+        ctx.arc(cx,cy, rMax * (0.35 + i*0.18), 0, Math.PI*2);
+        ctx.stroke();
+      }
+
+      // shimmering core
+      const coreR = rMax * 0.18;
+      const grad = ctx.createRadialGradient(cx-coreR*0.2, cy-coreR*0.3, 0, cx, cy, coreR*1.6);
+      grad.addColorStop(0, '#fff');
+      grad.addColorStop(0.4, '#9bd6ff');
+      grad.addColorStop(0.7, '#b39bff');
+      grad.addColorStop(1, 'rgba(6,6,11,0)');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(cx,cy,coreR*1.6,0,Math.PI*2);
+      ctx.fill();
+
+      // crystalline core outline
+      ctx.strokeStyle = 'rgba(245,241,232,.85)';
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      for (let i = 0; i < 6; i++){
+        const a = (i/6) * Math.PI*2 + t*0.0006;
+        const x = cx + Math.cos(a) * coreR;
+        const y = cy + Math.sin(a) * coreR;
+        if (i === 0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+      }
+      ctx.closePath();
+      ctx.stroke();
+
+      // orbiting beads + connecting filaments
+      const adapters = 7;
+      for (let i = 0; i < adapters; i++){
+        const a = (i / adapters) * Math.PI*2 + t*0.0004;
+        const r = rMax * (0.62 + 0.18 * Math.sin(t*0.0008 + i));
+        const x = cx + Math.cos(a) * r;
+        const y = cy + Math.sin(a) * r;
+
+        // filament
+        ctx.strokeStyle = 'rgba(155,214,255,'+ (0.10 + 0.10*Math.sin(t*0.002+i)) +')';
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(x, y);
+        ctx.stroke();
+
+        // bead
+        ctx.beginPath();
+        ctx.arc(x, y, 3, 0, Math.PI*2);
+        ctx.fillStyle = ['#b39bff','#9bd6ff','#e8c98a'][i % 3];
+        ctx.shadowColor = ctx.fillStyle;
+        ctx.shadowBlur = 12;
+        ctx.fill();
+      }
+      ctx.shadowBlur = 0;
+
+      // sweeping radar
+      const sweepA = (t*0.0004) % (Math.PI*2);
+      const sg = ctx.createRadialGradient(cx,cy,coreR*0.5, cx,cy, rMax);
+      sg.addColorStop(0, 'rgba(155,214,255,0)');
+      sg.addColorStop(1, 'rgba(155,214,255,.18)');
+      ctx.save();
+      ctx.translate(cx,cy);
+      ctx.rotate(sweepA);
+      ctx.beginPath();
+      ctx.moveTo(0,0);
+      ctx.arc(0,0, rMax, -0.25, 0.25);
+      ctx.closePath();
+      ctx.fillStyle = sg;
+      ctx.fill();
+      ctx.restore();
+
+      t += 16;
+    }
+    requestAnimationFrame(loop);
+  }
+  resize();
+  requestAnimationFrame(loop);
+})();
+
+/* ===== sparklines for benchmarks ===== */
+document.querySelectorAll('[data-spark]').forEach(canvas => {
+  let ctx = dprFit(canvas);
+  const kind = canvas.dataset.spark;
+  const data = Array.from({length: 48}, (_,i) => 0.5 + 0.4*Math.sin(i*0.4 + (kind.charCodeAt(0)%5)) + Math.random()*0.1);
+  let t = 0;
+  function resize(){ ctx = dprFit(canvas); }
+  window.addEventListener('resize', resize);
+  function loop(){
+    const w = canvas.clientWidth, h = canvas.clientHeight;
+    ctx.clearRect(0,0,w,h);
+    // ghost baseline
+    ctx.strokeStyle = 'rgba(245,241,232,.06)';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(0,h*.5); ctx.lineTo(w,h*.5); ctx.stroke();
+    // moving point added
+    if (Math.floor(t) % 18 === 0){
+      data.shift();
+      data.push(0.4 + Math.random()*0.55);
+    }
+    // line
+    ctx.beginPath();
+    data.forEach((d, i) => {
+      const x = (i/(data.length-1)) * w;
+      const y = (1 - d) * h;
+      if (i === 0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    });
+    const g = ctx.createLinearGradient(0,0,w,0);
+    g.addColorStop(0,'#9bd6ff'); g.addColorStop(1,'#e8c98a');
+    ctx.strokeStyle = g;
+    ctx.lineWidth = 1.3;
+    ctx.stroke();
+    // last dot
+    const last = data[data.length-1];
+    ctx.beginPath();
+    ctx.arc(w-2, (1-last)*h, 2.4, 0, Math.PI*2);
+    ctx.fillStyle = '#e8c98a';
+    ctx.shadowColor = '#e8c98a'; ctx.shadowBlur = 10;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    t += 1;
+    requestAnimationFrame(loop);
+  }
+  resize();
+  requestAnimationFrame(loop);
+});
+</script>
+</body>
+</html>
