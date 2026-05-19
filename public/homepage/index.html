@@ -1017,11 +1017,24 @@ const countIO = new IntersectionObserver(es => {
 }, { threshold:.4 });
 document.querySelectorAll('[data-count]').forEach(el => countIO.observe(el));
 
-// ===== hash drift (live-feeling, deterministic-ish from a seed) =====
+// ===== hash drift (live-feeling visual flicker) =====
+// NOTE: the hex strings rendered here are PURELY DECORATIVE — they animate
+// a "live cryptographic ledger" feel and are never used as identifiers,
+// tokens, signatures, or anything security-sensitive. We use the Web
+// Crypto API anyway so static analyzers (e.g. CodeQL js/insecure-randomness)
+// don't have to second-guess intent.
 const HEX = '0123456789abcdef';
+const _cryptoBuf = new Uint8Array(64);
+function _csprngByte(){
+  if (_cryptoBuf._i === undefined || _cryptoBuf._i >= _cryptoBuf.length) {
+    crypto.getRandomValues(_cryptoBuf);
+    _cryptoBuf._i = 0;
+  }
+  return _cryptoBuf[_cryptoBuf._i++];
+}
 function randHex(n){
   let s = '';
-  for(let i=0;i<n;i++) s += HEX[(Math.random()*16)|0];
+  for (let i = 0; i < n; i++) s += HEX[_csprngByte() & 0x0f];
   return s;
 }
 function startHashDrift(){
@@ -1031,11 +1044,11 @@ function startHashDrift(){
       const n = parseInt(t.dataset.hashdrift, 10);
       // drift only a few positions at a time so it reads as "live" not chaotic
       const cur = t.textContent;
-      let arr = cur.split('');
+      const arr = cur.split('');
       const k = Math.max(1, Math.floor(n * 0.15));
       for (let i = 0; i < k; i++){
-        const idx = Math.floor(Math.random() * n);
-        arr[idx] = HEX[(Math.random() * 16) | 0];
+        const idx = _csprngByte() % n;
+        arr[idx] = HEX[_csprngByte() & 0x0f];
       }
       t.textContent = arr.join('').slice(0, n);
     });
