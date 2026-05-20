@@ -2,7 +2,11 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 
 import { NovaNeoEncoder, UniversalEncoder, NovaNeoWeb, getUniversalCryptoRuntime, sha256Hex } from '../core';
-import { HashingTrickBackend, defaultEmbeddingBackend } from '../core/embeddingEngine';
+import {
+  HashingTrickBackend,
+  OpenAIEmbeddingBackend,
+  defaultEmbeddingBackend,
+} from '../core/embeddingEngine';
 import logger from '../utils/logger';
 
 // Cosine similarity helper for semantic tests
@@ -168,6 +172,55 @@ describe('HashingTrickBackend standalone', () => {
     const vec = defaultEmbeddingBackend.encode('singleton reuse', 16, false);
     expect(vec).toHaveLength(16);
     expect(vec.every((v) => Number.isFinite(v))).toBe(true);
+  });
+});
+
+describe('OpenAIEmbeddingBackend remote embeddings', () => {
+  it('projects remote text-embedding vectors through NovaNeoEncoder.encodeAsync', async () => {
+    const fetchImpl = jest.fn(async (_url: string | URL | Request, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body));
+      expect(body).toMatchObject({
+        model: 'text-embedding-3-small',
+        input: 'remote resonance',
+        dimensions: 4,
+        encoding_format: 'float',
+      });
+      expect((init?.headers as Record<string, string>).Authorization).toBe('Bearer test-key');
+      return {
+        ok: true,
+        status: 200,
+        statusText: 'OK',
+        json: async () => ({
+          data: [{ embedding: [2, 0, 0, 0] }],
+          model: 'text-embedding-3-small',
+          usage: { prompt_tokens: 2, total_tokens: 2 },
+        }),
+      } as Response;
+    }) as unknown as typeof fetch;
+    const backend = new OpenAIEmbeddingBackend({ apiKey: 'test-key', fetchImpl });
+    const encoder = new NovaNeoEncoder({
+      dimensions: 4,
+      normalize: true,
+      backend: 'embedding',
+      embeddingBackend: backend,
+    });
+
+    await expect(encoder.encodeAsync('remote resonance')).resolves.toEqual([1, 0, 0, 0]);
+    expect(backend.getLastUsage()).toEqual({ promptTokens: 2, totalTokens: 2 });
+  });
+
+  it('keeps sync encode from accidentally calling async embedding backends', () => {
+    const backend = new OpenAIEmbeddingBackend({
+      apiKey: 'test-key',
+      fetchImpl: jest.fn() as unknown as typeof fetch,
+    });
+    const encoder = new NovaNeoEncoder({
+      dimensions: 4,
+      backend: 'embedding',
+      embeddingBackend: backend,
+    });
+
+    expect(() => encoder.encode('sync path')).toThrow(/encodeAsync/);
   });
 });
 

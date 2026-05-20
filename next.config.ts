@@ -31,6 +31,10 @@ const immutableCache = {
 const nextConfig: NextConfig = {
   output: "standalone",
   poweredByHeader: false,
+  serverExternalPackages: ['onnxruntime-node'],
+  turbopack: {
+    root: process.cwd(),
+  },
 
   /**
    * LCP Image Intelligence — modern formats first, opinionated breakpoints,

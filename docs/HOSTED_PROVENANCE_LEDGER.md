@@ -136,25 +136,38 @@ templates. Liveness + readiness probes hit `/health`.
 
 ## Wire format
 
+Etch receipt:
+
 ```json
-// EtchReceipt
 {
   "id":          "<uuid>",
   "tenantId":    "team-orion",
   "leafHash":    "<sha256>",
-  "parentHash":  "<sha256 | undefined>",
+  "parentHash":  null,
   "forestRoot":  "<sha256>",
   "inclusionProof": ["<sha256>", "..."],
   "sealedAt":    "2026-05-18T05:48:00Z"
 }
+```
 
-// LedgerExportBundle
+Ledger export bundle:
+
+```json
 {
   "version":     "mcop-ledger-export/1.0",
   "tenantId":    "team-orion",
   "forestRoot":  "<sha256>",
   "exportedAt":  "...",
-  "leaves":      [ { "id": "...", "leafHash": "...", "parentHash": "...", ... } ]
+  "leaves": [
+    {
+      "id": "<uuid>",
+      "tenantId": "team-orion",
+      "leafHash": "<sha256>",
+      "parentHash": "<sha256>",
+      "payloadHash": "<sha256>",
+      "createdAt": "2026-05-18T05:48:00Z"
+    }
+  ]
 }
 ```
 

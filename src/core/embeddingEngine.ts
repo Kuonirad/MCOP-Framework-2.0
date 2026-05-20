@@ -37,6 +37,24 @@ export interface IEmbeddingBackend {
   getLastDimensionHealing?(): DimensionHealingEvent | undefined;
 }
 
+export interface IAsyncEmbeddingBackend {
+  encodeAsync(text: string, dimensions: number, normalize: boolean): Promise<ContextTensor>;
+}
+
+export interface RemoteEmbeddingUsage {
+  promptTokens: number;
+  totalTokens: number;
+}
+
+export interface OpenAIEmbeddingBackendConfig {
+  apiKey?: string;
+  baseUrl?: string;
+  model?: string;
+  fetchImpl?: typeof fetch;
+  timeoutMs?: number;
+  user?: string;
+}
+
 /** Tokenisation constants — tuned for short prompts typical in MCOP flows. */
 const MIN_NGRAM_N = 2;
 const MAX_NGRAM_N = 4;
@@ -145,3 +163,110 @@ function nearestSafePowerOfTwo(value: number): number {
 
 /** Singleton instance — stateless, safe to reuse. */
 export const defaultEmbeddingBackend = new HashingTrickBackend();
+
+export class OpenAIEmbeddingBackend implements IAsyncEmbeddingBackend {
+  private readonly apiKey: string;
+  private readonly baseUrl: string;
+  private readonly model: string;
+  private readonly fetchImpl: typeof fetch;
+  private readonly timeoutMs: number;
+  private readonly user: string | undefined;
+  private lastUsage: RemoteEmbeddingUsage | undefined;
+
+  constructor(config: OpenAIEmbeddingBackendConfig = {}) {
+    const apiKey = config.apiKey ?? (typeof process !== 'undefined' ? process.env?.OPENAI_API_KEY : undefined);
+    if (!apiKey || apiKey.trim().length === 0) {
+      throw new Error('OpenAIEmbeddingBackend: missing OPENAI_API_KEY - pass apiKey explicitly or set the environment variable.');
+    }
+    const fetchImpl = config.fetchImpl ?? globalThis.fetch;
+    if (typeof fetchImpl !== 'function') {
+      throw new Error('OpenAIEmbeddingBackend: no fetch implementation available.');
+    }
+    this.apiKey = apiKey;
+    this.baseUrl = (config.baseUrl ?? 'https://api.openai.com/v1').replace(/\/+$/u, '');
+    this.model = config.model ?? 'text-embedding-3-small';
+    this.fetchImpl = fetchImpl;
+    this.timeoutMs = config.timeoutMs ?? 60_000;
+    this.user = config.user;
+  }
+
+  async encodeAsync(text: string, dimensions: number, normalize: boolean): Promise<ContextTensor> {
+    const safeDimensions = healDimensions(dimensions);
+    if (text.length === 0) return new Array(safeDimensions).fill(0);
+
+    const body: Record<string, unknown> = {
+      model: this.model,
+      input: text,
+      dimensions: safeDimensions,
+      encoding_format: 'float',
+    };
+    if (this.user) body.user = this.user;
+
+    const response = await this.postEmbeddings(body);
+    if (!response.ok) {
+      const detail = await safeReadText(response);
+      throw new Error(`OpenAIEmbeddingBackend request failed: ${response.status} ${response.statusText}${detail ? ` - ${detail}` : ''}`);
+    }
+    const json = await response.json() as {
+      data?: Array<{ embedding?: number[] }>;
+      usage?: { prompt_tokens?: number; total_tokens?: number };
+    };
+    const embedding = json.data?.[0]?.embedding;
+    if (!Array.isArray(embedding)) {
+      throw new Error('OpenAIEmbeddingBackend response contained no embedding vector.');
+    }
+    this.lastUsage = json.usage
+      ? {
+        promptTokens: json.usage.prompt_tokens ?? 0,
+        totalTokens: json.usage.total_tokens ?? 0,
+      }
+      : undefined;
+    return normalizeIfNeeded(fitDimensions(embedding, safeDimensions), normalize);
+  }
+
+  getLastUsage(): RemoteEmbeddingUsage | undefined {
+    return this.lastUsage;
+  }
+
+  private async postEmbeddings(body: Record<string, unknown>): Promise<Response> {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), this.timeoutMs);
+    try {
+      return await this.fetchImpl(`${this.baseUrl}/embeddings`, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          Authorization: `Bearer ${this.apiKey}`,
+        },
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+}
+
+function fitDimensions(values: number[], dimensions: number): ContextTensor {
+  if (values.length === dimensions) return [...values];
+  const out = new Array<number>(dimensions).fill(0);
+  for (let i = 0; i < values.length; i++) {
+    out[i % dimensions] += values[i];
+  }
+  return out;
+}
+
+function normalizeIfNeeded(values: ContextTensor, normalize: boolean): ContextTensor {
+  if (!normalize) return values;
+  const norm = Math.sqrt(values.reduce((acc, v) => acc + v * v, 0)) || 1;
+  return values.map((v) => v / norm);
+}
+
+async function safeReadText(response: Response): Promise<string | null> {
+  try {
+    const text = await response.text();
+    return text.length > 0 ? text.slice(0, 512) : null;
+  } catch {
+    return null;
+  }
+}

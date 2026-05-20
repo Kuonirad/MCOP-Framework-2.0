@@ -36,6 +36,7 @@ import { fileURLToPath } from 'node:url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(__dirname, '..');
 const sbomDir = resolve(repoRoot, 'docs/sbom');
+const cdxgenBin = resolve(repoRoot, 'node_modules', '@cyclonedx', 'cdxgen', 'bin', 'cdxgen.js');
 
 mkdirSync(sbomDir, { recursive: true });
 
@@ -71,11 +72,18 @@ for (const target of targets) {
     failed++;
     continue;
   }
+  if (!existsSync(cdxgenBin)) {
+    console.error(`sbom: missing cdxgen binary at ${cdxgenBin}`);
+    console.error(
+      'sbom: install with `pnpm add -Dw @cyclonedx/cdxgen` or rerun in a clean workspace.'
+    );
+    failed++;
+    continue;
+  }
 
   console.log(`sbom: generating CycloneDX for ${target.name}…`);
   const args = [
-    'exec',
-    'cdxgen',
+    cdxgenBin,
     '-t',
     'pnpm',
     '--no-print',
@@ -85,7 +93,7 @@ for (const target of targets) {
   if (!target.recurse) args.push('--no-recurse');
   args.push(target.cwd);
 
-  const result = spawnSync('pnpm', args, {
+  const result = spawnSync(process.execPath, args, {
     cwd: repoRoot,
     stdio: ['ignore', 'inherit', 'inherit'],
   });

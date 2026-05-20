@@ -484,8 +484,7 @@ export async function detectCUDACapability(options: {
   let ort: OnnxRuntimeApi | undefined = options.ortInjection;
   if (!ort) {
     try {
-      const moduleId = 'onnxruntime-node';
-      ort = (await import(moduleId)) as unknown as OnnxRuntimeApi;
+      ort = await importOnnxRuntimePeer();
     } catch {
       return Object.freeze({
         capable: false,
@@ -560,21 +559,24 @@ export async function resolveEnableCUDA(
 /* ------------------------------------------------------------------ */
 
 async function loadOnnxRuntime(): Promise<OnnxRuntimeApi> {
-  // Dynamic specifier hides the import from TypeScript module resolution
-  // and from the Next.js client bundle, mirroring
-  // `examples/onnx_embedding_backend.ts`. This keeps the file typecheckable
-  // and exercises the disabled-flag path even when `onnxruntime-node` is
-  // not installed.
-  const moduleId = 'onnxruntime-node';
   try {
-    const mod = (await import(moduleId)) as unknown as OnnxRuntimeApi;
-    return mod;
+    return await importOnnxRuntimePeer();
   } catch (err) {
     throw new Error(
       'CUDAHardwareLayer requires `onnxruntime-node`. Install it with `pnpm add onnxruntime-node` ' +
         `or supply a sessionFactory/ortInjection. Original error: ${(err as Error).message}`,
     );
   }
+}
+
+function importOnnxRuntimePeer(): Promise<OnnxRuntimeApi> {
+  // Keep the optional peer import invisible to bundlers. A plain
+  // `import('onnxruntime-node')` is type-safe at runtime but Turbopack still
+  // resolves it during web builds even though the CUDA layer is disabled.
+  const runtimeImport = new Function('moduleId', 'return import(moduleId)') as (
+    moduleId: string,
+  ) => Promise<unknown>;
+  return runtimeImport('onnxruntime-node') as Promise<OnnxRuntimeApi>;
 }
 
 function nowMs(): number {

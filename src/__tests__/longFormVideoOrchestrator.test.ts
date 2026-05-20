@@ -4,6 +4,7 @@ import {
   NovaNeoEncoder,
   StigmergyV5,
   SynthesisProvenanceTracer,
+  createMCOPVideoClipAdapter,
   type VideoClipAdapter,
   type VideoClipInput,
   type VideoClipOutput,
@@ -112,5 +113,38 @@ describe('LongFormVideoOrchestrator', () => {
     await expect(
       orchestrator.generate('x', { totalDurationSec: 30, clipDurationSec: 0 }),
     ).rejects.toThrow(/clipDurationSec/);
+  });
+
+  it('wraps MCOP video adapters as clip-level backends', async () => {
+    const generateOptimizedVideo = jest.fn(async (prompt: string, options?: Record<string, unknown>) => ({
+      result: {
+        assetUrl: `video://${options?.clipIndex}/${prompt}`,
+        fingerprint: [1, 0, 0],
+        raw: { provider: 'stub-video' },
+      },
+    }));
+    const clipAdapter = createMCOPVideoClipAdapter({ generateOptimizedVideo });
+
+    const result = await clipAdapter.generateClip({
+      prompt: 'clip prompt',
+      durationSeconds: 12,
+      clipIndex: 2,
+      totalClips: 5,
+      priorResonance: 0.4,
+      options: { model: 'video-model' },
+    });
+
+    expect(generateOptimizedVideo).toHaveBeenCalledWith('clip prompt', {
+      model: 'video-model',
+      durationSeconds: 12,
+      clipIndex: 2,
+      totalClips: 5,
+      priorResonance: 0.4,
+    });
+    expect(result).toEqual({
+      assetUrl: 'video://2/clip prompt',
+      fingerprint: [1, 0, 0],
+      raw: { provider: 'stub-video' },
+    });
   });
 });
