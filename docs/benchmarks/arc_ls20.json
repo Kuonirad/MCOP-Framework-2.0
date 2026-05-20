@@ -1,0 +1,223 @@
+{
+  "schema": "mcop-arc-ls20/1.0",
+  "capturedAt": "1970-01-01T00:00:00.000Z",
+  "mode": "smoke",
+  "seed": "0xC0FFEE",
+  "proteome": {
+    "nodeCount": 150,
+    "stateDim": 8,
+    "avgDegree": 6,
+    "edgeCount": 910,
+    "steps": 8,
+    "homeostasis": 0.5,
+    "mutationTemperature": 0.85
+  },
+  "genome": {
+    "mutationTemperature": 0.85,
+    "noveltyPressure": 0.45,
+    "maxVariants": 5,
+    "recallTopK": 6,
+    "entropyThreshold": 0.68,
+    "confidenceDecay": 0.92,
+    "explorationSchedule": "linear",
+    "homeostasis": 0.5
+  },
+  "tasks": [
+    {
+      "id": "arc-ls20-01",
+      "baseline": 0.44786,
+      "equilibriumScore": 0.655958,
+      "post": 0.526877,
+      "preSolved": false,
+      "postSolved": false,
+      "taskRoot": "a05f4c66dacec8cef05496ecc51c1fb936361bc34c33bca04f1d1f85c768ca22"
+    },
+    {
+      "id": "arc-ls20-02",
+      "baseline": 0.422573,
+      "equilibriumScore": 0.655958,
+      "post": 0.499327,
+      "preSolved": false,
+      "postSolved": false,
+      "taskRoot": "9cee808100c1b481e5456c876d04e2d46999623bd296abb9ee2f4678e4b53207"
+    },
+    {
+      "id": "arc-ls20-03",
+      "baseline": 0.378577,
+      "equilibriumScore": 0.655958,
+      "post": 0.451225,
+      "preSolved": false,
+      "postSolved": false,
+      "taskRoot": "8740cb033860463ae0c8625ceab4e3b0b13c8e4504cc18fdd744a90229ba2057"
+    },
+    {
+      "id": "arc-ls20-04",
+      "baseline": 0.434623,
+      "equilibriumScore": 0.655958,
+      "post": 0.512464,
+      "preSolved": false,
+      "postSolved": false,
+      "taskRoot": "6d906678e0c6fd4a76dcb370af5f7fac1366494f92985066837172243d2883e4"
+    },
+    {
+      "id": "arc-ls20-05",
+      "baseline": 0.346127,
+      "equilibriumScore": 0.655958,
+      "post": 0.415592,
+      "preSolved": false,
+      "postSolved": false,
+      "taskRoot": "59e8b063659837f1c35772d2c973e76ab0cb6ccf7755ee135c2d61eaf68cabdf"
+    },
+    {
+      "id": "arc-ls20-06",
+      "baseline": 0.368173,
+      "equilibriumScore": 0.655958,
+      "post": 0.439816,
+      "preSolved": false,
+      "postSolved": false,
+      "taskRoot": "e4e3c3af14680f0c4faabaa90eb3e90c9abaae1aecbdea86aca63a4efe5fe6a0"
+    },
+    {
+      "id": "arc-ls20-07",
+      "baseline": 0.262677,
+      "equilibriumScore": 0.655958,
+      "post": 0.323191,
+      "preSolved": false,
+      "postSolved": false,
+      "taskRoot": "5f0a5a331e15d2de6008ab8c41087550c3f6b714d753e0b12c43f1bcc9b8625c"
+    },
+    {
+      "id": "arc-ls20-08",
+      "baseline": 0.421973,
+      "equilibriumScore": 0.655958,
+      "post": 0.498673,
+      "preSolved": false,
+      "postSolved": false,
+      "taskRoot": "00f79d7298a7988ce555e7d4700a1ca7882f4532d47b4aa2455e314588b6f090"
+    },
+    {
+      "id": "arc-ls20-09",
+      "baseline": 0.412977,
+      "equilibriumScore": 0.655958,
+      "post": 0.488854,
+      "preSolved": false,
+      "postSolved": false,
+      "taskRoot": "39a0eaa41a2687db04d77eafbfab3dff2f5a6175e93faad4a98b01828c869322"
+    },
+    {
+      "id": "arc-ls20-10",
+      "baseline": 0.504313,
+      "equilibriumScore": 0.655958,
+      "post": 0.588163,
+      "preSolved": false,
+      "postSolved": true,
+      "taskRoot": "df398580b93355c8b29064d81ca9435191dd88ee88a9a7ebb614c59ac3b46bc7"
+    },
+    {
+      "id": "arc-ls20-11",
+      "baseline": 0.425027,
+      "equilibriumScore": 0.655958,
+      "post": 0.502003,
+      "preSolved": false,
+      "postSolved": false,
+      "taskRoot": "3331a4c6ee89044d87c1d55b4e6022a01de8204337943186592dad892488fd3b"
+    },
+    {
+      "id": "arc-ls20-12",
+      "baseline": 0.31953,
+      "equilibriumScore": 0.655958,
+      "post": 0.386273,
+      "preSolved": false,
+      "postSolved": false,
+      "taskRoot": "5a2c505779b518c0d4f49188afae38dc735be4d8fd2a7e5e0dec2527ee301943"
+    },
+    {
+      "id": "arc-ls20-13",
+      "baseline": 0.341577,
+      "equilibriumScore": 0.655958,
+      "post": 0.410584,
+      "preSolved": false,
+      "postSolved": false,
+      "taskRoot": "26361e081576cc81208d0071ac841fb82a0f5beca8ce3d2a91719b2b62cf522f"
+    },
+    {
+      "id": "arc-ls20-14",
+      "baseline": 0.23608,
+      "equilibriumScore": 0.655958,
+      "post": 0.293449,
+      "preSolved": false,
+      "postSolved": false,
+      "taskRoot": "aaa0998594dd0d6dde545954fe92d41a97f45b9ac2e48a62feb01d35bf60ac66"
+    },
+    {
+      "id": "arc-ls20-15",
+      "baseline": 0.412377,
+      "equilibriumScore": 0.655958,
+      "post": 0.488199,
+      "preSolved": false,
+      "postSolved": false,
+      "taskRoot": "95766b265cd2c153a337bab4251055518d2aff3408ec097d0ffa112f27d79d40"
+    },
+    {
+      "id": "arc-ls20-16",
+      "baseline": 0.40338,
+      "equilibriumScore": 0.655958,
+      "post": 0.47837,
+      "preSolved": false,
+      "postSolved": false,
+      "taskRoot": "e3be3a995487d58b86b9c27fa7309c08c64d1191f133b22a706b89c6ca2b5361"
+    },
+    {
+      "id": "arc-ls20-17",
+      "baseline": 0.486927,
+      "equilibriumScore": 0.655958,
+      "post": 0.569318,
+      "preSolved": false,
+      "postSolved": true,
+      "taskRoot": "5acc479bb3b90f7ab51f7df00a9666514d6dfa373c004d504aa2cc04fb1ba004"
+    },
+    {
+      "id": "arc-ls20-18",
+      "baseline": 0.39843,
+      "equilibriumScore": 0.655958,
+      "post": 0.472959,
+      "preSolved": false,
+      "postSolved": false,
+      "taskRoot": "c9bbe4f46028089e76ed62e3c0fe286e264e082f3ed29097e6a2ad6b35fea8b9"
+    },
+    {
+      "id": "arc-ls20-19",
+      "baseline": 0.428267,
+      "equilibriumScore": 0.655958,
+      "post": 0.505536,
+      "preSolved": false,
+      "postSolved": false,
+      "taskRoot": "f3750281beb07c1d633a9d2a5bb7bebd53757e388744367c821b4ce4dcf4fb78"
+    },
+    {
+      "id": "arc-ls20-20",
+      "baseline": 0.31498,
+      "equilibriumScore": 0.655958,
+      "post": 0.381246,
+      "preSolved": false,
+      "postSolved": false,
+      "taskRoot": "ee2a23bd050783c8cefd2ab28902ffde9e54df23970f03b2fef9181c81c77719"
+    }
+  ],
+  "summary": {
+    "taskCount": 20,
+    "preSolved": 0,
+    "postSolved": 2,
+    "preSolveRate": 0,
+    "postSolveRate": 0.1,
+    "lift": 0.1,
+    "meanEquilibrium": 0.655958
+  },
+  "targets": {
+    "ls20SolveRate": 0.5,
+    "phi24Met": false
+  },
+  "host": null,
+  "durationMs": null,
+  "merkleRoot": "4ddc96d9aa440d39008a71724f655d8a8df07a307b9338417f09a5738c61a977"
+}
