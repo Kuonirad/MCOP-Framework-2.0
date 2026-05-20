@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: BUSL-1.1
+// Copyright (c) 2026 Kevin John Kull (Kuonirad) and KullAILABS MCOP Framework contributors
 /**
  * @fileoverview ProteomeOrchestrator — v2.4 self-organizing 150-node
  * sparse-graph substrate.

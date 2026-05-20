@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+// SPDX-License-Identifier: BUSL-1.1
+// Copyright (c) 2026 Kevin John Kull (Kuonirad) and KullAILABS MCOP Framework contributors
 /**
  * @fileoverview v2.4 LS20 ARC benchmark harness.
  *
