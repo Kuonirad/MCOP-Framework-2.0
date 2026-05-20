@@ -8,6 +8,24 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased] — Automated Evidence Retrieval & Guardian v0.2
 
 ### Added
+- **v2.4 Proteome layer + LS20 ARC scaffold.** New
+  `src/proteome/ProteomeOrchestrator.ts` introduces a 150-node sparse
+  interaction graph with replicator-dynamics payoffs, homeostatic
+  pull-back, and Gaussian state mutation. Each step routes through
+  `CUDAHardwareLayer.accelerate('graphAggregate', ...)` when the
+  in-process layer is enabled, inheriting the Φ4 verifiedDevice gate
+  + Φ5 `resolvedFrom` audit. `NovaEvolveConfig` gains a `homeostasis`
+  knob and `NovaEvolveTunerDeps.proteome?` slot so accepted
+  meta-tune mutations to `(homeostasis, mutationTemperature)`
+  propagate to the substrate on the same tick. New
+  `scripts/benchmark-arc-ls20.mjs` (schema `mcop-arc-ls20/1.0`,
+  pinned seed `0xC0FFEE`) measures pre- vs post-proteome solve-rate
+  on a 20-task LS20 hard subset; smoke-mode JSON committed under
+  `docs/benchmarks/arc_ls20.json`. Dedicated
+  `.github/workflows/cuda-smoke.yml` matrix job exercises the CUDA
+  + proteome substrate across `MCOP_ENABLE_CUDA=auto` and
+  `MCOP_ENABLE_CUDA=0` on `ubuntu-latest`. Full design rationale
+  lives in [`docs/PROTEOME_LAYER.md`](./docs/PROTEOME_LAYER.md).
 - **May 2026 audit execution ledger and guardrails.** Added `docs/audits/audit-execution-ledger-2026-05.md`, `docs/RELEASE_PLAYBOOK.md`, PR checklist enforcement, workflow hygiene verification, Node 22/24 CI runtime guardrails, and a Python package metadata parity test so audit findings become reviewable, test-backed outcomes.
 - **`mcop.evidence_retrieval`** (Python). New `EvidenceRetriever` abstract
   base + deterministic `InMemoryEvidenceRetriever` and
