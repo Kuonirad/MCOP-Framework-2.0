@@ -1734,7 +1734,11 @@ class HolographicShadowStrategy:
             {"goal_mask": masked, "player_pos": player_pos},
             default=_json_default,
         ).encode()
-        return hashlib.sha1(payload).hexdigest()[:16]
+        # SHA-256 (not SHA-1) for state identification — the hash is a
+        # non-cryptographic dedupe key (truncated to 16 hex chars), but
+        # SHA-1 is flagged by CodeQL py/weak-cryptographic-algorithm and
+        # SHA-256 is a drop-in replacement that satisfies the rule.
+        return hashlib.sha256(payload).hexdigest()[:16]
 
     def _detect_oscillation(self) -> bool:
         if len(self._centroid_history) < self.HISTORY_WINDOW:
