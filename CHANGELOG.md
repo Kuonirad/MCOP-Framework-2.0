@@ -8,6 +8,21 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased] — Automated Evidence Retrieval & Guardian v0.2
 
 ### Added
+- **Drift Sentinel Kernel.** New `src/core/driftSentinelKernel.ts` is a
+  first-class MCOP module that continuously computes
+  `Δ(T_d, B_e)` (cosine distance between the declared-task tensor and
+  the mean ensemble-behavior tensor) with tunable sensitivity. Severity
+  is classified against a Welford-online rolling baseline
+  (`μ + sigmaMultiplier·σ`) plus a hard `criticalCeiling`. Flagged
+  events queue as stigmergic signals for the StigmergyV5 /
+  HolographicEtch continuous-learning loop, the kernel exposes a
+  Divergence Telemetry snapshot (counts, rolling baseline, Δ histogram,
+  chain head) for corpus-health dashboards and risk indexing, and every
+  event is Merkle-linked (`parentHash → hash`, RFC 8785 canonical
+  digest) so `rewindFlagged()` and `verifyChain()` can replay back to
+  the exact reasoning step where divergence crossed threshold. Scope is
+  deliberately narrow — indirect-injection drift only — and called out
+  in [`docs/features/drift-sentinel-kernel.md`](./docs/features/drift-sentinel-kernel.md).
 - **v2.4 Proteome layer + LS20 ARC scaffold.** New
   `src/proteome/ProteomeOrchestrator.ts` introduces a 150-node sparse
   interaction graph with replicator-dynamics payoffs, homeostatic
