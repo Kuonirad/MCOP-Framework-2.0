@@ -47,10 +47,14 @@
 **MCOP Framework 2.0** is a **recursive meta-cognitive optimization protocol** for AI agents — a
 **deterministic 4.4 ms reasoning pipeline** (22,700 ops/sec) that pairs a **NOVA-NEO
 SHA-256 encoder**, a **Stigmergy v5 pheromone memory with Merkle-chained provenance**, a
-**Holographic Etch** append-only ledger with **eudaimonic scoring**, and (new in **v2.4**) a
+**Holographic Etch** append-only ledger with **eudaimonic scoring**, (new in **v2.4**) a
 **150-node Proteome substrate** that drives chaotic + game-theoretic abstraction discovery
-via the same `graphAggregate` CUDA kernel exposed by the Φ1–Φ5 hardware layer. It ships a
-**Universal Adapter Protocol** with native bridges for **OpenAI**, **Anthropic Claude**,
+via the same `graphAggregate` CUDA kernel exposed by the Φ1–Φ5 hardware layer, and (newly added) a
+**Drift Sentinel Kernel** that continuously computes **Δ(T_d, B_e)** between the declared-task
+tensor and the mean ensemble-behavior tensor, classifying severity against a Welford-online σ-baseline,
+feeding flagged events as stigmergic signals into Holographic Etch, exposing a **Divergence Telemetry**
+surface for dashboards / risk indexing, and **Merkle-linking** every event back to the exact reasoning
+step. It ships a **Universal Adapter Protocol** with native bridges for **OpenAI**, **Anthropic Claude**,
 **Google Gemini**, **Ollama**, **Groq**, **Together AI**, and a **Grok-native (xAI) adapter**
  with image generation. Cryptographic lineage at every step. **96.6 % test coverage.**
 **Source-available under BUSL-1.1 with scheduled MIT conversion on 2030-04-26.**
@@ -164,6 +168,7 @@ contribution.
 | 🟣 **Stigmergy v5** | `StigmergyV5` | Pheromone memory | Cosine recall · Merkle-chained |
 | 🔴 **Holographic Etch** | `HolographicEtch` | Confidence ledger | Append-only · Rank-1 · Replayable |
 | 🧬 **Proteome (v2.4)** | `ProteomeOrchestrator` | 150-node sparse substrate | Replicator dynamics · Edge-of-chaos · CUDA-routed |
+| 🛰️ **Drift Sentinel** | `DriftSentinelKernel` | Δ(T_d, B_e) sensor for indirect-injection drift | Welford-online σ-threshold · Stigmergic signals · Merkle-linked rewind |
 | 🟡 **Provenance** | `ProvenanceMetadata` | Cryptographic lineage | SHA-256 · ISO8601 · UUID-v4 |
 
 </div>
@@ -530,6 +535,75 @@ pnpm benchmark:arc-ls20:smoke
 # Inspect the byte-stable baseline
 cat docs/benchmarks/arc_ls20.json | jq '.summary'
 ```
+
+---
+
+## 🛰️ Drift Sentinel Kernel
+
+The **Drift Sentinel Kernel** ([`src/core/driftSentinelKernel.ts`](src/core/driftSentinelKernel.ts))
+is a first-class MCOP module that continuously computes
+
+```
+Δ(T_d, B_e) = cosineDistance(T_d, mean(B_e))   ∈ [0, 1]
+```
+
+between the **declared-task tensor** `T_d` (what the caller said they were
+doing — e.g. system + user prompt embedding) and the **ensemble-behavior tensor**
+`B_e` (the per-model synthesis vectors from the Council, reduced to their mean).
+Full design lives in [`docs/features/drift-sentinel-kernel.md`](docs/features/drift-sentinel-kernel.md).
+
+### What it produces
+
+| Surface | Method | Role |
+|:---|:---|:---|
+| Tunable sensitivity | `observe()` | `baseSensitivity` floor + dynamic `μ + sigmaMultiplier·σ` threshold (Welford-online) |
+| Stigmergic signals | `consumeStigmergicEvents()` | Drains elevated+ events for StigmergyV5 / HolographicEtch continuous-learning feedback |
+| Divergence Telemetry | `getTelemetry()` | Observed / flagged / critical counts, rolling (μ, σ), Δ histogram, chain head — dashboard-ready |
+| Escalation | `event.escalation` | `nominal · watch · elevated · critical` → `none · lightweight-review · human-review` |
+| Merkle-linked rewind | `rewindFlagged()`, `verifyChain()` | RFC 8785 canonical digest + `parentHash` chain back to the exact reasoning step |
+
+### Honest scope
+
+This is auditable detection for the **indirect-injection class** that produces
+visible task-behavior drift (poisoned retrieval, tool output, RAG corpora).
+It is **not** a general-purpose injection firewall. Out of scope: direct
+input-layer injection where `T_d` itself is poisoned, correlated universal
+jailbreaks where `B_e` drifts coherently with `T_d`, and mimicry attacks that
+keep Δ below threshold.
+
+### Minimal usage
+
+```ts
+import { DriftSentinelKernel } from '@kuonirad/mcop-framework';
+
+const sentinel = new DriftSentinelKernel({
+  baseSensitivity: 0.15,
+  sigmaMultiplier: 2.0,
+  criticalCeiling: 0.6,
+});
+
+const event = sentinel.observe({
+  declaredTask: T_d,
+  ensembleBehavior: [B_e_model1, B_e_model2, B_e_model3],
+  reasoningStepId: traceId,
+});
+
+if (event.escalation.kind === 'human-review') {
+  // route to human queue
+}
+
+for (const sig of sentinel.consumeStigmergicEvents()) {
+  // feed into StigmergyV5 / HolographicEtch continuous-learning loop
+}
+
+const telemetry = sentinel.getTelemetry(); // dashboard / risk-index payload
+```
+
+### Regression coverage
+
+| Suite | Covers |
+|:---|:---|
+| `src/__tests__/driftSentinelKernel.test.ts` | Nominal alignment, critical escalation, Merkle linkage + `verifyChain()`, stigmergic signal drain, rewind-to-step, telemetry snapshot, zero-magnitude safety, input validation (8 tests) |
 
 ---
 

@@ -34,7 +34,7 @@ const softwareApplicationJsonLd = {
   operatingSystem: "Cross-platform (Node.js 20+, Python 3.11+)",
   softwareVersion: "2.4",
   description:
-    "Deterministic, auditable Meta-Cognitive Optimization Protocol with NOVA-NEO encoder, Stigmergy v5 resonance store, Holographic Etch engine, and the v2.4 Proteome substrate — a 150-node sparse interaction graph that drives chaotic + game-theoretic abstraction discovery via the Φ1–Φ5 CUDA hardware layer. Ships the Universal Adapter Protocol v2.1 for Magnific, Higgsfield, Utopai, and any REST/MCP/HTTP pipeline.",
+    "Deterministic, auditable Meta-Cognitive Optimization Protocol with NOVA-NEO encoder, Stigmergy v5 resonance store, Holographic Etch engine, the v2.4 Proteome substrate (150-node sparse interaction graph driving chaotic + game-theoretic abstraction discovery via the Φ1–Φ5 CUDA hardware layer), and the Drift Sentinel Kernel — a continuously-running Δ(T_d, B_e) sensor that turns ensemble-behavior drift into stigmergic signals, Divergence Telemetry, and Merkle-linked rewind for the indirect-injection attack class. Ships the Universal Adapter Protocol v2.1 for Magnific, Higgsfield, Utopai, and any REST/MCP/HTTP pipeline.",
   url: SITE_URL,
   codeRepository:
     "https://github.com/Kuonirad/MCOP-Framework-2.0",
@@ -65,14 +65,14 @@ const techArticleJsonLd = {
   "@id": `${SITE_URL}#article`,
   headline: "MCOP Framework 2.0 — Deterministic, Auditable Triad Orchestration",
   description:
-    "Reference page for the Meta-Cognitive Optimization Protocol's triad architecture, kernel set, v2.4 Proteome substrate, Universal Adapter Protocol v2.1, and live Core Web Vitals telemetry.",
+    "Reference page for the Meta-Cognitive Optimization Protocol's triad architecture, kernel set, v2.4 Proteome substrate, Drift Sentinel Kernel, Universal Adapter Protocol v2.1, and live Core Web Vitals telemetry.",
   inLanguage: "en",
   url: SITE_URL,
   mainEntityOfPage: SITE_URL,
   proficiencyLevel: "Expert",
   dependencies: "Next.js 15.5, React 19, TypeScript 5.9, Node.js 20+",
   keywords:
-    "MCOP, deterministic AI, stigmergy, holographic etch, Merkle lineage, Universal Adapter Protocol",
+    "MCOP, deterministic AI, stigmergy, holographic etch, drift sentinel, indirect injection detection, Merkle lineage, Universal Adapter Protocol",
   publisher: { "@id": `${SITE_URL}#organization` },
   author: {
     "@type": "Person",
@@ -180,6 +180,12 @@ export default function Home() {
       badge: "New in v2.4",
       body: "150-node sparse interaction graph with replicator-dynamics payoffs, homeostatic pull-back, and Gaussian mutation. Drives chaotic + game-theoretic abstraction discovery via the Φ1–Φ5 CUDA graphAggregate kernel; MetaTuner-tuneable edge-of-chaos knobs.",
       tone: "from-amber-500/20 to-amber-500/5 ring-amber-400/40",
+    },
+    {
+      title: "Drift Sentinel Kernel",
+      badge: "New",
+      body: "Continuously computes Δ(T_d, B_e) between the declared-task tensor and the mean ensemble-behavior tensor. Welford-online σ-thresholding classifies severity, feeds flagged events as stigmergic signals into Holographic Etch, exposes a Divergence Telemetry surface for dashboards and risk indexing, and Merkle-links every event back to the exact reasoning step. Scope: indirect-injection drift (poisoned retrieval, tool output, RAG corpora) — not a general-purpose injection firewall.",
+      tone: "from-rose-500/20 to-rose-500/5 ring-rose-400/40",
     },
   ];
 
@@ -321,16 +327,20 @@ export default function Home() {
                 <strong>MCOP Framework 2.0</strong> is an open-source
                 Meta-Cognitive Optimization Protocol that turns large-language-model
                 orchestration into a <em>deterministic, replayable</em> pipeline.
-                It composes four kernels — the NOVA-NEO Encoder
+                It composes five kernels — the NOVA-NEO Encoder
                 (SHA-256-deterministic context tensors), Stigmergy v5 (cosine
                 resonance over a Merkle-chained pheromone store), the
-                Holographic Etch (rank-1 confidence accumulator), and the v2.4
+                Holographic Etch (rank-1 confidence accumulator), the v2.4
                 Proteome (a 150-node sparse interaction graph driving
                 chaotic + game-theoretic abstraction discovery via the
-                Φ1–Φ5 CUDA hardware layer) — into an audit-grade reasoning
-                substrate. Adapters in TypeScript and Python (Magnific,
-                Higgsfield, Utopai, plus a generic REST/MCP scaffold) wire the
-                triad to creative-production platforms via the{" "}
+                Φ1–Φ5 CUDA hardware layer), and the Drift Sentinel Kernel
+                (a continuously-running Δ(T_d, B_e) sensor that turns
+                ensemble-behavior drift into stigmergic signals, Divergence
+                Telemetry, and Merkle-linked rewind for the indirect-injection
+                attack class) — into an audit-grade reasoning substrate.
+                Adapters in TypeScript and Python (Magnific, Higgsfield,
+                Utopai, plus a generic REST/MCP scaffold) wire the triad to
+                creative-production platforms via the{" "}
                 <strong>Universal Adapter Protocol v2.1</strong>. License:
                 BUSL 1.1.
               </p>
