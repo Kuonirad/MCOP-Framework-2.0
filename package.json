@@ -135,7 +135,8 @@
     "brace-expansion@5": "^5.0.6",
     "ws@8": "^8.20.1",
     "cookie": "^0.7.0",
-    "tmp": "^0.2.4"
+    "tmp": "^0.2.4",
+    "uuid": "^14.0.0"
   },
   "keywords": [
     "arc-agi",
