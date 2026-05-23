@@ -1,6 +1,6 @@
 # OpenSSF Scorecard requires the base image to be pinned by digest.
 # Refresh with: docker buildx imagetools inspect node:22.22.2-slim
-FROM node:22.22.2-slim@sha256:9f6d5975c7dca860947d3915877f85607946403fc55349f39b4bc3688448bb6e AS base
+FROM node:26.2.0-slim@sha256:1e738cb88890a15c71880323fbc35a739b7bbc703d72e8bfd1613128f8182f78 AS base
 
 ENV NODE_ENV=production
 WORKDIR /app
