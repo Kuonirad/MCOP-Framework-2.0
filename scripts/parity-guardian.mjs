@@ -34,10 +34,11 @@ function runTs({ text, dimensions, normalize }) {
 function runPy({ text, dimensions, normalize }) {
   const args = ['-m', 'mcop.triad', text, '--dimensions', String(dimensions)];
   if (normalize) args.push('--normalize');
-  const commands = ['python3', 'python'];
+  const commands = process.platform === 'win32' ? ['python3', 'py', 'python'] : ['python3', 'python'];
   let lastUnavailable;
   for (const command of commands) {
-    const out = spawnSync(command, args, {
+    const commandArgs = command === 'py' ? ['-3', ...args] : args;
+    const out = spawnSync(command, commandArgs, {
       encoding: 'utf8',
       cwd: join(REPO_ROOT, 'mcop_package'),
     });
