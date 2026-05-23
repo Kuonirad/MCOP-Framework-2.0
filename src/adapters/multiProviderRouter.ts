@@ -48,6 +48,21 @@ import {
   GROK_MODEL_MAPPINGS,
   MAPPING_GROK_PRODUCTION_PROFILE,
 } from './grokAdapter';
+import type { ClaudeModel } from './claudeAdapter';
+import {
+  CLAUDE_MODEL_MAPPINGS,
+  CLAUDE_PRODUCTION_PROFILE,
+} from './claudeAdapter';
+import type { DeepSeekModel } from './deepSeekAdapter';
+import {
+  DEEPSEEK_MODEL_MAPPINGS,
+  DEEPSEEK_PRODUCTION_PROFILE,
+} from './deepSeekAdapter';
+import type { KimiModel } from './kimiAdapter';
+import {
+  KIMI_MODEL_MAPPINGS,
+  KIMI_PRODUCTION_PROFILE,
+} from './kimiAdapter';
 import type { QwenModel } from './qwenAdapter';
 import {
   MAPPING_QWEN_PRODUCTION_PROFILE,
@@ -55,7 +70,7 @@ import {
 } from './qwenAdapter';
 
 /** Cross-provider router name. */
-export type MultiProviderName = 'grok' | 'qwen';
+export type MultiProviderName = 'grok' | 'qwen' | 'claude' | 'deepseek' | 'kimi';
 
 /** Cost / latency preference hint used to pick a specific model tier. */
 export type MultiProviderCostPreference = 'cost' | 'balanced' | 'quality';
@@ -64,6 +79,9 @@ export type MultiProviderCostPreference = 'cost' | 'balanced' | 'quality';
 export type MultiProviderRoutingDecision =
   | { readonly provider: 'grok'; readonly model: GrokModel; readonly reason: string }
   | { readonly provider: 'qwen'; readonly model: QwenModel; readonly reason: string }
+  | { readonly provider: 'claude'; readonly model: ClaudeModel; readonly reason: string }
+  | { readonly provider: 'deepseek'; readonly model: DeepSeekModel; readonly reason: string }
+  | { readonly provider: 'kimi'; readonly model: KimiModel; readonly reason: string }
   | { readonly provider: 'local'; readonly reason: string }
   | { readonly provider: 'human-review'; readonly reason: string };
 
@@ -141,7 +159,21 @@ export const MULTI_PROVIDER_MODEL_PICKS = Object.freeze({
     quality: 'grok-4.3' as GrokModel,
     qualityVeryHigh: 'grok-4.20-0309-reasoning' as GrokModel,
   }),
+  claude: Object.freeze({
+    balanced: CLAUDE_PRODUCTION_PROFILE.defaultModel,
+    quality: 'claude-opus-4-7' as ClaudeModel,
+  }),
+  deepseek: Object.freeze({
+    balanced: DEEPSEEK_PRODUCTION_PROFILE.defaultModel,
+    quality: 'deepseek-v4-pro' as DeepSeekModel,
+  }),
+  kimi: Object.freeze({
+    balanced: KIMI_PRODUCTION_PROFILE.defaultModel,
+    quality: 'kimi-k2.6' as KimiModel,
+  }),
 });
+
+const FALLBACK_ORDER: ReadonlyArray<MultiProviderName> = ['qwen', 'grok', 'claude', 'deepseek', 'kimi'];
 
 function isAvailable(
   provider: MultiProviderName,
@@ -238,10 +270,9 @@ export function chooseProviderAcrossGrokAndQwen(
     return { provider: 'local', reason: 'familiar-prompt-served-locally' };
   }
 
-  const qwenAvailable = isAvailable('qwen', unavailable);
-  const grokAvailable = isAvailable('grok', unavailable);
+  const anyProviderAvailable = FALLBACK_ORDER.some((provider) => isAvailable(provider, unavailable));
 
-  if (!qwenAvailable && !grokAvailable) {
+  if (!anyProviderAvailable) {
     return {
       provider: 'local',
       reason: 'all-providers-unavailable',
@@ -252,10 +283,8 @@ export function chooseProviderAcrossGrokAndQwen(
   let chosen: MultiProviderName =
     preferredProvider === 'auto' ? auto : preferredProvider;
 
-  if (chosen === 'qwen' && !qwenAvailable) {
-    chosen = 'grok';
-  } else if (chosen === 'grok' && !grokAvailable) {
-    chosen = 'qwen';
+  if (!isAvailable(chosen, unavailable)) {
+    chosen = FALLBACK_ORDER.find((provider) => isAvailable(provider, unavailable)) ?? 'qwen';
   }
 
   if (chosen === 'qwen') {
@@ -267,6 +296,48 @@ export function chooseProviderAcrossGrokAndQwen(
       provider: 'qwen',
       model,
       reason: reasonFor('qwen', costPreference, signals.entropy, highEntropyBand, preferredProvider, unavailable),
+    };
+  }
+
+  if (chosen === 'claude') {
+    const model =
+      preferredProvider === 'claude' && config.preferredModel
+        ? (config.preferredModel as ClaudeModel)
+        : (costPreference === 'quality'
+          ? MULTI_PROVIDER_MODEL_PICKS.claude.quality
+          : MULTI_PROVIDER_MODEL_PICKS.claude.balanced);
+    return {
+      provider: 'claude',
+      model,
+      reason: reasonFor('claude', costPreference, signals.entropy, highEntropyBand, preferredProvider, unavailable),
+    };
+  }
+
+  if (chosen === 'deepseek') {
+    const model =
+      preferredProvider === 'deepseek' && config.preferredModel
+        ? (config.preferredModel as DeepSeekModel)
+        : (costPreference === 'quality'
+          ? MULTI_PROVIDER_MODEL_PICKS.deepseek.quality
+          : MULTI_PROVIDER_MODEL_PICKS.deepseek.balanced);
+    return {
+      provider: 'deepseek',
+      model,
+      reason: reasonFor('deepseek', costPreference, signals.entropy, highEntropyBand, preferredProvider, unavailable),
+    };
+  }
+
+  if (chosen === 'kimi') {
+    const model =
+      preferredProvider === 'kimi' && config.preferredModel
+        ? (config.preferredModel as KimiModel)
+        : (costPreference === 'quality'
+          ? MULTI_PROVIDER_MODEL_PICKS.kimi.quality
+          : MULTI_PROVIDER_MODEL_PICKS.kimi.balanced);
+    return {
+      provider: 'kimi',
+      model,
+      reason: reasonFor('kimi', costPreference, signals.entropy, highEntropyBand, preferredProvider, unavailable),
     };
   }
 
@@ -324,6 +395,15 @@ export function isCatalogedDecision(
   }
   if (decision.provider === 'grok') {
     return Object.prototype.hasOwnProperty.call(GROK_MODEL_MAPPINGS, decision.model);
+  }
+  if (decision.provider === 'claude') {
+    return Object.prototype.hasOwnProperty.call(CLAUDE_MODEL_MAPPINGS, decision.model);
+  }
+  if (decision.provider === 'deepseek') {
+    return Object.prototype.hasOwnProperty.call(DEEPSEEK_MODEL_MAPPINGS, decision.model);
+  }
+  if (decision.provider === 'kimi') {
+    return Object.prototype.hasOwnProperty.call(KIMI_MODEL_MAPPINGS, decision.model);
   }
   return true;
 }

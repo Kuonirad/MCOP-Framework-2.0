@@ -99,16 +99,23 @@ A `GossipMessage` is a flat JSON object:
 
 ```json
 {
-  "type": "trace" | "root" | "veto" | "capability",
+  "type": "trace",
   "from": "node-a",
   "seq": 17,
   "timestamp": "2026-05-18T05:48:00.000Z",
   "signature": "<optional Ed25519/HMAC>",
-  "payload": {  // type-specific
-    "trace":      { /* PheromoneTrace */ },
-    "localRoot":  "<sha256>",
+  "payload": {
+    "trace": {
+      "id": "<trace-id>",
+      "context": [1, 0, 0],
+      "response": [0, 1, 0]
+    },
+    "localRoot": "<sha256>",
     "clusterHash": "<sha256>",
-    "provenance": { /* ClusterProvenance */ }
+    "provenance": {
+      "traceId": "<trace-id>",
+      "lineage": [{ "nodeId": "node-a", "root": "<sha256>" }]
+    }
   }
 }
 ```

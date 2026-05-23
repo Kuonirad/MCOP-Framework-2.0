@@ -34,14 +34,26 @@ function runTs({ text, dimensions, normalize }) {
 function runPy({ text, dimensions, normalize }) {
   const args = ['-m', 'mcop.triad', text, '--dimensions', String(dimensions)];
   if (normalize) args.push('--normalize');
-  const out = spawnSync('python3', args, {
-    encoding: 'utf8',
-    cwd: join(REPO_ROOT, 'mcop_package'),
-  });
-  if (out.status !== 0) {
-    throw new Error(`Python CLI failed (exit ${out.status}): ${out.stderr}`);
+  const commands = process.platform === 'win32' ? ['python3', 'py', 'python'] : ['python3', 'python'];
+  let lastUnavailable;
+  for (const command of commands) {
+    const commandArgs = command === 'py' ? ['-3', ...args] : args;
+    const out = spawnSync(command, commandArgs, {
+      encoding: 'utf8',
+      cwd: join(REPO_ROOT, 'mcop_package'),
+    });
+    const unavailable =
+      out.error?.code === 'ENOENT' ||
+      (out.status === 9009 && /Python was not found/i.test(out.stderr));
+    if (!unavailable) {
+      if (out.status !== 0) {
+        throw new Error(`Python CLI failed via ${command} (exit ${out.status}): ${out.stderr}`);
+      }
+      return JSON.parse(out.stdout);
+    }
+    lastUnavailable = out.stderr || out.error?.message;
   }
-  return JSON.parse(out.stdout);
+  throw new Error(`Python CLI unavailable: ${lastUnavailable}`);
 }
 
 function compare(a, b) {

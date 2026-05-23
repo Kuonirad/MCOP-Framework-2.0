@@ -42,6 +42,8 @@ export interface PGoTConfig {
   resonanceThreshold?: number;
   confidenceFloor?: number;
   maxFanout?: number;
+  /** Maximum edge depth allowed in any directed reasoning chain. */
+  maxDepth?: number;
 }
 
 export interface ReasoningStep {

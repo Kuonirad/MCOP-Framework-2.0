@@ -5,11 +5,14 @@ import {
   StigmergyV5,
 } from '../core';
 
-const makePGoT = (overrides?: { maxFanout?: number; confidenceFloor?: number }) => {
+const makePGoT = (overrides?: { maxFanout?: number; maxDepth?: number; confidenceFloor?: number }) => {
   const encoder = new NovaNeoEncoder({ dimensions: 8, normalize: true });
   const stigmergy = new StigmergyV5({ resonanceThreshold: 0.1 });
   const etch = new HolographicEtch({ confidenceFloor: overrides?.confidenceFloor ?? 0, auditLog: true });
-  const graph = new PGoT(encoder, stigmergy, etch, { maxFanout: overrides?.maxFanout });
+  const graph = new PGoT(encoder, stigmergy, etch, {
+    maxFanout: overrides?.maxFanout,
+    maxDepth: overrides?.maxDepth,
+  });
   return { encoder, stigmergy, etch, graph };
 };
 
@@ -18,11 +21,14 @@ describe('PGoT', () => {
     const { graph, stigmergy } = makePGoT();
     const synth = [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5];
     const node = graph.addThought('first thought', synth, 'alpha', { source: 'test' });
+    const snap = graph.snapshot();
 
     expect(node.id).toBeTruthy();
     expect(node.label).toBe('alpha');
     expect(node.context).toHaveLength(8);
     expect(node.synthesisVector).toEqual(synth);
+    expect(snap.Lambda).toHaveLength(1);
+    expect(snap.Lambda[0].metadata?.thoughtId).toBe(node.id);
     expect(stigmergy.getMerkleRoot()).toBeTruthy();
     expect(graph.merkleRoot()).toEqual(stigmergy.getMerkleRoot());
   });
@@ -49,6 +55,20 @@ describe('PGoT', () => {
     graph.addEdge(root.id, c1.id, 1);
     graph.addEdge(root.id, c2.id, 1);
     expect(() => graph.addEdge(root.id, c3.id, 1)).toThrow(/maxFanout exceeded/);
+  });
+
+  it('addEdge enforces maxDepth across reasoning chains', () => {
+    const { graph } = makePGoT({ maxDepth: 2 });
+    const a = graph.addThought('a', [1, 0, 0, 0, 0, 0, 0, 0]);
+    const b = graph.addThought('b', [0, 1, 0, 0, 0, 0, 0, 0]);
+    const c = graph.addThought('c', [0, 0, 1, 0, 0, 0, 0, 0]);
+    const d = graph.addThought('d', [0, 0, 0, 1, 0, 0, 0, 0]);
+
+    graph.addEdge(a.id, b.id, 1);
+    graph.addEdge(b.id, c.id, 1);
+
+    expect(() => graph.addEdge(c.id, d.id, 1)).toThrow(/maxDepth exceeded/);
+    expect(graph.snapshot().E).toHaveLength(2);
   });
 
   it('reasonFrom returns resonance steps over existing thoughts', () => {
@@ -82,11 +102,14 @@ describe('PGoT', () => {
     expect(snap.E).toHaveLength(1);
     expect(snap.Phi.size).toBe(2);
     expect(snap.Psi.size).toBe(2);
+    expect(snap.Lambda).toHaveLength(2);
     expect(snap.Omega.length).toBeGreaterThan(0);
     expect(snap.tau).toMatch(/\d{4}-\d{2}-\d{2}T/);
 
     snap.E.push({ from: 'x', to: 'y', weight: 0 });
+    snap.Lambda.pop();
     expect(graph.snapshot().E).toHaveLength(1);
+    expect(graph.snapshot().Lambda).toHaveLength(2);
   });
 
   it('entropy returns NovaNeo estimate for known id and 0 for unknown', () => {

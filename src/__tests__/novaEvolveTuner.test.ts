@@ -3,6 +3,8 @@ import {
   HolographicEtch,
   NovaEvolveTuner,
   StigmergyV5,
+  createLLMProposalGenerator,
+  createOpenAICompatibleProposalClient,
 } from '../core';
 
 describe('NovaEvolveTuner', () => {
@@ -96,5 +98,70 @@ describe('NovaEvolveTuner', () => {
     expect(second?.accepted).toBe(false);
     expect(second?.rationale).toMatch(/Max meta-depth/);
     expect(tuner.getMetaDepth()).toBe(1);
+  });
+
+  it('can generate proposals through an injected LLM mutation oracle', async () => {
+    const client = {
+      completeJson: jest.fn(async (prompt: string) => {
+        expect(prompt).toContain('NOVA-EVOLVE');
+        expect(prompt).toContain('currentConfig');
+        return JSON.stringify({
+          knob: 'explorationSchedule',
+          value: 'adaptive',
+          rationale: 'LLM detected volatile entropy and chose adaptive rollout.',
+        });
+      }),
+    };
+    const generator = createLLMProposalGenerator(client);
+    const proposal = await generator({
+      currentConfig: DEFAULT_NOVA_EVOLVE_CONFIG,
+      recentResults: [{ entropy: 0.9, novelty: 0.2, confidence: 0.8 }],
+      recentTraces: [],
+      recentEtches: [],
+      currentMetaDepth: 0,
+    });
+
+    expect(proposal).toEqual({
+      knob: 'explorationSchedule',
+      value: 'adaptive',
+      rationale: 'LLM detected volatile entropy and chose adaptive rollout.',
+    });
+  });
+
+  it('OpenAI-compatible proposal client requests strict JSON', async () => {
+    const fetchImpl = jest.fn(async (url: string | URL | Request, init?: RequestInit) => {
+      expect(String(url)).toBe('https://api.example.test/v1/chat/completions');
+      expect(init?.headers).toMatchObject({ Authorization: 'Bearer oracle-key' });
+      const body = JSON.parse(String(init?.body));
+      expect(body).toMatchObject({
+        model: 'oracle-model',
+        response_format: { type: 'json_object' },
+      });
+      expect(body.messages.at(-1).content).toContain('NOVA-EVOLVE');
+      return {
+        ok: true,
+        status: 200,
+        statusText: 'OK',
+        json: async () => ({
+          choices: [{
+            message: {
+              content: JSON.stringify({
+                knob: 'noveltyPressure',
+                delta: 0.03,
+                rationale: 'raise novelty after stable outcomes',
+              }),
+            },
+          }],
+        }),
+      } as Response;
+    }) as unknown as typeof fetch;
+    const client = createOpenAICompatibleProposalClient({
+      apiKey: 'oracle-key',
+      baseUrl: 'https://api.example.test/v1',
+      model: 'oracle-model',
+      fetchImpl,
+    });
+
+    await expect(client.completeJson('NOVA-EVOLVE prompt')).resolves.toContain('noveltyPressure');
   });
 });

@@ -10,6 +10,8 @@
 :root {
   --background: #020617; /* slate-950 — matches the page gradient base */
   --foreground: #ededed;
+  --font-geist-sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-geist-mono: ui-monospace, "SFMono-Regular", Menlo, monospace;
 }
 
 @theme inline {
@@ -23,11 +25,8 @@ body {
   background: var(--background);
   color: var(--foreground);
   /*
-   * Geist is preloaded by next/font in layout.tsx and exposed as
-   * --font-geist-sans. The previous Arial fallback here was *higher*
-   * specificity than Tailwind's font-sans utility and silently masked
-   * the loaded font on every text node — a real LCP/font-swap waste.
-   * Honouring --font-geist-sans here lets the preload pay off.
+   * The font variables use local system stacks so production builds never
+   * depend on a live Google Fonts fetch.
    */
   font-family: var(--font-geist-sans), system-ui, -apple-system,
     "Segoe UI", Roboto, sans-serif;

@@ -3,6 +3,7 @@ import { StigmergyV5 } from './stigmergyV5';
 import { ContextTensor, EtchRecord, PheromoneTrace } from './types';
 import { canonicalDigest } from './canonicalEncoding';
 import { attachAcceleratorProvenance, CPUFallback, type Accelerator } from '../hardware';
+import { trimTrailingSlashes } from '../utils/urlSafety';
 
 export type ExplorationSchedule = 'linear' | 'exponential' | 'adaptive';
 
@@ -123,6 +124,19 @@ export interface NovaEvolveTunerDeps {
   proteome?: ProteomeKnobSurface;
 }
 
+export interface NovaEvolveLLMProposalClient {
+  completeJson(prompt: string): Promise<string> | string;
+}
+
+export interface OpenAICompatibleProposalClientConfig {
+  apiKey?: string;
+  baseUrl?: string;
+  model: string;
+  fetchImpl?: typeof fetch;
+  timeoutMs?: number;
+  systemPrompt?: string;
+}
+
 export const DEFAULT_NOVA_EVOLVE_CONFIG: NovaEvolveConfig = Object.freeze({
   mutationTemperature: 0.85,
   noveltyPressure: 0.45,
@@ -144,6 +158,81 @@ const NUMERIC_KNOBS: ReadonlySet<keyof NovaEvolveConfig> = new Set([
   'homeostasis',
 ]);
 const SCHEDULES: ReadonlySet<ExplorationSchedule> = new Set(['linear', 'exponential', 'adaptive']);
+
+export function createLLMProposalGenerator(
+  client: NovaEvolveLLMProposalClient,
+): NonNullable<NovaEvolveTunerOptions['proposalGenerator']> {
+  return async (context) => {
+    const raw = await client.completeJson(JSON.stringify({
+      task: 'NOVA-EVOLVE mutation oracle',
+      instructions: [
+        'Return strict JSON only.',
+        'Choose exactly one knob from the currentConfig keys.',
+        'For numeric knobs, return { "knob": string, "delta": number, "rationale": string }.',
+        'For explorationSchedule, return { "knob": "explorationSchedule", "value": "linear|exponential|adaptive", "rationale": string }.',
+      ],
+      currentConfig: context.currentConfig,
+      recentResults: context.recentResults,
+      recentTraceCount: context.recentTraces.length,
+      recentEtchCount: context.recentEtches.length,
+      currentMetaDepth: context.currentMetaDepth,
+    }));
+    return JSON.parse(raw) as NovaEvolveMetaProposal;
+  };
+}
+
+export function createOpenAICompatibleProposalClient(
+  config: OpenAICompatibleProposalClientConfig,
+): NovaEvolveLLMProposalClient {
+  const apiKey = config.apiKey ?? (typeof process !== 'undefined' ? process.env?.OPENAI_API_KEY : undefined);
+  if (!apiKey || apiKey.trim().length === 0) {
+    throw new Error('createOpenAICompatibleProposalClient: missing OPENAI_API_KEY - pass apiKey explicitly or set the environment variable.');
+  }
+  const fetchImpl = config.fetchImpl ?? globalThis.fetch;
+  if (typeof fetchImpl !== 'function') {
+    throw new Error('createOpenAICompatibleProposalClient: no fetch implementation available.');
+  }
+  const baseUrl = trimTrailingSlashes(config.baseUrl ?? 'https://api.openai.com/v1');
+  const timeoutMs = config.timeoutMs ?? 60_000;
+  const systemPrompt = config.systemPrompt ?? 'You are a NOVA-EVOLVE mutation oracle. Return strict JSON only.';
+
+  return {
+    async completeJson(prompt: string) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
+      try {
+        const response = await fetchImpl(`${baseUrl}/chat/completions`, {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+            Authorization: `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({
+            model: config.model,
+            response_format: { type: 'json_object' },
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: prompt },
+            ],
+          }),
+          signal: controller.signal,
+        });
+        if (!response.ok) {
+          const detail = await safeReadText(response);
+          throw new Error(`NOVA-EVOLVE proposal request failed: ${response.status} ${response.statusText}${detail ? ` - ${detail}` : ''}`);
+        }
+        const json = await response.json() as {
+          choices?: Array<{ message?: { content?: string | null } }>;
+        };
+        const content = json.choices?.[0]?.message?.content;
+        if (!content) throw new Error('NOVA-EVOLVE proposal response contained no JSON content.');
+        return content;
+      } finally {
+        clearTimeout(timer);
+      }
+    },
+  };
+}
 
 /**
  * NOVA-EVOLVE self-tuner.
@@ -522,4 +611,13 @@ function clamp(x: number, min: number, max: number): number {
   if (x < min) return min;
   if (x > max) return max;
   return x;
+}
+
+async function safeReadText(response: Response): Promise<string | null> {
+  try {
+    const text = await response.text();
+    return text.length > 0 ? text.slice(0, 512) : null;
+  } catch {
+    return null;
+  }
 }

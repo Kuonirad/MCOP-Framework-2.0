@@ -2,7 +2,12 @@ import { getUniversalCryptoRuntime, sha256Bytes, sha256Hex } from './universalCr
 import { ContextTensor, NovaNeoConfig } from './types';
 import logger from '../utils/logger';
 import { variance as vecVariance } from './vectorMath';
-import { defaultEmbeddingBackend, HashingTrickBackend, healDimensions } from './embeddingEngine';
+import {
+  defaultEmbeddingBackend,
+  healDimensions,
+  type IAsyncEmbeddingBackend,
+  type IEmbeddingBackend,
+} from './embeddingEngine';
 import {
   failTriadSpan,
   finishTriadSpan,
@@ -15,7 +20,7 @@ export class NovaNeoEncoder {
   private readonly normalize: boolean;
   private readonly entropyFloor: number;
   private readonly backend: 'hash' | 'embedding' | 'novaNeoWeb';
-  private readonly embedder: HashingTrickBackend;
+  private readonly embedder: IEmbeddingBackend | IAsyncEmbeddingBackend;
 
   constructor(config: NovaNeoConfig) {
     this.dimensions = config.selfHealDimensions === true
@@ -27,7 +32,7 @@ export class NovaNeoEncoder {
     this.normalize = config.normalize ?? false;
     this.entropyFloor = config.entropyFloor ?? 0.0;
     this.backend = config.backend ?? 'hash';
-    this.embedder = defaultEmbeddingBackend;
+    this.embedder = config.embeddingBackend ?? defaultEmbeddingBackend;
   }
 
   encode(text: string): ContextTensor {
@@ -40,25 +45,10 @@ export class NovaNeoEncoder {
     });
     try {
       const values = this.backend === 'embedding'
-        ? this.embedder.encode(text, this.dimensions, this.normalize)
+        ? this.encodeEmbeddingSync(text)
         : this.encodeHash(text);
 
-      // Observability: Log provenance data for auditability
-      // Optimization: Only compute expensive provenance data if debug logging is enabled
-      if (typeof logger.isLevelEnabled === 'function' && logger.isLevelEnabled('debug')) {
-        logger.debug({
-          msg: 'NOVA-NEO Encoding complete',
-          provenance: {
-            inputLength: text.length,
-            dimensions: this.dimensions,
-            backend: this.backend,
-            runtime: getUniversalCryptoRuntime(),
-            entropy: this.estimateEntropy(values),
-            // Optimization: Use Float64Array for hashing to avoid slow JSON.stringify overhead on large arrays
-            tensorHash: sha256Hex(new Float64Array(values)).substring(0, 8)
-          }
-        });
-      }
+      this.logDebugProvenance(text, values);
 
       finishTriadSpan(span, {
         'mcop.tensor.dimensions': values.length,
@@ -71,6 +61,55 @@ export class NovaNeoEncoder {
       failTriadSpan(span, error);
       throw error;
     }
+  }
+
+  async encodeAsync(text: string): Promise<ContextTensor> {
+    if (this.backend !== 'embedding') return this.encode(text);
+    const span = startTriadSpan('mcop.triad.encode', {
+      'mcop.encoder.backend': this.backend,
+      'mcop.encoder.runtime': getUniversalCryptoRuntime(),
+      'mcop.encoder.dimensions': this.dimensions,
+      'mcop.encoder.normalize': this.normalize,
+      'mcop.input.length': text.length,
+    });
+    try {
+      const values = hasEncodeAsync(this.embedder)
+        ? await this.embedder.encodeAsync(text, this.dimensions, this.normalize)
+        : this.embedder.encode(text, this.dimensions, this.normalize);
+      this.logDebugProvenance(text, values);
+      finishTriadSpan(span, {
+        'mcop.tensor.dimensions': values.length,
+        'mcop.tensor.entropy': isTriadTelemetryEnabled()
+          ? this.estimateEntropy(values)
+          : undefined,
+      });
+      return values;
+    } catch (error) {
+      failTriadSpan(span, error);
+      throw error;
+    }
+  }
+
+  private encodeEmbeddingSync(text: string): ContextTensor {
+    if (hasEncodeAsync(this.embedder) && !hasEncode(this.embedder)) {
+      throw new Error('Configured embedding backend is asynchronous; use NovaNeoEncoder.encodeAsync().');
+    }
+    return this.embedder.encode(text, this.dimensions, this.normalize);
+  }
+
+  private logDebugProvenance(text: string, values: ContextTensor): void {
+    if (typeof logger.isLevelEnabled !== 'function' || !logger.isLevelEnabled('debug')) return;
+    logger.debug({
+      msg: 'NOVA-NEO Encoding complete',
+      provenance: {
+        inputLength: text.length,
+        dimensions: this.dimensions,
+        backend: this.backend,
+        runtime: getUniversalCryptoRuntime(),
+        entropy: this.estimateEntropy(values),
+        tensorHash: sha256Hex(new Float64Array(values)).substring(0, 8)
+      }
+    });
   }
 
   /**
@@ -156,3 +195,15 @@ export class UniversalEncoder extends NovaNeoEncoder {
 }
 
 export const NovaNeoWeb = UniversalEncoder;
+
+function hasEncodeAsync(
+  backend: IEmbeddingBackend | IAsyncEmbeddingBackend,
+): backend is IAsyncEmbeddingBackend {
+  return typeof (backend as IAsyncEmbeddingBackend).encodeAsync === 'function';
+}
+
+function hasEncode(
+  backend: IEmbeddingBackend | IAsyncEmbeddingBackend,
+): backend is IEmbeddingBackend {
+  return typeof (backend as IEmbeddingBackend).encode === 'function';
+}

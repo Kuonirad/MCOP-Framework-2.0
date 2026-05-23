@@ -10,3 +10,4 @@ export * from './types';
 export * from './clusterStigmergy';
 export * from './clusterOrchestrator';
 export * from './inMemoryGossipBus';
+export * from './redisStreamsGossipTransport';

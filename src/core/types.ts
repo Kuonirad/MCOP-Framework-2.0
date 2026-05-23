@@ -10,6 +10,8 @@ export interface NovaNeoConfig {
    * feature-hashing backend that captures semantic overlap.
    */
   backend?: 'hash' | 'embedding' | 'novaNeoWeb';
+  /** Optional embedding backend override. Async backends require encodeAsync(). */
+  embeddingBackend?: import('./embeddingEngine').IEmbeddingBackend | import('./embeddingEngine').IAsyncEmbeddingBackend;
   /** Enable graceful dimension growth to the nearest safe power-of-2. */
   selfHealDimensions?: boolean;
 }

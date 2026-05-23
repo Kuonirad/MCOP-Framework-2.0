@@ -17,11 +17,13 @@ export class PGoT {
   private readonly stigmergy: StigmergyV5;
   private readonly etch: HolographicEtch;
   private readonly maxFanout: number;
+  private readonly maxDepth: number;
 
   private readonly V = new Map<ThoughtId, ThoughtNode>();
   private readonly E: ThoughtEdge[] = [];
   private readonly Phi = new Map<ThoughtId, ContextTensor>();
   private readonly Psi = new Map<ThoughtId, number[]>();
+  private readonly Lambda: PheromoneTrace[] = [];
   private readonly Omega: EtchRecord[] = [];
   private readonly outDegrees = new Map<ThoughtId, number>();
 
@@ -35,6 +37,7 @@ export class PGoT {
     this.stigmergy = stigmergy;
     this.etch = etch;
     this.maxFanout = config.maxFanout ?? 16;
+    this.maxDepth = Math.max(1, Math.floor(config.maxDepth ?? 32));
   }
 
   addThought(text: string, synthesisVector: number[], label?: string, metadata?: Record<string, unknown>): ThoughtNode {
@@ -54,6 +57,7 @@ export class PGoT {
     this.Psi.set(id, synthesisVector);
 
     const trace = this.stigmergy.recordTrace(context, synthesisVector, { thoughtId: id, ...metadata });
+    this.Lambda.push(trace);
     const record = this.etch.applyEtch(context, synthesisVector, label);
     if (record.hash) {
       this.Omega.push(record);
@@ -73,6 +77,7 @@ export class PGoT {
       throw new Error(`maxFanout exceeded at node ${from}`);
     }
     const edge: ThoughtEdge = { from, to, weight, kind };
+    this.assertWithinMaxDepth(edge);
     this.E.push(edge);
     this.outDegrees.set(from, currentOutDegree + 1);
 
@@ -113,13 +118,53 @@ export class PGoT {
     return id ? this.V.get(id) : undefined;
   }
 
+  private assertWithinMaxDepth(candidate: ThoughtEdge): void {
+    const adjacency = new Map<ThoughtId, ThoughtId[]>();
+    for (const edge of this.E) {
+      const next = adjacency.get(edge.from) ?? [];
+      next.push(edge.to);
+      adjacency.set(edge.from, next);
+    }
+    const next = adjacency.get(candidate.from) ?? [];
+    next.push(candidate.to);
+    adjacency.set(candidate.from, next);
+
+    const depth = Math.max(
+      ...Array.from(this.V.keys()).map((nodeId) =>
+        this.longestPathDepth(nodeId, adjacency, new Set()),
+      ),
+    );
+    if (depth > this.maxDepth) {
+      throw new Error(`maxDepth exceeded at node ${candidate.from}`);
+    }
+  }
+
+  private longestPathDepth(
+    nodeId: ThoughtId,
+    adjacency: Map<ThoughtId, ThoughtId[]>,
+    visiting: Set<ThoughtId>,
+  ): number {
+    if (visiting.has(nodeId)) {
+      return this.maxDepth + 1;
+    }
+    const children = adjacency.get(nodeId) ?? [];
+    if (children.length === 0) return 0;
+    visiting.add(nodeId);
+    let max = 0;
+    for (const child of children) {
+      max = Math.max(max, 1 + this.longestPathDepth(child, adjacency, visiting));
+    }
+    visiting.delete(nodeId);
+    return max;
+  }
+
   snapshot(): PGoTGraph {
     return {
       V: new Map(this.V),
       E: [...this.E],
       Phi: new Map(this.Phi),
       Psi: new Map(this.Psi),
-      Lambda: [],
+      Lambda: [...this.Lambda],
       Omega: [...this.Omega],
       tau: new Date().toISOString(),
     };

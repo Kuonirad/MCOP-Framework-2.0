@@ -1,32 +1,7 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import LayoutShiftAnnouncer from "@/components/LayoutShiftAnnouncer";
 import WebVitalsSentinel from "./_components/WebVitalsSentinel";
-
-/**
- * Font Performance Optimizer — preload primary typefaces and defer paint
- * swap so the first meaningful paint is never held by font downloads. The
- * `display: 'swap'` directive guarantees an immediate fallback render while
- * `preload: true` pushes the critical font byte range ahead of the LCP fetch.
- */
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-  display: "swap",
-  preload: true,
-  fallback: ["system-ui", "-apple-system", "Segoe UI", "Roboto", "sans-serif"],
-  adjustFontFallback: true,
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-  display: "swap",
-  preload: false,
-  fallback: ["ui-monospace", "SFMono-Regular", "Menlo", "monospace"],
-  adjustFontFallback: true,
-});
 
 /**
  * Canonical site URL.  Resolved from `NEXT_PUBLIC_SITE_URL` so preview
@@ -234,9 +209,7 @@ export default function RootLayout({
         <meta name="description" content={SITE_DESCRIPTION} />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </head>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+      <body className="font-sans antialiased">
         <a
           href="#main-content"
           className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:top-4 focus:left-4 focus:px-4 focus:py-2 focus:bg-background focus:text-foreground focus:ring-2 focus:ring-foreground focus:rounded-md"

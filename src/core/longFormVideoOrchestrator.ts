@@ -31,6 +31,20 @@ export interface VideoClipAdapter {
   generateClip(input: VideoClipInput): Promise<VideoClipOutput>;
 }
 
+export interface MCOPVideoGenerationAdapter {
+  generateOptimizedVideo(
+    prompt: string,
+    options?: Record<string, unknown>,
+  ): Promise<{
+    result: {
+      assetUrl?: string;
+      url?: string;
+      fingerprint?: ContextTensor;
+      raw?: unknown;
+    };
+  }>;
+}
+
 export interface VideoClipInput {
   /** Prompt augmented with retrieval context for this clip. */
   prompt: string;
@@ -202,6 +216,31 @@ export class LongFormVideoOrchestrator {
         : `continuation of clip ${clipIndex} of ${totalClips} (prior coherence ${priorResonance.toFixed(3)})`;
     return `[${continuity}] ${narrative}`;
   }
+}
+
+export function createMCOPVideoClipAdapter(
+  adapter: MCOPVideoGenerationAdapter,
+): VideoClipAdapter {
+  return {
+    async generateClip(input) {
+      const response = await adapter.generateOptimizedVideo(input.prompt, {
+        ...(input.options ?? {}),
+        durationSeconds: input.durationSeconds,
+        clipIndex: input.clipIndex,
+        totalClips: input.totalClips,
+        priorResonance: input.priorResonance,
+      });
+      const assetUrl = response.result.assetUrl ?? response.result.url;
+      if (!assetUrl) {
+        throw new Error('MCOP video adapter response must include result.assetUrl or result.url');
+      }
+      return {
+        assetUrl,
+        fingerprint: response.result.fingerprint,
+        raw: response.result.raw,
+      };
+    },
+  };
 }
 
 function blendFingerprints(a: ContextTensor, b: ContextTensor): ContextTensor {

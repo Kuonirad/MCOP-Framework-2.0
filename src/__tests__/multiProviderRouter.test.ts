@@ -125,6 +125,33 @@ describe('chooseProviderAcrossGrokAndQwen — preferredProvider override', () =>
     });
   });
 
+  it('preferredProvider=claude routes to Claude with its default Sonnet model', () => {
+    const d = chooseProviderAcrossGrokAndQwen(signals, { preferredProvider: 'claude' });
+    expect(d).toEqual({
+      provider: 'claude',
+      model: 'claude-sonnet-4-6',
+      reason: 'preferred-claude-honoured',
+    });
+  });
+
+  it('preferredProvider=deepseek routes to DeepSeek V4 flash by default', () => {
+    const d = chooseProviderAcrossGrokAndQwen(signals, { preferredProvider: 'deepseek' });
+    expect(d).toEqual({
+      provider: 'deepseek',
+      model: 'deepseek-v4-flash',
+      reason: 'preferred-deepseek-honoured',
+    });
+  });
+
+  it('preferredProvider=kimi routes to Kimi K2.6 by default', () => {
+    const d = chooseProviderAcrossGrokAndQwen(signals, { preferredProvider: 'kimi' });
+    expect(d).toEqual({
+      provider: 'kimi',
+      model: 'kimi-k2.6',
+      reason: 'preferred-kimi-honoured',
+    });
+  });
+
   it('preferredProvider=qwen routes to Qwen even when costPreference would auto-pick Grok', () => {
     const d = chooseProviderAcrossGrokAndQwen(
       { entropy: 0.85, resonance: 0.4 },
@@ -186,9 +213,20 @@ describe('chooseProviderAcrossGrokAndQwen — failover on unavailableProviders',
     }
   });
 
+  it('failover from preferred Claude to Qwen when Claude is unavailable', () => {
+    const d = chooseProviderAcrossGrokAndQwen(signals, {
+      preferredProvider: 'claude',
+      unavailableProviders: ['claude'],
+    });
+    expect(d.provider).toBe('qwen');
+    if (d.provider === 'qwen') {
+      expect(d.reason).toBe('preferred-claude-unavailable-failover-qwen');
+    }
+  });
+
   it('degrades to local when both providers are unavailable', () => {
     const d = chooseProviderAcrossGrokAndQwen(signals, {
-      unavailableProviders: ['qwen', 'grok'],
+      unavailableProviders: ['qwen', 'grok', 'claude', 'deepseek', 'kimi'],
     });
     expect(d).toEqual({ provider: 'local', reason: 'all-providers-unavailable' });
   });
