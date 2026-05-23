@@ -1,13 +1,64 @@
-# Require owner review for critical paths
-*                       @Kuonirad
-.github/workflows/      @Kuonirad
-.github/actions/        @Kuonirad
-package.json            @Kuonirad
-pnpm-lock.yaml          @Kuonirad
-next.config.*           @Kuonirad
-src/                    @Kuonirad
-mcop_package/           @Kuonirad
-Dockerfile              @Kuonirad
-docker-compose*.yml     @Kuonirad
-packages/               @Kuonirad
-packages/core/          @Kuonirad
+# Require owner review for critical paths.
+#
+# Code-Owners review is enforced by main-branch protection
+# (require_code_owner_reviews=true). Any path matched here triggers a
+# mandatory @Kuonirad review on every PR that touches it.
+#
+# Ordering matters: later patterns override earlier ones for the same file,
+# so security-sensitive paths are listed *after* the catch-all `*` so they
+# cannot be diluted by a future relaxation of the global default.
+
+# ---------------------------------------------------------------------
+# Catch-all: every file in the repo defaults to owner review.
+# ---------------------------------------------------------------------
+*                                @Kuonirad
+
+# ---------------------------------------------------------------------
+# Source / runtime
+# ---------------------------------------------------------------------
+src/                             @Kuonirad
+next.config.*                    @Kuonirad
+mcop_package/                    @Kuonirad
+mcop_cuda_server/                @Kuonirad
+services/                        @Kuonirad
+packages/                        @Kuonirad
+packages/core/                   @Kuonirad
+
+# ---------------------------------------------------------------------
+# Container build surface
+# ---------------------------------------------------------------------
+Dockerfile                       @Kuonirad
+**/Dockerfile                    @Kuonirad
+docker-compose*.yml              @Kuonirad
+
+# ---------------------------------------------------------------------
+# JS / TS dependency surface — overrides, lockfiles, registry config
+# ---------------------------------------------------------------------
+package.json                     @Kuonirad
+pnpm-lock.yaml                   @Kuonirad
+package-lock.json                @Kuonirad
+packages/core/package.json       @Kuonirad
+packages/core/package-lock.json  @Kuonirad
+.npmrc                           @Kuonirad
+
+# ---------------------------------------------------------------------
+# Python dependency surface — pyproject + hash-pinned requirements
+# ---------------------------------------------------------------------
+mcop_package/pyproject.toml      @Kuonirad
+.github/requirements/            @Kuonirad
+
+# ---------------------------------------------------------------------
+# CI / supply-chain configuration
+# ---------------------------------------------------------------------
+.github/workflows/               @Kuonirad
+.github/actions/                 @Kuonirad
+.github/dependabot.yml           @Kuonirad
+.github/CODEOWNERS               @Kuonirad
+.github/release-drafter.yml      @Kuonirad
+
+# ---------------------------------------------------------------------
+# Security policy + vulnerability-management config
+# ---------------------------------------------------------------------
+SECURITY.md                      @Kuonirad
+osv-scanner.toml                 @Kuonirad
+docs/sbom/                       @Kuonirad
