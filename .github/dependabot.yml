@@ -14,6 +14,20 @@ version: 2
 #
 # Schedule is weekly Monday 09:00 UTC across the board so the maintainer
 # triages a single Dependabot batch instead of daily drip.
+#
+# `ignore` rules — major-version bumps that need coordinated upgrades and
+# would *break* the build if merged on their own are silenced here. They
+# can still be picked up explicitly via the GitHub UI's "check for updates"
+# button when the maintainer is ready to do the coordinated upgrade.
+#   * docker python/node majors: the runtime requirements files
+#     (`cuda-server-runtime.txt`) and `engines.node` in package.json are
+#     compiled against the current major; an isolated base-image bump
+#     desyncs them.
+#   * npm @types/node major: must match `engines.node`, so the type
+#     bumps need to ride with the runtime bumps.
+#   * npm typescript major / canonicalize major: not strictly broken, but
+#     they are noisy enough to drown out security-update PRs without a
+#     reviewer dedicating triage time. Promote manually when ready.
 
 updates:
   # ---------------------------------------------------------------------
@@ -34,6 +48,11 @@ updates:
       - "npm"
     commit-message:
       prefix: "chore(deps)"
+    ignore:
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
     groups:
       security-updates:
         applies-to: security-updates
@@ -68,6 +87,13 @@ updates:
       - "packages/core"
     commit-message:
       prefix: "chore(deps-core)"
+    ignore:
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "canonicalize"
+        update-types: ["version-update:semver-major"]
     groups:
       security-updates:
         applies-to: security-updates
@@ -106,12 +132,13 @@ updates:
         applies-to: security-updates
         patterns:
           - "*"
+      # Group EVERY github-actions bump (including major) into one PR per
+      # scan window. Action major bumps are usually well-tested and
+      # benign, and grouping them avoids the per-action-major PR storm
+      # that escaped this group in the previous (minor/patch-only) config.
       actions:
         patterns:
           - "*"
-        update-types:
-          - "minor"
-          - "patch"
 
   # ---------------------------------------------------------------------
   # Docker: every Dockerfile in the repo (each FROM is scanned per dir)
@@ -131,6 +158,11 @@ updates:
       - "docker"
     commit-message:
       prefix: "chore(docker)"
+    ignore:
+      - dependency-name: "node"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "python"
+        update-types: ["version-update:semver-major"]
     groups:
       security-updates:
         applies-to: security-updates
@@ -153,6 +185,9 @@ updates:
       - "mcop_cuda_server"
     commit-message:
       prefix: "chore(docker-cuda)"
+    ignore:
+      - dependency-name: "python"
+        update-types: ["version-update:semver-major"]
     groups:
       security-updates:
         applies-to: security-updates
@@ -175,6 +210,9 @@ updates:
       - "services/ledger"
     commit-message:
       prefix: "chore(docker-ledger)"
+    ignore:
+      - dependency-name: "node"
+        update-types: ["version-update:semver-major"]
     groups:
       security-updates:
         applies-to: security-updates
@@ -197,6 +235,9 @@ updates:
       - "examples"
     commit-message:
       prefix: "chore(docker-examples)"
+    ignore:
+      - dependency-name: "node"
+        update-types: ["version-update:semver-major"]
     groups:
       security-updates:
         applies-to: security-updates
