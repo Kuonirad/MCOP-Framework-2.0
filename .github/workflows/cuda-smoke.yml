@@ -44,7 +44,7 @@ jobs:
       - name: Setup project environment
         uses: ./.github/actions/setup-project
         with:
-          node-version: 22.22.2
+          node-version: 22.22.3
 
       - name: Run CUDA hardware-layer regression
         env:
