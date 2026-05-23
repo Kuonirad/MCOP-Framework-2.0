@@ -6,6 +6,18 @@ import { attachAcceleratorProvenance, CPUFallback, type Accelerator } from '../h
 
 export type ExplorationSchedule = 'linear' | 'exponential' | 'adaptive';
 
+/**
+ * NOVA-EVOLVE genome. The numeric knobs are continuous in [0, 1] (or
+ * small bounded integer ranges); the schedule is categorical.
+ *
+ * v2.4: `homeostasis` joins as the second "edge-of-chaos" control
+ * surface paired with `mutationTemperature`. When a
+ * {@link ProteomeOrchestrator} is wired into
+ * {@link NovaEvolveTunerDeps.proteome}, mutations to either knob are
+ * applied to the proteome on the same tick they are accepted, so the
+ * Lamarckian lineage of homeostasis ↔ mutationTemperature ↔ ARC-AGI-3
+ * solve-rate stays auditable.
+ */
 export interface NovaEvolveConfig {
   mutationTemperature: number;
   noveltyPressure: number;
@@ -14,6 +26,14 @@ export interface NovaEvolveConfig {
   entropyThreshold: number;
   confidenceDecay: number;
   explorationSchedule: ExplorationSchedule;
+  /**
+   * v2.4 proteome knob — pull-back strength toward the energy
+   * equilibrium. Range `[0, 1]`. Paired with `mutationTemperature`
+   * for edge-of-chaos control over the proteome substrate. When no
+   * proteome is wired into the tuner this still mutates normally;
+   * downstream consumers can read it via {@link getCurrentConfig}.
+   */
+  homeostasis: number;
 }
 
 export interface NovaEvolveTaskResult {
@@ -72,10 +92,35 @@ export interface NovaEvolveTunerOptions {
   now?: () => Date;
 }
 
+/**
+ * Minimal surface the tuner needs from a {@link ProteomeOrchestrator}.
+ * The v2.4 tuner can drive a proteome's edge-of-chaos knobs in
+ * lock-step with the genome, but we keep the structural dependency
+ * loose so that test doubles, mocks, or future substrate variants
+ * (e.g. a metabolome layer) can plug in by exposing the same minimal
+ * setters.
+ */
+export interface ProteomeKnobSurface {
+  homeostasis: number;
+  mutationTemperature: number;
+}
+
 export interface NovaEvolveTunerDeps {
   stigmergy: StigmergyV5;
   etch: HolographicEtch;
   accelerator?: Accelerator;
+  /**
+   * v2.4 hook — optional proteome (or any object exposing
+   * `homeostasis` + `mutationTemperature`). When provided, accepted
+   * mutations to either knob are mirrored on the proteome *before*
+   * the next external step, so the substrate experiences the new
+   * regime within the same MetaTuner tick.
+   *
+   * Default `undefined` — preserves v2.3 behaviour byte-for-byte; the
+   * `homeostasis` knob still mutates inside the genome but is not
+   * applied to any external substrate.
+   */
+  proteome?: ProteomeKnobSurface;
 }
 
 export interface NovaEvolveLLMProposalClient {
@@ -99,6 +144,7 @@ export const DEFAULT_NOVA_EVOLVE_CONFIG: NovaEvolveConfig = Object.freeze({
   entropyThreshold: 0.68,
   confidenceDecay: 0.92,
   explorationSchedule: 'linear',
+  homeostasis: 0.5,
 });
 
 const NUMERIC_KNOBS: ReadonlySet<keyof NovaEvolveConfig> = new Set([
@@ -108,6 +154,7 @@ const NUMERIC_KNOBS: ReadonlySet<keyof NovaEvolveConfig> = new Set([
   'recallTopK',
   'entropyThreshold',
   'confidenceDecay',
+  'homeostasis',
 ]);
 const SCHEDULES: ReadonlySet<ExplorationSchedule> = new Set(['linear', 'exponential', 'adaptive']);
 
@@ -225,6 +272,10 @@ export class NovaEvolveTuner {
     this.proposalGenerator = options.proposalGenerator;
     this.now = options.now ?? (() => new Date());
     this.accelerator = deps.accelerator ?? new CPUFallback();
+    // v2.4: push the initial genome to any wired proteome so the
+    // substrate starts in the canonical edge-of-chaos regime instead
+    // of its construction-time defaults.
+    this.applyKnobsToProteome();
   }
 
   async maybeMetaTune(recentResults: NovaEvolveTaskResult[] = []): Promise<NovaEvolveMetaDecision | null> {
@@ -271,9 +322,22 @@ export class NovaEvolveTuner {
     if (accepted) {
       this.config = candidate;
       this.metaDepth = depth;
+      // v2.4: mirror the homeostasis + mutationTemperature knobs onto
+      // a wired proteome (or any ProteomeKnobSurface). This is the
+      // single integration point that makes the tuner's edge-of-chaos
+      // genome immediately drive the substrate, instead of waiting
+      // for callers to read getCurrentConfig() and re-apply.
+      this.applyKnobsToProteome();
     }
 
     return decision;
+  }
+
+  private applyKnobsToProteome(): void {
+    const proteome = this.deps.proteome;
+    if (!proteome) return;
+    proteome.homeostasis = clamp01(this.config.homeostasis);
+    proteome.mutationTemperature = clamp01(this.config.mutationTemperature);
   }
 
   getCurrentConfig(): NovaEvolveConfig {
@@ -440,6 +504,7 @@ function normalizeConfig(config: NovaEvolveConfig): NovaEvolveConfig {
     explorationSchedule: SCHEDULES.has(config.explorationSchedule)
       ? config.explorationSchedule
       : DEFAULT_NOVA_EVOLVE_CONFIG.explorationSchedule,
+    homeostasis: clamp(config.homeostasis ?? DEFAULT_NOVA_EVOLVE_CONFIG.homeostasis, 0, 1),
   };
 }
 
@@ -466,15 +531,25 @@ function scoreConfig(config: NovaEvolveConfig, context: NovaEvolveMetaTuneContex
   const entropyFit = 1 - Math.abs(config.entropyThreshold - 0.68);
   const decayFit = 1 - Math.abs(config.confidenceDecay - 0.92);
   const scheduleFit = config.explorationSchedule === (averages.entropy > 0.7 ? 'adaptive' : 'linear') ? 1 : 0.85;
+  // v2.4 edge-of-chaos pairing: the homeostasis knob targets a
+  // moderate pull-back when entropy is high (chaotic regime needs
+  // gentle restoration) and a stronger pull-back when entropy is
+  // low (over-ordered regime needs less chaos suppression). The
+  // target is independent of `mutationTemperature` so changes to
+  // either knob don't compound through this term — they show up
+  // independently in `explorationFit` vs `homeostasisFit`.
+  const homeostasisTarget = averages.entropy > 0.7 ? 0.4 : 0.6;
+  const homeostasisFit = 1 - Math.abs(config.homeostasis - homeostasisTarget);
 
   return clamp01((
-    0.22 * clamp01(explorationFit) +
-    0.24 * clamp01(noveltyFit) +
-    0.16 * clamp01(breadthFit) +
-    0.12 * clamp01(recallFit) +
-    0.1 * clamp01(entropyFit) +
+    0.20 * clamp01(explorationFit) +
+    0.22 * clamp01(noveltyFit) +
+    0.14 * clamp01(breadthFit) +
+    0.10 * clamp01(recallFit) +
+    0.10 * clamp01(entropyFit) +
     0.08 * clamp01(decayFit) +
-    0.08 * scheduleFit
+    0.06 * scheduleFit +
+    0.10 * clamp01(homeostasisFit)
   ) * historicalCorrelation);
 }
 
@@ -493,6 +568,7 @@ function genomeVector(config: NovaEvolveConfig): ContextTensor {
     config.entropyThreshold,
     config.confidenceDecay,
     config.explorationSchedule === 'linear' ? 0.33 : config.explorationSchedule === 'exponential' ? 0.66 : 1,
+    config.homeostasis,
   ];
 }
 

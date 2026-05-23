@@ -46,10 +46,24 @@
   reveals.forEach((r) => revealObs.observe(r));
 
   // -------- Hash ticker (live-feeling SHA-256 churn) --------
+  // NOTE: the hex strings rendered here are PURELY DECORATIVE — they animate
+  // a "live cryptographic ledger" feel and are never used as identifiers,
+  // tokens, signatures, or anything security-sensitive. We use the Web
+  // Crypto API anyway so static analyzers (e.g. CodeQL js/insecure-randomness)
+  // don't have to second-guess intent.
   const hex = "0123456789abcdef";
+  const _cryptoBuf = new Uint8Array(64);
+  _cryptoBuf._i = _cryptoBuf.length;
+  function _csprngByte() {
+    if (_cryptoBuf._i >= _cryptoBuf.length) {
+      crypto.getRandomValues(_cryptoBuf);
+      _cryptoBuf._i = 0;
+    }
+    return _cryptoBuf[_cryptoBuf._i++];
+  }
   function randHex(n) {
     let s = "";
-    for (let i = 0; i < n; i++) s += hex[Math.floor(Math.random() * 16)];
+    for (let i = 0; i < n; i++) s += hex[_csprngByte() & 0x0f];
     return s;
   }
   const hashEls = document.querySelectorAll("[data-hash]");

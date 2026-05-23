@@ -1,6 +1,38 @@
 version: 2
+
+# OpenSSF Scorecard "Maintained" + "Dependency-Update-Tool" coverage:
+# every dependency manifest the build / image / release path touches has
+# a Dependabot entry below. Groupings keep open-PR pressure low without
+# starving security updates of immediate visibility:
+#
+#   * `security-updates` group (applies-to: security-updates) — every
+#     ecosystem opens a *single* high-priority PR per scan window for
+#     all security advisories, even if it crosses the per-ecosystem cap.
+#   * `*-development` / `*-production` groups — version updates are
+#     batched by dependency-type to reduce churn (the
+#     OSSF-recommended pattern for noisy ecosystems).
+#
+# Schedule is weekly Monday 09:00 UTC across the board so the maintainer
+# triages a single Dependabot batch instead of daily drip.
+#
+# `ignore` rules — major-version bumps that need coordinated upgrades and
+# would *break* the build if merged on their own are silenced here. They
+# can still be picked up explicitly via the GitHub UI's "check for updates"
+# button when the maintainer is ready to do the coordinated upgrade.
+#   * docker python/node majors: the runtime requirements files
+#     (`cuda-server-runtime.txt`) and `engines.node` in package.json are
+#     compiled against the current major; an isolated base-image bump
+#     desyncs them.
+#   * npm @types/node major: must match `engines.node`, so the type
+#     bumps need to ride with the runtime bumps.
+#   * npm typescript major / canonicalize major: not strictly broken, but
+#     they are noisy enough to drown out security-update PRs without a
+#     reviewer dedicating triage time. Promote manually when ready.
+
 updates:
-  # NPM dependencies
+  # ---------------------------------------------------------------------
+  # JavaScript / TypeScript: root workspace (Next.js app + shared tooling)
+  # ---------------------------------------------------------------------
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
@@ -16,7 +48,16 @@ updates:
       - "npm"
     commit-message:
       prefix: "chore(deps)"
+    ignore:
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
     groups:
+      security-updates:
+        applies-to: security-updates
+        patterns:
+          - "*"
       development:
         dependency-type: "development"
         update-types:
@@ -27,7 +68,50 @@ updates:
         update-types:
           - "patch"
 
-  # GitHub Actions dependencies
+  # ---------------------------------------------------------------------
+  # JavaScript / TypeScript: @kullailabs/mcop-core (published to npm)
+  # ---------------------------------------------------------------------
+  - package-ecosystem: "npm"
+    directory: "/packages/core"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "Kuonirad"
+    labels:
+      - "dependencies"
+      - "npm"
+      - "packages/core"
+    commit-message:
+      prefix: "chore(deps-core)"
+    ignore:
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "canonicalize"
+        update-types: ["version-update:semver-major"]
+    groups:
+      security-updates:
+        applies-to: security-updates
+        patterns:
+          - "*"
+      core-development:
+        dependency-type: "development"
+        update-types:
+          - "minor"
+          - "patch"
+      core-production:
+        dependency-type: "production"
+        update-types:
+          - "patch"
+
+  # ---------------------------------------------------------------------
+  # GitHub Actions: workflow + composite-action references
+  # ---------------------------------------------------------------------
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
@@ -44,14 +128,21 @@ updates:
     commit-message:
       prefix: "chore(ci)"
     groups:
+      security-updates:
+        applies-to: security-updates
+        patterns:
+          - "*"
+      # Group EVERY github-actions bump (including major) into one PR per
+      # scan window. Action major bumps are usually well-tested and
+      # benign, and grouping them avoids the per-action-major PR storm
+      # that escaped this group in the previous (minor/patch-only) config.
       actions:
         patterns:
           - "*"
-        update-types:
-          - "minor"
-          - "patch"
 
-  # Docker base image updates
+  # ---------------------------------------------------------------------
+  # Docker: every Dockerfile in the repo (each FROM is scanned per dir)
+  # ---------------------------------------------------------------------
   - package-ecosystem: "docker"
     directory: "/"
     schedule:
@@ -67,3 +158,150 @@ updates:
       - "docker"
     commit-message:
       prefix: "chore(docker)"
+    ignore:
+      - dependency-name: "node"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "python"
+        update-types: ["version-update:semver-major"]
+    groups:
+      security-updates:
+        applies-to: security-updates
+        patterns:
+          - "*"
+
+  - package-ecosystem: "docker"
+    directory: "/mcop_cuda_server"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "Kuonirad"
+    labels:
+      - "dependencies"
+      - "docker"
+      - "mcop_cuda_server"
+    commit-message:
+      prefix: "chore(docker-cuda)"
+    ignore:
+      - dependency-name: "python"
+        update-types: ["version-update:semver-major"]
+    groups:
+      security-updates:
+        applies-to: security-updates
+        patterns:
+          - "*"
+
+  - package-ecosystem: "docker"
+    directory: "/services/ledger"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "Kuonirad"
+    labels:
+      - "dependencies"
+      - "docker"
+      - "services/ledger"
+    commit-message:
+      prefix: "chore(docker-ledger)"
+    ignore:
+      - dependency-name: "node"
+        update-types: ["version-update:semver-major"]
+    groups:
+      security-updates:
+        applies-to: security-updates
+        patterns:
+          - "*"
+
+  - package-ecosystem: "docker"
+    directory: "/examples/reproducible-benchmark"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "Kuonirad"
+    labels:
+      - "dependencies"
+      - "docker"
+      - "examples"
+    commit-message:
+      prefix: "chore(docker-examples)"
+    ignore:
+      - dependency-name: "node"
+        update-types: ["version-update:semver-major"]
+    groups:
+      security-updates:
+        applies-to: security-updates
+        patterns:
+          - "*"
+
+  # ---------------------------------------------------------------------
+  # Python: mcop_package (PyPI) + hash-pinned CI/runtime requirements
+  # ---------------------------------------------------------------------
+  - package-ecosystem: "pip"
+    directory: "/mcop_package"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "Kuonirad"
+    labels:
+      - "dependencies"
+      - "python"
+      - "mcop_package"
+    commit-message:
+      prefix: "chore(pip-mcop)"
+    groups:
+      security-updates:
+        applies-to: security-updates
+        patterns:
+          - "*"
+      pip-development:
+        dependency-type: "development"
+        update-types:
+          - "minor"
+          - "patch"
+      pip-production:
+        dependency-type: "production"
+        update-types:
+          - "patch"
+
+  - package-ecosystem: "pip"
+    directory: "/.github/requirements"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "Kuonirad"
+    labels:
+      - "dependencies"
+      - "python"
+      - "ci-requirements"
+    commit-message:
+      prefix: "chore(pip-ci)"
+    groups:
+      security-updates:
+        applies-to: security-updates
+        patterns:
+          - "*"
+      ci-requirements:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"

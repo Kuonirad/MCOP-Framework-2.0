@@ -2,10 +2,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const repoRoot = path.resolve(__dirname, '../..');
-const canonicalNode = '22.22.2';
+const canonicalNode = '22.22.3';
 const canonicalPnpm = '9.15.0';
 const canonicalNodeImage =
-  'node:22.22.2-bookworm-slim@sha256:9f6d5975c7dca860947d3915877f85607946403fc55349f39b4bc3688448bb6e';
+  'node:22.22.3-bookworm-slim@sha256:7af03b14a13c8cdd38e45058fd957bf00a72bbe17feac43b1c15a689c029c732';
 
 function read(relativePath: string): string {
   return fs.readFileSync(path.join(repoRoot, relativePath), 'utf8');

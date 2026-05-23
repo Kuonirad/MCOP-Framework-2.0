@@ -9,7 +9,7 @@ This guide helps new contributors become productive members of our **collective 
 ## Quick Start (30 minutes to first contribution)
 
 ### Prerequisites
-- Node.js 22.22.2 from `.nvmrc` (check with `node --version`)
+- Node.js 22.22.3 from `.nvmrc` (check with `node --version`)
 - pnpm 9.15.0 via Corepack
 - Git basics
 - TypeScript familiarity (not required, but helpful)

@@ -29,7 +29,7 @@
   ██    ██║ ╚═╝ ██║╚██████╗╚██████╔╝██║                  ██
   ██    ╚═╝     ╚═╝ ╚═════╝ ╚═════╝ ╚═╝                  ██
   ██                                                      ██
-  ██    FRAMEWORK 2.0  ◆  v2.3.0  ◆  POSITIVE-RESONANCE    ██
+  ██    FRAMEWORK 2.0  ◆  v2.4.0  ◆  EDGE-OF-CHAOS         ██
   ██                                                      ██
   ██████████████████████████████████████████████████████████
 
@@ -46,9 +46,15 @@
 
 **MCOP Framework 2.0** is a **recursive meta-cognitive optimization protocol** for AI agents — a
 **deterministic 4.4 ms reasoning pipeline** (22,700 ops/sec) that pairs a **NOVA-NEO
-SHA-256 encoder**, a **Stigmergy v5 pheromone memory with Merkle-chained provenance**, and a
-**Holographic Etch** append-only ledger with **eudaimonic scoring**. It ships a
-**Universal Adapter Protocol** with native bridges for **OpenAI**, **Anthropic Claude**,
+SHA-256 encoder**, a **Stigmergy v5 pheromone memory with Merkle-chained provenance**, a
+**Holographic Etch** append-only ledger with **eudaimonic scoring**, (new in **v2.4**) a
+**150-node Proteome substrate** that drives chaotic + game-theoretic abstraction discovery
+via the same `graphAggregate` CUDA kernel exposed by the Φ1–Φ5 hardware layer, and (newly added) a
+**Drift Sentinel Kernel** that continuously computes **Δ(T_d, B_e)** between the declared-task
+tensor and the mean ensemble-behavior tensor, classifying severity against a Welford-online σ-baseline,
+feeding flagged events as stigmergic signals into Holographic Etch, exposing a **Divergence Telemetry**
+surface for dashboards / risk indexing, and **Merkle-linking** every event back to the exact reasoning
+step. It ships a **Universal Adapter Protocol** with native bridges for **OpenAI**, **Anthropic Claude**,
 **Google Gemini**, **Ollama**, **Groq**, **Together AI**, and a **Grok-native (xAI) adapter**
  with image generation. Cryptographic lineage at every step. **96.6 % test coverage.**
 **Source-available under BUSL-1.1 with scheduled MIT conversion on 2030-04-26.**
@@ -143,12 +149,14 @@ contribution.
 ┌─────────────────────────────────────────────────────────────────┐
 │                    MCOP PROCESSING PIPELINE                     │
 │                                                                 │
-│   INPUT  ──►  NOVA-NEO  ──►  STIGMERGY  ──►  HOLO-ETCH  ──►   │
-│                                                    ▼           │
-│                                              PROVENANCE         │
+│   INPUT  ──►  NOVA-NEO  ──►  STIGMERGY  ──►  HOLO-ETCH  ──►    │
+│                  ▲                                  ▼           │
+│                  │                            PROVENANCE        │
+│            (v2.4) PROTEOME  ◀── graphAggregate ──┘              │
 │                                                                 │
-│   ◆ Entropy-Normalized   ◆ Merkle-Chained   ◆ Rank-1 Tensor   │
+│   ◆ Entropy-Normalized   ◆ Merkle-Chained   ◆ Rank-1 Tensor    │
 │   ◆ Cosine Recall        ◆ SHA-256 Signed   ◆ UUID-v4 Traced   │
+│   ◆ Edge-of-Chaos        ◆ Game-Theoretic Equilibria (v2.4)    │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -159,6 +167,8 @@ contribution.
 | 💙 **NOVA-NEO Encoder** | `NovaNeoEncoder` | Context → Tensor | Deterministic · Entropy-normalized |
 | 🟣 **Stigmergy v5** | `StigmergyV5` | Pheromone memory | Cosine recall · Merkle-chained |
 | 🔴 **Holographic Etch** | `HolographicEtch` | Confidence ledger | Append-only · Rank-1 · Replayable |
+| 🧬 **Proteome (v2.4)** | `ProteomeOrchestrator` | 150-node sparse substrate | Replicator dynamics · Edge-of-chaos · CUDA-routed |
+| 🛰️ **Drift Sentinel** | `DriftSentinelKernel` | Δ(T_d, B_e) sensor for indirect-injection drift | Welford-online σ-threshold · Stigmergic signals · Merkle-linked rewind |
 | 🟡 **Provenance** | `ProvenanceMetadata` | Cryptographic lineage | SHA-256 · ISO8601 · UUID-v4 |
 
 </div>
@@ -174,7 +184,7 @@ contribution.
 git clone https://github.com/Kuonirad/MCOP-Framework-2.0.git
 cd MCOP-Framework-2.0
 
-# 2. Activate the pinned toolchain (Node 22.22.2 + pnpm 9.15.0) (≈10 s)
+# 2. Activate the pinned toolchain (Node 22.22.3 + pnpm 9.15.0) (≈10 s)
 nvm use
 corepack enable
 corepack prepare pnpm@9.15.0 --activate
@@ -286,7 +296,7 @@ These are deterministic benchmark baselines generated by `src/benchmarks/prompti
 The headline budget above is **byte-identity-reproducible** by any third party in 90 seconds via the
 [`examples/reproducible-benchmark/`](./examples/reproducible-benchmark/README.md) Docker bundle. The bundle:
 
-1. Pins **Node 22.22.2 + pnpm 9.15.0 + Python 3.12** to match the org blueprint.
+1. Pins **Node 22.22.3 + pnpm 9.15.0 + Python 3.12** to match the org blueprint.
 2. Re-runs `pnpm benchmark:refresh` (`BENCHMARK_GENERATE=1 jest --testPathPatterns=src/__tests__/benchmarks.test.ts`) inside a clean container.
 3. Asserts the regenerated `docs/benchmarks/results.json` is **byte-for-byte identical** to the committed snapshot — any drift exits the verifier non-zero.
 4. Computes a **SHA-256 over the regenerated artefact** and emits a [`manifest.json`](./examples/reproducible-benchmark/README.md#what-this-bundle-proves) carrying verdict, both SHAs, and the headline-budget numbers.
@@ -385,7 +395,7 @@ console.log((await memory.getMessages())[0].provenance?.merkleRoot);
 
 [![Next.js](https://img.shields.io/badge/Next.js-16-black?style=for-the-badge&logo=next.js)](https://nextjs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6?style=for-the-badge&logo=typescript)](https://typescriptlang.org)
-[![Node.js](https://img.shields.io/badge/Node.js-22.22.2-339933?style=for-the-badge&logo=node.js)](https://nodejs.org)
+[![Node.js](https://img.shields.io/badge/Node.js-22.22.3-339933?style=for-the-badge&logo=node.js)](https://nodejs.org)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ed?style=for-the-badge&logo=docker)](./Dockerfile)
 [![Jest](https://img.shields.io/badge/Jest-96.6%25-c21325?style=for-the-badge&logo=jest)](./jest.config.js)
 [![ESLint](https://img.shields.io/badge/ESLint-Strict-4b32c3?style=for-the-badge&logo=eslint)](./eslint.config.mjs)
@@ -430,7 +440,9 @@ MCOP-Framework-2.0/
 | 🟢 Universal Adapter Protocol | ![Done](https://img.shields.io/badge/COMPLETE-00ff88?style=flat-square) | v2.1 |
 | 🟢 Merkle-Chained Stigmergy | ![Done](https://img.shields.io/badge/COMPLETE-00ff88?style=flat-square) | v2.2 |
 | 🟢 CUDA Hardware Layer (Φ1–Φ5 scaffolding) | ![Scaffolded](https://img.shields.io/badge/SCAFFOLDED-00ff88?style=flat-square) | v2.3 |
-| 🟡 CUDA Productionization | ![Roadmap](https://img.shields.io/badge/ROADMAP-ffd700?style=flat-square) | v2.3+ |
+| 🟢 Proteome Layer + LS20 ARC scaffold | ![Done](https://img.shields.io/badge/COMPLETE-00ff88?style=flat-square) | v2.4 |
+| 🟡 CUDA Productionization | ![Roadmap](https://img.shields.io/badge/ROADMAP-ffd700?style=flat-square) | v2.4+ |
+| 🟡 LS20 ARC real-task ingestion | ![Roadmap](https://img.shields.io/badge/ROADMAP-ffd700?style=flat-square) | v2.5 |
 | 🔵 Distributed Cluster Mode | ![Planned](https://img.shields.io/badge/PLANNED-7b2dff?style=flat-square) | v3.0 |
 | 🔵 Hosted Provenance Ledger | ![Planned](https://img.shields.io/badge/PLANNED-7b2dff?style=flat-square) | v3.x |
 | 🔵 WebAssembly Runtime | ![Planned](https://img.shields.io/badge/PLANNED-7b2dff?style=flat-square) | v3.1 |
@@ -469,6 +481,129 @@ The v2.3 release scaffolds the optional **CUDA Hardware Layer** around two provi
 | `src/__tests__/cudaPhi5AdaptiveProbe.test.ts` | `enableCUDA: 'auto'`, explicit overrides, `resolvedFrom`, and substrate-conditional lineage |
 | `src/__tests__/cudaVerifiedDeviceSoak.test.ts` | 1,000-step structural soak and adversarial CPU canary |
 | `src/__tests__/cudaBenchmarkHarness.test.ts` | Deterministic benchmark records for the six logical ops |
+
+---
+
+## 🧬 v2.4 Proteome Layer + LS20 ARC scaffold
+
+The v2.4 release lands the **Proteome substrate** — a 150-node sparse interaction
+graph that sits between NOVA-EVOLVE and the MCOP triad. Each step is a CSR
+mean-aggregation routed through the existing
+[`CUDAHardwareLayer.graphAggregate`](./docs/CUDA_PHI1_PHI5.md#kernel-name-mapping)
+kernel, followed by a replicator-dynamics payoff step, homeostatic pull-back,
+and Gaussian state mutation. Two knobs — `homeostasis` and
+`mutationTemperature` — expose the **edge-of-chaos** control surface to
+MetaTuner, which now drives the proteome's regime in lock-step with the
+NOVA-EVOLVE genome. Full design rationale lives in
+[`docs/PROTEOME_LAYER.md`](./docs/PROTEOME_LAYER.md).
+
+### Shipped surfaces
+
+| Surface | File | Role |
+|:---|:---|:---|
+| Proteome orchestrator | [`src/proteome/ProteomeOrchestrator.ts`](src/proteome/ProteomeOrchestrator.ts) | 150-node sparse graph, replicator dynamics, edge-of-chaos knobs, CUDA-routed graphAggregate |
+| Proteome types + payoff matrix | [`src/proteome/types.ts`](src/proteome/types.ts) | `ProteomeNode`, `ProteomeEdge`, asymmetric `PROTEOME_PAYOFF_MATRIX` |
+| MetaTuner integration | [`src/core/novaEvolveTuner.ts`](src/core/novaEvolveTuner.ts) | `NovaEvolveConfig.homeostasis` knob + `NovaEvolveTunerDeps.proteome` lock-step propagation |
+| LS20 ARC harness | [`scripts/benchmark-arc-ls20.mjs`](scripts/benchmark-arc-ls20.mjs) | Pure-ESM 20-task hard-subset scaffold, schema `mcop-arc-ls20/1.0`, byte-stable Merkle root |
+| CUDA-substrate smoke CI | [`.github/workflows/cuda-smoke.yml`](.github/workflows/cuda-smoke.yml) | `MCOP_ENABLE_CUDA=auto` × `MCOP_ENABLE_CUDA=0` matrix on `ubuntu-latest` |
+
+### v2.4 LS20 ARC reception ladder (R1–R7)
+
+| Rung | Status | Description |
+|:---|:---:|:---|
+| R1 — Sparse-graph primitives | ✅ | 150 nodes, ≈ 1 k edges, deterministic from seed `0xC0FFEE` |
+| R2 — Replicator dynamics | ✅ | 4-kind × 3-edge asymmetric payoff matrix |
+| R3 — Edge-of-chaos knobs | ✅ | `(homeostasis, mutationTemperature)` in `NovaEvolveConfig` |
+| R4 — CUDA `graphAggregate` wiring | ✅ | Per-dim dispatch, verifiedDevice + `resolvedFrom` inheritance |
+| R5 — LS20 ARC benchmark scaffold | ✅ | Byte-stable Merkle root, pre/post solve-rate lift |
+| R6 — Real ARC task ingestion | 🟡 | Follow-up: ARC-AGI-3 hard subset, state-space → rule decoder |
+| R7 — Phase-transition emergence | 🟡 | Target: consistent post-proteome solve-rate ≥ 0.5 |
+
+### Regression coverage
+
+| Suite | Covers |
+|:---|:---|
+| `src/__tests__/proteomeOrchestrator.test.ts` | Construction determinism, knob clamping, byte-stable Merkle replay, edge-of-chaos variance, homeostasis convergence, CUDA integration via mock session, MetaTuner ↔ proteome propagation (15 tests) |
+| `src/__tests__/arcLs20Harness.test.ts` | `mcop-arc-ls20/1.0` schema conformance, knob flow-through, byte-identical child-process replay, lift non-negativity (5 tests) |
+
+### Try it locally
+
+```bash
+# Run the LS20 ARC scaffold in smoke mode (no GPU required)
+pnpm benchmark:arc-ls20:smoke
+
+# Inspect the byte-stable baseline
+cat docs/benchmarks/arc_ls20.json | jq '.summary'
+```
+
+---
+
+## 🛰️ Drift Sentinel Kernel
+
+The **Drift Sentinel Kernel** ([`src/core/driftSentinelKernel.ts`](src/core/driftSentinelKernel.ts))
+is a first-class MCOP module that continuously computes
+
+```
+Δ(T_d, B_e) = cosineDistance(T_d, mean(B_e))   ∈ [0, 1]
+```
+
+between the **declared-task tensor** `T_d` (what the caller said they were
+doing — e.g. system + user prompt embedding) and the **ensemble-behavior tensor**
+`B_e` (the per-model synthesis vectors from the Council, reduced to their mean).
+Full design lives in [`docs/features/drift-sentinel-kernel.md`](docs/features/drift-sentinel-kernel.md).
+
+### What it produces
+
+| Surface | Method | Role |
+|:---|:---|:---|
+| Tunable sensitivity | `observe()` | `baseSensitivity` floor + dynamic `μ + sigmaMultiplier·σ` threshold (Welford-online) |
+| Stigmergic signals | `consumeStigmergicEvents()` | Drains elevated+ events for StigmergyV5 / HolographicEtch continuous-learning feedback |
+| Divergence Telemetry | `getTelemetry()` | Observed / flagged / critical counts, rolling (μ, σ), Δ histogram, chain head — dashboard-ready |
+| Escalation | `event.escalation` | `nominal · watch · elevated · critical` → `none · lightweight-review · human-review` |
+| Merkle-linked rewind | `rewindFlagged()`, `verifyChain()` | RFC 8785 canonical digest + `parentHash` chain back to the exact reasoning step |
+
+### Honest scope
+
+This is auditable detection for the **indirect-injection class** that produces
+visible task-behavior drift (poisoned retrieval, tool output, RAG corpora).
+It is **not** a general-purpose injection firewall. Out of scope: direct
+input-layer injection where `T_d` itself is poisoned, correlated universal
+jailbreaks where `B_e` drifts coherently with `T_d`, and mimicry attacks that
+keep Δ below threshold.
+
+### Minimal usage
+
+```ts
+import { DriftSentinelKernel } from '@kuonirad/mcop-framework';
+
+const sentinel = new DriftSentinelKernel({
+  baseSensitivity: 0.15,
+  sigmaMultiplier: 2.0,
+  criticalCeiling: 0.6,
+});
+
+const event = sentinel.observe({
+  declaredTask: T_d,
+  ensembleBehavior: [B_e_model1, B_e_model2, B_e_model3],
+  reasoningStepId: traceId,
+});
+
+if (event.escalation.kind === 'human-review') {
+  // route to human queue
+}
+
+for (const sig of sentinel.consumeStigmergicEvents()) {
+  // feed into StigmergyV5 / HolographicEtch continuous-learning loop
+}
+
+const telemetry = sentinel.getTelemetry(); // dashboard / risk-index payload
+```
+
+### Regression coverage
+
+| Suite | Covers |
+|:---|:---|
+| `src/__tests__/driftSentinelKernel.test.ts` | Nominal alignment, critical escalation, Merkle linkage + `verifyChain()`, stigmergic signal drain, rewind-to-step, telemetry snapshot, zero-magnitude safety, input validation (8 tests) |
 
 ---
 

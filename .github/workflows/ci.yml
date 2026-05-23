@@ -20,11 +20,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node-version: [22.22.2]
+        node-version: [22.22.3]
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Setup project environment
         uses: ./.github/actions/setup-project
@@ -55,7 +55,7 @@ jobs:
         if: ${{ env.CODECOV_TOKEN != '' }}
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-        uses: codecov/codecov-action@75cd11691c0faa626561e295848008c8a7dddffe # v5.5.4
+        uses: codecov/codecov-action@e79a6962e0d4c0c17b229090214935d2e33f8354 # v6.0.1
         with:
           files: coverage/lcov.info
           fail_ci_if_error: true
@@ -68,12 +68,12 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Setup project environment
         uses: ./.github/actions/setup-project
         with:
-          node-version: 22.22.2
+          node-version: 22.22.3
 
       - name: Build project
         run: pnpm build
@@ -93,12 +93,12 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Setup project environment
         uses: ./.github/actions/setup-project
         with:
-          node-version: 22.22.2
+          node-version: 22.22.3
 
       - name: Run security audit
         run: pnpm audit --audit-level=high
@@ -117,7 +117,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Setup Python
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
@@ -159,12 +159,12 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - name: Setup Node.js 22.22.2
+      - name: Setup Node.js 22.22.3
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
-          node-version: '22.22.2'
+          node-version: '22.22.3'
 
       - name: Install core package dependencies
         # npm ci pins every entry to the SRI-hashed lockfile — satisfies
@@ -210,5 +210,5 @@ jobs:
       - name: Report legacy compat status
         run: |
           echo "Legacy runtime context (${{ matrix.legacy-runtime }})."
-          echo "Project enforces runtime 22.22.2 (see scripts/verify-workflow-hygiene.mjs)."
+          echo "Project enforces runtime 22.22.3 (see scripts/verify-workflow-hygiene.mjs)."
           echo "This job satisfies historical required-status-check contexts during the migration."

@@ -319,6 +319,25 @@ strategies on the substrate class that proved robust.
   ship side-by-side under independent flags. See the provider matrix at
   the top of this document.
 
+## v2.4 — proteome layer wiring
+
+The v2.4 [proteome layer](./PROTEOME_LAYER.md) consumes the
+`graphAggregate` kernel without any new export. Each
+`ProteomeOrchestrator.step()` issues `stateDim` per-dimension calls to
+`CUDAHardwareLayer.accelerate('graphAggregate', ...)`; every call
+inherits the Φ4 verifiedDevice gate and Φ5 `resolvedFrom` audit.
+Provenance leaves for proteome steps carry
+`kernel: 'proteome-graph-step' | 'proteome-cpu-step'` so cluster
+replay can distinguish CUDA-dispatched from CPU-fallback steps on the
+same Merkle backbone.
+
+The dedicated CUDA-substrate smoke job
+(`.github/workflows/cuda-smoke.yml`) exercises the proteome layer
+across both `MCOP_ENABLE_CUDA=auto` and `MCOP_ENABLE_CUDA=0`
+substrates on `ubuntu-latest`, so any drift in the proteome's
+graph-aggregate plumbing breaks CI before merge — even without a GPU
+host attached.
+
 ## Productionization follow-up
 
 The Phi ladder above records what has shipped and what remains gated by real GPU

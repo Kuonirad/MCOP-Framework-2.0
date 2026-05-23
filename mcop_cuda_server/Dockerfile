@@ -25,11 +25,17 @@ RUN python -m pip install --no-cache-dir --require-hashes --no-deps -r /tmp/pip-
 COPY mcop_cuda_server/ /app/mcop_cuda_server/
 COPY mcop_package/ /app/mcop_package/
 
-# Install the in-repo ``mcop`` package with --no-deps so the final image
-# only contains the hash-pinned runtime dependencies installed above.
-# ``mcop_cuda_server`` itself has no setuptools metadata; it is imported
-# directly from the WORKDIR copy via ``python -m mcop_cuda_server``.
-RUN python -m pip install --no-cache-dir --no-deps ./mcop_package
+# Expose the in-repo ``mcop`` package via PYTHONPATH instead of pip-installing
+# it. This eliminates the last unpinned ``pip install`` from the image (the
+# previous ``pip install --no-deps ./mcop_package`` step was flagged by OSSF
+# Scorecard's Pinned-Dependencies check because a local source path cannot
+# carry a sha256 hash, and ``--require-hashes`` is incompatible with editable
+# / local-source installs). Runtime third-party deps are still installed via
+# ``--require-hashes`` from /tmp/cuda-server-runtime.txt above; this step
+# only adds the in-repo Python source to the import path, mirroring how
+# ``mcop_cuda_server`` itself is already exposed (no pip install, imported
+# directly from the WORKDIR copy via ``python -m mcop_cuda_server``).
+ENV PYTHONPATH=/app:/app/mcop_package
 
 EXPOSE 8765
 

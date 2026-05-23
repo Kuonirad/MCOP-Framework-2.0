@@ -39,6 +39,8 @@
     "sbom:validate": "node scripts/validate-sbom.mjs",
     "positive:audit": "node scripts/positive-audit.mjs",
     "benchmark:arc-evo": "node scripts/benchmark-arc-evo.mjs",
+    "benchmark:arc-ls20": "node scripts/benchmark-arc-ls20.mjs --mode=full",
+    "benchmark:arc-ls20:smoke": "node scripts/benchmark-arc-ls20.mjs --mode=smoke",
     "benchmark:cuda-graph": "node scripts/benchmark-cuda-graph.mjs --mode=full",
     "benchmark:cuda-graph:smoke": "node scripts/benchmark-cuda-graph.mjs --mode=smoke",
     "benchmark:cuda-ops": "node scripts/benchmark-cuda-graph.mjs --op=all --mode=full",
@@ -60,7 +62,7 @@
     "bench:smoke": "node scripts/bench-smoke.mjs"
   },
   "engines": {
-    "node": "22.22.2",
+    "node": "22.22.3",
     "pnpm": ">=9.0.0"
   },
   "packageManager": "pnpm@9.15.0",
@@ -118,7 +120,8 @@
       "fast-uri@<3.1.2": "^3.1.2",
       "cookie@<0.7.0": "^0.7.0",
       "tmp@<0.2.4": "^0.2.4",
-      "ws@>=8.0.0 <8.20.1": "^8.20.1"
+      "ws@>=8.0.0 <8.20.1": "^8.20.1",
+      "qs@>=6.11.1 <6.15.2": "^6.15.2"
     },
         "peerDependencyRules": {
                 "allowedVersions": {
@@ -133,7 +136,9 @@
     "brace-expansion@5": "^5.0.6",
     "ws@8": "^8.20.1",
     "cookie": "^0.7.0",
-    "tmp": "^0.2.4"
+    "tmp": "^0.2.4",
+    "uuid": "^14.0.0",
+    "qs": "^6.15.2"
   },
   "keywords": [
     "arc-agi",

@@ -129,11 +129,22 @@ def _probe_backend() -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 
+# Loopback bind by default — operators that want to expose the
+# microservice on a container network must opt in by setting
+# ``MCOP_CUDA_HOST`` (the project's `docker-compose.yml` already does
+# this with ``MCOP_CUDA_HOST=0.0.0.0`` in the ``mcop-cuda-server``
+# service). Defaulting to all-interfaces is flagged by CodeQL
+# `py/bind-socket-all-network-interfaces` because a process that
+# accidentally inherits the default would expose the kernel-dispatch
+# API to every network the host is attached to.
+_DEFAULT_HOST = "127.0.0.1"
+
+
 @dataclass(frozen=True)
 class ServerConfig:
     """Runtime configuration for the CUDA server."""
 
-    host: str = "0.0.0.0"
+    host: str = _DEFAULT_HOST
     port: int = 8765
     device: str = "cuda:0"
     stream_mode: str = "per-op"
@@ -144,7 +155,7 @@ class ServerConfig:
     def from_env(cls) -> "ServerConfig":
         require = os.environ.get("MCOP_CUDA_REQUIRE", "").strip()
         return cls(
-            host=os.environ.get("MCOP_CUDA_HOST", "0.0.0.0"),
+            host=os.environ.get("MCOP_CUDA_HOST", _DEFAULT_HOST),
             port=int(os.environ.get("MCOP_CUDA_PORT", "8765")),
             device=os.environ.get("MCOP_CUDA_DEVICE", "cuda:0"),
             stream_mode=os.environ.get("MCOP_CUDA_STREAMS", "per-op"),
@@ -337,7 +348,7 @@ def serve_forever(config: ServerConfig | None = None) -> None:  # pragma: no cov
 
 def main(argv: list[str] | None = None) -> int:  # pragma: no cover - operator entry point
     parser = argparse.ArgumentParser(description="MCOP CUDA microservice")
-    parser.add_argument("--host", default=os.environ.get("MCOP_CUDA_HOST", "0.0.0.0"))
+    parser.add_argument("--host", default=os.environ.get("MCOP_CUDA_HOST", _DEFAULT_HOST))
     parser.add_argument("--port", type=int, default=int(os.environ.get("MCOP_CUDA_PORT", "8765")))
     parser.add_argument("--device", default=os.environ.get("MCOP_CUDA_DEVICE", "cuda:0"))
     parser.add_argument("--streams", default=os.environ.get("MCOP_CUDA_STREAMS", "per-op"))
