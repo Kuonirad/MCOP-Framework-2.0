@@ -183,7 +183,7 @@ export class OpenAIEmbeddingBackend implements IAsyncEmbeddingBackend {
       throw new Error('OpenAIEmbeddingBackend: no fetch implementation available.');
     }
     this.apiKey = apiKey;
-    this.baseUrl = (config.baseUrl ?? 'https://api.openai.com/v1').replace(/\/+$/u, '');
+    this.baseUrl = trimTrailingSlashes(config.baseUrl ?? 'https://api.openai.com/v1');
     this.model = config.model ?? 'text-embedding-3-small';
     this.fetchImpl = fetchImpl;
     this.timeoutMs = config.timeoutMs ?? 60_000;
@@ -269,4 +269,12 @@ async function safeReadText(response: Response): Promise<string | null> {
   } catch {
     return null;
   }
+}
+
+function trimTrailingSlashes(value: string): string {
+  let end = value.length;
+  while (end > 0 && value.charCodeAt(end - 1) === 47) {
+    end--;
+  }
+  return value.slice(0, end);
 }

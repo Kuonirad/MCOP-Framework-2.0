@@ -222,6 +222,28 @@ describe('OpenAIEmbeddingBackend remote embeddings', () => {
 
     expect(() => encoder.encode('sync path')).toThrow(/encodeAsync/);
   });
+
+  it('normalizes long baseUrl slash suffixes before posting embeddings', async () => {
+    const fetchImpl = jest.fn(async (url: string | URL | Request) => {
+      expect(String(url)).toBe('https://api.example.test/v1/embeddings');
+      return {
+        ok: true,
+        status: 200,
+        statusText: 'OK',
+        json: async () => ({
+          data: [{ embedding: [1, 0, 0, 0] }],
+        }),
+      } as Response;
+    }) as unknown as typeof fetch;
+    const backend = new OpenAIEmbeddingBackend({
+      apiKey: 'test-key',
+      baseUrl: `https://api.example.test/v1${'/'.repeat(2048)}`,
+      fetchImpl,
+    });
+
+    await expect(backend.encodeAsync('slash safety', 4, false)).resolves.toEqual([1, 0, 0, 0]);
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe('UniversalEncoder and NovaNeoWeb portability', () => {
@@ -273,6 +295,26 @@ describe('browser bundle guardrails', () => {
       const source = fs.readFileSync(file, 'utf8');
       expect(source).not.toMatch(/from ['"]node:crypto['"]|from ['"]crypto['"]/);
       expect(source).not.toMatch(/\bBuffer\b/);
+    }
+  });
+
+  it('keeps embedding baseUrl normalization free of polynomial trailing-slash regexes', () => {
+    const files = [
+      path.join(__dirname, '..', 'core', 'embeddingEngine.ts'),
+      path.join(__dirname, '..', '..', 'packages', 'core', 'src', 'embeddingEngine.ts'),
+      path.join(__dirname, '..', 'core', 'novaEvolveTuner.ts'),
+      path.join(__dirname, '..', 'adapters', 'claudeAdapter.ts'),
+      path.join(__dirname, '..', 'adapters', 'grokAdapter.ts'),
+      path.join(__dirname, '..', 'adapters', 'grokImageAdapter.ts'),
+      path.join(__dirname, '..', 'adapters', 'openAICompatibleChatClient.ts'),
+      path.join(__dirname, '..', 'adapters', 'qwenAdapter.ts'),
+    ];
+    for (const file of files) {
+      const source = fs.readFileSync(file, 'utf8');
+      expect(source).not.toContain(".replace(/\\\\/+$/u, '')");
+      expect(source).not.toContain('.replace(/\\\\/+$/u, "")');
+      expect(source).not.toContain(".replace(/\\/+$/u, '')");
+      expect(source).not.toContain('.replace(/\\/+$/u, "")');
     }
   });
 });

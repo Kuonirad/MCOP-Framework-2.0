@@ -7,6 +7,7 @@ import {
   AdapterCapabilities,
   AdapterRequest,
 } from './types';
+import { trimTrailingSlashes } from '../utils/urlSafety';
 
 export type ClaudeModel =
   | 'claude-opus-4-7'
@@ -220,7 +221,7 @@ export function defaultClaudeClient(config: DefaultClaudeClientConfig = {}): Cla
   if (typeof fetchImpl !== 'function') {
     throw new Error('defaultClaudeClient: no fetch implementation available.');
   }
-  const baseUrl = (config.baseUrl ?? 'https://api.anthropic.com').replace(/\/+$/u, '');
+  const baseUrl = trimTrailingSlashes(config.baseUrl ?? 'https://api.anthropic.com');
   const timeoutMs = config.timeoutMs ?? 60_000;
   const anthropicVersion = config.anthropicVersion ?? '2023-06-01';
 

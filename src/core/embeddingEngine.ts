@@ -1,5 +1,6 @@
 import { readUInt32LE, sha256Bytes } from './universalCrypto';
 import type { ContextTensor } from './types';
+import { trimTrailingSlashes } from '../utils/urlSafety';
 
 /**
  * EmbeddingEngine — deterministic, dependency-free semantic vectorisation
@@ -183,7 +184,7 @@ export class OpenAIEmbeddingBackend implements IAsyncEmbeddingBackend {
       throw new Error('OpenAIEmbeddingBackend: no fetch implementation available.');
     }
     this.apiKey = apiKey;
-    this.baseUrl = (config.baseUrl ?? 'https://api.openai.com/v1').replace(/\/+$/u, '');
+    this.baseUrl = trimTrailingSlashes(config.baseUrl ?? 'https://api.openai.com/v1');
     this.model = config.model ?? 'text-embedding-3-small';
     this.fetchImpl = fetchImpl;
     this.timeoutMs = config.timeoutMs ?? 60_000;

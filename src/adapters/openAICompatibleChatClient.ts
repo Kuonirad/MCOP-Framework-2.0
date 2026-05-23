@@ -1,3 +1,5 @@
+import { trimTrailingSlashes } from '../utils/urlSafety';
+
 export type ChatRole = 'system' | 'user' | 'assistant';
 
 export interface OpenAICompatibleMessage {
@@ -79,7 +81,7 @@ export function createOpenAICompatibleChatClient(
   if (typeof fetchImpl !== 'function') {
     throw new Error(`${config.providerName}: no fetch implementation available.`);
   }
-  const baseUrl = config.baseUrl.replace(/\/+$/u, '');
+  const baseUrl = trimTrailingSlashes(config.baseUrl);
   const timeoutMs = config.timeoutMs ?? 60_000;
 
   return {

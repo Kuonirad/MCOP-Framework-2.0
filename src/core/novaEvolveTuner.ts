@@ -3,6 +3,7 @@ import { StigmergyV5 } from './stigmergyV5';
 import { ContextTensor, EtchRecord, PheromoneTrace } from './types';
 import { canonicalDigest } from './canonicalEncoding';
 import { attachAcceleratorProvenance, CPUFallback, type Accelerator } from '../hardware';
+import { trimTrailingSlashes } from '../utils/urlSafety';
 
 export type ExplorationSchedule = 'linear' | 'exponential' | 'adaptive';
 
@@ -191,7 +192,7 @@ export function createOpenAICompatibleProposalClient(
   if (typeof fetchImpl !== 'function') {
     throw new Error('createOpenAICompatibleProposalClient: no fetch implementation available.');
   }
-  const baseUrl = (config.baseUrl ?? 'https://api.openai.com/v1').replace(/\/+$/u, '');
+  const baseUrl = trimTrailingSlashes(config.baseUrl ?? 'https://api.openai.com/v1');
   const timeoutMs = config.timeoutMs ?? 60_000;
   const systemPrompt = config.systemPrompt ?? 'You are a NOVA-EVOLVE mutation oracle. Return strict JSON only.';
 

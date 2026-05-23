@@ -23,6 +23,7 @@ import {
   AdapterCapabilities,
   AdapterRequest,
 } from './types';
+import { trimTrailingSlashes } from '../utils/urlSafety';
 
 /* ------------------------------------------------------------------ */
 /*  Platform-native option shapes                                     */
@@ -282,7 +283,7 @@ export function defaultGrokImageClient(
         'the client.',
     );
   }
-  const baseUrl = (config.baseUrl ?? 'https://api.x.ai/v1').replace(/\/+$/u, '');
+  const baseUrl = trimTrailingSlashes(config.baseUrl ?? 'https://api.x.ai/v1');
   const fetchImpl = config.fetchImpl ?? globalThis.fetch;
   if (typeof fetchImpl !== 'function') {
     throw new Error(

@@ -31,6 +31,7 @@ import {
   AdapterCapabilities,
   AdapterRequest,
 } from './types';
+import { trimTrailingSlashes } from '../utils/urlSafety';
 import {
   QWEN3_LOW_MEMORY_MCOP_PRESET,
   LowMemoryMCOPMode,
@@ -634,9 +635,9 @@ export function defaultQwenClient(
         'constructing the client.',
     );
   }
-  const baseUrl = (
-    config.baseUrl ?? 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1'
-  ).replace(/\/+$/u, '');
+  const baseUrl = trimTrailingSlashes(
+    config.baseUrl ?? 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1',
+  );
   const fetchImpl = config.fetchImpl ?? globalThis.fetch;
   if (typeof fetchImpl !== 'function') {
     throw new Error(
