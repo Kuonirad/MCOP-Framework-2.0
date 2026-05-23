@@ -36,7 +36,7 @@
 ```
 
 ### Recursive triad orchestration · Deterministic · Cryptographically-linked provenance
-### Built on **Next.js 15.5 + TypeScript** · Production-hardened · Hardware-acceleration-ready
+### Built on **Next.js 15.5 + TypeScript** · Telemetry-hardened · Hardware-acceleration-ready
 
 </div>
 
@@ -44,19 +44,17 @@
 
 ## ◆ What is MCOP?
 
-**MCOP Framework 2.0** is a **recursive meta-cognitive optimization protocol** for AI agents — a
+**MCOP Framework 2.0** is a **recursive meta-cognitive optimization protocol** for AI agents: a
 **deterministic 4.4 ms reasoning pipeline** (22,700 ops/sec) that pairs a **NOVA-NEO
-SHA-256 encoder**, a **Stigmergy v5 pheromone memory with Merkle-chained provenance**, a
-**Holographic Etch** append-only ledger with **eudaimonic scoring**, (new in **v2.4**) a
-**150-node Proteome substrate** that drives chaotic + game-theoretic abstraction discovery
-via the same `graphAggregate` CUDA kernel exposed by the Φ1–Φ5 hardware layer, and (newly added) a
-**Drift Sentinel Kernel** that continuously computes **Δ(T_d, B_e)** between the declared-task
-tensor and the mean ensemble-behavior tensor, classifying severity against a Welford-online σ-baseline,
-feeding flagged events as stigmergic signals into Holographic Etch, exposing a **Divergence Telemetry**
-surface for dashboards / risk indexing, and **Merkle-linking** every event back to the exact reasoning
-step. It ships a **Universal Adapter Protocol** with native bridges for **OpenAI**, **Anthropic Claude**,
-**Google Gemini**, **Ollama**, **Groq**, **Together AI**, and a **Grok-native (xAI) adapter**
- with image generation. Cryptographic lineage at every step. **96.6 % test coverage.**
+SHA-256 encoder**, **Stigmergy v5 pheromone memory with Merkle-chained provenance**, and a
+**Holographic Etch** append-only ledger with **eudaimonic scoring**. The current v2.4 surface adds
+a **150-node Proteome substrate** for chaotic + game-theoretic abstraction discovery, a
+**Drift Sentinel Kernel** for Δ(T_d, B_e) divergence telemetry, and a **Guardian-signed telemetry
+hardening layer** that commits JCS-canonical policy, matrix-evolution, and L1 reset blocks through
+dependency-injected substrate bridges. The adapter mesh now includes async OpenAI-compatible
+embeddings, an OpenAI-compatible chat client, Anthropic Claude, DeepSeek, Kimi, Qwen, xAI/Grok
+text + image generation, Magnific, Utopai, and generic REST/MCP/HTTP production adapters.
+Cryptographic lineage at every step. **96.6 % test coverage.**
 **Source-available under BUSL-1.1 with scheduled MIT conversion on 2030-04-26.**
 
 > **Why this matters:** unlike retrieval-augmented or chain-of-thought wrappers,
@@ -65,6 +63,17 @@ step. It ships a **Universal Adapter Protocol** with native bridges for **OpenAI
 > Memory, ledger, and adapter calls all etch a positive-resonance score, so the framework
 > rewards **flourishing trajectories** (high alignment + high utility) instead of optimizing
 > for raw throughput alone.
+
+## ◆ Current Production Surface
+
+| Layer | Shipped surface |
+|:---|:---|
+| Deterministic core | `@kullailabs/mcop-core` exports NOVA-NEO, Stigmergy v5, Holographic Etch, positive-resonance scoring, canonical encoding, tensor guards, and async embedding backends. |
+| Telemetry hardening | [`src/telemetry/`](./src/telemetry/) commits Guardian-signed reset blocks, hazard policy blocks, Peircean matrix evolution, burn-in traces, and defensive substrate adapter writes. |
+| Orchestration hook | [`src/orchestrator/MCOPOrchestrator.ts`](./src/orchestrator/MCOPOrchestrator.ts) keeps hardening optional via dependency injection and exposes `commitPipelineStageExecution()`. |
+| Provider mesh | [`src/adapters/`](./src/adapters/) routes OpenAI-compatible, Claude, DeepSeek, Kimi, Qwen, Grok/xAI, image, regulated-provenance, and generic production calls without hardcoding secrets. |
+| Distributed runtime | [`src/cluster/redisStreamsGossipTransport.ts`](./src/cluster/redisStreamsGossipTransport.ts) adds Redis Streams gossip transport alongside the in-memory bus. |
+| Security posture | CodeQL, Dependabot, Trojan-Source guard, SBOM generation, workflow hygiene verification, and pinned CI runtimes are merge-blocking surfaces. |
 
 <div align="center">
 
@@ -113,7 +122,7 @@ feature comparison, May 2026 — public docs as of writing):
 | Append-only confidence ledger w/ replayable rank-1 etches | ✅ Holographic Etch | ❌ | ❌ | ❌ |
 | Eudaimonic / positive-resonance scoring on every accepted etch | ✅ EudaimonicEtch | ❌ | ❌ | ❌ |
 | Self-healing dimension + bounded-curiosity recall guards | ✅ SelfHealingDimension + ResonantRecentQuery | ❌ | ❌ | ❌ |
-| Universal Adapter Protocol (OpenAI · Claude · Gemini · Grok · Ollama · Groq · Together) | ✅ | ✅ | ⚠️ partial | ⚠️ partial |
+| Universal Adapter Protocol (OpenAI-compatible · Claude · DeepSeek · Kimi · Qwen · Grok/xAI · production REST/MCP) | ✅ | ✅ | ⚠️ partial | ⚠️ partial |
 | Native xAI Grok adapter (text + image generation) | ✅ | ⚠️ community | ❌ | ❌ |
 | Test coverage on documented API surface | **96.6 %** | varies | varies | varies |
 | Reference benchmark (full pipeline) | **4.4 ms / 22,700 ops/sec** ([source](./src/benchmarks/promptingModes.ts)) | n/a | n/a | n/a |
@@ -211,21 +220,30 @@ open http://localhost:3000/showcase/index.html
 > with `pnpm add @kullailabs/mcop-core` (or `npm i @kullailabs/mcop-core`).
 
 ```typescript
-import { MCOPOrchestrator } from '@kullailabs/mcop-core';
+import {
+  HolographicEtch,
+  NovaNeoEncoder,
+  StigmergyV5,
+} from '@kullailabs/mcop-core';
 
-// Initialize the recursive triad
-const mcop = new MCOPOrchestrator({
-  encoder: 'nova-neo-v2',
-  memory: 'stigmergy-v5',
-  ledger: 'holographic-etch',
-  provenance: { algorithm: 'SHA-256', standard: 'ISO8601' }
+const encoder = new NovaNeoEncoder({ dimensions: 64, normalize: true });
+const memory = new StigmergyV5({ resonanceThreshold: 0.55 });
+const ledger = new HolographicEtch({
+  confidenceFloor: 0,
+  growthLedger: true,
 });
 
-// Execute with cryptographic provenance at every step
-const result = await mcop.optimize(context, {
-  deterministic: true,
-  entropyNormalized: true,
-  merkleChained: true
+const context = encoder.encode('stabilize recursive planning with audited provenance');
+const synthesis = encoder.encode('stabilize recursive planning with audited provenance');
+
+const trace = memory.recordTrace(context, synthesis, { stage: 'quick-start' });
+const etch = ledger.applyEtch(context, synthesis, 'quick-start');
+
+console.log({
+  traceHash: trace.hash,
+  merkleRoot: memory.getMerkleRoot(),
+  etchHash: etch.hash,
+  confidence: etch.deltaWeight,
 });
 ```
 
@@ -242,7 +260,11 @@ const result = await mcop.optimize(context, {
 | Due-diligence register | [`docs/DUE_DILIGENCE_REGISTER.md`](./docs/DUE_DILIGENCE_REGISTER.md) |
 | Trust-substrate roadmap | [`docs/TRUST_SUBSTRATE_ROADMAP.md`](./docs/TRUST_SUBSTRATE_ROADMAP.md) |
 | CUDA productionization | [`docs/CUDA_PRODUCTION.md`](./docs/CUDA_PRODUCTION.md) |
+| Proteome layer and ARC LS20 scaffold | [`docs/PROTEOME_LAYER.md`](./docs/PROTEOME_LAYER.md) |
+| Drift Sentinel Kernel | [`docs/features/drift-sentinel-kernel.md`](./docs/features/drift-sentinel-kernel.md) |
 | Decentralized agent coordination | [`docs/DECENTRALIZED_AGENT_COORDINATION.md`](./docs/DECENTRALIZED_AGENT_COORDINATION.md) |
+| Redis Streams cluster transport | [`docs/DISTRIBUTED_CLUSTER_MODE.md`](./docs/DISTRIBUTED_CLUSTER_MODE.md) |
+| Telemetry hardening source | [`src/telemetry/`](./src/telemetry/) |
 | Architecture overview | [`ARCHITECTURE.md`](./ARCHITECTURE.md) |
 | Supply-chain controls | [`docs/SUPPLY_CHAIN_TRUST.md`](./docs/SUPPLY_CHAIN_TRUST.md) |
 | Universal Adapter Protocol | [`docs/adapters/UNIVERSAL_ADAPTER_PROTOCOL.md`](./docs/adapters/UNIVERSAL_ADAPTER_PROTOCOL.md) |
@@ -323,12 +345,13 @@ See [POSITIVE_EVOLUTION.md](./POSITIVE_EVOLUTION.md) for the v2.3 Eudaimonic Blo
 
 | Adapter | Status | Protocol | Auth |
 |:---:|:---:|:---:|:---:|
-| 🤖 **OpenAI GPT-4** | ![Active](https://img.shields.io/badge/ACTIVE-00ff88?style=flat-square) | REST/SSE | Bearer |
+| 🤖 **OpenAI-compatible chat + embeddings** | ![Active](https://img.shields.io/badge/ACTIVE-00ff88?style=flat-square) | REST/SSE | Bearer |
 | 🧬 **Anthropic Claude** | ![Active](https://img.shields.io/badge/ACTIVE-00ff88?style=flat-square) | REST | x-api-key |
-| 🌊 **Google Gemini** | ![Active](https://img.shields.io/badge/ACTIVE-00ff88?style=flat-square) | gRPC | OAuth2 |
-| 🦙 **Ollama Local** | ![Active](https://img.shields.io/badge/ACTIVE-00ff88?style=flat-square) | REST | None |
-| 🔥 **Groq** | ![Active](https://img.shields.io/badge/ACTIVE-00ff88?style=flat-square) | REST | Bearer |
-| ⚡ **Together AI** | ![Active](https://img.shields.io/badge/ACTIVE-00ff88?style=flat-square) | REST | Bearer |
+| 🌊 **DeepSeek** | ![Active](https://img.shields.io/badge/ACTIVE-00ff88?style=flat-square) | REST | Bearer |
+| 🌙 **Kimi** | ![Active](https://img.shields.io/badge/ACTIVE-00ff88?style=flat-square) | REST | Bearer |
+| ⚡ **Qwen** | ![Active](https://img.shields.io/badge/ACTIVE-00ff88?style=flat-square) | REST | Bearer |
+| ✦ **xAI Grok text + image** | ![Active](https://img.shields.io/badge/ACTIVE-00ff88?style=flat-square) | REST | Bearer |
+| 🎛️ **Magnific / Utopai / Generic Production** | ![Active](https://img.shields.io/badge/ACTIVE-00ff88?style=flat-square) | REST/MCP/HTTP | Provider-specific |
 
 </div>
 
@@ -409,19 +432,24 @@ console.log((await memory.getMessages())[0].provenance?.merkleRoot);
 ```
 MCOP-Framework-2.0/
 ├── 🧠 src/
-│   ├── kernels/
-│   │   ├── NovaNeoEncoder.ts      # Context → Tensor (deterministic)
-│   │   ├── StigmergyV5.ts         # Pheromone memory (Merkle-chained)
-│   │   ├── HolographicEtch.ts     # Confidence ledger (append-only)
-│   │   └── ProvenanceMetadata.ts  # Cryptographic lineage (SHA-256)
-│   ├── adapters/
-│   │   └── UniversalAdapter.ts    # 6 LLM providers unified
-│   └── orchestrator/
-│       └── MCOPOrchestrator.ts    # Recursive triad conductor
+│   ├── core/                      # NOVA-NEO, Stigmergy, Etch, Drift Sentinel, embeddings
+│   ├── adapters/                  # Provider mesh + Universal Adapter Protocol implementations
+│   ├── telemetry/                 # Guardian-signed hardening and reset-block commits
+│   ├── orchestrator/              # Dependency-injected orchestration hooks
+│   ├── cluster/                   # In-memory + Redis Streams gossip transports
+│   ├── proteome/                  # Proteome substrate and ARC LS20 scaffolding
+│   └── hardware/                  # CUDA/ONNX/HTTP accelerator surfaces
+├── 📦 packages/
+│   └── core/                      # Published @kullailabs/mcop-core package
+├── 🐍 mcop_package/               # Python package, adapters, CLI, and parity shims
+├── 🧾 services/
+│   └── ledger/                    # Hosted provenance ledger service + Helm values schema
 ├── 📚 docs/
 │   ├── api/                       # Full API reference
-│   └── adapters/                  # Adapter protocol specs
-├── 🧪 tests/                      # 96.6% coverage suite
+│   ├── adapters/                  # Adapter protocol specs
+│   └── features/                  # Drift Sentinel and feature deep dives
+├── 🧪 src/__tests__/              # Jest coverage suite
+├── 🔧 scripts/                    # Benchmarks, guards, SBOM, telemetry registry
 ├── 🐳 Dockerfile                  # Production container
 ├── 📋 GOVERNANCE.md               # Project governance
 ├── 🔒 SECURITY.md                 # Security policy
@@ -441,9 +469,10 @@ MCOP-Framework-2.0/
 | 🟢 Merkle-Chained Stigmergy | ![Done](https://img.shields.io/badge/COMPLETE-00ff88?style=flat-square) | v2.2 |
 | 🟢 CUDA Hardware Layer (Φ1–Φ5 scaffolding) | ![Scaffolded](https://img.shields.io/badge/SCAFFOLDED-00ff88?style=flat-square) | v2.3 |
 | 🟢 Proteome Layer + LS20 ARC scaffold | ![Done](https://img.shields.io/badge/COMPLETE-00ff88?style=flat-square) | v2.4 |
+| 🟢 Drift Sentinel + Guardian telemetry hardening | ![Done](https://img.shields.io/badge/COMPLETE-00ff88?style=flat-square) | v2.4 |
+| 🟢 Redis Streams gossip transport | ![Done](https://img.shields.io/badge/COMPLETE-00ff88?style=flat-square) | v2.4 |
 | 🟡 CUDA Productionization | ![Roadmap](https://img.shields.io/badge/ROADMAP-ffd700?style=flat-square) | v2.4+ |
 | 🟡 LS20 ARC real-task ingestion | ![Roadmap](https://img.shields.io/badge/ROADMAP-ffd700?style=flat-square) | v2.5 |
-| 🔵 Distributed Cluster Mode | ![Planned](https://img.shields.io/badge/PLANNED-7b2dff?style=flat-square) | v3.0 |
 | 🔵 Hosted Provenance Ledger | ![Planned](https://img.shields.io/badge/PLANNED-7b2dff?style=flat-square) | v3.x |
 | 🔵 WebAssembly Runtime | ![Planned](https://img.shields.io/badge/PLANNED-7b2dff?style=flat-square) | v3.1 |
 
