@@ -34,7 +34,7 @@ jobs:
       - name: Setup project environment without install
         uses: ./.github/actions/setup-project
         with:
-          node-version: 22.22.2
+          node-version: 22.22.3
           install-deps: 'false'
           enable-cache: 'false'
 

@@ -62,7 +62,7 @@
     "bench:smoke": "node scripts/bench-smoke.mjs"
   },
   "engines": {
-    "node": "22.22.2",
+    "node": "22.22.3",
     "pnpm": ">=9.0.0"
   },
   "packageManager": "pnpm@9.15.0",
