@@ -99,6 +99,8 @@ export class BackgroundLedgerForwarder {
         console.error?.('[BackgroundLedgerForwarder] worker error', err);
       });
     }, this.config.workerIntervalMs);
+    // Don't keep the Node event loop alive solely for this worker.
+    this.workerTimer.unref?.();
   }
 
   /**

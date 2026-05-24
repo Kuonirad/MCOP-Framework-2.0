@@ -109,10 +109,12 @@ export class RedisAsyncLedgerForwarder {
       }
       if (this.isRunning) {
         this.workerTimer = setTimeout(tick, this.config.workerIntervalMs);
+        this.workerTimer.unref?.();
       }
     };
 
     this.workerTimer = setTimeout(tick, 50);
+    this.workerTimer.unref?.();
   }
 
   async stop(): Promise<void> {
