@@ -34,7 +34,7 @@ const softwareApplicationJsonLd = {
   operatingSystem: "Cross-platform (Node.js 20+, Python 3.11+)",
   softwareVersion: "2.4",
   description:
-    "Deterministic, auditable Meta-Cognitive Optimization Protocol with NOVA-NEO encoder, Stigmergy v5 resonance store, Holographic Etch engine, the v2.4 Proteome substrate (150-node sparse interaction graph driving chaotic + game-theoretic abstraction discovery via the Φ1–Φ5 CUDA hardware layer), and the Drift Sentinel Kernel — a continuously-running Δ(T_d, B_e) sensor that turns ensemble-behavior drift into stigmergic signals, Divergence Telemetry, and Merkle-linked rewind for the indirect-injection attack class. Ships the Universal Adapter Protocol v2.1 for Magnific, Higgsfield, Utopai, and any REST/MCP/HTTP pipeline.",
+    "Deterministic, auditable Meta-Cognitive Optimization Protocol with NOVA-NEO encoder, Stigmergy v5 resonance store, Holographic Etch engine, the v2.4 Proteome substrate (150-node sparse interaction graph driving chaotic + game-theoretic abstraction discovery via the Φ1–Φ5 CUDA hardware layer), the Drift Sentinel Kernel — a continuously-running Δ(T_d, B_e) sensor that turns ensemble-behavior drift into stigmergic signals, Divergence Telemetry, and Merkle-linked rewind for the indirect-injection attack class — and the bidirectional Grok-MCOP Organelle Host integration that lets capable Grok models execute the triad in-model and merge their traces back into the host through async + Redis ledger forwarders with retry + DLQ. Ships the Universal Adapter Protocol v2.1 for Magnific, Higgsfield, Utopai, and any REST/MCP/HTTP pipeline.",
   url: SITE_URL,
   codeRepository:
     "https://github.com/Kuonirad/MCOP-Framework-2.0",
@@ -65,14 +65,14 @@ const techArticleJsonLd = {
   "@id": `${SITE_URL}#article`,
   headline: "MCOP Framework 2.0 — Deterministic, Auditable Triad Orchestration",
   description:
-    "Reference page for the Meta-Cognitive Optimization Protocol's triad architecture, kernel set, v2.4 Proteome substrate, Drift Sentinel Kernel, Universal Adapter Protocol v2.1, and live Core Web Vitals telemetry.",
+    "Reference page for the Meta-Cognitive Optimization Protocol's triad architecture, kernel set, v2.4 Proteome substrate, Drift Sentinel Kernel, bidirectional Grok-MCOP Organelle Host with ledger-aware async forwarders, Universal Adapter Protocol v2.1, and live Core Web Vitals telemetry.",
   inLanguage: "en",
   url: SITE_URL,
   mainEntityOfPage: SITE_URL,
   proficiencyLevel: "Expert",
   dependencies: "Next.js 15.5, React 19, TypeScript 5.9, Node.js 20+",
   keywords:
-    "MCOP, deterministic AI, stigmergy, holographic etch, drift sentinel, indirect injection detection, Merkle lineage, Universal Adapter Protocol",
+    "MCOP, deterministic AI, stigmergy, holographic etch, drift sentinel, indirect injection detection, Merkle lineage, Universal Adapter Protocol, Grok organelle host, bidirectional MCOP, ledger-aware etch, async ledger forwarder, organelle merge, snapshot reconciliation",
   publisher: { "@id": `${SITE_URL}#organization` },
   author: {
     "@type": "Person",
@@ -219,6 +219,12 @@ export default function Home() {
       body: "Twenty-line template for any REST / MCP / HTTP pipeline. Drop in a dispatch function and the framework wires encoder, resonance, dialectical refinement, and provenance.",
       tone: "from-amber-500/20 to-amber-500/5 ring-amber-400/40",
     },
+    {
+      title: "Grok Organelle Host",
+      badge: "New · Bidirectional symbiosis",
+      body: "`organelleMode` ships a compact MCOP profile + recent traces to capable Grok models, lets them execute the triad in-model, then validates and merges the model-produced traces and etch deltas back into the host StigmergyV5 + ledger-aware HolographicEtch — with async or Redis forwarders carrying retry + DLQ semantics.",
+      tone: "from-rose-500/20 to-rose-500/5 ring-rose-400/40",
+    },
   ];
 
   return (
@@ -341,7 +347,12 @@ export default function Home() {
                 Adapters in TypeScript and Python (Magnific, Higgsfield,
                 Utopai, plus a generic REST/MCP scaffold) wire the triad to
                 creative-production platforms via the{" "}
-                <strong>Universal Adapter Protocol v2.1</strong>. License:
+                <strong>Universal Adapter Protocol v2.1</strong>. The xAI/Grok
+                adapter additionally ships a bidirectional{" "}
+                <strong>Organelle Host</strong> mode that lets capable Grok
+                models execute the triad in-model and merges their traces
+                back into the host through ledger-aware Holographic Etch
+                with async + Redis forwarders (retry + DLQ). License:
                 BUSL 1.1.
               </p>
             </aside>
@@ -444,7 +455,13 @@ export default function Home() {
                 <code className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-xs">
                   IMCOPAdapter
                 </code>{" "}
-                contract.
+                contract. The xAI/Grok adapter additionally exposes a
+                bidirectional{" "}
+                <code className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-xs">
+                  organelleMode
+                </code>{" "}
+                that lets capable models host the triad in-process and merge
+                their traces back into the host ledger.
               </p>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">

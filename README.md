@@ -53,7 +53,11 @@ a **150-node Proteome substrate** for chaotic + game-theoretic abstraction disco
 hardening layer** that commits JCS-canonical policy, matrix-evolution, and L1 reset blocks through
 dependency-injected substrate bridges. The adapter mesh now includes async OpenAI-compatible
 embeddings, an OpenAI-compatible chat client, Anthropic Claude, DeepSeek, Kimi, Qwen, xAI/Grok
-text + image generation, Magnific, Utopai, and generic REST/MCP/HTTP production adapters.
+text + image generation (with a **bidirectional Grok-MCOP organelle host** mode that lets capable
+Grok models execute the triad in-model and merge their traces back into the host ledger),
+Magnific, Utopai, and generic REST/MCP/HTTP production adapters. Ledger-aware Holographic Etch
+factories ship with **in-memory + file storage backends**, **async + Redis ledger forwarders**
+(retry, DLQ, and `unref()`-clean shutdown), and **snapshot ↔ ledger reconciliation** utilities.
 Cryptographic lineage at every step. **96.6 % test coverage.**
 **Source-available under BUSL-1.1 with scheduled MIT conversion on 2030-04-26.**
 
@@ -72,6 +76,7 @@ Cryptographic lineage at every step. **96.6 % test coverage.**
 | Telemetry hardening | [`src/telemetry/`](./src/telemetry/) commits Guardian-signed reset blocks, hazard policy blocks, Peircean matrix evolution, burn-in traces, and defensive substrate adapter writes. |
 | Orchestration hook | [`src/orchestrator/MCOPOrchestrator.ts`](./src/orchestrator/MCOPOrchestrator.ts) keeps hardening optional via dependency injection and exposes `commitPipelineStageExecution()`. |
 | Provider mesh | [`src/adapters/`](./src/adapters/) routes OpenAI-compatible, Claude, DeepSeek, Kimi, Qwen, Grok/xAI, image, regulated-provenance, and generic production calls without hardcoding secrets. |
+| Organelle host & ledger I/O | [`src/adapters/grokAdapter.ts`](./src/adapters/grokAdapter.ts) exposes `organelleMode` for bidirectional in-model triad execution; [`src/ledger/`](./src/ledger/) ships ledger-aware Holographic Etch factories with background + Redis async forwarders (retry, DLQ, clean shutdown); [`src/core/etchBackend.ts`](./src/core/etchBackend.ts) and [`src/core/stigmergyBackend.ts`](./src/core/stigmergyBackend.ts) provide in-memory + file storage backends; [`src/utils/organelleMerge.ts`](./src/utils/organelleMerge.ts) and [`src/utils/ledgerReconciliation.ts`](./src/utils/ledgerReconciliation.ts) cover trace reconstruction, merge, and snapshot ↔ ledger reconciliation. |
 | Distributed runtime | [`src/cluster/redisStreamsGossipTransport.ts`](./src/cluster/redisStreamsGossipTransport.ts) adds Redis Streams gossip transport alongside the in-memory bus. |
 | Security posture | CodeQL, Dependabot, Trojan-Source guard, SBOM generation, workflow hygiene verification, and pinned CI runtimes are merge-blocking surfaces. |
 
@@ -262,6 +267,7 @@ console.log({
 | CUDA productionization | [`docs/CUDA_PRODUCTION.md`](./docs/CUDA_PRODUCTION.md) |
 | Proteome layer and ARC LS20 scaffold | [`docs/PROTEOME_LAYER.md`](./docs/PROTEOME_LAYER.md) |
 | Drift Sentinel Kernel | [`docs/features/drift-sentinel-kernel.md`](./docs/features/drift-sentinel-kernel.md) |
+| Bidirectional Grok-MCOP organelle host | [`docs/adapters/GROK_AS_MCOP_ORGANELLE_HOST.md`](./docs/adapters/GROK_AS_MCOP_ORGANELLE_HOST.md) |
 | Decentralized agent coordination | [`docs/DECENTRALIZED_AGENT_COORDINATION.md`](./docs/DECENTRALIZED_AGENT_COORDINATION.md) |
 | Redis Streams cluster transport | [`docs/DISTRIBUTED_CLUSTER_MODE.md`](./docs/DISTRIBUTED_CLUSTER_MODE.md) |
 | Telemetry hardening source | [`src/telemetry/`](./src/telemetry/) |
@@ -432,10 +438,12 @@ console.log((await memory.getMessages())[0].provenance?.merkleRoot);
 ```
 MCOP-Framework-2.0/
 ├── 🧠 src/
-│   ├── core/                      # NOVA-NEO, Stigmergy, Etch, Drift Sentinel, embeddings
-│   ├── adapters/                  # Provider mesh + Universal Adapter Protocol implementations
+│   ├── core/                      # NOVA-NEO, Stigmergy, Etch, Drift Sentinel, embeddings, storage backends
+│   ├── adapters/                  # Provider mesh + Universal Adapter Protocol + organelle host
 │   ├── telemetry/                 # Guardian-signed hardening and reset-block commits
 │   ├── orchestrator/              # Dependency-injected orchestration hooks
+│   ├── ledger/                    # Ledger-aware Etch factories + async/Redis forwarders (retry, DLQ)
+│   ├── utils/                     # organelleMerge + snapshot ↔ ledger reconciliation
 │   ├── cluster/                   # In-memory + Redis Streams gossip transports
 │   ├── proteome/                  # Proteome substrate and ARC LS20 scaffolding
 │   └── hardware/                  # CUDA/ONNX/HTTP accelerator surfaces
@@ -471,6 +479,7 @@ MCOP-Framework-2.0/
 | 🟢 Proteome Layer + LS20 ARC scaffold | ![Done](https://img.shields.io/badge/COMPLETE-00ff88?style=flat-square) | v2.4 |
 | 🟢 Drift Sentinel + Guardian telemetry hardening | ![Done](https://img.shields.io/badge/COMPLETE-00ff88?style=flat-square) | v2.4 |
 | 🟢 Redis Streams gossip transport | ![Done](https://img.shields.io/badge/COMPLETE-00ff88?style=flat-square) | v2.4 |
+| 🟢 Bidirectional Grok-MCOP organelle host (`organelleMode` + ledger forwarders + reconciliation) | ![Done](https://img.shields.io/badge/COMPLETE-00ff88?style=flat-square) | v2.4 |
 | 🟡 CUDA Productionization | ![Roadmap](https://img.shields.io/badge/ROADMAP-ffd700?style=flat-square) | v2.4+ |
 | 🟡 LS20 ARC real-task ingestion | ![Roadmap](https://img.shields.io/badge/ROADMAP-ffd700?style=flat-square) | v2.5 |
 | 🔵 Hosted Provenance Ledger | ![Planned](https://img.shields.io/badge/PLANNED-7b2dff?style=flat-square) | v3.x |
@@ -633,6 +642,101 @@ const telemetry = sentinel.getTelemetry(); // dashboard / risk-index payload
 | Suite | Covers |
 |:---|:---|
 | `src/__tests__/driftSentinelKernel.test.ts` | Nominal alignment, critical escalation, Merkle linkage + `verifyChain()`, stigmergic signal drain, rewind-to-step, telemetry snapshot, zero-magnitude safety, input validation (8 tests) |
+
+---
+
+## 🧬 Bidirectional Grok-MCOP Organelle Host
+
+The Grok adapter ([`src/adapters/grokAdapter.ts`](./src/adapters/grokAdapter.ts))
+now ships a **bidirectional `organelleMode`** that turns capable Grok models
+(starting with the `grok-4.3` family) into a remote execution substrate for the
+MCOP triad — instead of a one-way refined-prompt completion engine. Full design
+rationale lives in
+[`docs/adapters/GROK_AS_MCOP_ORGANELLE_HOST.md`](./docs/adapters/GROK_AS_MCOP_ORGANELLE_HOST.md);
+the runnable companion is
+[`examples/grok_mcop_organelle_experiment.ts`](./examples/grok_mcop_organelle_experiment.ts).
+
+### What "organelle host" means
+
+When `organelleMode` is enabled, the adapter:
+
+1. Ships a compact `LowMemoryMCOPMode` profile + recent traces to the model.
+2. Instructs the model (system prompt + structured-output contract) to continue
+   MCOP operations — encode, recall, dialectical synthesis, etch deltas,
+   Guardian-style checks — **inside its own reasoning**.
+3. Parses structured `OrganelleArtifacts` back from the response.
+4. Merges model-produced traces and etch deltas into the host `StigmergyV5` and
+   `HolographicEtch`, preserving Merkle provenance across the boundary via
+   [`src/utils/organelleMerge.ts`](./src/utils/organelleMerge.ts).
+
+Host-side MCOP invariants (canonical encoding, Merkle chaining, resonance
+scoring) remain the source of truth — model-produced artifacts are *proposals*
+that the host validates and re-scores before commit.
+
+### Ledger I/O and reconciliation
+
+| Surface | File | Role |
+|:---|:---|:---|
+| Ledger-aware Etch factory | [`src/ledger/createLedgerAwareHolographicEtch.ts`](./src/ledger/createLedgerAwareHolographicEtch.ts) | Wires `HolographicEtch` against a storage backend + forwarder, hydrates on construct, write-throughs on accepted etches. |
+| Async forwarder (Node) | [`src/ledger/asyncLedgerForwarder.ts`](./src/ledger/asyncLedgerForwarder.ts) | `BackgroundLedgerForwarder` with retry, DLQ, and `unref()`-clean shutdown so CLI scripts exit cleanly. |
+| Async forwarder (Redis) | [`src/ledger/redisAsyncLedgerForwarder.ts`](./src/ledger/redisAsyncLedgerForwarder.ts) | Redis-backed `RedisAsyncLedgerForwarder` with the same queue / retry / DLQ contract. |
+| Storage backends | [`src/core/etchBackend.ts`](./src/core/etchBackend.ts), [`src/core/stigmergyBackend.ts`](./src/core/stigmergyBackend.ts) | In-memory + file backends for Etch and Stigmergy, growth-ledger handling, snapshot create / restore with hash validation, TOCTOU-safe atomic writes. |
+| Snapshot ↔ ledger reconciler | [`src/utils/ledgerReconciliation.ts`](./src/utils/ledgerReconciliation.ts) | Detects missing-in / missing-out etches between a snapshot and a ledger, filters organelle-only deltas, exposes `replayMissingEtches` + `reconcileFileEtchBackendWithLedger`. |
+
+### Minimal usage
+
+```ts
+import { GrokMCOPAdapter } from '@kullailabs/mcop-core/adapters/grokAdapter';
+import { createLedgerClient } from '@kullailabs/mcop-core/ledger';
+
+// `createLedgerAware` wires the adapter against a HolographicEtch that uses
+// the best available forwarder — RedisAsyncLedgerForwarder when a `redis`
+// client is supplied, BackgroundLedgerForwarder otherwise — and gives both
+// retry + DLQ semantics and `unref()`-clean shutdown.
+const grok = GrokMCOPAdapter.createLedgerAware({
+  ledgerClient: createLedgerClient({ source: 'embedded' }),
+  ledgerTenantId: 'my-org',
+  // redis,                       // optional: enables Redis-backed forwarder
+  // ledgerForwarderConfig: {},   // optional: per-forwarder overrides
+});
+
+// `organelleMode: true` is the auto-magic path — when the adapter is
+// ledger-aware, the config is enhanced to merge model-produced traces and
+// etch deltas back into the host with full Merkle provenance.
+const result = await grok.generate({
+  payload: {
+    prompt: 'plan a deterministic ARC-AGI-3 attempt',
+    options: {
+      organelleMode: {
+        enabled: true,
+        profile: 'low-memory',
+        mergeTraces: true,
+        mergeEtches: true,
+        // strictParsing: true,   // optional: fail closed on un-parseable artifacts
+      },
+    },
+  },
+});
+
+// Top-level provenance the framework auto-propagates when organelleMode is
+// active and the adapter is ledger-aware.
+const provenance = result.organelleProvenance;       // modeUsed, merged trace count, new etch hash, …
+const artifacts = result.result.organelle?.artifacts; // raw model-produced traces / etch deltas / guardian verdicts
+```
+
+### Regression coverage
+
+| Suite | Covers |
+|:---|:---|
+| [`src/__tests__/organelleMerge.test.ts`](./src/__tests__/organelleMerge.test.ts) | Validation, hint reconstruction (JSON / CSV / base64), trace-to-pheromone conversion, merge orchestration, response wrapper |
+| [`src/__tests__/ledgerReconciliation.test.ts`](./src/__tests__/ledgerReconciliation.test.ts) | Snapshot vs ledger reconciliation, missing-in / missing-out detection, organelle-only filtering, replay-missing helper, file-backend reconcile |
+| [`src/__tests__/storageBackends.test.ts`](./src/__tests__/storageBackends.test.ts) | In-memory + file backends for both Stigmergy and Etch, growth ledger, snapshot create / restore + hash validation |
+| [`src/__tests__/holographicEtchLedger.test.ts`](./src/__tests__/holographicEtchLedger.test.ts) | Ledger forwarding paths, storage hydration on construction, write-through persistence |
+| [`src/__tests__/asyncLedgerForwarder.test.ts`](./src/__tests__/asyncLedgerForwarder.test.ts) | Background forwarder success path, retry-to-DLQ flow, DLQ retry |
+| [`src/__tests__/redisAsyncLedgerForwarder.test.ts`](./src/__tests__/redisAsyncLedgerForwarder.test.ts) | Redis-backed forwarder with FakeRedis covering queue / retry / DLQ semantics |
+| [`src/__tests__/createLedgerAwareHolographicEtch.test.ts`](./src/__tests__/createLedgerAwareHolographicEtch.test.ts) | Factory helpers |
+| [`src/__tests__/grokAdapterLedgerAware.test.ts`](./src/__tests__/grokAdapterLedgerAware.test.ts) | `createLedgerAware` factory wiring |
+| [`src/__tests__/grokOrganelleProcessing.test.ts`](./src/__tests__/grokOrganelleProcessing.test.ts) | `processOrganelleResult` validation, merge, strict-mode errors, `organelleMode` in `generate()` |
 
 ---
 
