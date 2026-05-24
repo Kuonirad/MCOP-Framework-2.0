@@ -198,6 +198,8 @@ export function reconstructContextFromHint(
 // Conversion & Merge Logic
 // -----------------------------------------------------------------------------
 
+export type DuplicateStrategy = 'always-add' | 'skip' | 'replace';
+
 export interface OrganelleMergeOptions {
   remoteModel: string;
   sourceCallId?: string;

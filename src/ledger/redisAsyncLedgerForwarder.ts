@@ -231,7 +231,7 @@ export function createRedisAsyncLedgerForwarder(
  * Minimal adapter so users can pass ioredis, node-redis v4, etc.
  */
 function adaptRedisClient(raw: unknown): RedisClient {
-  // Use a minimal any for the dynamic adapter (this is the only place we deal with untyped Redis clients)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const r = raw as Record<string, any>;
 
   // node-redis v4 style

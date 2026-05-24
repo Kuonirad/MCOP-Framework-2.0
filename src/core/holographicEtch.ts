@@ -11,7 +11,7 @@ import {
 import { failTriadSpan, finishTriadSpan, startTriadSpan } from './observability';
 import type { EtchStorageBackend } from './etchBackend';
 import type { LedgerClient } from '../ledger/ledgerClient';
-import type { EtchRequest } from '../ledger/types';
+import { createBackgroundLedgerForwarder } from '../ledger/asyncLedgerForwarder';
 
 export interface HolographicEtchConfig {
   /**
@@ -116,19 +116,22 @@ export class HolographicEtch {
     this.ledgerTenantId = config.ledgerTenantId;
 
     if (config.asyncLedgerForwarding && config.ledgerClient && config.ledgerTenantId) {
-      const { createBackgroundLedgerForwarder } = require('../ledger/asyncLedgerForwarder');
       this.ledgerForwarder = createBackgroundLedgerForwarder(config.ledgerClient, config.ledgerForwarderConfig);
     }
 
     // Hydrate from durable backend (critical for persisting organelle merges)
     if (this.storage) {
       const loaded = this.storage.loadRecentEtches?.(cap) ?? [];
-      for (const r of [...loaded].reverse()) {
-        this.etches.push(r);
+      if (Array.isArray(loaded)) {
+        for (const r of [...loaded].reverse()) {
+          this.etches.push(r);
+        }
       }
       const auditLoaded = this.storage.loadAudit?.(cap) ?? [];
-      for (const r of [...auditLoaded].reverse()) {
-        this.audit.push(r);
+      if (Array.isArray(auditLoaded)) {
+        for (const r of [...auditLoaded].reverse()) {
+          this.audit.push(r);
+        }
       }
     }
   }
@@ -287,8 +290,9 @@ export class HolographicEtch {
           this.ledgerForwarder.forward(etchRequest);
         } else {
           // Legacy direct call (still best-effort)
-          this.ledgerClient.etch(etchRequest).catch((e: any) => {
-            console.warn?.('[HolographicEtch] ledger forward failed (non-fatal)', e?.message || e);
+          this.ledgerClient.etch(etchRequest).catch((e: unknown) => {
+            const msg = e instanceof Error ? e.message : String(e);
+            console.warn?.('[HolographicEtch] ledger forward failed (non-fatal)', msg);
           });
         }
       }

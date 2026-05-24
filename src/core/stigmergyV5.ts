@@ -7,7 +7,7 @@ import {
 } from './types';
 import { cosineWithMagnitudes, magnitude, padVector } from './vectorMath';
 import { CircularBuffer } from './circularBuffer';
-import type { StigmergyStorageBackend, InMemoryStigmergyBackend } from './stigmergyBackend';
+import type { StigmergyStorageBackend } from './stigmergyBackend';
 import { canonicalDigest } from './canonicalEncoding';
 import { randomUuidV4 } from './uuid';
 import { failTriadSpan, finishTriadSpan, startTriadSpan } from './observability';
@@ -50,9 +50,11 @@ export class StigmergyV5 {
     // Hydrate from durable backend if provided (important for organelle persistence across sessions)
     if (this.storage) {
       const loaded = this.storage.loadRecentTraces?.(this.traces.capacity) ?? [];
-      // oldest first for correct insertion order
-      for (const t of [...loaded].reverse()) {
-        this.traces.push(t);
+      if (Array.isArray(loaded)) {
+        // oldest first for correct insertion order
+        for (const t of [...loaded].reverse()) {
+          this.traces.push(t);
+        }
       }
     }
   }

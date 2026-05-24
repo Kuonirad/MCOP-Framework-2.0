@@ -31,10 +31,10 @@ export function setNovaNeoDebugHook(hook: NovaNeoDebugHook | undefined): void {
 }
 
 export class NovaNeoEncoder {
-  private readonly dimensions: number;
-  private readonly normalize: boolean;
+  private readonly _dimensions: number;
+  private readonly _normalize: boolean;
   private readonly entropyFloor: number;
-  private readonly backend: 'hash' | 'embedding' | 'novaNeoWeb';
+  private readonly _backend: 'hash' | 'embedding' | 'novaNeoWeb';
   private readonly embedder: IEmbeddingBackend | IAsyncEmbeddingBackend;
 
   /**
@@ -42,56 +42,40 @@ export class NovaNeoEncoder {
    *
    * This is the primary value needed when reconstructing tensors from
    * remote organelle hosts (e.g. Grok-4.3 running a LowMemoryMCOP profile).
-   *
-   * @example
-   * ```ts
-   * const encoder = new NovaNeoEncoder({ dimensions: 32, normalize: true });
-   * console.log(encoder.dimensions); // 32
-   *
-   * // In organelle merge logic:
-   * const targetDim = encoder.dimensions;
-   * ```
    */
   public get dimensions(): number {
-    return this.dimensions;
+    return this._dimensions;
   }
 
   /**
    * Whether this encoder applies L2 normalization to output tensors.
-   *
-   * Critical for correct resonance calculations when reconstructing
-   * tensors sent from a remote MCOP organelle.
    */
   public get normalize(): boolean {
-    return this.normalize;
+    return this._normalize;
   }
 
   /**
    * The encoding backend in use ('hash', 'embedding', or 'novaNeoWeb').
-   *
-   * Different backends have different determinism and performance
-   * characteristics, especially important for cross-runtime (TS ↔ Py)
-   * organelle compatibility.
    */
   public get backend(): 'hash' | 'embedding' | 'novaNeoWeb' {
-    return this.backend;
+    return this._backend;
   }
 
   constructor(config: NovaNeoConfig) {
-    this.dimensions = config.selfHealDimensions === true
+    this._dimensions = config.selfHealDimensions === true
       ? healDimensions(config.dimensions)
       : config.dimensions;
-    if (this.dimensions <= 0 || !Number.isInteger(this.dimensions)) {
+    if (this._dimensions <= 0 || !Number.isInteger(this._dimensions)) {
       throw new Error('dimensions must be a positive integer');
     }
-    this.normalize = config.normalize ?? false;
+    this._normalize = config.normalize ?? false;
     this.entropyFloor = config.entropyFloor ?? 0.0;
-    this.backend = config.backend ?? 'hash';
+    this._backend = config.backend ?? 'hash';
     this.embedder = config.embeddingBackend ?? defaultEmbeddingBackend;
   }
 
   encode(text: string): ContextTensor {
-    const values = this.backend === 'embedding'
+    const values = this._backend === 'embedding'
       ? this.encodeEmbeddingSync(text)
       : this.encodeHash(text);
 
@@ -102,11 +86,10 @@ export class NovaNeoEncoder {
         msg: 'NOVA-NEO Encoding complete',
         provenance: {
           inputLength: text.length,
-          dimensions: this.dimensions,
-          backend: this.backend,
+          dimensions: this._dimensions,
+          backend: this._backend,
           runtime: getUniversalCryptoRuntime(),
           entropy: this.estimateEntropy(values),
-          // Optimization: Use Float64Array for hashing to avoid slow JSON.stringify overhead on large arrays
           tensorHash: sha256Hex(new Float64Array(values)).substring(0, 8)
         }
       });
@@ -116,17 +99,17 @@ export class NovaNeoEncoder {
   }
 
   async encodeAsync(text: string): Promise<ContextTensor> {
-    if (this.backend !== 'embedding') return this.encode(text);
+    if (this._backend !== 'embedding') return this.encode(text);
     const values = hasEncodeAsync(this.embedder)
-      ? await this.embedder.encodeAsync(text, this.dimensions, this.normalize)
-      : this.embedder.encode(text, this.dimensions, this.normalize);
+      ? await this.embedder.encodeAsync(text, this._dimensions, this._normalize)
+      : this.embedder.encode(text, this._dimensions, this._normalize);
     if (debugHook) {
       debugHook({
         msg: 'NOVA-NEO Encoding complete',
         provenance: {
           inputLength: text.length,
-          dimensions: this.dimensions,
-          backend: this.backend,
+          dimensions: this._dimensions,
+          backend: this._backend,
           runtime: getUniversalCryptoRuntime(),
           entropy: this.estimateEntropy(values),
           tensorHash: sha256Hex(new Float64Array(values)).substring(0, 8)
@@ -140,7 +123,7 @@ export class NovaNeoEncoder {
     if (hasEncodeAsync(this.embedder) && !hasEncode(this.embedder)) {
       throw new Error('Configured embedding backend is asynchronous; use NovaNeoEncoder.encodeAsync().');
     }
-    return this.embedder.encode(text, this.dimensions, this.normalize);
+    return this.embedder.encode(text, this._dimensions, this._normalize);
   }
 
   /**
@@ -151,28 +134,24 @@ export class NovaNeoEncoder {
   private encodeHash(text: string): ContextTensor {
     const hash = sha256Bytes(text);
 
-    // Optimization 1: Pre-calculate signed hash values
-    // This avoids recalculating (byte / 255) * 2 - 1 repeatedly in the loop
     const signedHash = new Float64Array(hash.length);
     for (let i = 0; i < hash.length; i++) {
       signedHash[i] = (hash[i] / 255) * 2 - 1;
     }
 
-    // Optimization 2: Pre-allocate the result array
-    const values = new Array(this.dimensions);
+    const values = new Array(this._dimensions);
     const hashLen = hash.length;
 
-    // Optimization 3: Calculate sum of squares analytically to avoid O(N) additions in the loop
     let sumSquares = 0;
-    if (this.normalize) {
+    if (this._normalize) {
       let hashSumSquares = 0;
       for (let i = 0; i < hashLen; i++) {
         const v = signedHash[i];
         hashSumSquares += v * v;
       }
 
-      const fullCycles = Math.floor(this.dimensions / hashLen);
-      const remainder = this.dimensions % hashLen;
+      const fullCycles = Math.floor(this._dimensions / hashLen);
+      const remainder = this._dimensions % hashLen;
 
       sumSquares = hashSumSquares * fullCycles;
       for (let i = 0; i < remainder; i++) {
@@ -181,23 +160,20 @@ export class NovaNeoEncoder {
       }
     }
 
-    // Optimization 4: Optimized filling loop
-    // Check for power-of-2 length (standard SHA-256 is 32 bytes) for bitwise AND
     if (hashLen === 32) {
-      for (let i = 0; i < this.dimensions; i++) {
+      for (let i = 0; i < this._dimensions; i++) {
         values[i] = signedHash[i & 31];
       }
     } /* istanbul ignore next -- defensive: SHA-256 always emits 32 bytes;
          branch retained for future hash-algorithm swaps */ else {
-      for (let i = 0; i < this.dimensions; i++) {
+      for (let i = 0; i < this._dimensions; i++) {
         values[i] = signedHash[i % hashLen];
       }
     }
 
-    if (this.normalize) {
+    if (this._normalize) {
       const norm = Math.sqrt(sumSquares) || 1;
-      // Optimization 4: In-place normalization to avoid second array allocation from map()
-      for (let i = 0; i < this.dimensions; i++) {
+      for (let i = 0; i < this._dimensions; i++) {
         values[i] /= norm;
       }
     }

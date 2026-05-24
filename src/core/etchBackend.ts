@@ -7,8 +7,7 @@
 
 import type { EtchRecord } from './types';
 import type { PositiveGrowthEvent } from './positiveResonanceAmplifier';
-import type { EtchSnapshot, MerkleVerificationError, SnapshotMetadata } from './snapshotTypes';
-import { canonicalDigest } from './canonicalEncoding';
+import type { EtchSnapshot, SnapshotMetadata } from './snapshotTypes';
 
 export interface EtchStorageBackend {
   appendEtch(record: EtchRecord): Promise<void> | void;
@@ -77,10 +76,17 @@ export class FileEtchBackend implements EtchStorageBackend {
   private readonly etchPath: string;
   private readonly auditPath?: string;
   private readonly growthPath?: string;
-  private readonly fs = require('fs');
-  private readonly path = require('path');
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private readonly fs: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private readonly path: any;
 
   constructor(basePath: string, options: { audit?: boolean; growthLedger?: boolean } = {}) {
+    // Dynamic require keeps these Node-only modules out of the browser/Edge bundle.
+    const dynamicRequire: NodeRequire = eval('require');
+    this.fs = dynamicRequire('fs');
+    this.path = dynamicRequire('path');
+
     this.etchPath = basePath.endsWith('.jsonl') ? basePath : basePath + '.etches.jsonl';
     if (options.audit) {
       this.auditPath = basePath.replace(/\.jsonl$/, '') + '.audit.jsonl';
@@ -90,9 +96,8 @@ export class FileEtchBackend implements EtchStorageBackend {
     }
 
     const dir = this.path.dirname(this.etchPath);
-    if (!this.fs.existsSync(dir)) {
-      this.fs.mkdirSync(dir, { recursive: true });
-    }
+    // mkdirSync with recursive: true is idempotent and does not throw if dir exists
+    this.fs.mkdirSync(dir, { recursive: true });
   }
 
   appendEtch(record: EtchRecord): void {
@@ -105,16 +110,29 @@ export class FileEtchBackend implements EtchStorageBackend {
     }
   }
 
+  private safeReadFile(filePath: string): string | null {
+    try {
+      return this.fs.readFileSync(filePath, 'utf8');
+    } catch (err: unknown) {
+      const code = (err as NodeJS.ErrnoException)?.code;
+      if (code === 'ENOENT') return null;
+      throw err;
+    }
+  }
+
   loadRecentEtches(limit: number): EtchRecord[] {
-    if (!this.fs.existsSync(this.etchPath)) return [];
-    const lines = this.fs.readFileSync(this.etchPath, 'utf8').trim().split('\n').filter(Boolean);
+    const raw = this.safeReadFile(this.etchPath);
+    if (raw === null) return [];
+    const lines = raw.trim().split('\n').filter(Boolean);
     const all = lines.map((l: string) => JSON.parse(l));
     return all.slice(-limit).reverse();
   }
 
   loadAudit(limit: number): EtchRecord[] {
-    if (!this.auditPath || !this.fs.existsSync(this.auditPath)) return [];
-    const lines = this.fs.readFileSync(this.auditPath, 'utf8').trim().split('\n').filter(Boolean);
+    if (!this.auditPath) return [];
+    const raw = this.safeReadFile(this.auditPath);
+    if (raw === null) return [];
+    const lines = raw.trim().split('\n').filter(Boolean);
     const all = lines.map((l: string) => JSON.parse(l));
     return all.slice(-limit).reverse();
   }
@@ -126,8 +144,10 @@ export class FileEtchBackend implements EtchStorageBackend {
   }
 
   loadGrowthEvents(limit: number): PositiveGrowthEvent[] {
-    if (!this.growthPath || !this.fs.existsSync(this.growthPath)) return [];
-    const lines = this.fs.readFileSync(this.growthPath, 'utf8').trim().split('\n').filter(Boolean);
+    if (!this.growthPath) return [];
+    const raw = this.safeReadFile(this.growthPath);
+    if (raw === null) return [];
+    const lines = raw.trim().split('\n').filter(Boolean);
     return lines.map((l: string) => JSON.parse(l)).slice(-limit).reverse();
   }
 
@@ -180,7 +200,13 @@ export class FileEtchBackend implements EtchStorageBackend {
 
   clear(): void {
     [this.etchPath, this.auditPath, this.growthPath].forEach(p => {
-      if (p && this.fs.existsSync(p)) this.fs.writeFileSync(p, '', 'utf8');
+      if (!p) return;
+      try {
+        this.fs.writeFileSync(p, '', 'utf8');
+      } catch (err: unknown) {
+        const code = (err as NodeJS.ErrnoException)?.code;
+        if (code !== 'ENOENT') throw err;
+      }
     });
   }
 }

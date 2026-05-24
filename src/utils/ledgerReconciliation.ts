@@ -11,7 +11,7 @@
 
 import type { EtchSnapshot, StigmergySnapshot, SnapshotMetadata } from '../core/snapshotTypes';
 import type { LedgerClient } from '../ledger/ledgerClient';
-import type { LedgerLeaf, LedgerQueryResult, EtchReceipt } from '../ledger/types';
+import type { LedgerQueryResult } from '../ledger/types';
 import type { ContextTensor } from '../core/types';
 import { canonicalDigest } from '../core/canonicalEncoding';
 
@@ -49,33 +49,30 @@ export async function reconcileEtchSnapshotWithLedger(
   ledgerClient: LedgerClient,
   tenantId: string,
   options: {
-    includeAudit?: boolean;
     onlyOrganelle?: boolean;
   } = {}
 ): Promise<ReconciliationReport> {
-  const { includeAudit = false, onlyOrganelle = false } = options;
+  const { onlyOrganelle = false } = options;
 
   const checkedAt = new Date().toISOString();
 
   // Filter to organelle if requested
   let localEtches = snapshot.etches;
   if (onlyOrganelle) {
-    localEtches = localEtches.filter(e => 
-      (e as unknown as Record<string, unknown>).metadata?.source === 'grok-organelle' || 
-      (e as unknown as Record<string, unknown>).metadata?.source === 'holographic-etch'
-    );
+    localEtches = localEtches.filter(e => {
+      const meta = (e as { metadata?: Record<string, unknown> }).metadata;
+      return meta?.source === 'grok-organelle' || meta?.source === 'holographic-etch';
+    });
   }
 
   const localHashes = new Set(localEtches.map(e => e.hash).filter(Boolean));
-  const localByHash = new Map(localEtches.map(e => [e.hash, e]));
 
   // Query the full ledger for the tenant
   const ledgerResult: LedgerQueryResult = await ledgerClient.query({
     tenantId,
-    limit: 10000, // TODO: handle pagination properly in production
+    limit: 10000,
   });
 
-  const ledgerHashes = new Set(ledgerResult.leaves.map(l => l.leafHash));
   const ledgerByHash = new Map(ledgerResult.leaves.map(l => [l.leafHash, l]));
 
   const differences: ReconciliationDifference[] = [];
@@ -146,10 +143,11 @@ export async function reconcileEtchSnapshotWithLedger(
     localComputedRoot,
     fullyReconciled: differences.length === 0,
     organelleSpecific: onlyOrganelle ? undefined : {
-      organelleItemsInSnapshot: snapshot.etches.filter(e => 
-        (e as unknown as Record<string, unknown>).metadata?.source === 'grok-organelle'
-      ).length,
-      organelleItemsInLedger: ledgerResult.leaves.filter(l => 
+      organelleItemsInSnapshot: snapshot.etches.filter(e => {
+        const meta = (e as { metadata?: Record<string, unknown> }).metadata;
+        return meta?.source === 'grok-organelle';
+      }).length,
+      organelleItemsInLedger: ledgerResult.leaves.filter(l =>
         l.metadata?.source === 'grok-organelle'
       ).length,
       organelleDifferences,

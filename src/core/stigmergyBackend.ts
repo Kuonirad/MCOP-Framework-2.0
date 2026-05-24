@@ -11,7 +11,7 @@
  */
 
 import type { PheromoneTrace } from './types';
-import type { StigmergySnapshot, MerkleVerificationError, SnapshotMetadata } from './snapshotTypes';
+import type { StigmergySnapshot, SnapshotMetadata } from './snapshotTypes';
 import { canonicalDigest } from './canonicalEncoding';
 
 export interface StigmergyStorageBackend {
@@ -80,16 +80,21 @@ export class InMemoryStigmergyBackend implements StigmergyStorageBackend {
  */
 export class FileStigmergyBackend implements StigmergyStorageBackend {
   private readonly filePath: string;
-  private readonly fs = require('fs');
-  private readonly path = require('path');
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private readonly fs: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private readonly path: any;
 
   constructor(filePath: string) {
+    // Dynamic require keeps these Node-only modules out of the browser/Edge bundle.
+    const dynamicRequire: NodeRequire = eval('require');
+    this.fs = dynamicRequire('fs');
+    this.path = dynamicRequire('path');
+
     this.filePath = filePath;
-    // Ensure directory exists
+    // mkdirSync with recursive: true is idempotent and does not throw if dir exists
     const dir = this.path.dirname(filePath);
-    if (!this.fs.existsSync(dir)) {
-      this.fs.mkdirSync(dir, { recursive: true });
-    }
+    this.fs.mkdirSync(dir, { recursive: true });
   }
 
   appendTrace(trace: PheromoneTrace): void {
@@ -98,9 +103,14 @@ export class FileStigmergyBackend implements StigmergyStorageBackend {
   }
 
   loadRecentTraces(limit: number): PheromoneTrace[] {
-    if (!this.fs.existsSync(this.filePath)) return [];
-
-    const content = this.fs.readFileSync(this.filePath, 'utf8');
+    let content: string;
+    try {
+      content = this.fs.readFileSync(this.filePath, 'utf8');
+    } catch (err: unknown) {
+      const code = (err as NodeJS.ErrnoException)?.code;
+      if (code === 'ENOENT') return [];
+      throw err;
+    }
     const lines = content.trim().split('\n').filter(Boolean);
     const all = lines.map((l: string) => JSON.parse(l) as PheromoneTrace);
     return all.slice(-limit).reverse();
@@ -165,8 +175,11 @@ export class FileStigmergyBackend implements StigmergyStorageBackend {
   }
 
   clear(): void {
-    if (this.fs.existsSync(this.filePath)) {
+    try {
       this.fs.writeFileSync(this.filePath, '', 'utf8');
+    } catch (err: unknown) {
+      const code = (err as NodeJS.ErrnoException)?.code;
+      if (code !== 'ENOENT') throw err;
     }
   }
 }

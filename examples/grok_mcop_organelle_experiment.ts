@@ -11,35 +11,32 @@
  * Note: This is an experimental demonstration file. Some `any` usage and
  * unused variables are intentionally present in the simulation shims.
  */
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
-// Dynamically import the real merge module when possible.
-// Falls back to inline demo implementation if module resolution fails
-// (common when running .ts files directly in mixed ESM/CJS environments).
-//
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let organelleMerge: any;
-try {
-  organelleMerge = await import('../src/utils/organelleMerge');
-} catch {
-  // Fallback implementation for demo purposes
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  organelleMerge = {
-    validateOrganelleArtifacts: (raw: any) => raw, // simplified
-    mergeOrganelleResponse: (_stig: any, _etch: any, artifacts: any, opts: any) => ({
-      newTraces: artifacts.internalTraces.map((t: any) => ({
-        id: 'demo-' + t.id,
-        weight: t.resonance,
-        metadata: { source: 'grok-organelle', remoteModel: opts.remoteModel },
-      })),
-      etchRecord: {
-        deltaWeight: artifacts.proposedEtchDelta,
-        note: 'Demo etch from organelle',
-        metadata: { source: 'grok-organelle' },
-      },
-      provenanceLink: { remoteModel: opts.remoteModel },
-    }),
-  };
+
+async function loadOrganelleMerge(): Promise<void> {
+  try {
+    organelleMerge = await import('../src/utils/organelleMerge');
+  } catch {
+    // Fallback implementation for demo purposes
+    organelleMerge = {
+      validateOrganelleArtifacts: (raw: any) => raw,
+      mergeOrganelleResponse: (_stig: any, _etch: any, artifacts: any, opts: any) => ({
+        newTraces: artifacts.internalTraces.map((t: any) => ({
+          id: 'demo-' + t.id,
+          weight: t.resonance,
+          metadata: { source: 'grok-organelle', remoteModel: opts.remoteModel },
+        })),
+        etchRecord: {
+          deltaWeight: artifacts.proposedEtchDelta,
+          note: 'Demo etch from organelle',
+          metadata: { source: 'grok-organelle' },
+        },
+        provenanceLink: { remoteModel: opts.remoteModel },
+      }),
+    };
+  }
 }
 
 // =============================================================================
@@ -94,7 +91,7 @@ const _ORGANELLE_TOOLS: ToolDefinition[] = [
 // Prompt Builder (v2 — Tool-aware)
 // =============================================================================
 
-function buildAdvancedOrganellePrompt(profile: any, _priorTraces: any[]): string {
+function buildAdvancedOrganellePrompt(profile: any, priorTraces: any[]): string {
   return [
     `You are operating as a host for the MCOP organelle under protocol ${ORGANELLE_PROTOCOL_VERSION}.`,
     '',
@@ -139,18 +136,15 @@ interface SimulationState {
 }
 
 function simulateModelWithTools(
-  systemPrompt: string,
-  userTask: string,
+  _systemPrompt: string,
+  _userTask: string,
   state: SimulationState
 ): { content: string; toolCalls?: any[] } {
-  // In a real scenario this would be the actual model response.
-  // Here we simulate an intelligent model that decides to use a tool first.
-
-  const wantsMoreContext = true; // Simulate the model realizing it wants more history
+  const wantsMoreContext = true;
 
   if (wantsMoreContext && state.toolHistory.length === 0) {
-    // First response: model requests more traces
     return {
+      content: '',
       toolCalls: [
         {
           id: 'call_001',
@@ -168,7 +162,6 @@ function simulateModelWithTools(
     };
   }
 
-  // Second response (after receiving more context in simulation)
   return {
     content: JSON.stringify({
       synthesizedInsight:
@@ -178,14 +171,13 @@ function simulateModelWithTools(
           id: 'g4o-v2-001',
           resonance: 0.91,
           summary: 'Strong alignment after seeing extended history. Protocol v2 tool support is highly valuable.',
-          // Test the improved reconstruction - sending as JSON array (recommended format)
-          contextTensorHint: JSON.stringify([0.1823, -0.0741, 0.9912, 0.3348, 0.112, -0.553 /* ... */]),
+          contextTensorHint: JSON.stringify([0.1823, -0.0741, 0.9912, 0.3348, 0.112, -0.553]),
         },
       ],
       proposedEtchDelta: 0.140625,
       resonanceScores: { overall: 0.87, historyValue: 0.94 },
       organelleNotes:
-        'Tool calling for trace requests worked well. Suggest adding a “propose_new_trace” tool in v3 so the model can push candidate traces for host approval.',
+        'Tool calling for trace requests worked well. Suggest adding a "propose_new_trace" tool in v3 so the model can push candidate traces for host approval.',
       organelleProtocolVersion: ORGANELLE_PROTOCOL_VERSION,
       modelInternalMerkleRoot: 'g4o-merkle-' + Date.now().toString(16),
     }),
@@ -197,6 +189,7 @@ function simulateModelWithTools(
 // =============================================================================
 
 async function main() {
+  await loadOrganelleMerge();
   console.log('=== Grok-MCOP Organelle Experiment v0.3 (Tool-aware + Real Merge) ===\n');
 
   const profile = {
@@ -209,11 +202,9 @@ async function main() {
     { id: 'trace-sym-001', resonance: 0.72, summary: 'Initial MCOP organelle discussion' },
   ];
 
-  const _systemPrompt = buildAdvancedOrganellePrompt(profile, priorTraces);
-  const _task = 'Continue evolving the bidirectional Grok-MCOP symbiosis with tool support.';
+  const systemPrompt = buildAdvancedOrganellePrompt(profile, priorTraces);
+  const task = 'Continue evolving the bidirectional Grok-MCOP symbiosis with tool support.';
 
-  // --- Simulation of multi-turn tool use ---
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const simState: any = { hostTraces: [], toolHistory: [] };
 
   console.log('--- Turn 1: Model decides it needs more context ---');
@@ -223,7 +214,6 @@ async function main() {
     console.log('Model requested tool:', turn1.toolCalls[0].function.name);
     console.log('Arguments:', turn1.toolCalls[0].function.arguments);
 
-    // Host "responds" to the tool request (in real system this would query Stigmergy)
     simState.toolHistory.push('request_more_traces');
     simState.additionalTraces = [
       { id: 'hist-042', resonance: 0.81, summary: 'Earlier deep discussion on provenance across model boundaries' },
@@ -239,7 +229,7 @@ async function main() {
     try {
       const parsed = JSON.parse(turn2.content);
       artifacts = organelleMerge.validateOrganelleArtifacts(parsed);
-    } catch (e) {
+    } catch {
       console.error('Failed to parse final artifacts');
     }
   }
@@ -252,11 +242,8 @@ async function main() {
   console.log('\n=== Validated Organelle Artifacts (v2) ===');
   console.dir(artifacts, { depth: 2 });
 
-  // --- Real Merge Logic Demonstration ---
   console.log('\n=== Using src/utils/organelleMerge.ts ===');
 
-  // In a real app these would be long-lived instances
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const fakeStigmergy = {
     recordTrace: (ctx: any, syn: any, meta: any) => ({
       id: 'host-' + Date.now(),
@@ -269,9 +256,8 @@ async function main() {
     }),
   } as any;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const fakeEtch = {
-    applyEtch: (c: any, s: any, note: string, meta: any) => ({
+    applyEtch: (_c: any, _s: any, note: string, meta: any) => ({
       hash: 'etch-' + Date.now(),
       deltaWeight: artifacts.proposedEtchDelta,
       note,
@@ -280,7 +266,7 @@ async function main() {
     }),
   } as any;
 
-  const _mergeResult = organelleMerge.mergeOrganelleResponse(
+  const mergeResult = organelleMerge.mergeOrganelleResponse(
     fakeStigmergy,
     fakeEtch,
     artifacts,
@@ -297,7 +283,6 @@ async function main() {
   console.log('- Etch delta recorded:', mergeResult.etchRecord.deltaWeight);
   console.log('- Provenance link:', mergeResult.provenanceLink);
 
-  // === Snapshot + Ledger Reconciliation + Async Forwarding Demo ===
   console.log('\n=== Snapshot + Ledger Reconciliation + Background Forwarding (Production) ===');
   console.log('Cleanest recommended pattern (static factory on the adapter):');
   console.log('  import { GrokMCOPAdapter } from "../src/adapters/grokAdapter";');
@@ -329,7 +314,8 @@ async function main() {
   console.log('  // const stats = await adapter.processOrganelleResultWithLedger(rawResult);');
 
   console.log('\n=== Experiment v0.3 Complete ===');
-  console.log('Key advances: Tool-calling + real merge + snapshot/ledger reconciliation + background/async + Redis-backed + convenient static factory + fully automatic behavior across generate() and generateOptimizedCompletion + richer GrokAdapterResponse typing + detailed telemetry spans.');
 }
 
 main().catch(console.error);
+
+export {};

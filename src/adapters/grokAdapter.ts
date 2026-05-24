@@ -711,7 +711,7 @@ export class GrokMCOPAdapter extends BaseAdapter<
         // Non-fatal
       }
 
-      let mergedInfo: GrokCompletionResult['organelle']['merged'] | undefined;
+      let mergedInfo: NonNullable<GrokCompletionResult['organelle']>['merged'] | undefined;
 
       if (artifacts && shouldAutoMerge) {
         try {
