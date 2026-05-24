@@ -611,7 +611,9 @@ export class GrokMCOPAdapter extends BaseAdapter<
 
     // Automatic propagation of merged organelle provenance to the top-level AdapterResponse
     const innerResult = response.result as GrokCompletionResult;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const organelle = innerResult?.organelle as any; // complex optional union from new organelle result typing
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const m = (organelle?.merged as any);
     if (m) {
       (response as GrokAdapterResponse).organelleProvenance = {

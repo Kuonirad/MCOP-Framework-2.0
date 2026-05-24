@@ -12,6 +12,7 @@
 import type { EtchSnapshot, StigmergySnapshot, SnapshotMetadata } from '../core/snapshotTypes';
 import type { LedgerClient } from '../ledger/ledgerClient';
 import type { LedgerLeaf, LedgerQueryResult, EtchReceipt } from '../ledger/types';
+import type { ContextTensor } from '../core/types';
 import { canonicalDigest } from '../core/canonicalEncoding';
 
 export interface ReconciliationDifference {
@@ -60,8 +61,8 @@ export async function reconcileEtchSnapshotWithLedger(
   let localEtches = snapshot.etches;
   if (onlyOrganelle) {
     localEtches = localEtches.filter(e => 
-      (e as Record<string, unknown>).metadata?.source === 'grok-organelle' || 
-      (e as Record<string, unknown>).metadata?.source === 'holographic-etch'
+      (e as unknown as Record<string, unknown>).metadata?.source === 'grok-organelle' || 
+      (e as unknown as Record<string, unknown>).metadata?.source === 'holographic-etch'
     );
   }
 
@@ -146,7 +147,7 @@ export async function reconcileEtchSnapshotWithLedger(
     fullyReconciled: differences.length === 0,
     organelleSpecific: onlyOrganelle ? undefined : {
       organelleItemsInSnapshot: snapshot.etches.filter(e => 
-        (e as Record<string, unknown>).metadata?.source === 'grok-organelle'
+        (e as unknown as Record<string, unknown>).metadata?.source === 'grok-organelle'
       ).length,
       organelleItemsInLedger: ledgerResult.leaves.filter(l => 
         l.metadata?.source === 'grok-organelle'
@@ -238,7 +239,7 @@ export async function replayMissingEtchesToLedger(
       continue;
     }
 
-    const le = localEtch as Record<string, unknown>;
+    const le = localEtch as unknown as Record<string, unknown>;
     try {
       await ledgerClient.etch({
         tenantId,
