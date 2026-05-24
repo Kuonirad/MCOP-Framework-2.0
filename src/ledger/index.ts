@@ -13,3 +13,6 @@
 export * from './types';
 export * from './ledgerService';
 export * from './ledgerClient';
+export * from './asyncLedgerForwarder';
+export * from './redisAsyncLedgerForwarder';
+export * from './createLedgerAwareHolographicEtch';

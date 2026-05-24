@@ -18,6 +18,19 @@ export * from './longFormVideoOrchestrator';
 export * from './observability';
 export * from './novaEvolveTuner';
 export * from './driftSentinelKernel';
+export * from './stigmergyBackend';
+export * from './etchBackend';
+export * from './snapshotTypes';
+
+// Reconciliation tooling (snapshot vs hosted ledger)
+export {
+  reconcileEtchSnapshotWithLedger,
+  reconcileFullSnapshotWithLedger,
+  reconcileFileEtchBackendWithLedger,
+  replayMissingEtchesToLedger,
+  type ReconciliationReport,
+  type ReconciliationDifference,
+} from '../utils/ledgerReconciliation';
 
 /**
  * Plain-English aliases — additive, non-breaking.

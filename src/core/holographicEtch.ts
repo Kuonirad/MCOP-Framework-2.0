@@ -9,6 +9,9 @@ import {
   PositiveResonanceAmplifier,
 } from './positiveResonanceAmplifier';
 import { failTriadSpan, finishTriadSpan, startTriadSpan } from './observability';
+import type { EtchStorageBackend } from './etchBackend';
+import type { LedgerClient } from '../ledger/ledgerClient';
+import { createBackgroundLedgerForwarder } from '../ledger/asyncLedgerForwarder';
 
 export interface HolographicEtchConfig {
   /**
@@ -40,6 +43,27 @@ export interface HolographicEtchConfig {
   growthLedger?: PositiveResonanceAmplifier | boolean;
   maxGrowthEvents?: number;
   humanCelebrationEnabled?: boolean;
+
+  /**
+   * Optional integration with the Hosted Provenance Ledger.
+   * When provided, every accepted etch (and audit records if auditLog is true)
+   * will also be forwarded to the ledger under the given tenantId.
+   *
+   * This gives organelle merges (and normal MCOP work) a unified,
+   * externally verifiable provenance story.
+   */
+  ledgerClient?: LedgerClient;
+  ledgerTenantId?: string;
+
+  /**
+   * If true and ledgerClient is provided, uses BackgroundLedgerForwarder
+   * for non-blocking, retried, DLQ-backed forwarding.
+   * Highly recommended for production organelle usage.
+   */
+  asyncLedgerForwarding?: boolean;
+
+  /** Configuration passed to BackgroundLedgerForwarder */
+  ledgerForwarderConfig?: import('../ledger/asyncLedgerForwarder').AsyncLedgerForwarderConfig;
 }
 
 
@@ -67,8 +91,10 @@ export class HolographicEtch {
   private readonly etches: CircularBuffer<EtchRecord>;
   private readonly audit: CircularBuffer<EtchRecord>;
   private readonly growthLedger?: PositiveResonanceAmplifier;
+  private readonly storage?: EtchStorageBackend;
+  private readonly ledgerForwarder?: import('../ledger/asyncLedgerForwarder').BackgroundLedgerForwarder;
 
-  constructor(config: HolographicEtchConfig = {}) {
+  constructor(config: HolographicEtchConfig & { storage?: EtchStorageBackend } = {}) {
     this.confidenceFloor = config.confidenceFloor ?? 0.65; // 2026-05-03 audit → v2.2.1
     this.curiosityBonus = config.curiosityBonus ?? 0.15;
     this.flourishingAmplifier = clamp01(config.flourishingAmplifier ?? 0.2);
@@ -85,7 +111,33 @@ export class HolographicEtch {
           humanCelebrationEnabled: config.humanCelebrationEnabled,
         })
         : undefined;
+    this.storage = config.storage;
+    this.ledgerClient = config.ledgerClient;
+    this.ledgerTenantId = config.ledgerTenantId;
+
+    if (config.asyncLedgerForwarding && config.ledgerClient && config.ledgerTenantId) {
+      this.ledgerForwarder = createBackgroundLedgerForwarder(config.ledgerClient, config.ledgerForwarderConfig);
+    }
+
+    // Hydrate from durable backend (critical for persisting organelle merges)
+    if (this.storage) {
+      const loaded = this.storage.loadRecentEtches?.(cap) ?? [];
+      if (Array.isArray(loaded)) {
+        for (const r of [...loaded].reverse()) {
+          this.etches.push(r);
+        }
+      }
+      const auditLoaded = this.storage.loadAudit?.(cap) ?? [];
+      if (Array.isArray(auditLoaded)) {
+        for (const r of [...auditLoaded].reverse()) {
+          this.audit.push(r);
+        }
+      }
+    }
   }
+
+  private ledgerClient?: LedgerClient;
+  private ledgerTenantId?: string;
 
   /**
    * Adaptive Confidence Engine — blends four factors into a single score in
@@ -206,6 +258,45 @@ export class HolographicEtch {
 
       this.etches.push(record);
       if (this.auditLog) this.audit.push(record);
+
+      // Write-through to durable backend (persists organelle etches across sessions)
+      if (this.storage) {
+        try {
+          this.storage.appendEtch?.(record);
+          if (this.auditLog) this.storage.appendAudit?.(record);
+          // Growth events are handled by the amplifier itself if configured
+        } catch (e) {
+          console.warn?.('[HolographicEtch] storage append failed', e);
+        }
+      }
+
+      // Unified provenance: forward to hosted LedgerService when configured
+      if (this.ledgerClient && this.ledgerTenantId) {
+        const etchRequest = {
+          tenantId: this.ledgerTenantId,
+          context: context.length > 0 ? context : [normalizedDelta],
+          score: normalizedDelta,
+          note,
+          metadata: {
+            source: 'holographic-etch',
+            propagationHint: record.propagationHint,
+            flourishingScore: record.flourishingScore,
+            ...(record.metadata || {}),
+          },
+        };
+
+        if (this.ledgerForwarder) {
+          // Preferred production path: non-blocking with retry + DLQ
+          this.ledgerForwarder.forward(etchRequest);
+        } else {
+          // Legacy direct call (still best-effort)
+          this.ledgerClient.etch(etchRequest).catch((e: unknown) => {
+            const msg = e instanceof Error ? e.message : String(e);
+            console.warn?.('[HolographicEtch] ledger forward failed (non-fatal)', msg);
+          });
+        }
+      }
+
       this.growthLedger?.recordGrowthEvent({
         domain: 'joy',
         title: note ?? 'holographic-etch-growth',

@@ -4,7 +4,13 @@ export type TriadSpanName =
   | 'mcop.triad.resonance.query'
   | 'mcop.triad.etch.score'
   | 'mcop.triad.etch.apply'
-  | 'mcop.triad.synthesize';
+  | 'mcop.triad.synthesize'
+  // Organelle / bidirectional execution spans (for Grok-MCOP symbiosis)
+  | 'mcop.organelle.reconstruct'
+  | 'mcop.organelle.merge_traces'
+  | 'mcop.organelle.merge_etch'
+  | 'mcop.organelle.process_result'
+  | 'mcop.organelle.generate_optimized';
 
 export type TriadAttributeValue = string | number | boolean;
 

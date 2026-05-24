@@ -115,6 +115,14 @@ except ImportError:
     GovernanceDomainAdapter = None
     GOVERNANCE_HIERARCHY = None
 
+# Triad / Encoder parity (for organelle reconstruction)
+try:
+    from .triad import NovaNeoEncoder, nova_neo_encode, estimate_entropy
+except ImportError:
+    NovaNeoEncoder = None
+    nova_neo_encode = None
+    estimate_entropy = None
+
 
 def solve(description: str, domain: str = "general", **kwargs) -> Solution:
     """
@@ -214,6 +222,11 @@ __all__ = [
     'ResearchQuestion',
     'GovernanceDomainAdapter',
     'GOVERNANCE_HIERARCHY',
+
+    # Triad / Encoder (organelle parity)
+    'NovaNeoEncoder',
+    'nova_neo_encode',
+    'estimate_entropy',
 
     # Convenience function
     'solve',

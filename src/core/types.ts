@@ -53,4 +53,5 @@ export interface EtchRecord {
   timestamp: string;
   flourishingScore?: number;
   propagationHint?: 'seed' | 'bloom' | 'radiate';
+  metadata?: Record<string, unknown>;
 }
