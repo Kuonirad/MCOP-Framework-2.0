@@ -37,6 +37,46 @@ export class NovaNeoEncoder {
   private readonly backend: 'hash' | 'embedding' | 'novaNeoWeb';
   private readonly embedder: IEmbeddingBackend | IAsyncEmbeddingBackend;
 
+  /**
+   * Public, read-only access to the configured tensor dimensionality.
+   *
+   * This is the primary value needed when reconstructing tensors from
+   * remote organelle hosts (e.g. Grok-4.3 running a LowMemoryMCOP profile).
+   *
+   * @example
+   * ```ts
+   * const encoder = new NovaNeoEncoder({ dimensions: 32, normalize: true });
+   * console.log(encoder.dimensions); // 32
+   *
+   * // In organelle merge logic:
+   * const targetDim = encoder.dimensions;
+   * ```
+   */
+  public get dimensions(): number {
+    return this.dimensions;
+  }
+
+  /**
+   * Whether this encoder applies L2 normalization to output tensors.
+   *
+   * Critical for correct resonance calculations when reconstructing
+   * tensors sent from a remote MCOP organelle.
+   */
+  public get normalize(): boolean {
+    return this.normalize;
+  }
+
+  /**
+   * The encoding backend in use ('hash', 'embedding', or 'novaNeoWeb').
+   *
+   * Different backends have different determinism and performance
+   * characteristics, especially important for cross-runtime (TS ↔ Py)
+   * organelle compatibility.
+   */
+  public get backend(): 'hash' | 'embedding' | 'novaNeoWeb' {
+    return this.backend;
+  }
+
   constructor(config: NovaNeoConfig) {
     this.dimensions = config.selfHealDimensions === true
       ? healDimensions(config.dimensions)

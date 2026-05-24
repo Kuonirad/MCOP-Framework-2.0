@@ -195,6 +195,39 @@ def _cli(argv: Optional[Sequence[str]] = None) -> int:
     return 0
 
 
+class NovaNeoEncoder:
+    """
+    Python equivalent of the TypeScript NovaNeoEncoder.
+
+    Provides the same public API surface for organelle reconstruction
+    and cross-runtime compatibility:
+
+        encoder.dimensions
+        encoder.normalize
+        encoder.backend
+        encoder.encode(text)
+
+    This enables clean parity between TS and Python when using MCOP
+    as a bidirectional organelle (e.g. with Grok-4.3).
+    """
+
+    def __init__(
+        self,
+        dimensions: int = 32,
+        normalize: bool = False,
+        backend: str = "hash",
+    ):
+        if dimensions <= 0 or not isinstance(dimensions, int):
+            raise ValueError("dimensions must be a positive integer")
+        self.dimensions = dimensions
+        self.normalize = normalize
+        self.backend = backend
+
+    def encode(self, text: str) -> List[float]:
+        """Mirrors NovaNeoEncoder.encode()."""
+        return nova_neo_encode(text, self.dimensions, normalize=self.normalize)
+
+
 if __name__ == "__main__":
     import sys
 

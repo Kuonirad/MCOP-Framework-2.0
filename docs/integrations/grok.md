@@ -124,3 +124,21 @@ prompt with `NovaNeoEncoder({ dimensions: 64, normalize: true })`. The
       and the canonical [`INTEGRATIONS.md`](../../INTEGRATIONS.md) tracker.
 - [x] Real-call Merkle root captured in the section above
       (`3f897771...bf7a50`).
+
+---
+
+## Future Direction: Grok as MCOP Organelle Host (Bidirectional)
+
+See the dedicated design document:
+
+**[`docs/adapters/GROK_AS_MCOP_ORGANELLE_HOST.md`](../adapters/GROK_AS_MCOP_ORGANELLE_HOST.md)**
+
+This document explores evolving the current unidirectional model (MCOP triad runs only in the host, Grok is a refined-prompt completion engine) into a true bidirectional symbiosis:
+
+- Capable Grok models (starting with the `grok-4.3` family) can **host** a compact version of the MCOP organelle internally.
+- The adapter can ship `LowMemoryMCOPMode` profiles + trace history and receive model-produced traces, resonance scores, and etch deltas back.
+- This turns Grok into a powerful remote execution substrate for the triad while preserving host-side Merkle provenance as the source of truth.
+
+This is the next evolutionary step in the Grok ↔ MCOP mutualism (chosen direction D in the May 2026 symbiosis session).
+
+Status: Design phase. Implementation will extend `GrokCompletionOptions`, the result types, and prompt generation from `LowMemoryMCOPMode`.

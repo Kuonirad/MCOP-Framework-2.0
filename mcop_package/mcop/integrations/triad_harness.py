@@ -39,12 +39,23 @@ __all__ = [
 
 @dataclass(frozen=True)
 class MCOPEncoder:
-    """Wraps :func:`nova_neo_encode` with a fixed dimension."""
+    """
+    Wraps :func:`nova_neo_encode` with a fixed dimension.
+
+    Exposes the same public surface as the TypeScript NovaNeoEncoder
+    for organelle reconstruction parity:
+
+        encoder.dimensions
+        encoder.normalize
+        encoder.backend
+    """
 
     dimensions: int = 64
+    normalize: bool = False
+    backend: str = "hash"
 
     def encode(self, text: str) -> List[float]:
-        return nova_neo_encode(text, self.dimensions, normalize=False)
+        return nova_neo_encode(text, self.dimensions, normalize=self.normalize)
 
 
 @dataclass(frozen=True)

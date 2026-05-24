@@ -7,6 +7,7 @@ import {
 } from './types';
 import { cosineWithMagnitudes, magnitude, padVector } from './vectorMath';
 import { CircularBuffer } from './circularBuffer';
+import type { StigmergyStorageBackend, InMemoryStigmergyBackend } from './stigmergyBackend';
 import { canonicalDigest } from './canonicalEncoding';
 import { randomUuidV4 } from './uuid';
 import { failTriadSpan, finishTriadSpan, startTriadSpan } from './observability';
@@ -31,8 +32,9 @@ export class StigmergyV5 {
   private lastAcceptedThreshold: number;
   private readonly curiosityBonus: number;
   private readonly growthBias: number;
+  private readonly storage?: StigmergyStorageBackend;
 
-  constructor(config: StigmergyConfig = {}) {
+  constructor(config: StigmergyConfig & { storage?: StigmergyStorageBackend } = {}) {
     const adaptive = config.adaptiveThreshold;
     const numericAdaptive = typeof adaptive === 'number' ? adaptive : undefined;
     this.resonanceThreshold = clamp01(numericAdaptive ?? config.resonanceThreshold ?? 0.65);
@@ -43,6 +45,16 @@ export class StigmergyV5 {
     this.lastAcceptedThreshold = this.resonanceThreshold;
     this.curiosityBonus = clamp01(config.curiosityBonus ?? 0.08);
     this.growthBias = clamp01(config.growthBias ?? 0.15);
+    this.storage = config.storage;
+
+    // Hydrate from durable backend if provided (important for organelle persistence across sessions)
+    if (this.storage) {
+      const loaded = this.storage.loadRecentTraces?.(this.traces.capacity) ?? [];
+      // oldest first for correct insertion order
+      for (const t of [...loaded].reverse()) {
+        this.traces.push(t);
+      }
+    }
   }
 
   private merkleHash(payload: unknown, parentHash?: string): string {
@@ -100,6 +112,16 @@ export class StigmergyV5 {
 
       // O(1): CircularBuffer replaces the previous O(n) Array.shift() pattern.
       this.traces.push(trace);
+
+      // Write-through to durable backend (enables cross-session organelle memory)
+      if (this.storage) {
+        try {
+          this.storage.appendTrace?.(trace);
+        } catch (e) {
+          // Telemetry / logging only — never break the deterministic path
+          console.warn?.('[StigmergyV5] storage append failed', e);
+        }
+      }
 
       finishTriadSpan(span, {
         'mcop.trace.weight': trace.weight,
