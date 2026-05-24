@@ -268,6 +268,7 @@ console.log({
 | Proteome layer and ARC LS20 scaffold | [`docs/PROTEOME_LAYER.md`](./docs/PROTEOME_LAYER.md) |
 | Drift Sentinel Kernel | [`docs/features/drift-sentinel-kernel.md`](./docs/features/drift-sentinel-kernel.md) |
 | Bidirectional Grok-MCOP organelle host | [`docs/adapters/GROK_AS_MCOP_ORGANELLE_HOST.md`](./docs/adapters/GROK_AS_MCOP_ORGANELLE_HOST.md) |
+| Runnable organelle host experiment | [`examples/grok_mcop_organelle_experiment.ts`](./examples/grok_mcop_organelle_experiment.ts) |
 | Decentralized agent coordination | [`docs/DECENTRALIZED_AGENT_COORDINATION.md`](./docs/DECENTRALIZED_AGENT_COORDINATION.md) |
 | Redis Streams cluster transport | [`docs/DISTRIBUTED_CLUSTER_MODE.md`](./docs/DISTRIBUTED_CLUSTER_MODE.md) |
 | Telemetry hardening source | [`src/telemetry/`](./src/telemetry/) |
@@ -650,11 +651,11 @@ const telemetry = sentinel.getTelemetry(); // dashboard / risk-index payload
 The Grok adapter ([`src/adapters/grokAdapter.ts`](./src/adapters/grokAdapter.ts))
 now ships a **bidirectional `organelleMode`** that turns capable Grok models
 (starting with the `grok-4.3` family) into a remote execution substrate for the
-MCOP triad — instead of a one-way refined-prompt completion engine. Full design
-rationale lives in
-[`docs/adapters/GROK_AS_MCOP_ORGANELLE_HOST.md`](./docs/adapters/GROK_AS_MCOP_ORGANELLE_HOST.md);
-the runnable companion is
-[`examples/grok_mcop_organelle_experiment.ts`](./examples/grok_mcop_organelle_experiment.ts).
+MCOP triad — instead of a one-way refined-prompt completion engine.
+
+> 📖 **Design rationale:** [`docs/adapters/GROK_AS_MCOP_ORGANELLE_HOST.md`](./docs/adapters/GROK_AS_MCOP_ORGANELLE_HOST.md) — the full design write-up, including capability matrix, return-format negotiation, and Merkle-boundary semantics.
+>
+> 🧪 **Runnable example:** [`examples/grok_mcop_organelle_experiment.ts`](./examples/grok_mcop_organelle_experiment.ts) — end-to-end protocol-v2 walkthrough with prompt builder, structured-output contract, and merge into a host `StigmergyV5` + `HolographicEtch` via [`src/utils/organelleMerge.ts`](./src/utils/organelleMerge.ts).
 
 ### What "organelle host" means
 
@@ -672,6 +673,25 @@ When `organelleMode` is enabled, the adapter:
 Host-side MCOP invariants (canonical encoding, Merkle chaining, resonance
 scoring) remain the source of truth — model-produced artifacts are *proposals*
 that the host validates and re-scores before commit.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Host as MCOP Host (StigmergyV5 + HolographicEtch)
+    participant Adapter as GrokMCOPAdapter (organelleMode)
+    participant Model as Grok 4.3+ (organelle host)
+    participant Ledger as Hosted Provenance Ledger
+
+    Host->>Adapter: generate({ prompt, organelleMode: { enabled: true } })
+    Adapter->>Adapter: ship LowMemoryMCOPMode profile + recent traces
+    Adapter->>Model: system prompt + structured-output contract + tools
+    Model-->>Adapter: OrganelleArtifacts<br/>(new traces, etch deltas, guardian verdicts)
+    Adapter->>Adapter: organelleMerge.validate + re-score against host resonance
+    Adapter->>Host: merge accepted traces into StigmergyV5
+    Adapter->>Host: apply etch deltas to HolographicEtch (Merkle-chained)
+    Host-->>Ledger: async forwarder (Background or Redis) with retry + DLQ
+    Note over Adapter,Ledger: reconcileEtchSnapshotWithLedger<br/>verifies organelle-only deltas landed in the audit trail
+```
 
 ### Ledger I/O and reconciliation
 
@@ -722,6 +742,98 @@ const result = await grok.generate({
 // active and the adapter is ledger-aware.
 const provenance = result.organelleProvenance;       // modeUsed, merged trace count, new etch hash, …
 const artifacts = result.result.organelle?.artifacts; // raw model-produced traces / etch deltas / guardian verdicts
+```
+
+### Production: Redis forwarder + custom DLQ + reconciliation
+
+For multi-worker / multi-host deployments, pass a Redis client (`ioredis`,
+`node-redis`, etc.) — `createLedgerAware` will pick
+[`RedisAsyncLedgerForwarder`](./src/ledger/redisAsyncLedgerForwarder.ts) over
+[`BackgroundLedgerForwarder`](./src/ledger/asyncLedgerForwarder.ts) automatically.
+Forwarder hooks (`onSuccess`, `onError`, `onDLQ`) feed straight into your
+observability stack, and the snapshot-vs-ledger reconciler in
+[`src/utils/ledgerReconciliation.ts`](./src/utils/ledgerReconciliation.ts)
+closes the loop with `replayMissingEtchesToLedger`.
+
+```ts
+import Redis from 'ioredis';
+import { GrokMCOPAdapter } from '@kullailabs/mcop-core/adapters/grokAdapter';
+import {
+  createLedgerClient,
+  type RedisQueuedEtch,
+} from '@kullailabs/mcop-core/ledger';
+import {
+  reconcileEtchSnapshotWithLedger,
+  replayMissingEtchesToLedger,
+} from '@kullailabs/mcop-core/utils/ledgerReconciliation';
+
+const tenantId = 'my-org';
+const ledgerClient = createLedgerClient({ source: 'embedded' });
+const redis = new Redis(process.env.REDIS_URL!);
+
+// `redis` ⇒ adapter wires RedisAsyncLedgerForwarder under the hood
+// with retry + DLQ + `unref()`-clean shutdown.
+const grok = GrokMCOPAdapter.createLedgerAware({
+  ledgerClient,
+  ledgerTenantId: tenantId,
+  redis,
+  ledgerForwarderConfig: {
+    queueKey: 'mcop:ledger:queue',
+    retryKey: 'mcop:ledger:retry',
+    dlqKey: 'mcop:ledger:dlq',
+    maxRetries: 12,
+    baseDelayMs: 1_000,
+    maxDelayMs: 120_000,
+    onError: (err: Error, item: RedisQueuedEtch) => {
+      metrics.increment('mcop.ledger.forward.error', { attempts: String(item.attempts) });
+      logger.warn('ledger forward error', { err: err.message, attempts: item.attempts });
+    },
+    onDLQ: (item: RedisQueuedEtch) => {
+      // Custom DLQ handler — page on-call, file an incident, etc.
+      pagerduty.trigger('mcop-ledger-dlq', {
+        tenantId,
+        attempts: item.attempts,
+        note: item.request.note,
+      });
+    },
+    onSuccess: (item: RedisQueuedEtch) => {
+      metrics.increment('mcop.ledger.forward.success');
+      void item;
+    },
+  },
+});
+
+await grok.generate({
+  payload: {
+    prompt: 'plan a deterministic ARC-AGI-3 attempt',
+    options: { organelleMode: { enabled: true, profile: 'low-memory' } },
+  },
+});
+
+// --- snapshot ↔ ledger reconciliation -------------------------------------
+// Snapshot the host's Etch (file backend exposes `createSnapshot()`)
+// and reconcile organelle-only deltas against the audit ledger.
+const snapshot = etchBackend.createSnapshot({ source: 'grok-organelle' });
+const report = await reconcileEtchSnapshotWithLedger(
+  snapshot,
+  ledgerClient,
+  tenantId,
+  { onlyOrganelle: true },
+);
+
+if (!report.fullyReconciled) {
+  // Drains anything that landed locally but never made it to the ledger
+  // (e.g. transient outage or worker crash before the forwarder flushed).
+  const replay = await replayMissingEtchesToLedger(snapshot, ledgerClient, tenantId, {
+    onlyOrganelle: true,
+  });
+  logger.info('organelle reconciliation replayed', {
+    differences: report.differences.length,
+    replayed: replay.replayed,
+    skipped: replay.skipped,
+    errors: replay.errors,
+  });
+}
 ```
 
 ### Regression coverage

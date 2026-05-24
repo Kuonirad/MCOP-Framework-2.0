@@ -194,6 +194,8 @@ export default function Home() {
     body: string;
     tone: string;
     badge: string;
+    link?: { href: string; label: string };
+    snippet?: string;
   }> = [
     {
       title: "Magnific",
@@ -224,6 +226,25 @@ export default function Home() {
       badge: "New · Bidirectional symbiosis",
       body: "`organelleMode` ships a compact MCOP profile + recent traces to capable Grok models, lets them execute the triad in-model, then validates and merges the model-produced traces and etch deltas back into the host StigmergyV5 + ledger-aware HolographicEtch — with async or Redis forwarders carrying retry + DLQ semantics.",
       tone: "from-rose-500/20 to-rose-500/5 ring-rose-400/40",
+      link: {
+        href:
+          "https://github.com/Kuonirad/MCOP-Framework-2.0/blob/main/docs/adapters/GROK_AS_MCOP_ORGANELLE_HOST.md",
+        label: "Read the design doc",
+      },
+      // Plain `<pre>` text — not a `<script>` — so the page.test.tsx
+      // "no scripts in <main>" invariant continues to hold.
+      snippet: `const grok = GrokMCOPAdapter.createLedgerAware({
+  ledgerClient: createLedgerClient({ source: 'embedded' }),
+  ledgerTenantId: 'my-org',
+  redis, // optional: enables RedisAsyncLedgerForwarder (retry + DLQ)
+});
+
+await grok.generate({
+  payload: {
+    prompt: 'plan a deterministic ARC-AGI-3 attempt',
+    options: { organelleMode: { enabled: true, profile: 'low-memory' } },
+  },
+});`,
     },
   ];
 
@@ -475,6 +496,23 @@ export default function Home() {
                   </p>
                   <h3 className="mt-2 text-lg font-semibold">{a.title}</h3>
                   <p className="mt-2 text-sm text-slate-200/80">{a.body}</p>
+                  {a.snippet && (
+                    <pre className="mt-3 overflow-x-auto rounded-lg bg-slate-950/60 p-3 text-[0.7rem] leading-relaxed text-slate-200/90 ring-1 ring-white/10">
+                      <code className="font-mono">{a.snippet}</code>
+                    </pre>
+                  )}
+                  {a.link && (
+                    <a
+                      className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-rose-200 transition hover:text-rose-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
+                      href={a.link.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {a.link.label}
+                      <span aria-hidden="true">→</span>
+                      <span className="sr-only"> (opens in a new tab)</span>
+                    </a>
+                  )}
                 </article>
               ))}
             </div>
