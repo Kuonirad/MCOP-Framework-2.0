@@ -141,19 +141,56 @@ feature comparison, May 2026 — public docs as of writing):
 
 ---
 
-## 🌱 Positive Identity Resonance
+## 🌱 Positive Impact & Flourishing
 
-MCOP-Framework-2.0 now treats repository identity as a contributor welcome
-surface: every canonical URL, badge, clone instruction, package pointer, and
-provenance note converges on `MCOP-Framework-2.0`. This is Positive Building of
-unbreakable link resonance — less friction for new contributors, clearer trust
-for adopters, and a more joyful path from first clone to first meaningful
-contribution.
+MCOP-Framework-2.0 is designed so positive impact becomes a first-class,
+self-improving observable inside the system itself, not a claim attached after
+the reasoning pipeline runs.
+
+Rather than treating alignment, provenance, or beneficial outcomes as external
+concerns, the framework encodes them directly into its substrate. Accepted
+memory, ledger, and adapter etches carry eudaimonic scoring through the same
+deterministic, Merkle-chained mechanisms that power core cognition: NOVA-NEO
+encoding, Stigmergy v5 provenance, Holographic Etch,
+`PositiveResonanceAmplifier`, and `EudaimonicScoringLedger`.
+
+This creates a recursive loop: the same primitives that let agents reason with
+verifiable provenance and rewarded flourishing trajectories are used to observe,
+record, and refine the project's own positive impact surface.
+
+Running:
+
+```bash
+pnpm positive:audit
+```
+
+invokes this loop. It regenerates the living
+[`docs/POSITIVE_IMPACT_REPORT.md`](./docs/POSITIVE_IMPACT_REPORT.md) and its
+positive-impact badge, documenting how MCOP is currently measuring and
+expressing its contribution to reproducible trust, adoptable cognition, and
+human-AI flourishing.
+
+Current state: the report and scoring surface are active and under development.
+They represent the system beginning to observe itself using its own tools. As
+adoption and contribution grow, the data flowing through this loop becomes
+richer, turning positive impact from a static claim into a dynamic, improvable
+property of the project.
+
+This is not ethics-washing layered on top of an agent framework. It is the
+framework practicing its own thesis: advanced cognitive systems become more
+trustworthy and more valuable when they can see, score, and steer toward their
+own flourishing trajectories.
+
+The long-term target is for the report to cite the specific kernels, scoring
+events, and Holographic Etches that strengthened each section of its own
+generation. At that point, the recursion becomes operational evidence, not just
+architecture prose.
 
 - **Canonical home:** `https://github.com/Kuonirad/MCOP-Framework-2.0`
 - **Canonical local path:** `MCOP-Framework-2.0`
-- **Positive audit command:** `pnpm positive:audit`
-- **Positive impact report:** [`docs/POSITIVE_IMPACT_REPORT.md`](./docs/POSITIVE_IMPACT_REPORT.md)
+- **Unique capability:** native positive-resonance scoring on every accepted
+  etch, enabling MCOP to treat its own positive impact as a measurable,
+  self-referential signal rather than an external aspiration.
 
 ---
 
