@@ -1,8 +1,9 @@
 name: ARC-AGI-3 agent run
 
-# Manually-triggered run of the MCOP ARC-AGI-3 agent. Lives off the
-# `pull_request`/`push` triggers to keep ARC quota and Grok credits off
-# the per-PR critical path. Trigger via Actions tab -> "Run workflow".
+# Manually-triggered run of the MCOP ARC-AGI-3 agent. Intentionally
+# decoupled from `pull_request`/`push` triggers to keep ARC quota and
+# LLM credits off the per-PR critical path. Trigger via the Actions
+# tab -> "Run workflow".
 
 on:
   workflow_dispatch:
@@ -13,7 +14,7 @@ on:
         default: ""
         type: string
       strategy:
-        description: "Action selection strategy"
+        description: "Action selection strategy (mcop_package/run_arcagi3_agent.py)"
         required: true
         default: "random"
         type: choice
@@ -21,6 +22,8 @@ on:
           - random
           - grok
           - mapping-grok
+          - qwen
+          - mapping-qwen
           - holographic
       max_actions:
         description: "Hard cap on actions per game"
@@ -28,9 +31,14 @@ on:
         default: "200"
         type: string
       grok_model:
-        description: "xAI model name for grok / mapping-grok strategies"
+        description: "xAI model name (used by grok / mapping-grok strategies; ignored otherwise)"
         required: false
         default: "grok-4.3"
+        type: string
+      qwen_model:
+        description: "Alibaba DashScope model name (used by qwen / mapping-qwen strategies; ignored otherwise)"
+        required: false
+        default: "qwen3.5-flash"
         type: string
       verbose:
         description: "Verbose logging"
@@ -39,6 +47,16 @@ on:
         type: boolean
       goal_color:
         description: "Pixel colour index of the goal tile (holographic strategy only). Leave blank to use library default (8)."
+        required: false
+        default: ""
+        type: string
+      player_color:
+        description: "Pixel colour index of the player sprite (holographic strategy only). Leave blank to auto-detect."
+        required: false
+        default: ""
+        type: string
+      seed:
+        description: "PRNG seed (random strategy only). Leave blank for non-deterministic."
         required: false
         default: ""
         type: string
@@ -53,7 +71,7 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 concurrency:
-  group: arcagi3-${{ github.ref }}-${{ github.event.inputs.game_id }}
+  group: arcagi3-${{ github.ref }}-${{ inputs.game_id }}-${{ inputs.strategy }}
   cancel-in-progress: false
 
 jobs:
@@ -92,10 +110,20 @@ jobs:
         if: ${{ inputs.game_id != '' }}
         env:
           ARC_API_KEY: ${{ secrets.ARC_API_KEY }}
+          # Grok (xAI) credentials -- used by grok / mapping-grok.
           GROK_API_KEY: ${{ secrets.GROK_API_KEY }}
           GROK_BASE_URL: https://api.x.ai/v1
           GROK_MODEL: ${{ inputs.grok_model }}
-          MCOP_LOW_MEMORY_MODE: "grok-4.3"
+          # Qwen (Alibaba DashScope) credentials -- used by qwen /
+          # mapping-qwen. QwenStrategy reads QWEN_API_KEY first and
+          # falls through to DASHSCOPE_API_KEY for users on the
+          # upstream SDK naming convention.
+          QWEN_API_KEY: ${{ secrets.QWEN_API_KEY }}
+          DASHSCOPE_API_KEY: ${{ secrets.DASHSCOPE_API_KEY }}
+          QWEN_MODEL: ${{ inputs.qwen_model }}
+          # MCOP memory pinned to the GROK_4_3_LOW_MEMORY_MCOP_PRESET
+          # (32-dim tensors, 256 traces) to mirror the cross-language
+          # Universal Adapter Protocol v2.1 router defaults.
           MCOP_ENCODER_DIMS: "32"
           MCOP_MAX_TRACES: "256"
           HOLOGRAPHIC_GOAL_COLOR: ${{ inputs.goal_color }}
@@ -114,6 +142,8 @@ jobs:
             --strategy "${{ inputs.strategy }}" \
             --max-actions "${{ inputs.max_actions }}" \
             ${{ inputs.goal_color != '' && format('--goal-color {0}', inputs.goal_color) || '' }} \
+            ${{ inputs.player_color != '' && format('--player-color {0}', inputs.player_color) || '' }} \
+            ${{ inputs.seed != '' && format('--seed {0}', inputs.seed) || '' }} \
             ${{ inputs.verbose && '--verbose' || '' }} \
             | tee result.json || status=${PIPESTATUS[0]}
           if [ "$status" -eq 130 ]; then
@@ -126,7 +156,9 @@ jobs:
         if: ${{ always() && inputs.game_id != '' }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: arcagi3-${{ inputs.game_id }}-${{ inputs.strategy }}-${{ github.run_id }}
+          # Suffix with run_attempt so re-runs of the same workflow do
+          # not collide on artifact name (uploads would 409 otherwise).
+          name: arcagi3-${{ inputs.game_id }}-${{ inputs.strategy }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: result.json
           if-no-files-found: warn
           retention-days: 14
