@@ -85,7 +85,7 @@ export const metadata: Metadata = {
         url: "/og-image.svg",
         width: 1200,
         height: 630,
-        alt: `${SITE_NAME} — Universal Adapter Protocol v2.1`,
+        alt: `${SITE_NAME} — Bidirectional Grok-MCOP Organelle Host · Universal Adapter Protocol v2.1`,
         type: "image/svg+xml",
       },
     ],
