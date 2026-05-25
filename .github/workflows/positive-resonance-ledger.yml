@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: positive-resonance-ledger-${{ github.ref }}
@@ -19,6 +19,11 @@ jobs:
     name: Close measurement loop
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    permissions:
+      contents: write   # required by the "Commit ledger and badge deltas" step
+                        # to push the regenerated POSITIVE_IMPACT_REPORT.md,
+                        # positive-impact.svg badge, and audit ledger back to
+                        # the default branch.
 
     steps:
       - name: Checkout default branch
