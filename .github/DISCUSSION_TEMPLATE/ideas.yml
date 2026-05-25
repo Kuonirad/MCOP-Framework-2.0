@@ -1,0 +1,32 @@
+title: "[Good first contribution] "
+labels: ["good first issue", "help wanted"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this to ask for a scoped first contribution or propose beginner-friendly work.
+  - type: textarea
+    id: interest
+    attributes:
+      label: What would you like to work on?
+      description: Name the docs, tests, examples, integrations, or reproducibility surface.
+    validations:
+      required: true
+  - type: dropdown
+    id: experience
+    attributes:
+      label: Preferred starting surface
+      options:
+        - Documentation
+        - Reproducible benchmark
+        - TypeScript tests
+        - Python tests
+        - Integration example
+        - Issue triage
+    validations:
+      required: true
+  - type: textarea
+    id: constraints
+    attributes:
+      label: Time and setup constraints
+      description: Tell maintainers about OS, available tools, and time budget so the task can be scoped.

@@ -1,0 +1,60 @@
+name: Adoption Win / Impact Story
+description: Share a concrete adoption result, positive outcome, or measured impact.
+title: "[Impact] "
+labels: ["impact-story", "positive-impact", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this when MCOP helped a real workflow, benchmark, audit, integration, or contributor path.
+        Claims should include enough evidence for maintainers to preserve or falsify them.
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Outcome
+      description: What changed because MCOP was used?
+      placeholder: "Example: Reproduced the deterministic benchmark in a fresh Docker environment and used the trace as an audit artifact."
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Adoption context
+      description: Who used it, in what environment, and for what decision or workflow?
+    validations:
+      required: true
+  - type: dropdown
+    id: impact_axis
+    attributes:
+      label: Primary positive-impact axis
+      options:
+        - Reproducible trust
+        - Adoptable cognition
+        - Contributor onboarding
+        - Integration leverage
+        - Human-AI flourishing
+        - Negative result that improved claims
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: Link commands, logs, traces, benchmarks, PRs, screenshots, or public artifacts.
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: reproducibility
+    attributes:
+      label: Reproducibility note
+      description: What can maintainers rerun or inspect to validate this story?
+    validations:
+      required: true
+  - type: checkboxes
+    id: publication
+    attributes:
+      label: Publication consent
+      options:
+        - label: This can be referenced in public docs, release notes, or the Positive Impact Report.
+        - label: Keep names, organizations, or sensitive details private unless explicitly approved.

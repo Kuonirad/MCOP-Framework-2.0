@@ -25,10 +25,16 @@ The headline baseline is **4.4 ms / 22,700 ops/sec** for the deterministic core,
 [`examples/reproducible-benchmark/`](./examples/reproducible-benchmark/README.md) Docker +
 Jupyter bundle.
 
+**Value proposition:** MCOP gives agent builders a reproducible trust substrate:
+deterministic orchestration, Merkle-chained provenance, adapter-ready integration
+surfaces, and positive-impact audits that make reasoning claims easier to adopt,
+challenge, and improve.
+
 [`Run the benchmark`](./examples/reproducible-benchmark/README.md) ·
 [`Open the notebook`](./examples/reproducible-benchmark/notebooks/reproduce-22700-ops.ipynb) ·
 [`Compare honestly`](./COMPARISONS.md) ·
-[`Contribute a resonance report`](./CONTRIBUTING.md#stigmergic-contribution-intake)
+[`Contribute a resonance report`](./CONTRIBUTING.md#stigmergic-contribution-intake) ·
+[`Discuss adoption or audit questions`](https://github.com/Kuonirad/MCOP-Framework-2.0/discussions)
 
 </div>
 
@@ -213,6 +219,20 @@ evidence rather than architecture prose.
 - **Unique capability:** native positive-resonance scoring on every accepted
   etch, enabling MCOP to treat its own positive impact as a measurable,
   self-referential signal rather than an external aspiration.
+
+---
+
+## ◆ Native GitHub Surfaces
+
+Use the public repository surfaces when the work is bigger than a single patch:
+
+| Surface | Use it for |
+|:---|:---|
+| [Adoption wins and impact stories](https://github.com/Kuonirad/MCOP-Framework-2.0/discussions/categories/show-and-tell) | Public outcomes, downstream demos, and evidence that MCOP improved a real workflow. |
+| [Reproducibility and audit questions](https://github.com/Kuonirad/MCOP-Framework-2.0/discussions/categories/q-a) | Open-ended benchmark, replay, provenance, and claim-audit questions. |
+| [Good first contributions](https://github.com/Kuonirad/MCOP-Framework-2.0/issues?q=is%3Aissue%20is%3Aopen%20label%3A%22good%20first%20issue%22) | Scoped first issues with a clear verification path. |
+| [Integration requests](https://github.com/Kuonirad/MCOP-Framework-2.0/issues/new?template=integration_request.yml) | Adapter, framework bridge, example, or downstream integration proposals. |
+| [Trust substrate roadmap](./docs/TRUST_SUBSTRATE_ROADMAP.md) | CUDA, cluster, and hosted-ledger gates that should be tracked on the public project board. |
 
 ---
 

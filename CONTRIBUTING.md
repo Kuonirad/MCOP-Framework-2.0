@@ -77,6 +77,9 @@ Use the narrowest issue template that matches the trace you are leaving:
 
 | Template | Use it when | Required proof |
 | --- | --- | --- |
+| `impact_story` | MCOP produced a concrete adoption win, downstream result, or positive-impact signal. | Evidence artifact, reproducibility note, and publication-consent boundary. |
+| `reproducibility_audit_question` | You are challenging, reproducing, or clarifying a public claim, benchmark, or trace. | Exact command/path, expected vs. observed result, environment, and closing condition. |
+| `integration_request` | You want an adapter, framework bridge, example, or downstream integration. | Target surface, trust-substrate gate, integration boundary, and verification plan. |
 | `resonance-report` | You observed a high-signal result, failure, benchmark drift, or negative result worth preserving. | Evidence link, falsifier, and predicted impact on `rho`, `S_aff`, `R_friction`, or `delta_t_comp`. |
 | `etch-extension` | You are proposing a small, reversible substrate change. | Pre-registered resonance prediction, rollback path, and verification command. |
 | `friction-report` | Clone, install, benchmark, docs, or first-PR flow blocked you. | Exact command, error output, environment, and smallest suggested fix. |

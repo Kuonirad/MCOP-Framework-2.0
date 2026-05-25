@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Adoption wins and impact stories
+    url: https://github.com/Kuonirad/MCOP-Framework-2.0/discussions/categories/show-and-tell
+    about: Share public usage outcomes, demos, and impact narratives in Discussions.
+  - name: Reproducibility and audit questions
+    url: https://github.com/Kuonirad/MCOP-Framework-2.0/discussions/categories/q-a
+    about: Ask open-ended replay, benchmark, and audit questions before filing an issue.
+  - name: Good first contributions
+    url: https://github.com/Kuonirad/MCOP-Framework-2.0/issues?q=is%3Aissue%20is%3Aopen%20label%3A%22good%20first%20issue%22
+    about: Start with scoped beginner-friendly tasks that preserve reproducibility.
