@@ -33,7 +33,7 @@ MCOP Host (triad lives here)
 
 The MCOP triad is **always executed in the host process**. Grok is a high-quality completion engine that receives an already-MCOP-refined prompt. All cryptographic memory, resonance scoring, and etching happens locally before and after the call.
 
-This is powerful and already production-grade (see `mapping_grok` profile, entropy-resonance routing, live Merkle roots, etc.).
+This is powerful and already operationally exercised (see `mapping_grok` profile, entropy-resonance routing, live Merkle roots, etc.) — covered by the existing adapter test suite, with research-grade maturity per [`docs/audits/PARP-v1.0.md`](../audits/PARP-v1.0.md).
 
 ---
 
