@@ -1,0 +1,194 @@
+ WARN  Unsupported engine: wanted: {"node":"22.22.3"} (current: {"node":"v22.12.0","pnpm":"9.15.0"})
+
+> @kuonirad/mcop-framework@2.3.1 verify /home/ubuntu/repos/MCOP-Framework-2-0
+> pnpm lint && pnpm typecheck && pnpm test && pnpm sbom && pnpm sbom:validate
+
+ WARN  Unsupported engine: wanted: {"node":"22.22.3"} (current: {"node":"v22.12.0","pnpm":"9.15.0"})
+
+> @kuonirad/mcop-framework@2.3.1 lint /home/ubuntu/repos/MCOP-Framework-2-0
+> eslint --max-warnings 0
+
+ WARN  Unsupported engine: wanted: {"node":"22.22.3"} (current: {"node":"v22.12.0","pnpm":"9.15.0"})
+
+> @kuonirad/mcop-framework@2.3.1 typecheck /home/ubuntu/repos/MCOP-Framework-2-0
+> tsc -p tsconfig.json --pretty
+
+ WARN  Unsupported engine: wanted: {"node":"22.22.3"} (current: {"node":"v22.12.0","pnpm":"9.15.0"})
+
+> @kuonirad/mcop-framework@2.3.1 test /home/ubuntu/repos/MCOP-Framework-2-0
+> jest
+
+PASS src/__tests__/VSICoach.test.tsx
+PASS src/__tests__/PerformanceHUD.test.tsx
+PASS src/__tests__/positiveImpactVerifier.test.ts
+PASS src/__tests__/verificationQuality.test.ts
+PASS src/__tests__/novaNeoEncoder.embedding.test.ts
+PASS src/__tests__/cudaVerifiedDeviceSoak.test.ts
+PASS src/__tests__/cudaBenchmarkHarness.test.ts
+PASS src/__tests__/impactAuditor.test.ts
+PASS src/__tests__/page.test.tsx
+PASS src/__tests__/proteomeOrchestrator.test.ts
+PASS src/__tests__/auditPropertyFuzz.test.ts
+PASS src/__tests__/BenchmarksPage.test.tsx
+PASS src/__tests__/adapters.test.ts
+PASS src/__tests__/redisAsyncLedgerForwarder.test.ts
+PASS src/__tests__/asyncLedgerForwarder.test.ts
+PASS src/__tests__/DialecticalStudio.test.tsx
+PASS src/__tests__/useTaskChunker.test.ts
+PASS src/__tests__/auditGuardrails.test.ts
+PASS src/__tests__/coverage-gaps.test.tsx
+PASS src/__tests__/useStabilityHeatmap.test.tsx
+PASS src/__tests__/accelerator.test.ts
+PASS src/__tests__/ledgerVerifyCli.test.ts
+PASS src/__tests__/grokAdapter.catalog.test.ts
+PASS src/__tests__/planning.test.ts
+PASS src/__tests__/page.dialectical.test.tsx
+PASS src/__tests__/ledgerHttpServer.test.ts
+PASS src/__tests__/useVSIPredictor.test.tsx
+PASS src/__tests__/longFormVideoOrchestrator.test.ts
+PASS src/__tests__/seoEnhancements.test.tsx
+PASS src/__tests__/grokOrganelleProcessing.test.ts
+PASS src/__tests__/parityGuardian.test.ts
+PASS src/__tests__/benchmarks.test.ts
+PASS src/__tests__/arcLs20Harness.test.ts
+PASS src/__tests__/helmValuesSchema.test.ts
+PASS src/__tests__/usePerformanceCoach.test.tsx
+PASS src/__tests__/useLCPProfiler.test.tsx
+PASS src/__tests__/grokImageAdapter.test.ts
+PASS src/__tests__/cudaPhi5AdaptiveProbe.test.ts
+PASS src/__tests__/canonicalMerkleParity.test.ts
+PASS src/__tests__/storageBackends.test.ts
+PASS src/__tests__/cudaHardwareLayer.test.ts
+PASS src/__tests__/vsiBus.test.ts
+PASS src/__tests__/LayoutShiftAnnouncer.test.tsx
+PASS src/__tests__/multiProviderRouter.test.ts
+PASS src/__tests__/integrations.haystack.test.ts
+PASS src/__tests__/qwenAdapter.catalog.test.ts
+PASS src/__tests__/triad.tsParity.test.ts
+PASS src/__tests__/vectorMath.test.ts
+PASS src/__tests__/useReducedMotion.test.tsx
+PASS src/__tests__/useVSIWorker.test.ts
+PASS src/__tests__/useDebouncedValue.test.tsx
+PASS src/__tests__/pGoT.test.ts
+PASS src/__tests__/telemetryHardening.test.ts
+PASS src/__tests__/llmProviderAdapters.test.ts
+PASS src/__tests__/ledgerService.test.ts
+PASS src/__tests__/mcopMemoryMcpServer.test.ts
+PASS src/__tests__/ledgerReconciliation.test.ts
+PASS src/__tests__/clusterStigmergy.test.ts
+PASS src/__tests__/vitals.test.ts
+{"level":30,"time":1779734468837,"pid":24189,"hostname":"devin-box","msg":"web-vital","metric":"LCP","value":2400,"device":"4g","url":"/","ts":1779734468834}
+PASS src/__tests__/security.test.ts
+PASS src/__tests__/PerformanceBudgetBar.test.tsx
+PASS src/__tests__/testingUtils.test.ts
+PASS src/__tests__/benchmarkUploadApi.test.ts
+PASS src/__tests__/evidenceRetriever.test.ts
+PASS src/__tests__/registryTelemetry.test.ts
+PASS src/__tests__/organelleMerge.test.ts
+PASS src/__tests__/novaEvolveTuner.test.ts
+PASS src/__tests__/holographicEtchLedger.test.ts
+  ● Console
+
+    console.warn
+      [HolographicEtch] ledger forward failed (non-fatal) ledger unavailable
+
+      293 |           this.ledgerClient.etch(etchRequest).catch((e: unknown) => {
+      294 |             const msg = e instanceof Error ? e.message : String(e);
+    > 295 |             console.warn?.('[HolographicEtch] ledger forward failed (non-fatal)', msg);
+          |                           ^
+      296 |           });
+      297 |         }
+      298 |       }
+
+      at src/core/holographicEtch.ts:295:27
+
+PASS src/__tests__/grokAdapterLedgerAware.test.ts
+PASS src/__tests__/driftSentinelKernel.test.ts
+PASS src/__tests__/integrations.langchain.test.ts
+PASS src/__tests__/triad.branches.test.ts
+PASS src/__tests__/integrations.llamaIndex.test.ts
+PASS src/__tests__/circularBuffer.test.ts
+PASS src/__tests__/tensorGuard.test.ts
+PASS src/__tests__/guardianMetaReasoner.test.ts
+PASS src/__tests__/config.test.ts
+PASS src/__tests__/vsi.parity.test.ts
+PASS src/__tests__/provenanceTracer.test.ts
+PASS src/__tests__/orchestratorIntegration.test.ts
+PASS src/__tests__/integrations.triadHarness.test.ts
+PASS src/__tests__/triad.core.test.ts
+PASS src/__tests__/positiveResonanceAmplifier.test.ts
+PASS src/__tests__/observability.test.ts
+PASS src/__tests__/adaptiveConfidence.test.ts
+PASS src/__tests__/redisStreamsGossipTransport.test.ts
+PASS src/__tests__/health.test.ts
+PASS src/__tests__/stigmergy.test.ts
+PASS src/__tests__/positiveMeasurementLoop.test.ts
+PASS src/__tests__/vitalsBus.test.ts
+PASS src/__tests__/createLedgerAwareHolographicEtch.test.ts
+PASS src/__tests__/councilScorer.test.ts
+PASS src/__tests__/logger.test.ts
+PASS src/__tests__/auditBaseline.test.ts
+PASS src/__tests__/sitemap.test.ts
+
+Test Suites: 5 skipped, 95 passed, 95 of 100 total
+Tests:       9 skipped, 966 passed, 975 total
+Snapshots:   0 total
+Time:        24.477 s, estimated 29 s
+Ran all test suites.
+ WARN  Unsupported engine: wanted: {"node":"22.22.3"} (current: {"node":"v22.12.0","pnpm":"9.15.0"})
+
+> @kuonirad/mcop-framework@2.3.1 sbom /home/ubuntu/repos/MCOP-Framework-2-0
+> node scripts/generate-sbom.mjs
+
+sbom: generating CycloneDX for mcop-framework (root, recursive)…
++------------------------+------------+--------------------------+----------------------------------------------------+
+|                                           SECURE MODE: Environment audit                                            |
+|                                                        3 low                                                        |
++------------------------+------------+--------------------------+----------------------------------------------------+
+| Category               | Severity   | Variable(s)              | Details                                            |
++------------------------+------------+--------------------------+----------------------------------------------------+
+| Credential Exposure    | LOW        | ARC_API_KEY              | Credential-like environment variables are set. Bui |
+|                        |            | QWEN_API_KEY             | ld tools or install scripts invoked during SBOM ge |
+|                        |            | XAI_API_KEY              | neration may read inherited environment variables. |
+|                        |            |                          | Mitigation: Unset unneeded secrets when scanning u |
+|                        |            |                          | ntrusted repositories. Prefer ephemeral, scoped CI |
+|                        |            |                          |  credentials injected only for the step that needs |
+|                        |            |                          |  them.                                             |
++------------------------+------------+--------------------------+----------------------------------------------------+
+AI Inventory Summary:
+  AI instruction files: 1 (AGENTS.md)
+  Skill files:         2 (.agents/skills/testing-arcagi3-strategy/SKILL.md, .agents/skills/testing-frontend/SKILL.md)
+  MCP configs:         0
+  MCP services:        0
+
+Run --bom-audit --bom-audit-categories ai-inventory to audit these surfaces.
+sbom: wrote /home/ubuntu/repos/MCOP-Framework-2-0/docs/sbom/mcop-framework.cdx.json
+sbom: generating CycloneDX for @kullailabs/mcop-core (single package)…
++------------------------+------------+--------------------------+----------------------------------------------------+
+|                                           SECURE MODE: Environment audit                                            |
+|                                                        3 low                                                        |
++------------------------+------------+--------------------------+----------------------------------------------------+
+| Category               | Severity   | Variable(s)              | Details                                            |
++------------------------+------------+--------------------------+----------------------------------------------------+
+| Credential Exposure    | LOW        | ARC_API_KEY              | Credential-like environment variables are set. Bui |
+|                        |            | QWEN_API_KEY             | ld tools or install scripts invoked during SBOM ge |
+|                        |            | XAI_API_KEY              | neration may read inherited environment variables. |
+|                        |            |                          | Mitigation: Unset unneeded secrets when scanning u |
+|                        |            |                          | ntrusted repositories. Prefer ephemeral, scoped CI |
+|                        |            |                          |  credentials injected only for the step that needs |
+|                        |            |                          |  them.                                             |
++------------------------+------------+--------------------------+----------------------------------------------------+
+sbom: wrote /home/ubuntu/repos/MCOP-Framework-2-0/docs/sbom/mcop-core.cdx.json
+sbom: all targets written.
+ WARN  Unsupported engine: wanted: {"node":"22.22.3"} (current: {"node":"v22.12.0","pnpm":"9.15.0"})
+
+> @kuonirad/mcop-framework@2.3.1 sbom:validate /home/ubuntu/repos/MCOP-Framework-2-0
+> node scripts/validate-sbom.mjs
+
+(node:24642) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+sbom:validate: docs/sbom/mcop-framework.cdx.json — VALID (CycloneDX 1.7)
+sbom:validate: docs/sbom/mcop-core.cdx.json — VALID (CycloneDX 1.7)
+sbom:validate: all 2 SBOM(s) conform to their declared CycloneDX schema.
+
+Exit code: 0

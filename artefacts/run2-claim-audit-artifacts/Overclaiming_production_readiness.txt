@@ -1,0 +1,20 @@
+./ROADMAP_TO_100.md:16:production-grade core (96.6 % coverage, deterministic 4.4 ms / 22,700 ops/sec pipeline,
+./scripts/audit-repo-claims.sh:388:    '\b(production[- ]ready|cleared for production|enterprise[- ]grade|production-grade|top 5 ?%|independently verified|Verified \(post-remediation\))\b' \
+./artefacts/run1-claim-audit-artifacts/Overclaiming_production_readiness.txt:1:./ROADMAP_TO_100.md:16:production-grade core (96.6 % coverage, deterministic 4.4 ms / 22,700 ops/sec pipeline,
+./artefacts/run1-claim-audit-artifacts/Overclaiming_production_readiness.txt:2:./scripts/audit-repo-claims.sh:388:    '\b(production[- ]ready|cleared for production|enterprise[- ]grade|production-grade|top 5 ?%|independently verified|Verified \(post-remediation\))\b' \
+./artefacts/run1-claim-audit-artifacts/Overclaiming_production_readiness.txt:3:./mcop_package/tests/test_organelle_reconstruction.py:68:    This is the production-grade parity test for organelle hint reconstruction.
+./artefacts/run1-claim-audit-artifacts/Overclaiming_production_readiness.txt:4:./mcop_package/DEPLOYMENT_SUMMARY.md:64:**Total Code**: ~4,000+ lines of production-ready Python code
+./artefacts/run1-claim-audit-artifacts/Overclaiming_production_readiness.txt:5:./mcop_package/DEPLOYMENT_SUMMARY.md:361:**M-COP v3.1 is a complete, production-ready reasoning framework** with:
+./artefacts/run1-claim-audit-artifacts/Overclaiming_production_readiness.txt:6:./docs/adapters/GROK_AS_MCOP_ORGANELLE_HOST.md:36:This is powerful and already production-grade (see `mapping_grok` profile, entropy-resonance routing, live Merkle roots, etc.).
+./artefacts/run1-claim-audit-artifacts/Unproven_benchmark_claim.txt:13:./ROADMAP_TO_100.md:16:production-grade core (96.6 % coverage, deterministic 4.4 ms / 22,700 ops/sec pipeline,
+./artefacts/run1-claim-audit-artifacts/claim-drift.txt:4:./ROADMAP_TO_100.md:16:production-grade core (96.6 % coverage, deterministic 4.4 ms / 22,700 ops/sec pipeline,
+./artefacts/run1-claim-audit-artifacts/claim-drift.txt:5:./scripts/audit-repo-claims.sh:388:    '\b(production[- ]ready|cleared for production|enterprise[- ]grade|production-grade|top 5 ?%|independently verified|Verified \(post-remediation\))\b' \
+./artefacts/run1-claim-audit-artifacts/claim-drift.txt:6:./mcop_package/tests/test_organelle_reconstruction.py:68:    This is the production-grade parity test for organelle hint reconstruction.
+./artefacts/run1-claim-audit-artifacts/claim-drift.txt:7:./mcop_package/DEPLOYMENT_SUMMARY.md:64:**Total Code**: ~4,000+ lines of production-ready Python code
+./artefacts/run1-claim-audit-artifacts/claim-drift.txt:8:./mcop_package/DEPLOYMENT_SUMMARY.md:361:**M-COP v3.1 is a complete, production-ready reasoning framework** with:
+./artefacts/run1-claim-audit-artifacts/claim-drift.txt:9:./docs/adapters/GROK_AS_MCOP_ORGANELLE_HOST.md:36:This is powerful and already production-grade (see `mapping_grok` profile, entropy-resonance routing, live Merkle roots, etc.).
+./artefacts/run1-claim-audit-artifacts/claim-drift.txt:54:./ROADMAP_TO_100.md:16:production-grade core (96.6 % coverage, deterministic 4.4 ms / 22,700 ops/sec pipeline,
+./mcop_package/tests/test_organelle_reconstruction.py:68:    This is the production-grade parity test for organelle hint reconstruction.
+./mcop_package/DEPLOYMENT_SUMMARY.md:64:**Total Code**: ~4,000+ lines of production-ready Python code
+./mcop_package/DEPLOYMENT_SUMMARY.md:361:**M-COP v3.1 is a complete, production-ready reasoning framework** with:
+./docs/adapters/GROK_AS_MCOP_ORGANELLE_HOST.md:36:This is powerful and already production-grade (see `mapping_grok` profile, entropy-resonance routing, live Merkle roots, etc.).

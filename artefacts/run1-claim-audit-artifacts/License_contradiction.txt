@@ -1,0 +1,26 @@
+./CONTRIBUTING.md:707:By submitting a contribution you also grant **Kevin John Kull** (the sole licensor of record, GitHub `@Kuonirad`) a perpetual, irrevocable right to relicense your contribution under the Change License — currently the MIT License — on the BUSL Change Date (`2030-04-26`) documented in [`NOTICE.md`](./NOTICE.md), so that the eventual MIT transition does not require per-contributor outreach.
+./packages/core/README.md:95:Business Source License 1.1 (BUSL 1.1) — see [LICENSE](./LICENSE) and [NOTICE.md](./NOTICE.md). The codebase as of the Change Date (2030-04-26) automatically converts to the MIT License. Releases prior to 2026-04-26 remain available under MIT — see [LICENSE-MIT-LEGACY](./LICENSE-MIT-LEGACY).
+./packages/core/LICENSE-MIT-LEGACY:3:This file preserves the MIT License grant under which prior versions
+./packages/core/LICENSE-MIT-LEGACY:7:MIT License
+./packages/core/NOTICE.md:8:the MIT License under which they were originally distributed. New
+./packages/core/LICENSE:26:Change License:       MIT License (https://opensource.org/license/mit)
+./packages/core/LICENSE:35:that pre-date this License remain available under the MIT License
+./scripts/license-audit.sh:91:require_grep "LICENSE" "MIT License" "LICENSE names MIT as Change License"
+./scripts/audit-repo-claims.sh:304:if (/MIT License|MIT-licensed|permissive for research and commercial use/i.test(readme)) {
+./scripts/audit-repo-claims.sh:398:    'MIT License|MIT-licensed|permissive for research and commercial use|commercial use' \
+./LICENSE-MIT-LEGACY:3:This file preserves the MIT License grant under which the KullAILABS
+./LICENSE-MIT-LEGACY:23:MIT License
+./NOTICE.md:4:**MIT License**. As of **2026-04-26T03:16:27Z** (Commit: `66438ea3fc57f4af80d4e9d38f769a4e65d7839b`), all *new* commits, releases,
+./NOTICE.md:22:  are carved out under the MIT License per
+./NOTICE.md:39:| Change License | **MIT License** |
+./LICENSE:26:Change License:       MIT License (https://opensource.org/license/mit)
+./LICENSE:35:that pre-date this License remain available under the MIT License
+./mcop_package/LICENSE-MIT-LEGACY:3:This file preserves the MIT License grant under which prior versions
+./mcop_package/LICENSE-MIT-LEGACY:7:MIT License
+./mcop_package/NOTICE.md:7:the MIT License under which they were originally distributed. New
+./mcop_package/LICENSE:26:Change License:       MIT License (https://opensource.org/license/mit)
+./mcop_package/LICENSE:35:that pre-date this License remain available under the MIT License
+./LICENSE-MIT-INTEGRATIONS:6:the MIT License reproduced below. Each carved-out file carries an
+./LICENSE-MIT-INTEGRATIONS:35:MIT License
+./docs/integrations/UPSTREAM_SUBMISSION_PLAN.md:64:- State that the vendored shim is MIT-licensed (per the
+./docs/DUE_DILIGENCE_REGISTER.md:46:| Change License | MIT License, with legacy MIT text retained in `LICENSE-MIT-LEGACY`. |

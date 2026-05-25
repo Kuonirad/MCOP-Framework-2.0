@@ -1,0 +1,7 @@
+PASS: Root package name: @kuonirad/mcop-framework
+PASS: Root package version: 2.3.1
+PASS: Root license: BUSL-1.1
+PASS: Next.js package spec: 15.5.18
+PASS: Found core package '@kullailabs/mcop-core'
+
+SUMMARY: errors=0, warnings=0

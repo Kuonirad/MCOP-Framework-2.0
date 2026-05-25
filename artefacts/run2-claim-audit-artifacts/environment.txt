@@ -1,0 +1,8 @@
+timestamp=2026-05-25T18:30:29Z
+root=/home/ubuntu/repos/MCOP-Framework-2-0
+git_sha=e65d486079375d8ce0ccf359885de16a5f69cbc3
+git_branch=devin/1779733346-parp-v1-baseline
+node=v22.12.0
+pnpm=9.15.0
+npm=10.8.3
+os=Linux devin-box 5.15.200 #5 SMP Sun Mar 29 07:25:21 UTC 2026 x86_64 x86_64 x86_64 GNU/Linux

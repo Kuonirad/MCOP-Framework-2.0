@@ -1,0 +1,83 @@
+[
+  {
+    "number": 7,
+    "severity": "high",
+    "tool": "Scorecard",
+    "rule": "BranchProtectionID",
+    "path": "no file associated with this alert",
+    "line": 1,
+    "html_url": "https://github.com/Kuonirad/MCOP-Framework-2.0/security/code-scanning/7"
+  },
+  {
+    "number": 9,
+    "severity": "high",
+    "tool": "Scorecard",
+    "rule": "TokenPermissionsID",
+    "path": ".github/workflows/publish-npm.yml",
+    "line": 66,
+    "html_url": "https://github.com/Kuonirad/MCOP-Framework-2.0/security/code-scanning/9"
+  },
+  {
+    "number": 10,
+    "severity": "high",
+    "tool": "Scorecard",
+    "rule": "TokenPermissionsID",
+    "path": ".github/workflows/publish-pypi.yml",
+    "line": 173,
+    "html_url": "https://github.com/Kuonirad/MCOP-Framework-2.0/security/code-scanning/10"
+  },
+  {
+    "number": 27,
+    "severity": "high",
+    "tool": "Scorecard",
+    "rule": "CodeReviewID",
+    "path": "no file associated with this alert",
+    "line": 1,
+    "html_url": "https://github.com/Kuonirad/MCOP-Framework-2.0/security/code-scanning/27"
+  },
+  {
+    "number": 44,
+    "severity": "high",
+    "tool": "Scorecard",
+    "rule": "TokenPermissionsID",
+    "path": ".github/workflows/auto-close-bot-prs.yml",
+    "line": 16,
+    "html_url": "https://github.com/Kuonirad/MCOP-Framework-2.0/security/code-scanning/44"
+  },
+  {
+    "number": 45,
+    "severity": "high",
+    "tool": "Scorecard",
+    "rule": "TokenPermissionsID",
+    "path": ".github/workflows/delete-merged-branches.yml",
+    "line": 15,
+    "html_url": "https://github.com/Kuonirad/MCOP-Framework-2.0/security/code-scanning/45"
+  },
+  {
+    "number": 46,
+    "severity": "high",
+    "tool": "Scorecard",
+    "rule": "TokenPermissionsID",
+    "path": ".github/workflows/delete-stale-bot-branches.yml",
+    "line": 24,
+    "html_url": "https://github.com/Kuonirad/MCOP-Framework-2.0/security/code-scanning/46"
+  },
+  {
+    "number": 47,
+    "severity": "high",
+    "tool": "Scorecard",
+    "rule": "TokenPermissionsID",
+    "path": ".github/workflows/release-drafter.yml",
+    "line": 16,
+    "html_url": "https://github.com/Kuonirad/MCOP-Framework-2.0/security/code-scanning/47"
+  },
+  {
+    "number": 48,
+    "severity": "high",
+    "tool": "Scorecard",
+    "rule": "TokenPermissionsID",
+    "path": ".github/workflows/positive-resonance-ledger.yml",
+    "line": 11,
+    "html_url": "https://github.com/Kuonirad/MCOP-Framework-2.0/security/code-scanning/48"
+  }
+]
