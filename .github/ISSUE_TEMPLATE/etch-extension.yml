@@ -1,0 +1,45 @@
+name: Etch Extension
+description: Propose a small, reversible substrate change.
+title: "[Etch] "
+labels: ["etch-extension", "needs-triage"]
+body:
+  - type: textarea
+    id: substrate_change
+    attributes:
+      label: Proposed substrate change
+      description: Name the smallest file, API, doc, or workflow mutation.
+    validations:
+      required: true
+  - type: textarea
+    id: resonance_prediction
+    attributes:
+      label: Pre-registered resonance prediction
+      description: Predict the observable effect before implementation.
+      placeholder: "If merged, this should reduce clone-to-falsification time by..."
+    validations:
+      required: true
+  - type: textarea
+    id: rollback
+    attributes:
+      label: Rollback path
+      description: How can this be reverted in one commit if the prediction fails?
+    validations:
+      required: true
+  - type: textarea
+    id: verification
+    attributes:
+      label: Verification command
+      description: Exact command or checklist that proves the etch did not break the substrate.
+      render: shell
+    validations:
+      required: true
+  - type: checkboxes
+    id: bounds
+    attributes:
+      label: Maintainer bandwidth guardrail
+      options:
+        - label: This can be reviewed in under 30 minutes.
+          required: true
+        - label: This does not require new external infrastructure to evaluate.
+          required: true
+

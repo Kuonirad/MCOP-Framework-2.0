@@ -1,0 +1,12 @@
+cff-version: 1.2.0
+message: "If you use MCOP Framework 2.0 in research, benchmarks, or derivative systems, please cite it."
+title: "MCOP Framework 2.0"
+authors:
+  - family-names: "Kull"
+    given-names: "Kevin John"
+repository-code: "https://github.com/Kuonirad/MCOP-Framework-2.0"
+url: "https://github.com/Kuonirad/MCOP-Framework-2.0"
+license: "BUSL-1.1"
+version: "2.4.0"
+date-released: "2026-05-24"
+abstract: "A source-available meta-cognitive orchestration framework with deterministic triad kernels, Merkle-linked provenance, and reproducible benchmark artifacts."

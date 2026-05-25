@@ -71,6 +71,20 @@ The framework rewards small, traceable interventions:
   versioned and contract-tested.
 - Link related traces (issues, discussions, prototypes).
 
+### Stigmergic contribution intake
+
+Use the narrowest issue template that matches the trace you are leaving:
+
+| Template | Use it when | Required proof |
+| --- | --- | --- |
+| `resonance-report` | You observed a high-signal result, failure, benchmark drift, or negative result worth preserving. | Evidence link, falsifier, and predicted impact on `rho`, `S_aff`, `R_friction`, or `delta_t_comp`. |
+| `etch-extension` | You are proposing a small, reversible substrate change. | Pre-registered resonance prediction, rollback path, and verification command. |
+| `friction-report` | Clone, install, benchmark, docs, or first-PR flow blocked you. | Exact command, error output, environment, and smallest suggested fix. |
+
+Negative results are first-class. A report that disproves a headline claim is
+more useful than an unverified success story if it includes enough context to
+replay the failure.
+
 ---
 
 ## 🛠️ Development setup

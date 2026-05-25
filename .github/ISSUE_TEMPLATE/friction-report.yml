@@ -1,0 +1,49 @@
+name: Friction Report
+description: Report clone, install, benchmark, docs, or first-PR friction.
+title: "[Friction] "
+labels: ["friction-report", "needs-triage"]
+body:
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Blocked surface
+      options:
+        - Clone or checkout
+        - Dependency install
+        - Benchmark reproduction
+        - Test or verification command
+        - Documentation navigation
+        - First contribution flow
+    validations:
+      required: true
+  - type: textarea
+    id: command
+    attributes:
+      label: Exact command or path
+      description: Paste the command, URL, or document path where friction appeared.
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: error
+    attributes:
+      label: Observed output
+      description: Paste the error, confusing text, or missing affordance.
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, shell, Node, pnpm, Python, browser, and whether Docker was available.
+    validations:
+      required: true
+  - type: textarea
+    id: smallest_fix
+    attributes:
+      label: Smallest suggested fix
+      description: What would have unblocked you with the least maintainer effort?
+    validations:
+      required: true
+
