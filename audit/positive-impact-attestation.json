@@ -1,0 +1,210 @@
+{
+  "schemaVersion": 1,
+  "kind": "mcop-positive-impact-attestation",
+  "options": {
+    "dimensions": 32,
+    "confidenceFloor": 0.65,
+    "durationBudgetMs": 60000,
+    "proteomeSteps": 16,
+    "proteomeNodeCount": 96
+  },
+  "audit": {
+    "generatedAt": "2026-05-25T02:05:57.344Z",
+    "positiveImpactScore": 100,
+    "passed": 9,
+    "total": 9,
+    "metrics": {
+      "contributorJoy": 1,
+      "adoptionVelocity": 0.816,
+      "beneficialOutcomeAmplification": 1,
+      "growthEvents": 9,
+      "merkleRoot": "a5ecbcacced55b3bf45ecc47be4a70d18ff612e9f5d6b2eeafa9e23c590ede72"
+    },
+    "checks": [
+      {
+        "label": "TypeScript app resonance",
+        "command": "pnpm exec tsc -p tsconfig.json",
+        "passed": true,
+        "durationMs": 1500,
+        "domain": "determinism",
+        "etchAccepted": true,
+        "etchHash": "c46759d903ee2438ce2050eb9534a67b9a5479c9961671e953dec185e9dbe317",
+        "flourishingScore": 1,
+        "propagationHint": "radiate",
+        "growthEventHash": "c1220f36dc90954d0509aa2be3d70c813c9404a07ef6a73f6fd0c205fc2f61e3"
+      },
+      {
+        "label": "TypeScript core resonance",
+        "command": "pnpm --filter @kullailabs/mcop-core exec tsc",
+        "passed": true,
+        "durationMs": 1200,
+        "domain": "determinism",
+        "etchAccepted": true,
+        "etchHash": "428a99060e7dcc16e206555d321b4c82ec2a9c351d94db05dc48438273f8a47e",
+        "flourishingScore": 1,
+        "propagationHint": "radiate",
+        "growthEventHash": "5d60e84d6ec4cf67c4a8abe6ad736b419c9037775a59f8c93b8f814479319a62"
+      },
+      {
+        "label": "Lint resonance",
+        "command": "pnpm lint",
+        "passed": true,
+        "durationMs": 4000,
+        "domain": "identity",
+        "etchAccepted": true,
+        "etchHash": "2fe32c56ae2281d3427bfec1873be664d95a30fc65fc3a8af3db18d8b35a9c58",
+        "flourishingScore": 1,
+        "propagationHint": "radiate",
+        "growthEventHash": "9164f4fceb4096ac883aa50c6a72021921a00d3c0793d382532d1a072659860b"
+      },
+      {
+        "label": "Test resonance",
+        "command": "pnpm test",
+        "passed": true,
+        "durationMs": 20000,
+        "domain": "determinism",
+        "etchAccepted": true,
+        "etchHash": "1df0b2141e47b256c75a0ec79ef9c841cbdfa7f3df0e25f3b51af8fddf54c57c",
+        "flourishingScore": 1,
+        "propagationHint": "radiate",
+        "growthEventHash": "db2237e67259ad0d10527edd441e73ac079f672872727b639149f9830f4d7149"
+      },
+      {
+        "label": "Parity resonance",
+        "command": "pnpm parity:check",
+        "passed": true,
+        "durationMs": 3000,
+        "domain": "provenance",
+        "etchAccepted": true,
+        "etchHash": "4dfdc865497f63d17ca2258b313d514be3d39983708860e642a56f72178a6a4c",
+        "flourishingScore": 1,
+        "propagationHint": "radiate",
+        "growthEventHash": "b24a9786014ef0c293e25522dabdc85f8d9e9fc6b9948be485e94d360fa9856f"
+      },
+      {
+        "label": "Documentation resonance",
+        "command": "pnpm docs:guard",
+        "passed": true,
+        "durationMs": 2000,
+        "domain": "doc-code-sync",
+        "etchAccepted": true,
+        "etchHash": "abaf97dad9e573216768a15c3c137382d1653caf08efd73864c3050e0ac0ebc5",
+        "flourishingScore": 1,
+        "propagationHint": "radiate",
+        "growthEventHash": "6d9b2490da38ae0b3243844474a63fe096e5152432b1337de15b04796174e19d"
+      },
+      {
+        "label": "Placement resonance",
+        "command": "pnpm audit:placement",
+        "passed": true,
+        "durationMs": 1800,
+        "domain": "link-integrity",
+        "etchAccepted": true,
+        "etchHash": "5a27e213adc49a2d328c74ccedc1ed8972aff7161500e5a33cdc5cf0fbb98724",
+        "flourishingScore": 1,
+        "propagationHint": "radiate",
+        "growthEventHash": "63d2584e5ed7b983801e44bea0d23f2f6579af1dde80c68fd659b329ca7a0afd"
+      },
+      {
+        "label": "SBOM generation resonance",
+        "command": "pnpm sbom",
+        "passed": true,
+        "durationMs": 6000,
+        "domain": "dependency-hygiene",
+        "etchAccepted": true,
+        "etchHash": "1dc303d1a2884ad00071ab8502a53f28508c76f8081f4a375194287b41c18f4e",
+        "flourishingScore": 1,
+        "propagationHint": "radiate",
+        "growthEventHash": "6e15adfa8f60ed19003f085bd647d790ea68b5b5034126d8b4aaf1f4a403acb5"
+      },
+      {
+        "label": "SBOM validation resonance",
+        "command": "pnpm sbom:validate",
+        "passed": true,
+        "durationMs": 2500,
+        "domain": "dependency-hygiene",
+        "etchAccepted": true,
+        "etchHash": "a7b3df447a940f08c1537f8f9c26e393c25849cedfb164db0aada90f69270f8c",
+        "flourishingScore": 1,
+        "propagationHint": "radiate",
+        "growthEventHash": "a5ecbcacced55b3bf45ecc47be4a70d18ff612e9f5d6b2eeafa9e23c590ede72"
+      }
+    ],
+    "substrate": {
+      "kernel": "ProteomeOrchestrator",
+      "steps": 16,
+      "nodeCount": 96,
+      "equilibriumScore": 0.711272913577856,
+      "energyVariance": 0.00010274528488146693,
+      "merkleRoot": "945d582c56f16b69e7b8e57bc1eebb4c82ca2c69cd13c8f42fb749fe40dc024b"
+    },
+    "citations": [
+      {
+        "kernel": "PositiveResonanceAmplifier",
+        "signal": "growth-merkle-root",
+        "hash": "a5ecbcacced55b3bf45ecc47be4a70d18ff612e9f5d6b2eeafa9e23c590ede72",
+        "backs": "contributorJoy, adoptionVelocity, beneficialOutcomeAmplification"
+      },
+      {
+        "kernel": "HolographicEtch",
+        "signal": "eudaimonic-etch",
+        "hash": "c46759d903ee2438ce2050eb9534a67b9a5479c9961671e953dec185e9dbe317",
+        "backs": "TypeScript app resonance → radiate (flourishing 1)"
+      },
+      {
+        "kernel": "HolographicEtch",
+        "signal": "eudaimonic-etch",
+        "hash": "428a99060e7dcc16e206555d321b4c82ec2a9c351d94db05dc48438273f8a47e",
+        "backs": "TypeScript core resonance → radiate (flourishing 1)"
+      },
+      {
+        "kernel": "HolographicEtch",
+        "signal": "eudaimonic-etch",
+        "hash": "2fe32c56ae2281d3427bfec1873be664d95a30fc65fc3a8af3db18d8b35a9c58",
+        "backs": "Lint resonance → radiate (flourishing 1)"
+      },
+      {
+        "kernel": "HolographicEtch",
+        "signal": "eudaimonic-etch",
+        "hash": "1df0b2141e47b256c75a0ec79ef9c841cbdfa7f3df0e25f3b51af8fddf54c57c",
+        "backs": "Test resonance → radiate (flourishing 1)"
+      },
+      {
+        "kernel": "HolographicEtch",
+        "signal": "eudaimonic-etch",
+        "hash": "4dfdc865497f63d17ca2258b313d514be3d39983708860e642a56f72178a6a4c",
+        "backs": "Parity resonance → radiate (flourishing 1)"
+      },
+      {
+        "kernel": "HolographicEtch",
+        "signal": "eudaimonic-etch",
+        "hash": "abaf97dad9e573216768a15c3c137382d1653caf08efd73864c3050e0ac0ebc5",
+        "backs": "Documentation resonance → radiate (flourishing 1)"
+      },
+      {
+        "kernel": "HolographicEtch",
+        "signal": "eudaimonic-etch",
+        "hash": "5a27e213adc49a2d328c74ccedc1ed8972aff7161500e5a33cdc5cf0fbb98724",
+        "backs": "Placement resonance → radiate (flourishing 1)"
+      },
+      {
+        "kernel": "HolographicEtch",
+        "signal": "eudaimonic-etch",
+        "hash": "1dc303d1a2884ad00071ab8502a53f28508c76f8081f4a375194287b41c18f4e",
+        "backs": "SBOM generation resonance → radiate (flourishing 1)"
+      },
+      {
+        "kernel": "HolographicEtch",
+        "signal": "eudaimonic-etch",
+        "hash": "a7b3df447a940f08c1537f8f9c26e393c25849cedfb164db0aada90f69270f8c",
+        "backs": "SBOM validation resonance → radiate (flourishing 1)"
+      },
+      {
+        "kernel": "ProteomeOrchestrator",
+        "signal": "equilibrium-merkle-root",
+        "hash": "945d582c56f16b69e7b8e57bc1eebb4c82ca2c69cd13c8f42fb749fe40dc024b",
+        "backs": "substrate stability (equilibrium 0.711)"
+      }
+    ]
+  }
+}
