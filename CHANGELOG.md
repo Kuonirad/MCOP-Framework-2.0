@@ -8,6 +8,19 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased] — Automated Evidence Retrieval & Guardian v0.2
 
 ### Added
+- **Positive-Impact Verifier (Phase 2) — falsifiable recursion.** New
+  `src/audit/positiveImpactVerifier.ts` (`verifyPositiveImpact`,
+  `buildAttestation`) replays a committed attestation
+  (`audit/positive-impact-attestation.json`) through the real MCOP primitives
+  and asserts every cited etch hash, growth Merkle root, Proteome substrate
+  root, and metric reproduces byte-for-byte (only the wall-clock `generatedAt`
+  is excluded). `pnpm positive:attest` regenerates the committed drift-lock
+  fixture; `pnpm positive:verify` is the CI gate (wired into `.github/workflows/ci.yml`)
+  that fails if a kernel's scoring math drifts or cited evidence is edited
+  without regenerating. Tamper detection (metric / etch hash / substrate root /
+  recorded input) is proven by `src/__tests__/positiveImpactVerifier.test.ts`.
+  This turns the Phase 1 citations from descriptive into machine-verifiable
+  evidence, matching the repo's falsify-first ethos.
 - **Impact Auditor (Phase 1) — operational positive-impact recursion.** New
   `src/audit/impactAuditor.ts` (`auditPositiveImpact`) routes the live
   `pnpm positive:audit` verification results through the framework's own
