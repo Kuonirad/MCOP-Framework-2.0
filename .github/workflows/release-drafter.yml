@@ -12,9 +12,21 @@ permissions:
 jobs:
   update_release_draft:
     runs-on: ubuntu-latest
+    # PARP CS #47 (TokenPermissionsID, informational):
+    #   `contents: write` is REQUIRED by `release-drafter/release-drafter`
+    #   to create and update draft GitHub Release objects (the action's sole
+    #   purpose). `pull-requests: write` is also required by the action to
+    #   read PR metadata and apply autolabels. These are the documented
+    #   minimum permissions in the action's README:
+    #   https://github.com/release-drafter/release-drafter#permissions
+    #   The workflow declares `contents: read` at the top level (line 9-10),
+    #   so only this single update_release_draft job carries the write
+    #   capability. The action is also pinned to a 40-char commit SHA
+    #   (v7.3.1, line 29) — supply-chain-pinned per workflow hygiene.
+    #   See docs/SECURITY-POSTURE-NOTES.md for the full PARP justification.
     permissions:
-      contents: write
-      pull-requests: write
+      contents: write       # required by release-drafter (informational alert #47)
+      pull-requests: write  # required by release-drafter for PR metadata
     steps:
       # release-drafter v7 split the autolabeler into a separate action.
       # We never enabled an `autolabeler:` block in `.github/release-drafter.yml`,

@@ -11,8 +11,17 @@ jobs:
   delete-branch:
     if: github.event.pull_request.merged == true && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
+    # PARP CS #45 (TokenPermissionsID, informational):
+    #   `contents: write` is REQUIRED — this workflow's entire purpose is to
+    #   call `github.rest.git.deleteRef` on the merged PR's head branch.
+    #   GitHub's permission model has no narrower "delete refs" scope; this
+    #   is the documented minimum. The workflow declares `contents: read`
+    #   at the top level (line 7-8), and the job explicitly refuses to delete
+    #   the default branch (script line 22-25), so the blast radius is the
+    #   single ref `refs/heads/{merged-pr-head-ref}`.
+    #   See docs/SECURITY-POSTURE-NOTES.md for the full PARP justification.
     permissions:
-      contents: write
+      contents: write   # required for git.deleteRef (informational alert #45)
     steps:
       - name: Delete the merged branch
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0

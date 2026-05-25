@@ -11,9 +11,19 @@ permissions:
 jobs:
   close-bot-prs:
     runs-on: ubuntu-latest
+    # PARP CS #44 (TokenPermissionsID, informational):
+    #   `contents: write` is REQUIRED here to call `github.rest.git.deleteRef`
+    #   on the bot-prefixed source branches after their PRs are closed.
+    #   GitHub's permission model does not expose a narrower "delete refs"
+    #   scope — `contents: write` is the documented minimum for any
+    #   git-ref-deletion API call. `pull-requests: write` is also required
+    #   (separate scope) to actually close the PRs and add the explanatory
+    #   comment. The workflow declares `contents: read` at the top level
+    #   (line 8-9), so only this single job carries the write capability.
+    #   See docs/SECURITY-POSTURE-NOTES.md for the full PARP justification.
     permissions:
-      pull-requests: write
-      contents: write
+      pull-requests: write   # close PRs + add explanatory comment
+      contents: write        # delete head refs of closed bot branches (informational alert #44)
     steps:
       - name: Close bot-pattern PRs and delete their branches
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
