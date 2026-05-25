@@ -95,6 +95,21 @@ describe('audit remediation guardrail scripts', () => {
     expect(endpointBadges).toHaveLength(4);
   });
 
+  it('keeps the coverage badge internally consistent with README coverage claims', () => {
+    const badge = readFileSync('docs/badges/coverage.svg', 'utf8');
+    const readme = readFileSync('README.md', 'utf8');
+    const ariaPct = badge.match(/aria-label="coverage: ([0-9.]+%)"/)?.[1];
+    const titlePct = badge.match(/<title>coverage: ([0-9.]+%)<\/title>/)?.[1];
+    const visibleValues = Array.from(badge.matchAll(/>([0-9.]+%)<\/text>/g), (match) => match[1]);
+
+    expect(ariaPct).toBeDefined();
+    expect(titlePct).toBe(ariaPct);
+    expect(new Set(visibleValues)).toEqual(new Set([ariaPct]));
+    expect(readme).toContain(`**${ariaPct}** test coverage`);
+    expect(readme).toContain(`**${ariaPct}** | varies | varies | varies`);
+    expect(readme).toContain(`Jest suite — ${ariaPct} covered`);
+  });
+
   it('keeps the positive-impact measurement loop promoted in the README hero', () => {
     const source = readFileSync('README.md', 'utf8');
     const hero = source.slice(0, source.indexOf('## ◆ What is MCOP?'));

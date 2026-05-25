@@ -41,7 +41,12 @@ jobs:
         run: pnpm typecheck
 
       - name: Run tests
-        run: pnpm test -- --coverage
+        run: pnpm exec jest --coverage --coverageReporters=json-summary --coverageReporters=lcov
+
+      - name: Verify coverage badge freshness
+        run: |
+          pnpm coverage:badge
+          git diff --exit-code -- docs/badges/coverage.svg
 
       - name: Verify positive-impact attestation
         run: pnpm positive:verify
