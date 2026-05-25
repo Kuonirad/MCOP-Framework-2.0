@@ -40,6 +40,7 @@
     "positive:audit": "node scripts/positive-audit.mjs",
     "positive:attest": "POSITIVE_IMPACT_ATTEST=1 jest --runInBand --testPathPatterns=positiveImpactVerifier",
     "positive:verify": "POSITIVE_IMPACT_VERIFY=1 jest --runInBand --testPathPatterns=positiveImpactVerifier",
+    "positive:quality": "POSITIVE_IMPACT_QUALITY=1 jest --runInBand --testPathPatterns=verificationQuality",
     "self:audit": "python scripts/self_audit.py",
     "benchmark:arc-evo": "node scripts/benchmark-arc-evo.mjs",
     "benchmark:arc-ls20": "node scripts/benchmark-arc-ls20.mjs --mode=full",

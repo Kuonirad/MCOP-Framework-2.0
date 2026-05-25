@@ -8,6 +8,20 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased] — Automated Evidence Retrieval & Guardian v0.2
 
 ### Added
+- **Verification Quality (Phase 3) — substrate-driven stacked recursion.** New
+  `src/audit/verificationQuality.ts` (`assessVerificationQuality`) mutation-tests
+  the Phase 2 verifier with the Proteome substrate as the adversarial driver: a
+  `ProteomeOrchestrator` seeded from the attestation runs at the edge of chaos
+  and its per-step Merkle stream schedules a spread of forgeries (corrupt etch /
+  growth / Merkle / substrate hash, flipped metric, forged or dropped citation,
+  perturbed input). The verifier must reject every one; `qualityScore` =
+  sensitivity (fraction caught) gated by the genuine attestation still verifying,
+  with any `missed` perturbation surfaced as a verifier blind spot. `pnpm
+  positive:quality` is the CI gate (wired into `.github/workflows/ci.yml`).
+  Proven deterministic and sensitivity-1.0 by
+  `src/__tests__/verificationQuality.test.ts`. The substrate now actively drives
+  the evaluation of the verification's discriminating power — measured (P1) →
+  verifiable (P2) → verifier-validated (P3).
 - **Positive-Impact Verifier (Phase 2) — falsifiable recursion.** New
   `src/audit/positiveImpactVerifier.ts` (`verifyPositiveImpact`,
   `buildAttestation`) replays a committed attestation

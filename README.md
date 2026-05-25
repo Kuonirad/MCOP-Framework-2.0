@@ -199,10 +199,14 @@ own flourishing trajectories.
 
 As of the Phase 1 `ImpactAuditor` the report cites the specific kernels, scoring
 events, and Holographic Etches that strengthened its own generation; as of the
-Phase 2 verifier those citations are replayable and CI-gated. The recursion is
-now operational evidence, not just architecture prose. The next phase lets the
-Proteome substrate help evaluate the verification itself — a stacked recursion
-where the substrate scores the quality of the impact verification.
+Phase 2 verifier those citations are replayable and CI-gated; and as of the
+Phase 3 quality assessor the verifier *itself* is evaluated — a
+`ProteomeOrchestrator` seeded from the attestation schedules adversarial
+forgeries (corrupt hash, flipped metric, forged citation, perturbed input) and
+`pnpm positive:quality` asserts the verifier catches every one. The substrate
+thus drives the evaluation of the verification's own discriminating power: a
+stacked recursion (measured → verifiable → verifier-validated), all operational
+evidence rather than architecture prose.
 
 - **Canonical home:** `https://github.com/Kuonirad/MCOP-Framework-2.0`
 - **Canonical local path:** `MCOP-Framework-2.0`
