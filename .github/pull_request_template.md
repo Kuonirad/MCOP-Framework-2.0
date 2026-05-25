@@ -2,7 +2,19 @@
 
 ## 📋 Description
 
-<!-- Provide a brief description of the changes in this PR -->
+<!-- Context -> change -> validation -> risk. Keep this concrete enough for an outside contributor to audit. -->
+
+### Impact and adoption
+
+<!-- Who benefits, what workflow improves, and how this advances positive impact or reduces friction? -->
+
+### Reproducibility evidence
+
+<!-- List exact commands, traces, fixtures, benchmarks, screenshots, or docs that prove the change. -->
+
+### Integration surface
+
+<!-- Name every touched package, adapter, API, workflow, or downstream integration boundary. Use "N/A" if none. -->
 
 ## 🔗 Related Issues
 
@@ -20,18 +32,22 @@ Closes #(issue)
 - [ ] 🔧 Refactoring (no functional changes)
 - [ ] ⚡ Performance improvement
 - [ ] 🧪 Tests
+- [ ] 🧭 Community / adoption surface
+- [ ] 🔁 Integration request or adapter change
+- [ ] 🔍 Reproducibility / audit evidence
 
 ## 📊 Checklist
 
 <!-- Mark completed items with an "x" -->
 - [ ] ✅ My code follows the style guidelines of this project
 - [ ] ✅ I have performed a self-review of my own code
-- [ ] ✅ I have commented my code, particularly in hard-to-understand areas
-- [ ] ✅ I have made corresponding changes to the documentation
+- [ ] ✅ I have explained the user impact, reproducibility path, and integration boundary
+- [ ] ✅ I have made corresponding changes to documentation, examples, or issue/discussion guidance
 - [ ] ✅ My changes generate no new warnings
 - [ ] ✅ I have added tests that prove my fix is effective or that my feature works
 - [ ] ✅ New and existing unit tests pass locally with my changes
 - [ ] ✅ Any dependent changes have been merged and published
+- [ ] ✅ I have linked every public claim to replayable evidence or marked it as future work
 
 ## 🧪 Testing
 
@@ -39,6 +55,8 @@ Closes #(issue)
 - [ ] Unit tests
 - [ ] Integration tests
 - [ ] Manual testing
+- [ ] Documentation / template rendering
+- [ ] GitHub metadata or community-surface verification
 - [ ] Other (please specify):
 
 ## 📸 Screenshots (if applicable)
@@ -65,6 +83,12 @@ Closes #(issue)
 - [ ] 🔴 Degradation
 - [ ] 🟡 Neutral
 - [ ] 🟢 Improvement
+
+**Positive Impact Surface**:
+- [ ] Adoption win or impact story
+- [ ] Reproducibility / audit clarification
+- [ ] Integration enablement
+- [ ] No direct positive-impact surface
 
 ## 👥 Reviewers
 

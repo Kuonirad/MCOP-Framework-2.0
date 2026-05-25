@@ -1,0 +1,63 @@
+name: Integration Request
+description: Propose an adapter, framework bridge, example, or downstream integration.
+title: "[Integration] "
+labels: ["integration-request", "needs-triage"]
+body:
+  - type: input
+    id: target
+    attributes:
+      label: Target integration
+      description: Name the framework, tool, runtime, model provider, or downstream project.
+      placeholder: "Example: LangChain memory layer, LlamaIndex retriever, Claude Desktop MCP server"
+    validations:
+      required: true
+  - type: textarea
+    id: user_story
+    attributes:
+      label: User story
+      description: Who needs this integration, and what workflow does it unlock?
+    validations:
+      required: true
+  - type: dropdown
+    id: trust_gate
+    attributes:
+      label: Trust-substrate gate
+      description: Choose the nearest roadmap gate this integration supports.
+      options:
+        - Track A: CUDA and hardware substrate
+        - Track B: Distributed cluster mode
+        - Track C: Hosted provenance ledger
+        - Cross-cutting invariant
+        - External adoption / example
+    validations:
+      required: true
+  - type: textarea
+    id: boundary
+    attributes:
+      label: Integration boundary
+      description: Which files, packages, APIs, protocols, or example surfaces would change?
+    validations:
+      required: true
+  - type: textarea
+    id: verification
+    attributes:
+      label: Reproducibility plan
+      description: Exact command, fixture, notebook, or trace that should prove the integration works.
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: maintenance
+    attributes:
+      label: Maintenance owner and risk
+      description: Who can help maintain it, and what upstream churn or API limits should reviewers expect?
+    validations:
+      required: true
+  - type: checkboxes
+    id: readiness
+    attributes:
+      label: Readiness
+      options:
+        - label: I can contribute implementation or tests.
+        - label: I can provide a reproducible downstream fixture.
+        - label: This request is exploratory and needs design discussion first.

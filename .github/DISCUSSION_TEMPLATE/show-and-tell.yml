@@ -1,0 +1,41 @@
+title: "[Impact] "
+labels: ["impact-story", "positive-impact"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Share adoption wins, measured impact, downstream demos, and stories that help others decide
+        whether MCOP is worth trying. Include evidence whenever possible.
+  - type: textarea
+    id: story
+    attributes:
+      label: What happened?
+      description: Describe the adoption win or impact story.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence or artifact
+      description: Link a trace, benchmark, PR, notebook, demo, screenshot, or report.
+    validations:
+      required: true
+  - type: textarea
+    id: repeatability
+    attributes:
+      label: Can someone else reproduce or inspect it?
+      description: Add commands, paths, or constraints.
+    validations:
+      required: true
+  - type: dropdown
+    id: axis
+    attributes:
+      label: Primary impact axis
+      options:
+        - Reproducible trust
+        - Adoptable cognition
+        - Contributor onboarding
+        - Integration leverage
+        - Human-AI flourishing
+    validations:
+      required: true

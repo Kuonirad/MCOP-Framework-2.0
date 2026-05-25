@@ -1,0 +1,29 @@
+title: "[Audit] "
+labels: ["reproducibility", "audit"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this for open-ended reproduction, benchmark, provenance, or claim-audit questions.
+  - type: textarea
+    id: question
+    attributes:
+      label: Question
+      description: What claim, artifact, or behavior are you trying to verify?
+    validations:
+      required: true
+  - type: textarea
+    id: attempted
+    attributes:
+      label: What have you tried?
+      description: Commands, commit SHA, environment, logs, or notebook steps.
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: useful_answer
+    attributes:
+      label: What would answer this?
+      description: Name the proof, artifact, or explanation that would resolve the question.
+    validations:
+      required: true

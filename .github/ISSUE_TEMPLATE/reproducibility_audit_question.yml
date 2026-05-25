@@ -1,0 +1,66 @@
+name: Reproducibility / Audit Question
+description: Challenge a claim, ask how to reproduce it, or report audit uncertainty.
+title: "[Reproducibility] "
+labels: ["reproducibility", "audit", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this to make claims testable. Good reports identify the exact claim, artifact, or command
+        and include enough environment detail to replay the result.
+  - type: textarea
+    id: claim
+    attributes:
+      label: Claim or artifact under audit
+      description: Link the README line, doc section, benchmark, trace, release, or source path.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction command or inspection path
+      description: Paste the command, notebook step, file path, or GitHub URL you used.
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected result
+      description: What did the docs, claim, or prior artifact lead you to expect?
+    validations:
+      required: true
+  - type: textarea
+    id: observed
+    attributes:
+      label: Observed result
+      description: What actually happened? Include logs or hashes when possible.
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, shell, Node, pnpm, Python, Docker/GPU availability, and commit SHA.
+    validations:
+      required: true
+  - type: dropdown
+    id: audit_impact
+    attributes:
+      label: Audit impact
+      options:
+        - Blocks adoption
+        - Weakens a public claim
+        - Needs doc clarification
+        - Needs benchmark rerun
+        - Confirms claim after independent replay
+    validations:
+      required: true
+  - type: textarea
+    id: falsifier
+    attributes:
+      label: Falsifier or closing condition
+      description: What evidence would resolve this question?
+    validations:
+      required: true
