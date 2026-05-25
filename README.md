@@ -176,23 +176,33 @@ living [`docs/POSITIVE_IMPACT_REPORT.md`](./docs/POSITIVE_IMPACT_REPORT.md) and
 its badge, with a **MCOP kernel citations** table listing the exact scoring-event
 hashes and Merkle roots each metric was generated from.
 
+Those citations are **falsifiable**. A committed attestation
+([`audit/positive-impact-attestation.json`](./audit/positive-impact-attestation.json))
+snapshots the recorded inputs and the cited outputs, and `pnpm positive:verify`
+(a CI gate) replays it through the same primitives — asserting every etch hash,
+growth Merkle root, substrate root, and metric reproduces byte-for-byte. If a
+kernel's scoring math drifts or the cited evidence is edited without
+regenerating, the gate fails. Regenerate the attestation with `pnpm
+positive:attest`.
+
 Current state: the contributor-joy, adoption-velocity, and beneficial-outcome
 metrics are no longer formulas — they are computed by the
-`PositiveResonanceAmplifier` over real growth events and cited by hash. As
-adoption and contribution grow, the data flowing through this loop becomes
-richer, turning positive impact from a static claim into a dynamic, improvable
-property of the project.
+`PositiveResonanceAmplifier` over real growth events, cited by hash, and
+machine-verifiable. As adoption and contribution grow, the data flowing through
+this loop becomes richer, turning positive impact from a static claim into a
+dynamic, improvable property of the project.
 
 This is not ethics-washing layered on top of an agent framework. It is the
 framework practicing its own thesis: advanced cognitive systems become more
 trustworthy and more valuable when they can see, score, and steer toward their
 own flourishing trajectories.
 
-As of the Phase 1 `ImpactAuditor`, the report cites the specific kernels,
-scoring events, and Holographic Etches that strengthened its own generation —
-the recursion is now operational evidence, not just architecture prose. The next
-phases widen the substrate's role from a conditioned signal to an active driver
-of the discovered metrics.
+As of the Phase 1 `ImpactAuditor` the report cites the specific kernels, scoring
+events, and Holographic Etches that strengthened its own generation; as of the
+Phase 2 verifier those citations are replayable and CI-gated. The recursion is
+now operational evidence, not just architecture prose. The next phase lets the
+Proteome substrate help evaluate the verification itself — a stacked recursion
+where the substrate scores the quality of the impact verification.
 
 - **Canonical home:** `https://github.com/Kuonirad/MCOP-Framework-2.0`
 - **Canonical local path:** `MCOP-Framework-2.0`
