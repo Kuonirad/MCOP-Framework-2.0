@@ -23,6 +23,14 @@
 
 ---
 
+## ◆ Live Positive Impact Proof ◆
+
+This repo measures its own positive impact via MCOP primitives — [100% current score, machine-verifiable](./docs/POSITIVE_IMPACT_REPORT.md).
+
+[`pnpm positive:audit`](./docs/POSITIVE_IMPACT_REPORT.md) regenerates the badge, report, shields.io endpoint metrics, and [holographic-etch ledger](./audit/positive-resonance-ledger.md) from commit-cited MCOP kernel evidence.
+
+---
+
 **Falsify first:** rerun the deterministic benchmark harness before trusting the concept layer.
 The headline baseline is **4.4 ms / 22,700 ops/sec** for the deterministic core, backed by
 [`docs/benchmarks/results.json`](./docs/benchmarks/results.json) and the

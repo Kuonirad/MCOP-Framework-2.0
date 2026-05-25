@@ -95,6 +95,16 @@ describe('audit remediation guardrail scripts', () => {
     expect(endpointBadges).toHaveLength(4);
   });
 
+  it('keeps the positive-impact measurement loop promoted in the README hero', () => {
+    const source = readFileSync('README.md', 'utf8');
+    const hero = source.slice(0, source.indexOf('## ◆ What is MCOP?'));
+
+    expect(hero).toContain('## ◆ Live Positive Impact Proof ◆');
+    expect(hero).toContain('This repo measures its own positive impact via MCOP primitives — [100% current score, machine-verifiable](./docs/POSITIVE_IMPACT_REPORT.md).');
+    expect(hero).toContain('[`pnpm positive:audit`](./docs/POSITIVE_IMPACT_REPORT.md)');
+    expect(hero).toContain('[holographic-etch ledger](./audit/positive-resonance-ledger.md)');
+  });
+
   it('rejects unpinned actions and obsolete Node runtimes in workflow fixtures', () => {
     const dir = mkdtempSync(join(tmpdir(), 'mcop-workflow-hygiene-'));
     const workflow = join(dir, 'bad.yml');
