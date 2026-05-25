@@ -46,6 +46,9 @@ jobs:
       - name: Verify positive-impact attestation
         run: pnpm positive:verify
 
+      - name: Assess verification quality (substrate-driven mutation test)
+        run: pnpm positive:quality
+
       - name: Upload coverage artifacts
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
