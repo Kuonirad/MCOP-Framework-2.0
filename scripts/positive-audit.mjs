@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { spawnSync } from 'node:child_process';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -17,74 +17,186 @@ const checks = [
   ['SBOM validation resonance', ['pnpm', ['sbom:validate']]],
 ];
 
-const startedAt = new Date().toISOString();
-const results = [];
+const checksPath = join(root, 'audit', 'positive-audit-checks.json');
+const signalsPath = join(root, 'audit', 'positive-impact-signals.json');
+const reportPath = join(root, 'docs', 'POSITIVE_IMPACT_REPORT.md');
+const badgePath = join(root, 'docs', 'badges', 'positive-impact.svg');
 
-for (const [label, [command, args]] of checks) {
-  const started = Date.now();
-  const result = spawnSync(command, args, {
-    cwd: root,
-    env: { ...process.env, POSITIVE_AUDIT_CHILD: '1' },
-    encoding: 'utf8',
-    stdio: 'pipe',
-  });
-  const durationMs = Date.now() - started;
-  const passed = result.status === 0;
-  results.push({
-    label,
-    command: `${command} ${args.join(' ')}`,
-    passed,
-    durationMs,
-    output: [result.stdout, result.stderr].filter(Boolean).join('\n').slice(-4000),
-  });
-  process.stdout.write(`${passed ? '✨' : '⚠️'} ${label} (${durationMs}ms)\n`);
-  if (!passed) {
-    process.stdout.write(results.at(-1).output + '\n');
-    writePositiveImpactReport(results, startedAt);
-    process.exit(result.status ?? 1);
+function runAudit() {
+  const startedAt = new Date().toISOString();
+  const results = [];
+
+  for (const [label, [command, args]] of checks) {
+    const started = Date.now();
+    const result = spawnSync(command, args, {
+      cwd: root,
+      env: { ...process.env, POSITIVE_AUDIT_CHILD: '1' },
+      encoding: 'utf8',
+      stdio: 'pipe',
+    });
+    const durationMs = Date.now() - started;
+    const passed = result.status === 0;
+    results.push({
+      label,
+      command: `${command} ${args.join(' ')}`,
+      passed,
+      durationMs,
+      output: [result.stdout, result.stderr].filter(Boolean).join('\n').slice(-4000),
+    });
+    process.stdout.write(`${passed ? '✨' : '⚠️'} ${label} (${durationMs}ms)\n`);
+    if (!passed) {
+      process.stdout.write(results.at(-1).output + '\n');
+      writePositiveImpactReport(results, startedAt);
+      process.exit(result.status ?? 1);
+    }
   }
-}
 
-writePositiveImpactReport(results, startedAt);
-process.stdout.write('🌱 Positive Impact Report generated.\n');
+  writePositiveImpactReport(results, startedAt);
+  process.stdout.write('🌱 Positive Impact Report generated.\n');
+}
 
 function writePositiveImpactReport(checkResults, capturedAt) {
   const passed = checkResults.filter((result) => result.passed).length;
   const total = checkResults.length;
   const score = total === 0 ? 0 : Math.round((passed / total) * 100);
-  const contributorJoy = round(0.72 + score / 100 * 0.23);
-  const adoptionVelocity = round(0.68 + Math.min(0.22, total / 25));
-  const beneficialOutcomeAmplification = round(0.7 + score / 100 * 0.25);
-  const reportPath = join(root, 'docs', 'POSITIVE_IMPACT_REPORT.md');
-  const badgePath = join(root, 'docs', 'badges', 'positive-impact.svg');
+
+  // Phase 1 of the operational positive-impact recursion: route the live
+  // check results through the MCOP kernels (NOVA-NEO, Holographic Etch,
+  // PositiveResonanceAmplifier, Proteome) and let the report cite the actual
+  // scoring events it was generated from. The auditor is TypeScript, so we
+  // execute it through Jest — the same vehicle `benchmark:refresh` uses to run
+  // typed code at script time without a separate build pipeline.
+  const audit = generateImpactSignals(checkResults, capturedAt);
+
   mkdirSync(dirname(reportPath), { recursive: true });
   mkdirSync(dirname(badgePath), { recursive: true });
-  writeFileSync(reportPath, renderReport({
-    capturedAt,
-    score,
-    contributorJoy,
-    adoptionVelocity,
-    beneficialOutcomeAmplification,
-    checkResults,
-  }));
+  writeFileSync(reportPath, renderReport({ capturedAt, score, checkResults, audit }));
   writeFileSync(badgePath, renderBadge(score));
 }
 
-function renderReport(metrics) {
-  const rows = metrics.checkResults.map((result) =>
-    `| ${result.label} | ${result.passed ? 'Radiating' : 'Needs positive attention'} | \`${result.command}\` | ${result.durationMs} |`,
-  ).join('\n');
-  return `# Positive Impact Report\n\n` +
-    `Generated: ${metrics.capturedAt}\n\n` +
+/**
+ * Captures the live check matrix, runs the Impact Auditor over it via Jest,
+ * and returns the primitive-derived signals. Returns `null` (and the report
+ * falls back to a verification-only view) if the auditor cannot run — we never
+ * fabricate metrics.
+ */
+function generateImpactSignals(checkResults, capturedAt) {
+  try {
+    mkdirSync(dirname(checksPath), { recursive: true });
+    writeFileSync(
+      checksPath,
+      `${JSON.stringify(
+        {
+          capturedAt,
+          checks: checkResults.map(({ label, command, passed, durationMs }) => ({
+            label,
+            command,
+            passed,
+            durationMs,
+          })),
+        },
+        null,
+        2,
+      )}\n`,
+    );
+
+    const jestBin = join(root, 'node_modules', 'jest', 'bin', 'jest.js');
+    if (!existsSync(jestBin)) return null;
+    const gen = spawnSync(
+      process.execPath,
+      [jestBin, '--runInBand', '--silent', '--testPathPatterns', 'impactAuditor'],
+      {
+        cwd: root,
+        env: { ...process.env, POSITIVE_IMPACT_GENERATE: '1', POSITIVE_AUDIT_CHILD: '1' },
+        encoding: 'utf8',
+        stdio: 'pipe',
+      },
+    );
+    if (gen.status !== 0 || !existsSync(signalsPath)) return null;
+    return JSON.parse(readFileSync(signalsPath, 'utf8'));
+  } catch {
+    return null;
+  }
+}
+
+function renderReport({ capturedAt, score, checkResults, audit }) {
+  const verificationRows = checkResults
+    .map((result) => {
+      const signal = audit?.checks?.find((c) => c.label === result.label);
+      const hint = signal ? signal.propagationHint : '—';
+      const domain = signal ? signal.domain : '—';
+      return `| ${result.label} | ${result.passed ? 'Radiating' : 'Needs positive attention'} | ${domain} | ${hint} | \`${result.command}\` | ${result.durationMs} |`;
+    })
+    .join('\n');
+
+  const header =
+    `# Positive Impact Report\n\n` +
+    `Generated: ${capturedAt}\n\n` +
     `This report is Positive Building of reproducible trust. It records the local\n` +
-    `suite that keeps MCOP-Framework-2.0 joyful, adoptable, and provenance-rich.\n\n` +
-    `| Metric | Value |\n|:---|---:|\n` +
-    `| Positive impact score | ${metrics.score}% |\n` +
-    `| Contributor joy | ${metrics.contributorJoy} |\n` +
-    `| Adoption velocity | ${metrics.adoptionVelocity} |\n` +
-    `| Beneficial outcome amplification | ${metrics.beneficialOutcomeAmplification} |\n\n` +
+    `suite that keeps MCOP-Framework-2.0 joyful, adoptable, and provenance-rich.\n\n`;
+
+  const metricsBlock = audit
+    ? renderPrimitiveMetrics(audit, score)
+    : renderFallbackMetrics(score);
+
+  const verificationBlock =
     `## Verification resonance\n\n` +
-    `| Layer | State | Command | Duration ms |\n|:---|:---|:---|---:|\n${rows}\n`;
+    `| Layer | State | Domain | Propagation | Command | Duration ms |\n` +
+    `|:---|:---|:---|:---|:---|---:|\n${verificationRows}\n`;
+
+  const citationsBlock = audit ? renderCitations(audit) : '';
+
+  return header + metricsBlock + verificationBlock + citationsBlock;
+}
+
+function renderPrimitiveMetrics(audit, score) {
+  const m = audit.metrics;
+  const substrate = audit.substrate
+    ? `| Substrate equilibrium (Proteome) | ${round(audit.substrate.equilibriumScore)} |\n`
+    : '';
+  return (
+    `These metrics are **executed by MCOP primitives**, not declared. The live\n` +
+    `verification results were encoded by NOVA-NEO, scored as eudaimonic etches by\n` +
+    `Holographic Etch, recorded as Merkle-chained growth events by the\n` +
+    `PositiveResonanceAmplifier, and conditioned a Proteome substrate. See the\n` +
+    `MCOP kernel citations below for the exact scoring events.\n\n` +
+    `| Metric | Value |\n|:---|---:|\n` +
+    `| Positive impact score | ${score}% |\n` +
+    `| Contributor joy | ${round(m.contributorJoy)} |\n` +
+    `| Adoption velocity | ${round(m.adoptionVelocity)} |\n` +
+    `| Beneficial outcome amplification | ${round(m.beneficialOutcomeAmplification)} |\n` +
+    `| Growth events | ${m.growthEvents} |\n` +
+    substrate +
+    `| Growth ledger Merkle root | \`${m.merkleRoot ?? 'n/a'}\` |\n\n`
+  );
+}
+
+function renderFallbackMetrics(score) {
+  return (
+    `> ⚠️ Primitive-derived signals were unavailable this run (the Impact Auditor\n` +
+    `> could not be executed). Only the verification resonance below is reported;\n` +
+    `> no impact metrics are fabricated.\n\n` +
+    `| Metric | Value |\n|:---|---:|\n` +
+    `| Positive impact score | ${score}% |\n\n`
+  );
+}
+
+function renderCitations(audit) {
+  if (!Array.isArray(audit.citations) || audit.citations.length === 0) return '';
+  const rows = audit.citations
+    .map((c) => `| ${c.kernel} | ${c.signal} | \`${shortHash(c.hash)}\` | ${c.backs} |`)
+    .join('\n');
+  return (
+    `\n## MCOP kernel citations\n\n` +
+    `Each row is operational evidence — a real scoring event or Merkle root the\n` +
+    `report above was generated from.\n\n` +
+    `| Kernel | Signal | Hash | Backs |\n|:---|:---|:---|:---|\n${rows}\n`
+  );
+}
+
+function shortHash(hash) {
+  if (typeof hash !== 'string') return 'n/a';
+  return hash.length > 20 ? `${hash.slice(0, 16)}…${hash.slice(-4)}` : hash;
 }
 
 function renderBadge(score) {
@@ -107,4 +219,10 @@ function renderBadge(score) {
 
 function round(value) {
   return Math.round(value * 1000) / 1000;
+}
+
+export { renderReport, renderBadge };
+
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+  runAudit();
 }
