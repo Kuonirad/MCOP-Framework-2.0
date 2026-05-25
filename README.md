@@ -1,7 +1,7 @@
 <div align="center">
 
-# ◈ MCOP FRAMEWORK 2.0 ◈
-### *Meta-Cognitive Optimization Protocol*
+# MCOP Framework 2.0
+### Meta-cognitive orchestration kernels with reproducible benchmarks
 
 ---
 
@@ -15,28 +15,20 @@
 [![Maintained](https://img.shields.io/badge/maintained-yes-00ff88?style=flat-square)](./GOVERNANCE.md)
 [![Positive Impact](./docs/badges/positive-impact.svg)](./docs/POSITIVE_IMPACT_REPORT.md)
 [![Reproducible Benchmark](./docs/badges/reproducible-benchmark.svg)](./examples/reproducible-benchmark/README.md)
+[![Open Notebook](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Kuonirad/MCOP-Framework-2.0/blob/main/examples/reproducible-benchmark/notebooks/reproduce-22700-ops.ipynb)
 
 ---
 
-```
+**Falsify first:** rerun the deterministic benchmark harness before trusting the concept layer.
+The headline baseline is **4.4 ms / 22,700 ops/sec** for the deterministic core, backed by
+[`docs/benchmarks/results.json`](./docs/benchmarks/results.json) and the
+[`examples/reproducible-benchmark/`](./examples/reproducible-benchmark/README.md) Docker +
+Jupyter bundle.
 
-  ██████████████████████████████████████████████████████████
-  ██                                                      ██
-  ██    ███╗   ███╗ ██████╗ ██████╗ ██████╗              ██
-  ██    ████╗ ████║██╔════╝██╔═══██╗██╔══██╗             ██
-  ██    ██╔████╔██║██║     ██║   ██║██████╔╝             ██
-  ██    ██║╚██╔╝██║██║     ██║   ██║██╔═══╝              ██
-  ██    ██║ ╚═╝ ██║╚██████╗╚██████╔╝██║                  ██
-  ██    ╚═╝     ╚═╝ ╚═════╝ ╚═════╝ ╚═╝                  ██
-  ██                                                      ██
-  ██    FRAMEWORK 2.0  ◆  v2.4.0  ◆  EDGE-OF-CHAOS         ██
-  ██                                                      ██
-  ██████████████████████████████████████████████████████████
-
-```
-
-### Recursive triad orchestration · Deterministic · Cryptographically-linked provenance
-### Built on **Next.js 15.5 + TypeScript** · Telemetry-hardened · Hardware-acceleration-ready
+[`Run the benchmark`](./examples/reproducible-benchmark/README.md) ·
+[`Open the notebook`](./examples/reproducible-benchmark/notebooks/reproduce-22700-ops.ipynb) ·
+[`Compare honestly`](./COMPARISONS.md) ·
+[`Contribute a resonance report`](./CONTRIBUTING.md#stigmergic-contribution-intake)
 
 </div>
 
@@ -67,6 +59,13 @@ Cryptographic lineage at every step. **96.6 % test coverage.**
 > Memory, ledger, and adapter calls all etch a positive-resonance score, so the framework
 > rewards **flourishing trajectories** (high alignment + high utility) instead of optimizing
 > for raw throughput alone.
+
+## ◆ What MCOP is NOT
+
+- Not a chatbot wrapper: MCOP is a deterministic substrate that can sit under many model stacks.
+- Not a benchmark claim without replay: public numbers must point to the reproducible harness.
+- Not a replacement for LangChain, AutoGen, CrewAI, or similar orchestration frameworks in every use case.
+  See the living comparison doc before treating the table below as a final market map.
 
 ## ◆ Current Production Surface
 

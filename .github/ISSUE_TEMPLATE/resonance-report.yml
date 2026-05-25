@@ -1,0 +1,50 @@
+name: Resonance Report
+description: Preserve a high-signal result, failure, or negative finding.
+title: "[Resonance] "
+labels: ["resonance-report", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this for observations that improve the shared substrate, including negative results.
+  - type: textarea
+    id: observation
+    attributes:
+      label: Observation
+      description: What happened, and why is it worth preserving?
+    validations:
+      required: true
+  - type: dropdown
+    id: primary_metric
+    attributes:
+      label: Primary impact axis
+      options:
+        - "rho: high-signal / low-signal attention ratio"
+        - "S_aff: first contribution improves the substrate"
+        - "R_friction: clone-to-falsification friction"
+        - "delta_t_comp: time to accurate mental model"
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: Link traces, commands, benchmark manifests, screenshots, or logs.
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: falsifier
+    attributes:
+      label: Falsifier
+      description: What result would make this report wrong or no longer useful?
+    validations:
+      required: true
+  - type: textarea
+    id: revision_trigger
+    attributes:
+      label: Revision trigger
+      description: When should README/docs/benchmarks be changed because of this report?
+    validations:
+      required: true
+

@@ -38,6 +38,7 @@
     "sbom": "node scripts/generate-sbom.mjs",
     "sbom:validate": "node scripts/validate-sbom.mjs",
     "positive:audit": "node scripts/positive-audit.mjs",
+    "self:audit": "python scripts/self_audit.py",
     "benchmark:arc-evo": "node scripts/benchmark-arc-evo.mjs",
     "benchmark:arc-ls20": "node scripts/benchmark-arc-ls20.mjs --mode=full",
     "benchmark:arc-ls20:smoke": "node scripts/benchmark-arc-ls20.mjs --mode=smoke",

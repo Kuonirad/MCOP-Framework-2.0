@@ -50,6 +50,14 @@ lint:
 audit:
     pnpm audit --audit-level=high
 
+# Fast benchmark smoke gate
+bench:
+    pnpm bench:smoke
+
+# Append a read-only repository self-audit record
+self-audit:
+    pnpm self:audit
+
 # Run all CI checks locally
 ci: lint build test audit
     @echo "All CI checks passed!"
