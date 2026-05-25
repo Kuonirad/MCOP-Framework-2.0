@@ -62,8 +62,20 @@ jobs:
     environment:
       name: npm
       url: https://www.npmjs.com/package/@kullailabs/mcop-core
+    # PARP CS #9 (TokenPermissionsID, informational):
+    #   `contents: write` is REQUIRED here, scoped to this single job. The
+    #   "Attach SBOMs to GitHub Release" step (uses softprops/action-gh-release
+    #   pinned by SHA) updates the GitHub Release object created for the
+    #   `npm-v*` tag to attach `mcop-framework.cdx.json` + `mcop-core.cdx.json`
+    #   as downloadable assets. Without `contents: write` the release-asset
+    #   upload returns 403 and the SBOMs cannot be distributed alongside the
+    #   tarball, breaking PARP/MCOP invariant #4 (SBOM/CI integrity) and
+    #   OSSF Scorecard's own Pinned-Dependencies / SBOM checks.
+    #   Workflow-level perms are already `contents: read` (line 47-48), so
+    #   this scope is as narrow as GitHub's permission model allows.
+    #   See docs/SECURITY-POSTURE-NOTES.md for the full PARP justification.
     permissions:
-      contents: write   # required to attach SBOM artefacts to the GitHub Release
+      contents: write   # SBOM upload to Release (informational alert #9)
       id-token: write   # OIDC — required for Trusted Publishing + provenance
     defaults:
       run:

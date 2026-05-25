@@ -169,8 +169,19 @@ jobs:
     environment:
       name: pypi
       url: https://pypi.org/p/mcop
+    # PARP CS #10 (TokenPermissionsID, informational):
+    #   `contents: write` is REQUIRED on this `publish-pypi` job because the
+    #   repo has Immutable Releases enabled: assets cannot be added after a
+    #   Release is published. The job therefore (1) deletes any prior
+    #   already-published release for the tag, (2) creates a *draft* release
+    #   with the CycloneDX SBOMs already attached, then (3) flips the draft
+    #   to published. All three operations require `contents: write`.
+    #   The workflow declares `contents: read` at the top level (line 37-38)
+    #   and the build/testpypi jobs each declare their own minimum scope, so
+    #   only this final publish job carries the write capability.
+    #   See docs/SECURITY-POSTURE-NOTES.md for the full PARP justification.
     permissions:
-      contents: write   # required to create + manage the GitHub Release with SBOMs
+      contents: write   # release lifecycle + SBOM attachment (informational alert #10)
       id-token: write   # OIDC — required for trusted publishing
     steps:
       - name: Download distribution artifacts

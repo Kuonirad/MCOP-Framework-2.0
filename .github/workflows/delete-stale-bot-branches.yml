@@ -20,8 +20,20 @@ permissions:
 jobs:
   cleanup:
     runs-on: ubuntu-latest
+    # PARP CS #46 (TokenPermissionsID, informational):
+    #   `contents: write` is REQUIRED for this workflow to call
+    #   `gh api -X DELETE repos/$REPO/git/refs/heads/$branch` on stale bot
+    #   branches (the only purpose of the workflow). The script restricts
+    #   deletion targets to a narrow pattern list (script line 46) AND skips
+    #   protected branches AND skips branches with open PRs AND requires
+    #   each branch to be older than 30 days, so even with the write scope
+    #   the blast radius is bounded to abandoned bot branches.
+    #   Workflow-level perms are `contents: read` (line 17-18). The default
+    #   for `dry_run` is 'true' on workflow_dispatch, also limiting risk
+    #   from a compromised manual trigger.
+    #   See docs/SECURITY-POSTURE-NOTES.md for the full PARP justification.
     permissions:
-      contents: write
+      contents: write   # required for git refs DELETE (informational alert #46)
     steps:
       - name: Setup GitHub CLI
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
