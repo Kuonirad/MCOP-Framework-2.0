@@ -1,0 +1,51 @@
+{
+  "backend": "reference",
+  "exported_at": "2026-05-25T22:24:42.113651Z",
+  "fp_variant": "fp16",
+  "kernels": {
+    "cosineRecall": {
+      "bytes": 1080,
+      "bytes_sha256": "cf8bf82eed0ab2f34b0737fd7ef05554b8b97fc79fafa8bb3a9186ef781141ad",
+      "fp_variant": "fp16",
+      "merkle_root": "bcc420ab9557552b44c86a35870fc95088771009616d5f73943ffc4b218d3731",
+      "path": "mcop_cosineRecall.onnx"
+    },
+    "encode": {
+      "bytes": 1074,
+      "bytes_sha256": "08ce45dd0a3ff746f2b204709231cef5d4d1c486920703ec9dc539fa82d5560e",
+      "fp_variant": "fp16",
+      "merkle_root": "1fbb6698908d4a10e15b01c4a007c526a95c7735bb80f629603f494b3bb4c5cd",
+      "path": "mcop_encode.onnx"
+    },
+    "evolveScore": {
+      "bytes": 1079,
+      "bytes_sha256": "e14ead4c6a1e734ab009dc8357a6c96976d7e61b68beb48daff5a5d35224f590",
+      "fp_variant": "fp16",
+      "merkle_root": "e91c8666f57783a729fe5a92a0495583880b2ca3693afd5594002eec8f73743f",
+      "path": "mcop_evolveScore.onnx"
+    },
+    "graphAggregate": {
+      "bytes": 1082,
+      "bytes_sha256": "57a258355255d9d2b0ec53b7e0b0a5179f0f763135124cfcdd3bebb510c699dd",
+      "fp_variant": "fp16",
+      "merkle_root": "3dc1045655bf44c3edff271ab75c019d2d48d0e0b080c2413e5e01c53377662c",
+      "path": "mcop_graphAggregate.onnx"
+    },
+    "holographicUpdate": {
+      "bytes": 1085,
+      "bytes_sha256": "c237b989b3d32ea9646e1531456caa05733426f85295156617b117eda16a7aa6",
+      "fp_variant": "fp16",
+      "merkle_root": "a7d633fc3d1a1775c766a2ace0e12d7c39edfab22d13bdb41e7afd63f9ae5cb4",
+      "path": "mcop_holographicUpdate.onnx"
+    },
+    "homeostasis": {
+      "bytes": 1079,
+      "bytes_sha256": "640aaf1894d91a701f4ce1e2b272a86861c9570d774267a5a7f79669a4c94baf",
+      "fp_variant": "fp16",
+      "merkle_root": "d55232393bac3692b0dba21f6502edecc920a52ed7bb87052a3597242271b73b",
+      "path": "mcop_homeostasis.onnx"
+    }
+  },
+  "seed": 12648430,
+  "version": "mcop-cuda-kernel-manifest/1.0"
+}

@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "runner": {
+    "name": "external-runner-name",
+    "organization": "external-organization",
+    "contact": "optional-public-contact"
+  },
+  "source": {
+    "repository": "https://github.com/Kuonirad/MCOP-Framework-2.0",
+    "commit": "40-character-commit-sha",
+    "release": "v2.4.0"
+  },
+  "environment": {
+    "os": "ubuntu-latest",
+    "node": "22.22.3",
+    "pnpm": "9.15.0",
+    "cpu": "runner-cpu",
+    "gpu": "none"
+  },
+  "verification": {
+    "command": "pnpm positive:verify",
+    "passed": true,
+    "publicRunUrl": "https://example.invalid/ci-run",
+    "benchmarkEvidence": {
+      "result": "4.4 ms / 22700 ops-sec",
+      "manifest": "docs/benchmarks/results.json"
+    }
+  },
+  "notes": "Replace placeholders before committing an accepted external replay."
+}

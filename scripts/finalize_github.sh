@@ -56,6 +56,9 @@ gh repo edit "$REPO" \
   --add-topic agent-framework \
   --add-topic collective-intelligence \
   --add-topic stigmergy \
+  --add-topic merkle \
+  --add-topic provenance \
+  --add-topic agent-substrate \
   --add-topic meta-cognitive-optimization \
   --add-topic arc-agi \
   --add-topic meta-cognitive \

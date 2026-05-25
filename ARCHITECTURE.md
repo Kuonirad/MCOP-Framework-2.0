@@ -68,6 +68,15 @@ decision was accepted, rejected, or routed.
 | `EvidenceRetriever` (Python `mcop.evidence_retrieval`, TS `src/utils/evidenceRetriever.ts`) | query → ranked `RetrievalResult[]` | Plug-in retriever surface called from `MCOPEngine._gather_evidence` and `CouncilScorer.score`. Default `InMemoryEvidenceRetriever` is a deterministic cosine retriever; production deployments subclass for BM25/FAISS/etc. Retrieved evidence is appended, never overwriting human-supplied items. |
 | `GuardianMetaReasoner` (Python `mcop.guardian`, TS `src/utils/guardianMetaReasoner.ts`) | hypothesis/chain/solution → `GuardianVerdict` | Real-time grounding-index audit against a configurable threshold (minimum 0.70 in strict mode). Verdicts attach to artefact metadata and surface below-floor cases as explicit human-review escalations. |
 
+The live triad layout is `src/core/`, not `src/kernels/`. `src/core/index.ts`
+re-exports `NovaNeoEncoder`, `StigmergyV5`, `HolographicEtch`, provenance
+utilities, Drift Sentinel, and the `SEVEN_LAYER_ROUTING` bridge for internal
+consumers; `packages/core/src` mirrors the public package surface for package
+consumers.
+
+For the whitepaper layer bridge, see `docs/SEVEN_LAYER_MAPPING.md` and the
+runtime `SEVEN_LAYER_ROUTING` export from `src/core/sevenLayerRouting.ts`.
+
 ### Code-level invariants
 
 - Canonical hashes use RFC 8785 JSON serialization via `canonicalDigest`.

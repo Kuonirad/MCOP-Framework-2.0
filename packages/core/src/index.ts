@@ -11,6 +11,7 @@ export * from './provenanceTracer';
 export * from './canonicalEncoding';
 export * from './embeddingEngine';
 export * from './universalCrypto';
+export * from './sevenLayerRouting';
 
 /**
  * Plain-English aliases — additive, non-breaking.

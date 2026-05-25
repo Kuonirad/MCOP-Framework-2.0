@@ -1,0 +1,63 @@
+{
+  "title": "MCOP Drift Sentinel and Guardian Grounding",
+  "description": "Datadog dashboard template for Drift Sentinel Delta(T_d, B_e), Guardian grounding floor, and combined injection-risk windows.",
+  "layout_type": "ordered",
+  "widgets": [
+    {
+      "definition": {
+        "type": "timeseries",
+        "title": "Drift Sentinel Delta(T_d, B_e)",
+        "requests": [
+          {
+            "q": "avg:mcop.drift_sentinel.delta_td_be{env:$env}",
+            "display_type": "line"
+          }
+        ],
+        "markers": [
+          { "value": "y = 0.25", "display_type": "warning dashed" },
+          { "value": "y = 0.70", "display_type": "error dashed" }
+        ]
+      }
+    },
+    {
+      "definition": {
+        "type": "query_value",
+        "title": "Guardian Grounding Floor",
+        "requests": [
+          {
+            "q": "avg:mcop.guardian.grounding_floor{env:$env}"
+          }
+        ],
+        "autoscale": false,
+        "precision": 2,
+        "custom_unit": "score"
+      }
+    },
+    {
+      "definition": {
+        "type": "alert_graph",
+        "title": "Combined Injection Risk",
+        "alert_id": "replace-with-monitor-id",
+        "viz_type": "timeseries"
+      }
+    }
+  ],
+  "template_variables": [
+    {
+      "name": "env",
+      "prefix": "env",
+      "default": "prod"
+    }
+  ],
+  "monitor_templates": [
+    {
+      "name": "MCOP combined injection-risk window",
+      "type": "query alert",
+      "query": "min(last_5m):avg:mcop.drift_sentinel.delta_td_be{env:prod} >= 0.70 && avg:mcop.guardian.grounding_floor{env:prod} < 0.70",
+      "message": "Drift Sentinel critical delta with Guardian grounding below floor. Quarantine synthesis and preserve provenance.",
+      "thresholds": {
+        "critical": 1
+      }
+    }
+  ]
+}
