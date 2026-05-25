@@ -1,6 +1,6 @@
 # Positive Impact Report
 
-Generated: 2026-05-25T04:34:20.313Z
+Generated: 2026-05-25T04:41:06.290Z
 
 This report is Positive Building of reproducible trust. It records the local
 suite that keeps MCOP-Framework-2.0 joyful, adoptable, and provenance-rich.
@@ -14,26 +14,26 @@ MCOP kernel citations below for the exact scoring events.
 | Metric | Value |
 |:---|---:|
 | Positive impact score | 100% |
-| Contributor joy | 0.993 |
+| Contributor joy | 1 |
 | Adoption velocity | 0.816 |
-| Beneficial outcome amplification | 0.977 |
+| Beneficial outcome amplification | 1 |
 | Growth events | 9 |
 | Substrate equilibrium (Proteome) | 0.711 |
-| Growth ledger Merkle root | `e72e42fc9b4f5bf16896b0e23c4fccd0cf351084a2a55bf1cfd9365b99cb74d9` |
+| Growth ledger Merkle root | `60dc375e4ff9f23b70b67239f0990fa85d44c494ec0ef1ecb520df35d8a9e77e` |
 
 ## Verification resonance
 
 | Layer | State | Domain | Propagation | Command | Duration ms |
 |:---|:---|:---|:---|:---|---:|
-| TypeScript app resonance | Radiating | determinism | radiate | `pnpm exec tsc -p tsconfig.json --pretty false` | 2428 |
-| TypeScript core resonance | Radiating | determinism | radiate | `pnpm --filter @kullailabs/mcop-core exec tsc -p tsconfig.json --pretty false` | 1697 |
-| Lint resonance | Radiating | identity | radiate | `pnpm lint` | 6298 |
-| Test resonance | Radiating | determinism | bloom | `pnpm test -- --runInBand` | 62310 |
-| Parity resonance | Radiating | provenance | radiate | `pnpm parity:check` | 3436 |
-| Documentation resonance | Radiating | doc-code-sync | radiate | `pnpm docs:guard` | 958 |
-| Placement resonance | Radiating | link-integrity | radiate | `pnpm audit:placement` | 990 |
-| SBOM generation resonance | Radiating | dependency-hygiene | radiate | `pnpm sbom` | 6280 |
-| SBOM validation resonance | Radiating | dependency-hygiene | radiate | `pnpm sbom:validate` | 1516 |
+| TypeScript app resonance | Radiating | determinism | radiate | `pnpm exec tsc -p tsconfig.json --pretty false` | 2425 |
+| TypeScript core resonance | Radiating | determinism | radiate | `pnpm --filter @kullailabs/mcop-core exec tsc -p tsconfig.json --pretty false` | 1559 |
+| Lint resonance | Radiating | identity | radiate | `pnpm lint` | 4800 |
+| Test resonance | Radiating | determinism | radiate | `pnpm test -- --runInBand` | 25163 |
+| Parity resonance | Radiating | provenance | radiate | `pnpm parity:check` | 3356 |
+| Documentation resonance | Radiating | doc-code-sync | radiate | `pnpm docs:guard` | 1116 |
+| Placement resonance | Radiating | link-integrity | radiate | `pnpm audit:placement` | 1096 |
+| SBOM generation resonance | Radiating | dependency-hygiene | radiate | `pnpm sbom` | 5524 |
+| SBOM validation resonance | Radiating | dependency-hygiene | radiate | `pnpm sbom:validate` | 1651 |
 
 ## MCOP kernel citations
 
@@ -42,16 +42,16 @@ report above was generated from.
 
 | Kernel | Signal | Hash | Backs |
 |:---|:---|:---|:---|
-| PositiveResonanceAmplifier | growth-merkle-root | `e72e42fc9b4f5bf1…74d9` | contributorJoy, adoptionVelocity, beneficialOutcomeAmplification |
-| HolographicEtch | eudaimonic-etch | `8a49aecc55eeb6d9…ee71` | TypeScript app resonance → radiate (flourishing 1) |
-| HolographicEtch | eudaimonic-etch | `50dfa236d3262058…3af8` | TypeScript core resonance → radiate (flourishing 1) |
-| HolographicEtch | eudaimonic-etch | `bb09c63c683d8f33…b3ef` | Lint resonance → radiate (flourishing 1) |
-| HolographicEtch | eudaimonic-etch | `a4d833f3519bf252…9a5c` | Test resonance → bloom (flourishing 0.8550000000000002) |
-| HolographicEtch | eudaimonic-etch | `5b98323d4b484a29…08b9` | Parity resonance → radiate (flourishing 1) |
-| HolographicEtch | eudaimonic-etch | `11ed4df022101d70…7001` | Documentation resonance → radiate (flourishing 1) |
-| HolographicEtch | eudaimonic-etch | `a11738ef4bbfeede…1551` | Placement resonance → radiate (flourishing 1) |
-| HolographicEtch | eudaimonic-etch | `0da7b1eb10a87baa…f0bf` | SBOM generation resonance → radiate (flourishing 1) |
-| HolographicEtch | eudaimonic-etch | `6bdc3b1c572ce146…ef72` | SBOM validation resonance → radiate (flourishing 1) |
+| PositiveResonanceAmplifier | growth-merkle-root | `60dc375e4ff9f23b…e77e` | contributorJoy, adoptionVelocity, beneficialOutcomeAmplification |
+| HolographicEtch | eudaimonic-etch | `ad181e9017d813ed…4997` | TypeScript app resonance → radiate (flourishing 1) |
+| HolographicEtch | eudaimonic-etch | `0a475e73c266ee0d…fc84` | TypeScript core resonance → radiate (flourishing 1) |
+| HolographicEtch | eudaimonic-etch | `fd182aea3e20a833…4023` | Lint resonance → radiate (flourishing 1) |
+| HolographicEtch | eudaimonic-etch | `ddb752600c59e055…78e4` | Test resonance → radiate (flourishing 1) |
+| HolographicEtch | eudaimonic-etch | `302cce7e11669bd7…3825` | Parity resonance → radiate (flourishing 1) |
+| HolographicEtch | eudaimonic-etch | `de927335ef17980e…13d7` | Documentation resonance → radiate (flourishing 1) |
+| HolographicEtch | eudaimonic-etch | `13b1a8855026a7c1…5b05` | Placement resonance → radiate (flourishing 1) |
+| HolographicEtch | eudaimonic-etch | `850dfeb870fdaa3a…4b38` | SBOM generation resonance → radiate (flourishing 1) |
+| HolographicEtch | eudaimonic-etch | `933e5d6897d58041…7ca3` | SBOM validation resonance → radiate (flourishing 1) |
 | ProteomeOrchestrator | equilibrium-merkle-root | `945d582c56f16b69…024b` | substrate stability (equilibrium 0.711) |
 
 ## Measurement Loop Deltas
@@ -68,3 +68,16 @@ report above was generated from.
 | Contributor joy | 0.993 | baseline |
 | Adoption velocity | 0.816 | baseline |
 | Beneficial outcome amplification | 0.977 | baseline |
+
+### 2026-05-25T04:41:06.290Z - `eb53daaf0311`
+
+- Commit: `eb53daaf03111559151019dcecd218ba6d7d25e7`
+- Evidence hash: `28d4789cb93668505031cebc8d78c1d0b302f274c3b64fc3ca99e92b5710786a`
+- Delta basis: Compared with previous snapshot `c0c4b08c337e` from `2026-05-25T04:34:20.313Z`.
+
+| Metric | Current signal | Delta |
+|:---|:---|---:|
+| Positive impact score | 100% | 0% |
+| Contributor joy | 1.000 | +0.007 |
+| Adoption velocity | 0.816 | 0.000 |
+| Beneficial outcome amplification | 1.000 | +0.023 |

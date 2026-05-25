@@ -79,8 +79,8 @@ function writePositiveImpactReport(checkResults, capturedAt) {
   mkdirSync(dirname(ledgerPath), { recursive: true });
   mkdirSync(metricsDir, { recursive: true });
 
-  const previousLedger = existsSync(ledgerPath) ? readFileSync(ledgerPath, 'utf8') : '';
-  const previousReport = existsSync(reportPath) ? readFileSync(reportPath, 'utf8') : '';
+  const previousLedger = readOptionalFile(ledgerPath);
+  const previousReport = readOptionalFile(reportPath);
   const existingDeltas = previousLedger
     ? extractSection(previousReport, '## Measurement Loop Deltas')
     : '';
@@ -146,8 +146,9 @@ function generateImpactSignals(checkResults, capturedAt) {
         stdio: 'pipe',
       },
     );
-    if (gen.status !== 0 || !existsSync(signalsPath)) return null;
-    return JSON.parse(readFileSync(signalsPath, 'utf8'));
+    if (gen.status !== 0) return null;
+    const signals = readOptionalFile(signalsPath);
+    return signals ? JSON.parse(signals) : null;
   } catch {
     return null;
   }
@@ -266,6 +267,15 @@ function runCheckCommand(command, args) {
     encoding: 'utf8',
     stdio: 'pipe',
   });
+}
+
+function readOptionalFile(pathname) {
+  try {
+    return readFileSync(pathname, 'utf8');
+  } catch (error) {
+    if (error?.code === 'ENOENT') return '';
+    throw error;
+  }
 }
 
 function extractSection(content, heading) {
