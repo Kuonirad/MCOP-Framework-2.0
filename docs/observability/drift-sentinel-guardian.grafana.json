@@ -1,0 +1,121 @@
+{
+  "schemaVersion": 39,
+  "title": "MCOP Drift Sentinel and Guardian Grounding",
+  "tags": ["mcop", "drift-sentinel", "guardian", "provenance"],
+  "timezone": "browser",
+  "refresh": "30s",
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "Drift Sentinel Delta(T_d, B_e)",
+      "targets": [
+        {
+          "expr": "mcop_drift_sentinel_delta_td_be",
+          "legendFormat": "delta"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "orange", "value": 0.25 },
+              { "color": "red", "value": 0.7 }
+            ]
+          }
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 }
+    },
+    {
+      "id": 2,
+      "type": "gauge",
+      "title": "Guardian Grounding Floor",
+      "targets": [
+        {
+          "expr": "mcop_guardian_grounding_floor",
+          "legendFormat": "grounding floor"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "min": 0,
+          "max": 1,
+          "unit": "percentunit",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "orange", "value": 0.55 },
+              { "color": "green", "value": 0.7 }
+            ]
+          }
+        }
+      },
+      "gridPos": { "h": 8, "w": 6, "x": 12, "y": 0 }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Grounding Verdict",
+      "targets": [
+        {
+          "expr": "min_over_time(mcop_guardian_grounding_floor_verdict[5m])",
+          "legendFormat": "5m verdict"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": { "text": "FAIL", "color": "red" },
+                "1": { "text": "PASS", "color": "green" }
+              }
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "green", "value": 1 }
+            ]
+          }
+        }
+      },
+      "gridPos": { "h": 8, "w": 6, "x": 18, "y": 0 }
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Combined Injection-Risk Window",
+      "targets": [
+        {
+          "expr": "(mcop_drift_sentinel_delta_td_be >= 0.7) and (mcop_guardian_grounding_floor < 0.7)",
+          "legendFormat": "risk"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bool",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 1 }
+            ]
+          }
+        }
+      },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 8 }
+    }
+  ]
+}

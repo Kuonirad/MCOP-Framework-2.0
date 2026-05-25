@@ -8,6 +8,19 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased] — Automated Evidence Retrieval & Guardian v0.2
 
 ### Added
+- **v2.4 release-readiness and operator artifacts.** Added
+  `docs/releases/v2.4.0.md`, `docs/SEVEN_LAYER_MAPPING.md`,
+  `docs/api/orchestrator.md`, Drift Sentinel / Guardian Grafana and Datadog
+  dashboard templates, an external benchmark replay manifest template, and a
+  public CUDA kernel manifest mirror under `docs/cuda/kernels-manifest.json`.
+- **Reference CUDA ONNX artifacts.** Committed deterministic
+  `models/mcop_*.onnx` reference kernels plus `models/manifest.json` from
+  `scripts/export_cuda_kernels/export.py --backend reference`, closing the
+  inventory gap while keeping real-GPU production status gated on the 1,000-step
+  verified-device soak.
+- **Seven-layer routing export.** Added `SEVEN_LAYER_ROUTING` and
+  `getSevenLayerRouting()` in both the app core and `@kullailabs/mcop-core`
+  package surface.
 - **Verification Quality (Phase 3) — substrate-driven stacked recursion.** New
   `src/audit/verificationQuality.ts` (`assessVerificationQuality`) mutation-tests
   the Phase 2 verifier with the Proteome substrate as the adversarial driver: a

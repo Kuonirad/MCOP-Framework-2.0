@@ -35,7 +35,8 @@ This repo measures its own positive impact via MCOP primitives — [100% current
 The headline baseline is **4.4 ms / 22,700 ops/sec** for the deterministic core, backed by
 [`docs/benchmarks/results.json`](./docs/benchmarks/results.json) and the
 [`examples/reproducible-benchmark/`](./examples/reproducible-benchmark/README.md) Docker +
-Jupyter bundle.
+Jupyter bundle. External replay recruitment and the manifest template live in
+[`docs/benchmarks/EXTERNAL_REPLAY.md`](./docs/benchmarks/EXTERNAL_REPLAY.md).
 
 **Value proposition:** MCOP gives agent builders a reproducible trust substrate:
 deterministic orchestration, Merkle-chained provenance, adapter-ready integration
@@ -68,7 +69,7 @@ Grok models execute the triad in-model and merge their traces back into the host
 Magnific, Utopai, and generic REST/MCP/HTTP production adapters. Ledger-aware Holographic Etch
 factories ship with **in-memory + file storage backends**, **async + Redis ledger forwarders**
 (retry, DLQ, and `unref()`-clean shutdown), and **snapshot ↔ ledger reconciliation** utilities.
-Cryptographic lineage at every step. **90.63%** test coverage.
+Cryptographic lineage at every step. **90.64%** test coverage.
 **Source-available under BUSL-1.1 with scheduled MIT conversion on 2030-04-26.**
 
 > **Why this matters:** unlike retrieval-augmented or chain-of-thought wrappers,
@@ -96,6 +97,10 @@ Cryptographic lineage at every step. **90.63%** test coverage.
 | Organelle host & ledger I/O | [`src/adapters/grokAdapter.ts`](./src/adapters/grokAdapter.ts) exposes `organelleMode` for bidirectional in-model triad execution; [`src/ledger/`](./src/ledger/) ships ledger-aware Holographic Etch factories with background + Redis async forwarders (retry, DLQ, clean shutdown); [`src/core/etchBackend.ts`](./src/core/etchBackend.ts) and [`src/core/stigmergyBackend.ts`](./src/core/stigmergyBackend.ts) provide in-memory + file storage backends; [`src/utils/organelleMerge.ts`](./src/utils/organelleMerge.ts) and [`src/utils/ledgerReconciliation.ts`](./src/utils/ledgerReconciliation.ts) cover trace reconstruction, merge, and snapshot ↔ ledger reconciliation. |
 | Distributed runtime | [`src/cluster/redisStreamsGossipTransport.ts`](./src/cluster/redisStreamsGossipTransport.ts) adds Redis Streams gossip transport alongside the in-memory bus. |
 | Security posture | CodeQL, Dependabot, Trojan-Source guard, SBOM generation, workflow hygiene verification, and pinned CI runtimes are merge-blocking surfaces. |
+
+The whitepaper's seven cognitive layers are mapped to live modules in
+[`docs/SEVEN_LAYER_MAPPING.md`](./docs/SEVEN_LAYER_MAPPING.md) and exported as
+`SEVEN_LAYER_ROUTING` from `src/core`.
 
 <div align="center">
 
@@ -146,7 +151,7 @@ feature comparison, May 2026 — public docs as of writing):
 | Self-healing dimension + bounded-curiosity recall guards | ✅ SelfHealingDimension + ResonantRecentQuery | ❌ | ❌ | ❌ |
 | Universal Adapter Protocol (OpenAI-compatible · Claude · DeepSeek · Kimi · Qwen · Grok/xAI · production REST/MCP) | ✅ | ✅ | ⚠️ partial | ⚠️ partial |
 | Native xAI Grok adapter (text + image generation) | ✅ | ⚠️ community | ❌ | ❌ |
-| Test coverage on documented API surface | **90.63%** | varies | varies | varies |
+| Test coverage on documented API surface | **90.64%** | varies | varies | varies |
 | Reference benchmark (full pipeline) | **4.4 ms / 22,700 ops/sec** ([source](./src/benchmarks/promptingModes.ts)) | n/a | n/a | n/a |
 | License posture | **BUSL-1.1 → MIT 2030-04-26** | MIT | CC-BY-4.0 / MIT | MIT |
 | CodeQL + SBOM (CycloneDX) + Trojan-Source guard in CI | ✅ | ⚠️ partial | ⚠️ partial | ⚠️ partial |
@@ -301,13 +306,13 @@ corepack prepare pnpm@9.15.0 --activate
 # 3. Install workspace dependencies (≈30 s on a warm cache)
 pnpm install
 
-# 4. Run the deterministic Jest suite — 90.63% covered (≈20 s)
+# 4. Run the deterministic Jest suite — 90.64% covered (≈20 s)
 pnpm test
 
 # 5. Generate the Positive Impact Report + Merkle-anchored audit badge (≈5 s)
 pnpm positive:audit
 
-# 6. Launch the production server (Next.js 15.5 SSR, port 3000)
+# 6. Launch the production server (Next.js 15.5.18 SSR, port 3000)
 pnpm build && pnpm start
 
 # 7. Optional — open the Three.js cinematic showcase locally
@@ -521,11 +526,11 @@ console.log((await memory.getMessages())[0].provenance?.merkleRoot);
 
 <div align="center">
 
-[![Next.js](https://img.shields.io/badge/Next.js-16-black?style=for-the-badge&logo=next.js)](https://nextjs.org)
+[![Next.js](https://img.shields.io/badge/Next.js-15.5.18-black?style=for-the-badge&logo=next.js)](https://nextjs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6?style=for-the-badge&logo=typescript)](https://typescriptlang.org)
 [![Node.js](https://img.shields.io/badge/Node.js-22.22.3-339933?style=for-the-badge&logo=node.js)](https://nodejs.org)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ed?style=for-the-badge&logo=docker)](./Dockerfile)
-[![Jest](https://img.shields.io/badge/Jest-90.63%25-c21325?style=for-the-badge&logo=jest)](./jest.config.js)
+[![Jest](https://img.shields.io/badge/Jest-90.64%25-c21325?style=for-the-badge&logo=jest)](./jest.config.js)
 [![ESLint](https://img.shields.io/badge/ESLint-Strict-4b32c3?style=for-the-badge&logo=eslint)](./eslint.config.mjs)
 
 </div>
@@ -554,7 +559,9 @@ MCOP-Framework-2.0/
 ├── 📚 docs/
 │   ├── api/                       # Full API reference
 │   ├── adapters/                  # Adapter protocol specs
-│   └── features/                  # Drift Sentinel and feature deep dives
+│   ├── cuda/                      # Kernel manifest mirrors
+│   ├── features/                  # Drift Sentinel and feature deep dives
+│   └── observability/             # Grafana / Datadog operator templates
 ├── 🧪 src/__tests__/              # Jest coverage suite
 ├── 🔧 scripts/                    # Benchmarks, guards, SBOM, telemetry registry
 ├── 🐳 Dockerfile                  # Production container
@@ -634,6 +641,11 @@ MetaTuner, which now drives the proteome's regime in lock-step with the
 NOVA-EVOLVE genome. Full design rationale lives in
 [`docs/PROTEOME_LAYER.md`](./docs/PROTEOME_LAYER.md).
 
+Release-readiness notes for cutting `v2.4.0` live in
+[`docs/releases/v2.4.0.md`](./docs/releases/v2.4.0.md). The CUDA reference
+kernels are committed under `models/`, with the public manifest mirror at
+[`docs/cuda/kernels-manifest.json`](./docs/cuda/kernels-manifest.json).
+
 ### Shipped surfaces
 
 | Surface | File | Role |
@@ -688,6 +700,9 @@ between the **declared-task tensor** `T_d` (what the caller said they were
 doing — e.g. system + user prompt embedding) and the **ensemble-behavior tensor**
 `B_e` (the per-model synthesis vectors from the Council, reduced to their mean).
 Full design lives in [`docs/features/drift-sentinel-kernel.md`](docs/features/drift-sentinel-kernel.md).
+Operator dashboards for Drift Sentinel Delta(T_d, B_e) and Guardian
+grounding-floor verdicts live in
+[`docs/observability/DRIFT_SENTINEL_GUARDIAN_DASHBOARD.md`](./docs/observability/DRIFT_SENTINEL_GUARDIAN_DASHBOARD.md).
 
 ### What it produces
 

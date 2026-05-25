@@ -21,6 +21,7 @@ export * from './driftSentinelKernel';
 export * from './stigmergyBackend';
 export * from './etchBackend';
 export * from './snapshotTypes';
+export * from './sevenLayerRouting';
 
 // Reconciliation tooling (snapshot vs hosted ledger)
 export {
