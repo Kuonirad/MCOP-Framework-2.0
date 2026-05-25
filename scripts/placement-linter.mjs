@@ -49,7 +49,7 @@ const CONVENTIONS = [
     dir: 'scripts',
     description: 'Repository automation and audit scripts',
     pattern: /.*/,
-    allowedExts: ['.mjs', '.sh', '.js'],
+    allowedExts: ['.mjs', '.sh', '.js', '.py', '.md'],
   }
 ];
 
@@ -62,6 +62,7 @@ const IGNORE_DIRS = [
   'coverage',
   '.venv',
   '__tests__',
+  '__pycache__',
   'cypress',
   'mcop_package/tests',
 ];

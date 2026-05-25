@@ -73,6 +73,13 @@ describe('audit remediation guardrail scripts', () => {
     });
   });
 
+  it('accepts tracked Python automation under scripts while ignoring generated caches', () => {
+    execFileSync('node', ['scripts/placement-linter.mjs'], {
+      cwd: process.cwd(),
+      encoding: 'utf8',
+    });
+  });
+
   it('rejects unpinned actions and obsolete Node runtimes in workflow fixtures', () => {
     const dir = mkdtempSync(join(tmpdir(), 'mcop-workflow-hygiene-'));
     const workflow = join(dir, 'bad.yml');

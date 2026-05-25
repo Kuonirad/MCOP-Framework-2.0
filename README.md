@@ -14,6 +14,10 @@
 [![License: BUSL 1.1](https://img.shields.io/badge/License-BUSL%201.1-ffd700?style=flat-square)](LICENSE)
 [![Maintained](https://img.shields.io/badge/maintained-yes-00ff88?style=flat-square)](./GOVERNANCE.md)
 [![Positive Impact](./docs/badges/positive-impact.svg)](./docs/POSITIVE_IMPACT_REPORT.md)
+[![Impact Score](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/Kuonirad/MCOP-Framework-2.0/main/.github/metrics/positive-impact-score.json&style=flat-square)](./docs/POSITIVE_IMPACT_REPORT.md)
+[![Contributor Joy](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/Kuonirad/MCOP-Framework-2.0/main/.github/metrics/positive-contributor-joy.json&style=flat-square)](./audit/positive-resonance-ledger.md)
+[![Adoption Velocity](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/Kuonirad/MCOP-Framework-2.0/main/.github/metrics/positive-adoption-velocity.json&style=flat-square)](./audit/positive-resonance-ledger.md)
+[![Beneficial Amplification](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/Kuonirad/MCOP-Framework-2.0/main/.github/metrics/positive-beneficial-outcome-amplification.json&style=flat-square)](./audit/positive-resonance-ledger.md)
 [![Reproducible Benchmark](./docs/badges/reproducible-benchmark.svg)](./examples/reproducible-benchmark/README.md)
 [![Open Notebook](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Kuonirad/MCOP-Framework-2.0/blob/main/examples/reproducible-benchmark/notebooks/reproduce-22700-ops.ipynb)
 
@@ -178,9 +182,13 @@ check, Holographic Etch scores it as a eudaimonic etch, the
 derives the contributor-joy / adoption-velocity / beneficial-outcome metrics,
 and a Proteome substrate (its edge-of-chaos knobs conditioned by the audit's
 pass ratio) contributes an equilibrium-stability signal. It then regenerates the
-living [`docs/POSITIVE_IMPACT_REPORT.md`](./docs/POSITIVE_IMPACT_REPORT.md) and
-its badge, with a **MCOP kernel citations** table listing the exact scoring-event
-hashes and Merkle roots each metric was generated from.
+living [`docs/POSITIVE_IMPACT_REPORT.md`](./docs/POSITIVE_IMPACT_REPORT.md),
+appends [`audit/positive-resonance-ledger.md`](./audit/positive-resonance-ledger.md),
+and refreshes shields.io endpoint JSON in [`.github/metrics`](./.github/metrics).
+The report keeps a delta log while the ledger records each holographic-etch
+measurement with the commit hash that produced it. The report also keeps a
+**MCOP kernel citations** table listing the exact scoring-event hashes and
+Merkle roots each metric was generated from.
 
 Those citations are **falsifiable**. A committed attestation
 ([`audit/positive-impact-attestation.json`](./audit/positive-impact-attestation.json))
@@ -367,6 +375,7 @@ console.log({
 | License | BUSL-1.1 license with scheduled MIT conversion noted in `LICENSE`. | [`LICENSE`](./LICENSE) |
 | Maintained | Governance and maintainer process are documented. | [`GOVERNANCE.md`](./GOVERNANCE.md) |
 | Positive Impact | Eudaimonic / positive-resonance audit score; refreshed by `pnpm positive:audit`. | [`docs/badges/positive-impact.svg`](./docs/badges/positive-impact.svg) · [`docs/POSITIVE_IMPACT_REPORT.md`](./docs/POSITIVE_IMPACT_REPORT.md) |
+| Impact Score / Contributor Joy / Adoption Velocity / Beneficial Amplification | Dynamic shields.io endpoint badges for the four ImpactAuditor metrics; refreshed by the scheduled and release measurement loop. | [`.github/metrics`](./.github/metrics) · [`audit/positive-resonance-ledger.md`](./audit/positive-resonance-ledger.md) |
 
 ---
 
