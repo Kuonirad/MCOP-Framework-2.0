@@ -163,14 +163,22 @@ Running:
 pnpm positive:audit
 ```
 
-invokes this loop. It regenerates the living
-[`docs/POSITIVE_IMPACT_REPORT.md`](./docs/POSITIVE_IMPACT_REPORT.md) and its
-positive-impact badge, documenting how MCOP is currently measuring and
-expressing its contribution to reproducible trust, adoptable cognition, and
-human-AI flourishing.
+invokes this loop. It now **executes parts of its own impact measurement via
+MCOP primitives** rather than declaring them. The `ImpactAuditor`
+([`src/audit/impactAuditor.ts`](./src/audit/impactAuditor.ts)) routes the live
+verification results through the framework's own kernels — NOVA-NEO encodes each
+check, Holographic Etch scores it as a eudaimonic etch, the
+`PositiveResonanceAmplifier` records it as a Merkle-chained growth event and
+derives the contributor-joy / adoption-velocity / beneficial-outcome metrics,
+and a Proteome substrate (its edge-of-chaos knobs conditioned by the audit's
+pass ratio) contributes an equilibrium-stability signal. It then regenerates the
+living [`docs/POSITIVE_IMPACT_REPORT.md`](./docs/POSITIVE_IMPACT_REPORT.md) and
+its badge, with a **MCOP kernel citations** table listing the exact scoring-event
+hashes and Merkle roots each metric was generated from.
 
-Current state: the report and scoring surface are active and under development.
-They represent the system beginning to observe itself using its own tools. As
+Current state: the contributor-joy, adoption-velocity, and beneficial-outcome
+metrics are no longer formulas — they are computed by the
+`PositiveResonanceAmplifier` over real growth events and cited by hash. As
 adoption and contribution grow, the data flowing through this loop becomes
 richer, turning positive impact from a static claim into a dynamic, improvable
 property of the project.
@@ -180,10 +188,11 @@ framework practicing its own thesis: advanced cognitive systems become more
 trustworthy and more valuable when they can see, score, and steer toward their
 own flourishing trajectories.
 
-The long-term target is for the report to cite the specific kernels, scoring
-events, and Holographic Etches that strengthened each section of its own
-generation. At that point, the recursion becomes operational evidence, not just
-architecture prose.
+As of the Phase 1 `ImpactAuditor`, the report cites the specific kernels,
+scoring events, and Holographic Etches that strengthened its own generation —
+the recursion is now operational evidence, not just architecture prose. The next
+phases widen the substrate's role from a conditioned signal to an active driver
+of the discovered metrics.
 
 - **Canonical home:** `https://github.com/Kuonirad/MCOP-Framework-2.0`
 - **Canonical local path:** `MCOP-Framework-2.0`

@@ -8,6 +8,23 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased] — Automated Evidence Retrieval & Guardian v0.2
 
 ### Added
+- **Impact Auditor (Phase 1) — operational positive-impact recursion.** New
+  `src/audit/impactAuditor.ts` (`auditPositiveImpact`) routes the live
+  `pnpm positive:audit` verification results through the framework's own
+  kernels: NOVA-NEO encodes each check, `HolographicEtch` scores it as a
+  eudaimonic etch (flourishing score + propagation hint + citable canonical
+  hash), `PositiveResonanceAmplifier` records each as a Merkle-chained growth
+  event and *derives* the contributor-joy / adoption-velocity /
+  beneficial-outcome metrics (replacing the previous hand-written formulas), and
+  a `ProteomeOrchestrator` substrate — its `homeostasis`/`mutationTemperature`
+  knobs conditioned by the audit pass ratio — emits an equilibrium-stability
+  signal. `scripts/positive-audit.mjs` now feeds the live matrix through the
+  auditor (executed via Jest, mirroring `benchmark:refresh`) and renders
+  `docs/POSITIVE_IMPACT_REPORT.md` with a **MCOP kernel citations** table listing
+  the exact scoring-event hashes and Merkle roots each metric was generated from.
+  The auditor is deterministic given its inputs (timestamps never feed a hash or
+  metric), proven by `src/__tests__/impactAuditor.test.ts`. This makes the
+  README's positive-impact claim operational evidence rather than aspiration.
 - **Drift Sentinel Kernel.** New `src/core/driftSentinelKernel.ts` is a
   first-class MCOP module that continuously computes
   `Δ(T_d, B_e)` (cosine distance between the declared-task tensor and
