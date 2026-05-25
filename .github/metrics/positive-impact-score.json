@@ -2,5 +2,6 @@
   "schemaVersion": 1,
   "label": "positive impact score",
   "message": "100%",
-  "color": "brightgreen"
+  "color": "brightgreen",
+  "cacheSeconds": 300
 }

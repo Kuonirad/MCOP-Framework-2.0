@@ -43,6 +43,7 @@ export interface ShieldsEndpoint {
   label: string;
   message: string;
   color: string;
+  cacheSeconds: number;
 }
 
 export function buildPositiveLoopSnapshot({
@@ -153,6 +154,7 @@ export function renderShieldsEndpoints(
         label: metric.label.toLowerCase(),
         message: metric.signal,
         color: badgeColor(metric),
+        cacheSeconds: 300,
       },
     ]),
   );
