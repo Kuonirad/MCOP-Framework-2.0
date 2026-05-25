@@ -13,7 +13,9 @@
 **Window:** 2026-05-10 → 2026-08-10 (90 days, 7 phases)
 
 The v2.4 line is an explicit **discoverability + adoption** push that compounds the
-production-grade core (96.6 % coverage, deterministic 4.4 ms / 22,700 ops/sec pipeline,
+operationally-mature core (96.6 % test coverage in the Jest snapshot, deterministic
+4.4 ms / 22,700 ops/sec reference run reproducible via
+[`examples/reproducible-benchmark/`](./examples/reproducible-benchmark/README.md),
 Merkle-chained provenance, BUSL-1.1 → MIT 2030-04-26) without violating any of those
 invariants. Every escalation is etched via `ProvenanceMetadata` and gated by
 `pnpm positive:audit`, so the protocol is fully reversible.

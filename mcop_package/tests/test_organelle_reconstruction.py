@@ -65,7 +65,7 @@ def test_cross_runtime_roundtrip_reconstruction():
     - Python side receives the hint + summary and reconstructs.
     - Both sides should produce tensors that are close enough for resonance calculations.
 
-    This is the production-grade parity test for organelle hint reconstruction.
+    This is the canonical parity test for organelle hint reconstruction.
     """
     text = "We are evolving MCOP and Grok into a true mutualistic symbiosis."
 

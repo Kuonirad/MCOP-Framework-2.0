@@ -61,7 +61,7 @@ mcop_package/
     └── demo.py            # Demo utilities (350+ lines)
 ```
 
-**Total Code**: ~4,000+ lines of production-ready Python code
+**Total Code**: ~4,000+ lines of test-backed Python code (see `mcop_package/tests/` for the ~246-test pytest suite)
 
 ## 🚀 Quick Start
 
@@ -358,7 +358,7 @@ python -c "from mcop import solve; print(solve('test').content)"
 
 ## 🏆 Summary
 
-**M-COP v3.1 is a complete, production-ready reasoning framework** with:
+**M-COP v3.1 is a feature-complete, test-backed reasoning framework** (in research / pre-1.0 maturity per [`docs/audits/PARP-v1.0.md`](../docs/audits/PARP-v1.0.md)) with:
 - ✅ 100% complete implementation
 - ✅ 100% test pass rate
 - ✅ Comprehensive documentation
