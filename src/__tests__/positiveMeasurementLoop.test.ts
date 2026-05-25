@@ -99,6 +99,7 @@ describe('positive measurement loop', () => {
       expect(typeof badge.label).toBe('string');
       expect(typeof badge.message).toBe('string');
       expect(typeof badge.color).toBe('string');
+      expect(badge.cacheSeconds).toBe(300);
     }
   });
 });

@@ -87,6 +87,14 @@ describe('audit remediation guardrail scripts', () => {
     expect(source).toContain('function readOptionalFile');
   });
 
+  it('keeps README shields.io metric endpoints cache-busted and encoded', () => {
+    const source = readFileSync('README.md', 'utf8');
+    const endpointBadges = source.match(/https:\/\/img\.shields\.io\/endpoint\?cacheSeconds=300&style=flat-square&url=https%3A%2F%2Fraw\.githubusercontent\.com%2FKuonirad%2FMCOP-Framework-2\.0%2Fmain%2F\.github%2Fmetrics%2Fpositive-[^)]+\.json/g) ?? [];
+
+    expect(source).not.toContain('https://img.shields.io/endpoint?url=https://raw.githubusercontent.com');
+    expect(endpointBadges).toHaveLength(4);
+  });
+
   it('rejects unpinned actions and obsolete Node runtimes in workflow fixtures', () => {
     const dir = mkdtempSync(join(tmpdir(), 'mcop-workflow-hygiene-'));
     const workflow = join(dir, 'bad.yml');
