@@ -1,0 +1,56 @@
+name: Positive Resonance Ledger
+
+on:
+  schedule:
+    - cron: '23 5 * * 1'
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: positive-resonance-ledger-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  measure:
+    name: Close measurement loop
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout default branch
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 0
+
+      - name: Setup project environment
+        uses: ./.github/actions/setup-project
+        with:
+          node-version: 22.22.3
+
+      - name: Capture measured commit
+        shell: bash
+        run: echo "MCOP_POSITIVE_COMMIT=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+
+      - name: Run ImpactAuditor measurement loop
+        run: pnpm positive:audit
+
+      - name: Commit ledger and badge deltas
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add docs/POSITIVE_IMPACT_REPORT.md docs/badges/positive-impact.svg audit/positive-resonance-ledger.md .github/metrics
+
+          if git diff --cached --quiet; then
+            echo "No positive resonance ledger changes to commit."
+            exit 0
+          fi
+
+          git commit -m "chore: update positive resonance ledger"
+          git push origin HEAD:${{ github.event.repository.default_branch }}

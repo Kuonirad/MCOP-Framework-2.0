@@ -1,10 +1,19 @@
 #!/usr/bin/env node
 import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+const require = createRequire(import.meta.url);
+const {
+  appendMeasurementLoopToReport,
+  buildPositiveLoopSnapshot,
+  readLatestSnapshot,
+  renderPositiveLedger,
+  renderShieldsEndpoints,
+} = loadPositiveMeasurementLoop();
 const checks = [
   ['TypeScript app resonance', ['pnpm', ['exec', 'tsc', '-p', 'tsconfig.json', '--pretty', 'false']]],
   ['TypeScript core resonance', ['pnpm', ['--filter', '@kullailabs/mcop-core', 'exec', 'tsc', '-p', 'tsconfig.json', '--pretty', 'false']]],
@@ -21,6 +30,8 @@ const checksPath = join(root, 'audit', 'positive-audit-checks.json');
 const signalsPath = join(root, 'audit', 'positive-impact-signals.json');
 const reportPath = join(root, 'docs', 'POSITIVE_IMPACT_REPORT.md');
 const badgePath = join(root, 'docs', 'badges', 'positive-impact.svg');
+const ledgerPath = join(root, 'audit', 'positive-resonance-ledger.md');
+const metricsDir = join(root, '.github', 'metrics');
 
 function runAudit() {
   const startedAt = new Date().toISOString();
@@ -28,12 +39,7 @@ function runAudit() {
 
   for (const [label, [command, args]] of checks) {
     const started = Date.now();
-    const result = spawnSync(command, args, {
-      cwd: root,
-      env: { ...process.env, POSITIVE_AUDIT_CHILD: '1' },
-      encoding: 'utf8',
-      stdio: 'pipe',
-    });
+    const result = runCheckCommand(command, args);
     const durationMs = Date.now() - started;
     const passed = result.status === 0;
     results.push({
@@ -41,7 +47,7 @@ function runAudit() {
       command: `${command} ${args.join(' ')}`,
       passed,
       durationMs,
-      output: [result.stdout, result.stderr].filter(Boolean).join('\n').slice(-4000),
+      output: [result.stdout, result.stderr, result.error?.message].filter(Boolean).join('\n').slice(-4000),
     });
     process.stdout.write(`${passed ? '✨' : '⚠️'} ${label} (${durationMs}ms)\n`);
     if (!passed) {
@@ -70,8 +76,36 @@ function writePositiveImpactReport(checkResults, capturedAt) {
 
   mkdirSync(dirname(reportPath), { recursive: true });
   mkdirSync(dirname(badgePath), { recursive: true });
-  writeFileSync(reportPath, renderReport({ capturedAt, score, checkResults, audit }));
+  mkdirSync(dirname(ledgerPath), { recursive: true });
+  mkdirSync(metricsDir, { recursive: true });
+
+  const previousLedger = readOptionalFile(ledgerPath);
+  const previousReport = readOptionalFile(reportPath);
+  const existingDeltas = previousLedger
+    ? extractSection(previousReport, '## Measurement Loop Deltas')
+    : '';
+  const snapshot = buildPositiveLoopSnapshot({
+    capturedAt,
+    commitHash: resolveCommitHash(),
+    score,
+    audit,
+  });
+  const baseReport = renderReport({ capturedAt, score, checkResults, audit });
+  const reportInput = existingDeltas
+    ? `${baseReport.trimEnd()}\n\n${existingDeltas}`
+    : baseReport;
+  const reportWithDeltas = appendMeasurementLoopToReport(
+    reportInput,
+    snapshot,
+    readLatestSnapshot(previousLedger),
+  );
+
+  writeFileSync(reportPath, reportWithDeltas);
   writeFileSync(badgePath, renderBadge(score));
+  writeFileSync(ledgerPath, renderPositiveLedger(previousLedger, snapshot));
+  for (const [filename, endpoint] of Object.entries(renderShieldsEndpoints(snapshot))) {
+    writeFileSync(join(metricsDir, filename), `${JSON.stringify(endpoint, null, 2)}\n`);
+  }
 }
 
 /**
@@ -112,8 +146,9 @@ function generateImpactSignals(checkResults, capturedAt) {
         stdio: 'pipe',
       },
     );
-    if (gen.status !== 0 || !existsSync(signalsPath)) return null;
-    return JSON.parse(readFileSync(signalsPath, 'utf8'));
+    if (gen.status !== 0) return null;
+    const signals = readOptionalFile(signalsPath);
+    return signals ? JSON.parse(signals) : null;
   } catch {
     return null;
   }
@@ -222,6 +257,66 @@ function round(value) {
 }
 
 export { renderReport, renderBadge };
+
+function runCheckCommand(command, args) {
+  const childCommand = process.platform === 'win32' ? 'cmd' : command;
+  const childArgs = process.platform === 'win32' ? ['/c', command, ...args] : args;
+  return spawnSync(childCommand, childArgs, {
+    cwd: root,
+    env: { ...process.env, POSITIVE_AUDIT_CHILD: '1' },
+    encoding: 'utf8',
+    stdio: 'pipe',
+  });
+}
+
+function readOptionalFile(pathname) {
+  try {
+    return readFileSync(pathname, 'utf8');
+  } catch (error) {
+    if (error?.code === 'ENOENT') return '';
+    throw error;
+  }
+}
+
+function extractSection(content, heading) {
+  const start = content.indexOf(heading);
+  return start === -1 ? '' : content.slice(start);
+}
+
+function resolveCommitHash() {
+  if (process.env.MCOP_POSITIVE_COMMIT) return process.env.MCOP_POSITIVE_COMMIT;
+  const result = spawnSync('git', ['rev-parse', 'HEAD'], {
+    cwd: root,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'ignore'],
+  });
+  if (result.status === 0) return result.stdout.trim();
+  return 'archive-no-git';
+}
+
+function loadPositiveMeasurementLoop() {
+  registerTypeScriptLoader();
+  return require(join(root, 'src', 'audit', 'positiveMeasurementLoop.ts'));
+}
+
+function registerTypeScriptLoader() {
+  if (require.extensions['.ts']) return;
+  const ts = require('typescript');
+  require.extensions['.ts'] = (module, filename) => {
+    const source = readFileSync(filename, 'utf8');
+    const output = ts.transpileModule(source, {
+      fileName: filename,
+      compilerOptions: {
+        esModuleInterop: true,
+        isolatedModules: false,
+        module: ts.ModuleKind.CommonJS,
+        moduleResolution: ts.ModuleResolutionKind.Node10,
+        target: ts.ScriptTarget.ES2022,
+      },
+    }).outputText;
+    module._compile(output, filename);
+  };
+}
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   runAudit();

@@ -1,5 +1,5 @@
 import { execFileSync, spawnSync } from 'node:child_process';
-import { mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -71,6 +71,20 @@ describe('audit remediation guardrail scripts', () => {
       env: { ...process.env, PR_BODY: validBodyWithHeadingMetrics, CHANGED_FILES: 'src/index.ts' },
       encoding: 'utf8',
     });
+  });
+
+  it('accepts tracked Python automation under scripts while ignoring generated caches', () => {
+    execFileSync('node', ['scripts/placement-linter.mjs'], {
+      cwd: process.cwd(),
+      encoding: 'utf8',
+    });
+  });
+
+  it('keeps positive-audit artifact reads free of existence-check TOCTOU patterns', () => {
+    const source = readFileSync('scripts/positive-audit.mjs', 'utf8');
+
+    expect(source).not.toMatch(/existsSync\((?:ledgerPath|reportPath|signalsPath)\)/);
+    expect(source).toContain('function readOptionalFile');
   });
 
   it('rejects unpinned actions and obsolete Node runtimes in workflow fixtures', () => {
