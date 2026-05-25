@@ -132,7 +132,18 @@ pnpm typecheck          # tsc --noEmit (strict)
 pnpm deps:check         # pnpm outdated + audit (moderate+)
 pnpm parity:check       # Cross-runtime parity guardian
 pnpm triad:fingerprint  # Deterministic triad fingerprint
+pnpm audit:parp-baseline # Phoenix Audit & Remediation Protocol — L0 baseline runner
 ```
+
+### Audit & remediation protocol
+
+Non-trivial remediation work (bug sweeps, claim-drift fixes, security
+hardening, dependency upgrades) follows the **Phoenix Audit & Remediation
+Protocol** documented in [`docs/audits/PARP-v1.0.md`](./docs/audits/PARP-v1.0.md).
+Run `pnpm audit:parp-baseline` to regenerate the L0 evidence bundle under
+`artefacts/` before opening remediation PRs. Each PARP finding gets its own
+focused `fix/parp-<id>-*` branch and PR per the protocol's §L5 workflow —
+do not mix PARP remediation into unrelated feature PRs.
 
 ---
 

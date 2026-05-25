@@ -1,0 +1,6 @@
+head_commit=e65d486079375d8ce0ccf359885de16a5f69cbc3
+branch=devin/1779733346-parp-v1-baseline
+timestamp=2026-05-25T18:22:36Z
+node=v22.12.0
+pnpm=9.15.0
+python=Python 3.12.8

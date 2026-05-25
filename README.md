@@ -357,6 +357,7 @@ console.log({
 | SBOM generation and validation | [`docs/sbom/README.md`](./docs/sbom/README.md) |
 | Workspace layout (monorepo) | [`docs/MONOREPO.md`](./docs/MONOREPO.md) |
 | Branch cleanup strategy | [`docs/audits/branch-cleanup-strategy.md`](./docs/audits/branch-cleanup-strategy.md) |
+| Audit & remediation protocol (PARP v1.0) | [`docs/audits/PARP-v1.0.md`](./docs/audits/PARP-v1.0.md) — layered L0–L7 SOP for issue discovery, baseline capture, and remediation. Run the baseline locally with `pnpm audit:parp-baseline`. |
 | Due-diligence register | [`docs/DUE_DILIGENCE_REGISTER.md`](./docs/DUE_DILIGENCE_REGISTER.md) |
 | Trust-substrate roadmap | [`docs/TRUST_SUBSTRATE_ROADMAP.md`](./docs/TRUST_SUBSTRATE_ROADMAP.md) |
 | CUDA productionization | [`docs/CUDA_PRODUCTION.md`](./docs/CUDA_PRODUCTION.md) |

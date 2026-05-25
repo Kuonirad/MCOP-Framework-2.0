@@ -1,0 +1,3 @@
+scripts/check-readme-code-blocks.mjs:10: *   2. Every ```bash / ```sh block must not contain TODO / FIXME / XXX
+scripts/check-readme-code-blocks.mjs:100:      if (/\b(TODO|FIXME|XXX)\b/.test(body)) {
+scripts/check-readme-code-blocks.mjs:101:        failures.push(`${rel}: shell example contains TODO/FIXME/XXX placeholder`);

@@ -1,0 +1,676 @@
+
+=============================================================================
+Starting repository audit
+=============================================================================
+✔ PASS: Found command: git
+✔ PASS: Found command: node
+
+=============================================================================
+Environment
+=============================================================================
+timestamp=2026-05-25T18:24:14Z
+root=/home/ubuntu/repos/MCOP-Framework-2-0
+git_sha=e65d486079375d8ce0ccf359885de16a5f69cbc3
+git_branch=devin/1779733346-parp-v1-baseline
+node=v22.12.0
+pnpm=9.15.0
+npm=10.8.3
+os=Linux devin-box 5.15.200 #5 SMP Sun Mar 29 07:25:21 UTC 2026 x86_64 x86_64 x86_64 GNU/Linux
+
+=============================================================================
+Claim drift scan
+=============================================================================
+⚠ WARN: Potential claim drift detected: Overclaiming production readiness. See audit-artifacts/Overclaiming_production_readiness.txt
+✔ PASS: No claim drift found for: Next.js documentation drift
+⚠ WARN: Potential claim drift detected: License contradiction. See audit-artifacts/License_contradiction.txt
+⚠ WARN: Potential claim drift detected: Unproven benchmark claim. See audit-artifacts/Unproven_benchmark_claim.txt
+⚠ WARN: Potential claim drift detected: Version drift suspects. See audit-artifacts/Version_drift_suspects.txt
+✔ PASS: No claim drift found for: Import alias drift
+
+=============================================================================
+Package/version/license/import metadata
+=============================================================================
+PASS: Root package name: @kuonirad/mcop-framework
+PASS: Root package version: 2.3.1
+PASS: Root license: BUSL-1.1
+PASS: Next.js package spec: 15.5.18
+PASS: Found core package '@kullailabs/mcop-core'
+
+SUMMARY: errors=0, warnings=0
+✔ PASS: Package metadata audit passed
+
+=============================================================================
+Package manager setup
+=============================================================================
+✔ PASS: Found command: node
+✔ PASS: Found command: corepack
+
+=============================================================================
+Enable Corepack
+=============================================================================
++ corepack
+enable
+✔ PASS: Enable Corepack
+
+=============================================================================
+Prepare package manager: pnpm@9.15.0
+=============================================================================
++ corepack
+prepare
+pnpm@9.15.0
+--activate
+Preparing pnpm@9.15.0 for immediate activation...
+✔ PASS: Prepare package manager: pnpm@9.15.0
+✔ PASS: Found command: pnpm
+
+=============================================================================
+Install dependencies with frozen lockfile
+=============================================================================
++ pnpm
+install
+--frozen-lockfile
+ WARN  Unsupported engine: wanted: {"node":"22.22.3"} (current: {"node":"v22.12.0","pnpm":"9.15.0"})
+Scope: all 2 workspace projects
+Lockfile is up to date, resolution step is skipped
+Already up to date
+
+Done in 4.1s
+✔ PASS: Install dependencies with frozen lockfile
+
+=============================================================================
+Proof gates
+=============================================================================
+
+=============================================================================
+pnpm script: lint
+=============================================================================
++ pnpm
+run
+lint
+ WARN  Unsupported engine: wanted: {"node":"22.22.3"} (current: {"node":"v22.12.0","pnpm":"9.15.0"})
+
+> @kuonirad/mcop-framework@2.3.1 lint /home/ubuntu/repos/MCOP-Framework-2-0
+> eslint --max-warnings 0
+
+✔ PASS: pnpm script: lint
+
+=============================================================================
+pnpm script: typecheck
+=============================================================================
++ pnpm
+run
+typecheck
+ WARN  Unsupported engine: wanted: {"node":"22.22.3"} (current: {"node":"v22.12.0","pnpm":"9.15.0"})
+
+> @kuonirad/mcop-framework@2.3.1 typecheck /home/ubuntu/repos/MCOP-Framework-2-0
+> tsc -p tsconfig.json --pretty
+
+✔ PASS: pnpm script: typecheck
+
+=============================================================================
+pnpm script: test:coverage
+=============================================================================
++ pnpm
+run
+test:coverage
+ WARN  Unsupported engine: wanted: {"node":"22.22.3"} (current: {"node":"v22.12.0","pnpm":"9.15.0"})
+
+> @kuonirad/mcop-framework@2.3.1 test:coverage /home/ubuntu/repos/MCOP-Framework-2-0
+> jest --coverage
+
+PASS src/__tests__/adapters.test.ts (21.128 s)
+PASS src/__tests__/cudaPhi5AdaptiveProbe.test.ts
+PASS src/__tests__/VSICoach.test.tsx (7.09 s)
+PASS src/__tests__/novaNeoEncoder.embedding.test.ts
+PASS src/__tests__/coverage-gaps.test.tsx
+PASS src/__tests__/multiProviderRouter.test.ts
+PASS src/__tests__/cudaHardwareLayer.test.ts
+PASS src/__tests__/cudaVerifiedDeviceSoak.test.ts
+PASS src/__tests__/proteomeOrchestrator.test.ts
+PASS src/__tests__/vsiBus.test.ts
+PASS src/__tests__/useVSIPredictor.test.tsx
+PASS src/__tests__/organelleMerge.test.ts
+PASS src/__tests__/clusterStigmergy.test.ts
+PASS src/__tests__/storageBackends.test.ts
+PASS src/__tests__/mcopMemoryMcpServer.test.ts
+PASS src/__tests__/benchmarks.test.ts
+PASS src/__tests__/triad.tsParity.test.ts
+PASS src/__tests__/ledgerReconciliation.test.ts
+PASS src/__tests__/useLCPProfiler.test.tsx
+PASS src/__tests__/PerformanceHUD.test.tsx
+PASS src/__tests__/ledgerService.test.ts
+PASS src/__tests__/impactAuditor.test.ts
+PASS src/__tests__/llmProviderAdapters.test.ts
+PASS src/__tests__/vsi.parity.test.ts
+PASS src/__tests__/telemetryHardening.test.ts
+PASS src/__tests__/usePerformanceCoach.test.tsx
+PASS src/__tests__/auditGuardrails.test.ts
+PASS src/__tests__/DialecticalStudio.test.tsx
+PASS src/__tests__/useVSIWorker.test.ts
+PASS src/__tests__/security.test.ts
+PASS src/__tests__/planning.test.ts
+PASS src/__tests__/redisAsyncLedgerForwarder.test.ts
+PASS src/__tests__/LayoutShiftAnnouncer.test.tsx
+PASS src/__tests__/novaEvolveTuner.test.ts
+PASS src/__tests__/ledgerHttpServer.test.ts
+PASS src/__tests__/config.test.ts
+PASS src/__tests__/pGoT.test.ts
+PASS src/__tests__/grokOrganelleProcessing.test.ts
+PASS src/__tests__/orchestratorIntegration.test.ts
+PASS src/__tests__/cudaBenchmarkHarness.test.ts
+PASS src/__tests__/arcLs20Harness.test.ts
+PASS src/__tests__/longFormVideoOrchestrator.test.ts
+PASS src/__tests__/positiveImpactVerifier.test.ts
+PASS src/__tests__/qwenAdapter.catalog.test.ts
+PASS src/__tests__/integrations.haystack.test.ts
+PASS src/__tests__/useStabilityHeatmap.test.tsx
+PASS src/__tests__/useTaskChunker.test.ts
+PASS src/__tests__/useReducedMotion.test.tsx
+PASS src/__tests__/BenchmarksPage.test.tsx
+PASS src/__tests__/asyncLedgerForwarder.test.ts
+PASS src/__tests__/driftSentinelKernel.test.ts
+PASS src/__tests__/adaptiveConfidence.test.ts
+PASS src/__tests__/verificationQuality.test.ts
+PASS src/__tests__/integrations.llamaIndex.test.ts
+PASS src/__tests__/vitalsBus.test.ts
+PASS src/__tests__/positiveMeasurementLoop.test.ts
+PASS src/__tests__/integrations.langchain.test.ts
+PASS src/__tests__/testingUtils.test.ts
+PASS src/__tests__/holographicEtchLedger.test.ts
+  ● Console
+
+    console.warn
+      [HolographicEtch] ledger forward failed (non-fatal) ledger unavailable
+
+      293 |           this.ledgerClient.etch(etchRequest).catch((e: unknown) => {
+      294 |             const msg = e instanceof Error ? e.message : String(e);
+    > 295 |             console.warn?.('[HolographicEtch] ledger forward failed (non-fatal)', msg);
+          |                         ^
+      296 |           });
+      297 |         }
+      298 |       }
+
+      at src/core/holographicEtch.ts:295:25
+
+PASS src/__tests__/grokImageAdapter.test.ts
+PASS src/__tests__/grokAdapter.catalog.test.ts
+PASS src/__tests__/useDebouncedValue.test.tsx
+PASS src/__tests__/evidenceRetriever.test.ts
+PASS src/__tests__/benchmarkUploadApi.test.ts
+PASS src/__tests__/councilScorer.test.ts
+PASS src/__tests__/accelerator.test.ts
+PASS src/__tests__/auditBaseline.test.ts
+PASS src/__tests__/vectorMath.test.ts
+PASS src/__tests__/guardianMetaReasoner.test.ts
+PASS src/__tests__/positiveResonanceAmplifier.test.ts
+PASS src/__tests__/stigmergy.test.ts
+PASS src/__tests__/ledgerVerifyCli.test.ts
+PASS src/__tests__/observability.test.ts
+PASS src/__tests__/triad.branches.test.ts
+PASS src/__tests__/auditPropertyFuzz.test.ts
+PASS src/__tests__/page.test.tsx
+PASS src/__tests__/canonicalMerkleParity.test.ts
+PASS src/__tests__/circularBuffer.test.ts
+PASS src/__tests__/PerformanceBudgetBar.test.tsx
+PASS src/__tests__/redisStreamsGossipTransport.test.ts
+PASS src/__tests__/integrations.triadHarness.test.ts
+PASS src/__tests__/seoEnhancements.test.tsx
+PASS src/__tests__/grokAdapterLedgerAware.test.ts
+PASS src/__tests__/tensorGuard.test.ts
+PASS src/__tests__/page.dialectical.test.tsx
+PASS src/__tests__/createLedgerAwareHolographicEtch.test.ts
+PASS src/__tests__/registryTelemetry.test.ts
+PASS src/__tests__/parityGuardian.test.ts
+PASS src/__tests__/triad.core.test.ts
+PASS src/__tests__/provenanceTracer.test.ts
+PASS src/__tests__/vitals.test.ts
+{"level":30,"time":1779733606804,"pid":11018,"hostname":"devin-box","msg":"web-vital","metric":"LCP","value":2400,"device":"4g","url":"/","ts":1779733606802}
+PASS src/__tests__/logger.test.ts
+PASS src/__tests__/sitemap.test.ts
+PASS src/__tests__/helmValuesSchema.test.ts
+PASS src/__tests__/health.test.ts
+--------------------------------------|---------|----------|---------|---------|------------------------------------------------------------------------------
+File                                  | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s                                                            
+--------------------------------------|---------|----------|---------|---------|------------------------------------------------------------------------------
+All files                             |    87.7 |    75.55 |   87.29 |   90.63 |                                                                              
+ adapters                             |   83.25 |    73.58 |    82.5 |   87.15 |                                                                              
+  baseAdapter.ts                      |   96.77 |    96.15 |      80 |   96.77 | 107                                                                          
+  claudeAdapter.ts                    |   68.85 |    59.21 |   69.23 |   73.21 | 142,218,222,239,245-246,277-282,313-317                                      
+  deepSeekAdapter.ts                  |     100 |     90.9 |     100 |     100 | 91                                                                           
+  devinOrchestratorAdapter.ts         |   92.98 |       80 |   81.25 |   94.54 | 456-476                                                                      
+  dialecticalSynthesizer.ts           |      95 |    94.73 |     100 |     100 | 72                                                                           
+  freepikAdapter.ts                   |     100 |    85.71 |      75 |     100 | 96-108                                                                       
+  genericProductionAdapter.ts         |     100 |      100 |     100 |     100 |                                                                              
+  grokAdapter.ts                      |   85.86 |    72.78 |   88.88 |   90.27 | 404-406,619,633,643,796,818,839,857-881,929-967,990,1040,1043,1082,1150,1330 
+  grokImageAdapter.ts                 |    28.2 |    28.91 |   33.33 |   31.88 | 275-374,381-425                                                              
+  index.ts                            |     100 |      100 |       0 |     100 |                                                                              
+  kimiAdapter.ts                      |     100 |     90.9 |     100 |     100 | 88                                                                           
+  linearSlackOrchestratorAdapter.ts   |    98.3 |    93.33 |     100 |   98.24 | 325                                                                          
+  magnificAdapter.ts                  |     100 |     91.3 |     100 |     100 | 295,315,405,411-417,431                                                      
+  multiProviderRouter.ts              |   95.12 |    87.61 |     100 |   94.87 | 209,400,403,406                                                              
+  openAICompatibleChatClient.ts       |      50 |    41.79 |   42.85 |      62 | 73,82,111-112,124,146-151,180-193                                            
+  openAICompatibleMCOPAdapter.ts      |   90.47 |       75 |      80 |   90.47 | 70,111                                                                       
+  qwenAdapter.ts                      |   86.07 |    79.78 |   92.59 |   92.14 | 522,525,564,643,784-786,810-812,824                                          
+  regulatedProvenanceAdapter.ts       |   96.96 |    74.07 |    90.9 |   96.96 | 129                                                                          
+  types.ts                            |     100 |      100 |     100 |     100 |                                                                              
+  utopaiAdapter.ts                    |     100 |      100 |     100 |     100 |                                                                              
+ app                                  |     100 |    93.75 |     100 |     100 |                                                                              
+  page.tsx                            |     100 |    92.85 |     100 |     100 | 639                                                                          
+  sitemap.ts                          |     100 |      100 |     100 |     100 |                                                                              
+ app/_components                      |   89.91 |       90 |      76 |   95.23 |                                                                              
+  TriadVisualizer.tsx                 |     100 |      100 |     100 |     100 |                                                                              
+  vitalsBus.ts                        |   74.41 |    66.66 |   53.84 |   86.11 | 62,81-84                                                                     
+  vsiBus.ts                           |   98.64 |    94.11 |     100 |     100 | 107,126                                                                      
+ app/api/benchmarks/sample            |     100 |      100 |     100 |     100 |                                                                              
+  route.ts                            |     100 |      100 |     100 |     100 |                                                                              
+ app/api/benchmarks/upload            |     100 |      100 |     100 |     100 |                                                                              
+  route.ts                            |     100 |      100 |     100 |     100 |                                                                              
+ app/api/health                       |     100 |      100 |     100 |     100 |                                                                              
+  route.ts                            |     100 |      100 |     100 |     100 |                                                                              
+ app/api/vitals                       |     100 |       75 |     100 |     100 |                                                                              
+  route.ts                            |     100 |       75 |     100 |     100 | 28,40-42                                                                     
+ app/benchmarks                       |   83.67 |    64.51 |      80 |   81.81 |                                                                              
+  BenchmarksClient.tsx                |      75 |       50 |    62.5 |   73.07 | 28-36,111,132                                                                
+  page.tsx                            |   95.23 |    76.47 |     100 |   94.44 | 56                                                                           
+ app/benchmarks/preview               |       0 |        0 |       0 |       0 |                                                                              
+  page.tsx                            |       0 |        0 |       0 |       0 | 2-97                                                                         
+ app/dialectical                      |     100 |      100 |     100 |     100 |                                                                              
+  page.tsx                            |     100 |      100 |     100 |     100 |                                                                              
+ app/dialectical/_components          |   92.07 |    84.74 |   95.23 |    96.7 |                                                                              
+  DialecticalStudio.tsx               |   92.07 |    84.74 |   95.23 |    96.7 | 211,268,286                                                                  
+ audit                                |   85.94 |    67.25 |     100 |   91.92 |                                                                              
+  impactAuditor.ts                    |   92.63 |    84.33 |     100 |     100 | 162-172,200,208-209,223,288,369-378                                          
+  positiveImpactVerifier.ts           |   92.59 |    66.66 |     100 |   94.11 | 131,169-170                                                                  
+  positiveMeasurementLoop.ts          |   83.33 |    57.14 |     100 |      88 | 173,243-245,249-250                                                          
+  verificationQuality.ts              |   77.31 |    52.63 |     100 |   85.18 | 192,206-216,262,270                                                          
+ benchmarks                           |     100 |    77.35 |     100 |     100 |                                                                              
+  promptingModes.ts                   |     100 |    77.35 |     100 |     100 | 156-168,283,396-401                                                          
+ cluster                              |   79.13 |    56.29 |   80.35 |   85.38 |                                                                              
+  clusterOrchestrator.ts              |   92.59 |    73.52 |   86.66 |   95.55 | 84,153                                                                       
+  clusterStigmergy.ts                 |   73.79 |    50.57 |   82.14 |   80.64 | 72-77,205-207,278-280,292-312,351-355                                        
+  inMemoryGossipBus.ts                |   68.75 |        0 |   57.14 |   73.33 | 28-32,53-54                                                                  
+  index.ts                            |     100 |      100 |     100 |     100 |                                                                              
+  redisStreamsGossipTransport.ts      |   82.35 |    58.33 |   83.33 |   93.33 | 48-49                                                                        
+ components                           |    91.1 |    83.42 |   92.19 |   94.46 |                                                                              
+  LayoutShiftAnnouncer.tsx            |      92 |    86.66 |     100 |     100 | 64,67                                                                        
+  PerformanceBudgetBar.tsx            |   93.33 |    83.33 |     100 |     100 | 32                                                                           
+  PerformanceHUD.tsx                  |   90.26 |    77.27 |   93.75 |   96.55 | 251-255,324                                                                  
+  VSICoach.tsx                        |   82.89 |    78.99 |   81.81 |   89.55 | 160-171,330,449-457                                                          
+  computeVSI.ts                       |   98.24 |     97.5 |     100 |   98.03 | 122                                                                          
+  useDebouncedValue.ts                |     100 |      100 |     100 |     100 |                                                                              
+  useLCPProfiler.ts                   |   98.21 |    94.87 |     100 |     100 | 79,102                                                                       
+  usePerformanceCoach.ts              |   98.47 |    91.89 |     100 |     100 | 202,305,314-315,396,405                                                      
+  useReducedMotion.ts                 |    90.9 |       90 |   85.71 |   94.11 | 33                                                                           
+  useStabilityHeatmap.ts              |   93.82 |    86.48 |     100 |   95.83 | 121,223-224                                                                  
+  useTaskChunker.ts                   |   94.44 |    83.33 |     100 |   94.11 | 52,84                                                                        
+  useVSIPredictor.ts                  |   95.03 |    77.27 |   94.44 |   97.65 | 159-160,231                                                                  
+  useVSIWorker.ts                     |   56.81 |       40 |   66.66 |      60 | 92-100,115,132-140                                                           
+ config                               |     100 |      100 |     100 |     100 |                                                                              
+  mcop.config.ts                      |     100 |      100 |     100 |     100 |                                                                              
+ core                                 |    90.1 |    74.65 |   91.98 |   92.93 |                                                                              
+  canonicalEncoding.ts                |     100 |       50 |     100 |     100 | 26                                                                           
+  circularBuffer.ts                   |   89.28 |    83.33 |    90.9 |    91.3 | 80-83                                                                        
+  driftSentinelKernel.ts              |   92.03 |    82.08 |   88.88 |   95.83 | 251,269,307,330                                                              
+  embeddingEngine.ts                  |   82.52 |    66.15 |    87.5 |   85.05 | 180,184,208-209,217,253-257,267-271                                          
+  etchBackend.ts                      |    88.5 |    67.39 |     100 |   94.52 | 119,197,207-208                                                              
+  holographicEtch.ts                  |   91.97 |    75.86 |   92.85 |    94.4 | 204-205,269,290,318-319,368                                                  
+  index.ts                            |     100 |      100 |       0 |     100 |                                                                              
+  longFormVideoOrchestrator.ts        |   97.91 |    79.16 |     100 |   97.82 | 235                                                                          
+  lowMemoryMCOPMode.ts                |    70.9 |    51.16 |      75 |      78 | 119-144                                                                      
+  novaEvolveTuner.ts                  |    83.5 |    67.08 |   89.47 |   87.28 | 189,193,221-222,365-380,391,398-401,411-412,432-440,617-621                  
+  novaNeoEncoder.ts                   |   91.56 |    85.71 |     100 |   94.59 | 109-110,176-177                                                              
+  observability.ts                    |   95.83 |    68.75 |     100 |   95.65 | 116                                                                          
+  pGoT_algorithms.ts                  |   96.38 |       85 |     100 |   98.71 | 148                                                                          
+  positiveResonanceAmplifier.ts       |    85.1 |       70 |     100 |     100 | 74,118-150                                                                   
+  provenanceTracer.ts                 |   93.75 |    70.58 |     100 |   95.55 | 137-138                                                                      
+  snapshotTypes.ts                    |   33.33 |      100 |       0 |      40 | 52-54                                                                        
+  stigmergyBackend.ts                 |   80.39 |    57.14 |     100 |   81.25 | 112,163-173,181-182                                                          
+  stigmergyV5.ts                      |    92.3 |    81.72 |     100 |   93.33 | 56,124,135-136,147-151,207-208                                               
+  tensorGuard.ts                      |     100 |      100 |     100 |     100 |                                                                              
+  testing-utils.ts                    |     100 |      100 |     100 |     100 |                                                                              
+  universalCrypto.ts                  |   97.11 |    78.57 |     100 |    98.7 | 20                                                                           
+  uuid.ts                             |   83.33 |       50 |     100 |      80 | 6                                                                            
+  vectorMath.ts                       |   96.42 |    68.42 |     100 |   97.87 | 45                                                                           
+ core/planning                        |    97.4 |    89.04 |     100 |    99.3 |                                                                              
+  index.ts                            |     100 |      100 |     100 |     100 |                                                                              
+  mab.ts                              |     100 |      100 |     100 |     100 |                                                                              
+  mctsMabPlanner.ts                   |   96.63 |     86.2 |     100 |   99.09 | 157                                                                          
+ hardware                             |   88.56 |    70.67 |   83.72 |   89.68 |                                                                              
+  Accelerator.ts                      |   70.49 |    53.84 |   69.23 |   72.88 | 114,154-156,179,203-218,222-233,276,302                                      
+  CUDAAccelerator.ts                  |   80.64 |    51.85 |   77.77 |   82.14 | 103-108,119-120                                                              
+  CUDAHardwareLayer.ts                |   96.42 |    86.48 |   94.73 |   97.61 | 562-565                                                                      
+  index.ts                            |     100 |      100 |     100 |     100 |                                                                              
+  orchestratorIntegration.ts          |   94.28 |       72 |     100 |   94.28 | 190-191                                                                      
+ integrations                         |   95.71 |    86.81 |     100 |   95.48 |                                                                              
+  haystack.ts                         |     100 |     87.5 |     100 |     100 | 63,124,151                                                                   
+  index.ts                            |       0 |      100 |     100 |       0 | 22-25                                                                        
+  langchain.ts                        |     100 |    88.88 |     100 |     100 | 77,117                                                                       
+  llamaIndex.ts                       |   95.45 |    76.92 |     100 |   95.34 | 138,142                                                                      
+  triadHarness.ts                     |     100 |      100 |     100 |     100 |                                                                              
+ ledger                               |   78.37 |    72.52 |   68.08 |   78.59 |                                                                              
+  asyncLedgerForwarder.ts             |   87.34 |    73.68 |   89.47 |   87.83 | 75-76,99,125-128,152-154                                                     
+  createLedgerAwareHolographicEtch.ts |     100 |       50 |     100 |     100 | 54-84                                                                        
+  index.ts                            |     100 |      100 |     100 |     100 |                                                                              
+  ledgerClient.ts                     |   58.82 |    66.66 |   43.47 |      58 | 73-79,111,122-138,151-154,160-161,179-182                                    
+  ledgerService.ts                    |   91.13 |    81.96 |     100 |   92.95 | 85,88,167,175,185                                                            
+  redisAsyncLedgerForwarder.ts        |   67.92 |    65.45 |   54.54 |      68 | 108,157-166,180-181,203-205,214-215,241-251,259-262,264-269                  
+ orchestrator                         |      75 |      100 |     100 |      75 |                                                                              
+  MCOPOrchestrator.ts                 |     100 |      100 |     100 |     100 |                                                                              
+  index.ts                            |       0 |      100 |     100 |       0 | 1                                                                            
+ proteome                             |   96.56 |    88.13 |   96.66 |   97.15 |                                                                              
+  ProteomeOrchestrator.ts             |   96.48 |    88.13 |   96.66 |   97.07 | 410,432-433,521-522                                                          
+  index.ts                            |     100 |      100 |     100 |     100 |                                                                              
+  types.ts                            |     100 |      100 |     100 |     100 |                                                                              
+ telemetry                            |      75 |    65.38 |   80.59 |   79.77 |                                                                              
+  BurnInTraceStore.ts                 |   80.48 |    53.57 |     100 |   91.42 | 69,97-98                                                                     
+  GuardianKeyVault.ts                 |     100 |      100 |     100 |     100 |                                                                              
+  JCSUtility.ts                       |   88.88 |    86.95 |     100 |      90 | 6,30                                                                         
+  MCOPHardeningBootstrapper.ts        |   88.63 |    78.57 |   85.71 |      95 | 63,94                                                                        
+  PolicyAndSemioticRegistries.ts      |   84.44 |    63.63 |    90.9 |   89.47 | 24-35                                                                        
+  ProductionTensorProjectionEngine.ts |   85.71 |    57.14 |   83.33 |     100 | 5-47                                                                         
+  ResetAuditor.ts                     |     100 |      100 |     100 |     100 |                                                                              
+  SubstrateAdapter.ts                 |   50.61 |    55.81 |   52.38 |   52.77 | 18,35-39,53-73,81-82,100-104,126-147,158,170-178                             
+  index.ts                            |       0 |      100 |     100 |       0 | 1-10                                                                         
+  types.ts                            |     100 |      100 |     100 |     100 |                                                                              
+ test-utils                           |     100 |      100 |     100 |     100 |                                                                              
+  propertyTesting.ts                  |     100 |      100 |     100 |     100 |                                                                              
+ utils                                |   92.17 |    85.28 |    92.3 |   94.17 |                                                                              
+  councilScorer.ts                    |   97.05 |    94.59 |     100 |   96.55 | 112                                                                          
+  evidenceRetriever.ts                |   88.46 |    83.67 |   73.33 |   92.18 | 107-108,158,191,198                                                          
+  guardianMetaReasoner.ts             |   89.58 |    77.27 |     100 |   95.55 | 70,73                                                                        
+  ledgerReconciliation.ts             |   94.59 |    83.33 |     100 |   95.65 | 93,231-232                                                                   
+  logger.ts                           |     100 |      100 |     100 |     100 |                                                                              
+  organelleMerge.ts                   |   92.23 |    86.66 |     100 |   92.55 | 192-193,315,339-340,377-378                                                  
+  urlSafety.ts                        |     100 |      100 |     100 |     100 |                                                                              
+--------------------------------------|---------|----------|---------|---------|------------------------------------------------------------------------------
+
+Test Suites: 5 skipped, 95 passed, 95 of 100 total
+Tests:       9 skipped, 966 passed, 975 total
+Snapshots:   0 total
+Time:        111.649 s
+Ran all test suites.
+✔ PASS: pnpm script: test:coverage
+
+=============================================================================
+pnpm script: build
+=============================================================================
++ pnpm
+run
+build
+ WARN  Unsupported engine: wanted: {"node":"22.22.3"} (current: {"node":"v22.12.0","pnpm":"9.15.0"})
+
+> @kuonirad/mcop-framework@2.3.1 build /home/ubuntu/repos/MCOP-Framework-2-0
+> next build --turbopack
+
+Attention: Next.js now collects completely anonymous telemetry regarding usage.
+This information is used to shape Next.js' roadmap and prioritize features.
+You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+https://nextjs.org/telemetry
+
+   ▲ Next.js 15.5.18 (Turbopack)
+   - Experiments (use with caution):
+     · optimizePackageImports
+
+   Creating an optimized production build ...
+ ✓ Finished writing to disk in 23ms
+ ✓ Compiled successfully in 8.2s
+   Linting and checking validity of types ...
+   Collecting page data ...
+   Generating static pages (0/12) ...
+   Generating static pages (3/12) 
+   Generating static pages (6/12) 
+   Generating static pages (9/12) 
+ ✓ Generating static pages (12/12)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                         Size  First Load JS
+┌ ○ /                            9.36 kB         132 kB
+├ ○ /_not-found                      0 B         122 kB
+├ ƒ /api/benchmarks/sample           0 B            0 B
+├ ƒ /api/benchmarks/upload           0 B            0 B
+├ ƒ /api/health                      0 B            0 B
+├ ƒ /api/vitals                      0 B            0 B
+├ ○ /benchmarks                  4.96 kB         127 kB
+├ ƒ /benchmarks/preview              0 B         126 kB
+├ ○ /dialectical                  186 kB         312 kB
+└ ○ /sitemap.xml                     0 B            0 B
++ First Load JS shared by all     133 kB
+  ├ chunks/1f1841f0ae22b042.js   59.2 kB
+  ├ chunks/5fe8df92c2a1ff12.js   22.1 kB
+  ├ chunks/abc05f5fd4439a3f.js   17.2 kB
+  ├ chunks/1c68b587c7293ef9.css  10.5 kB
+  └ other shared chunks (total)  23.8 kB
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
+✔ PASS: pnpm script: build
+
+=============================================================================
+pnpm audit high+
+=============================================================================
++ pnpm
+audit
+--audit-level=high
+No known vulnerabilities found
+✔ PASS: pnpm audit high+
+
+=============================================================================
+pnpm script: sbom
+=============================================================================
++ pnpm
+run
+sbom
+ WARN  Unsupported engine: wanted: {"node":"22.22.3"} (current: {"node":"v22.12.0","pnpm":"9.15.0"})
+
+> @kuonirad/mcop-framework@2.3.1 sbom /home/ubuntu/repos/MCOP-Framework-2-0
+> node scripts/generate-sbom.mjs
+
+sbom: generating CycloneDX for mcop-framework (root, recursive)…
++------------------------+------------+--------------------------+----------------------------------------------------+
+|                                           SECURE MODE: Environment audit                                            |
+|                                                        3 low                                                        |
++------------------------+------------+--------------------------+----------------------------------------------------+
+| Category               | Severity   | Variable(s)              | Details                                            |
++------------------------+------------+--------------------------+----------------------------------------------------+
+| Credential Exposure    | LOW        | ARC_API_KEY              | Credential-like environment variables are set. Bui |
+|                        |            | QWEN_API_KEY             | ld tools or install scripts invoked during SBOM ge |
+|                        |            | XAI_API_KEY              | neration may read inherited environment variables. |
+|                        |            |                          | Mitigation: Unset unneeded secrets when scanning u |
+|                        |            |                          | ntrusted repositories. Prefer ephemeral, scoped CI |
+|                        |            |                          |  credentials injected only for the step that needs |
+|                        |            |                          |  them.                                             |
++------------------------+------------+--------------------------+----------------------------------------------------+
+AI Inventory Summary:
+  AI instruction files: 1 (AGENTS.md)
+  Skill files:         2 (.agents/skills/testing-arcagi3-strategy/SKILL.md, .agents/skills/testing-frontend/SKILL.md)
+  MCP configs:         0
+  MCP services:        0
+
+Run --bom-audit --bom-audit-categories ai-inventory to audit these surfaces.
+sbom: wrote /home/ubuntu/repos/MCOP-Framework-2-0/docs/sbom/mcop-framework.cdx.json
+sbom: generating CycloneDX for @kullailabs/mcop-core (single package)…
++------------------------+------------+--------------------------+----------------------------------------------------+
+|                                           SECURE MODE: Environment audit                                            |
+|                                                        3 low                                                        |
++------------------------+------------+--------------------------+----------------------------------------------------+
+| Category               | Severity   | Variable(s)              | Details                                            |
++------------------------+------------+--------------------------+----------------------------------------------------+
+| Credential Exposure    | LOW        | ARC_API_KEY              | Credential-like environment variables are set. Bui |
+|                        |            | QWEN_API_KEY             | ld tools or install scripts invoked during SBOM ge |
+|                        |            | XAI_API_KEY              | neration may read inherited environment variables. |
+|                        |            |                          | Mitigation: Unset unneeded secrets when scanning u |
+|                        |            |                          | ntrusted repositories. Prefer ephemeral, scoped CI |
+|                        |            |                          |  credentials injected only for the step that needs |
+|                        |            |                          |  them.                                             |
++------------------------+------------+--------------------------+----------------------------------------------------+
+sbom: wrote /home/ubuntu/repos/MCOP-Framework-2-0/docs/sbom/mcop-core.cdx.json
+sbom: all targets written.
+✔ PASS: pnpm script: sbom
+
+=============================================================================
+pnpm script: sbom:validate
+=============================================================================
++ pnpm
+run
+sbom:validate
+ WARN  Unsupported engine: wanted: {"node":"22.22.3"} (current: {"node":"v22.12.0","pnpm":"9.15.0"})
+
+> @kuonirad/mcop-framework@2.3.1 sbom:validate /home/ubuntu/repos/MCOP-Framework-2-0
+> node scripts/validate-sbom.mjs
+
+(node:13058) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+sbom:validate: docs/sbom/mcop-framework.cdx.json — VALID (CycloneDX 1.7)
+sbom:validate: docs/sbom/mcop-core.cdx.json — VALID (CycloneDX 1.7)
+sbom:validate: all 2 SBOM(s) conform to their declared CycloneDX schema.
+✔ PASS: pnpm script: sbom:validate
+
+=============================================================================
+pnpm script: cypress:run
+=============================================================================
++ pnpm
+run
+cypress:run
+ WARN  Unsupported engine: wanted: {"node":"22.22.3"} (current: {"node":"v22.12.0","pnpm":"9.15.0"})
+
+> @kuonirad/mcop-framework@2.3.1 cypress:run /home/ubuntu/repos/MCOP-Framework-2-0
+> cypress run
+
+It looks like this is your first time using Cypress: 15.14.2
+
+❯  Verifying Cypress can run /home/ubuntu/.cache/Cypress/15.14.2/Cypress
+✔  Verified Cypress!       /home/ubuntu/.cache/Cypress/15.14.2/Cypress
+
+Opening Cypress...
+Warning: The allowCypressEnv configuration option is enabled. This allows any browser code to read values from Cypress.env(). This is insecure and will be removed in a future major version.
+
+1. Replace Cypress.env() calls with cy.env() (for sensitive values) or Cypress.expose() (for public configuration)
+2. Set allowCypressEnv: false in your Cypress configuration to disable Cypress.env()
+
+Learn more: https://on.cypress.io/cypress-env-migration
+
+Cypress could not verify that this server is running:
+
+  > http://localhost:3000
+
+We are verifying this server because it has been configured as your baseUrl.
+
+Cypress automatically waits until your server is accessible before running tests.
+
+We will try connecting to it 3 more times...
+We will try connecting to it 2 more times...
+We will try connecting to it 1 more time...
+
+Cypress failed to verify that your server is running.
+
+Please start this server and then run Cypress again.
+ ELIFECYCLE  Command failed with exit code 1.
+✘ FAIL: pnpm script: cypress:run
+
+=============================================================================
+pnpm script: bench:smoke
+=============================================================================
++ pnpm
+run
+bench:smoke
+ WARN  Unsupported engine: wanted: {"node":"22.22.3"} (current: {"node":"v22.12.0","pnpm":"9.15.0"})
+
+> @kuonirad/mcop-framework@2.3.1 bench:smoke /home/ubuntu/repos/MCOP-Framework-2-0
+> node scripts/bench-smoke.mjs
+
+bench:smoke iterations=2000 elapsed=98.646ms budget=5000ms within=true
+✔ PASS: pnpm script: bench:smoke
+
+=============================================================================
+pnpm script: determinism:test
+=============================================================================
++ pnpm
+run
+determinism:test
+ WARN  Unsupported engine: wanted: {"node":"22.22.3"} (current: {"node":"v22.12.0","pnpm":"9.15.0"})
+
+> @kuonirad/mcop-framework@2.3.1 determinism:test /home/ubuntu/repos/MCOP-Framework-2-0
+> node scripts/test-determinism.mjs
+
+PASS: in-process determinism for 'scalar' — sha256=79e8b0f9cf6b…
+PASS: in-process determinism for 'string' — sha256=010f2bf0596f…
+PASS: in-process determinism for 'object' — sha256=10717890c00c…
+PASS: in-process determinism for 'deep' — sha256=56689c931aa4…
+PASS: cold-start determinism for 'scalar'
+PASS: cold-start determinism for 'string'
+PASS: cold-start determinism for 'object'
+PASS: cold-start determinism for 'deep'
+
+determinism:test — samples=4, iterations=64, failures=0
+✔ PASS: pnpm script: determinism:test
+
+=============================================================================
+pnpm script: docs:check
+=============================================================================
++ pnpm
+run
+docs:check
+ WARN  Unsupported engine: wanted: {"node":"22.22.3"} (current: {"node":"v22.12.0","pnpm":"9.15.0"})
+
+> @kuonirad/mcop-framework@2.3.1 docs:check /home/ubuntu/repos/MCOP-Framework-2-0
+> node scripts/check-readme-code-blocks.mjs
+
+
+docs:check — files=72, errors=0, warnings=0
+✔ PASS: pnpm script: docs:check
+
+=============================================================================
+Core package build: @kullailabs/mcop-core
+=============================================================================
++ pnpm
+--filter
+@kullailabs/mcop-core
+build
+.                                        |  WARN  Unsupported engine: wanted: {"node":"22.22.3"} (current: {"node":"v22.12.0","pnpm":"9.15.0"})
+
+> @kullailabs/mcop-core@2.3.1 build /home/ubuntu/repos/MCOP-Framework-2-0/packages/core
+> tsup
+
+CLI Building entry: src/index.ts
+CLI Using tsconfig: tsconfig.json
+CLI tsup v8.5.1
+CLI Using tsup config: /home/ubuntu/repos/MCOP-Framework-2-0/packages/core/tsup.config.ts
+CLI Target: node18
+CLI Cleaning output folder
+ESM Build start
+CJS Build start
+DTS Build start
+CJS dist/index.cjs     50.66 KB
+CJS dist/index.cjs.map 127.11 KB
+CJS ⚡️ Build success in 799ms
+ESM dist/index.js     49.55 KB
+ESM dist/index.js.map 127.06 KB
+ESM ⚡️ Build success in 799ms
+DTS ⚡️ Build success in 1753ms
+DTS dist/index.d.ts  26.99 KB
+DTS dist/index.d.cts 26.99 KB
+✔ PASS: Core package build: @kullailabs/mcop-core
+
+=============================================================================
+Final summary
+=============================================================================
+# Repository Claim Audit Summary
+
+- Timestamp: 2026-05-25T18:28:11Z
+- Git SHA: e65d486079375d8ce0ccf359885de16a5f69cbc3
+- Failures: 1
+- Warnings: 4
+
+## Reports
+
+- Environment: `audit-artifacts/environment.txt`
+- Package metadata: `audit-artifacts/package-metadata.txt`
+- Claim drift: `audit-artifacts/claim-drift.txt`
+- Full log: `audit-artifacts/audit.log`
+
+## Result
+
+FAILED

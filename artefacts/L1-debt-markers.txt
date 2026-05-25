@@ -1,0 +1,181 @@
+src/__tests__/qwen.live.e2e.test.ts:39:    const response = await adapter.generateOptimizedCompletion(
+src/__tests__/linear_slack.smoke.test.ts:50:      const response = await adapter.dispatchOptimizedAlert(event.prompt);
+src/__tests__/triad.branches.test.ts:25:  it('NovaNeoEncoder emits debug provenance when debug level is enabled', () => {
+src/__tests__/triad.branches.test.ts:27:    logger.level = 'debug';
+src/__tests__/triad.branches.test.ts:28:    const debugSpy = jest.spyOn(logger, 'debug').mockImplementation(() => {});
+src/__tests__/triad.branches.test.ts:32:      encoder.encode('debug-provenance');
+src/__tests__/triad.branches.test.ts:34:      expect(debugSpy).toHaveBeenCalled();
+src/__tests__/triad.branches.test.ts:35:      const firstCall = debugSpy.mock.calls[0][0] as { msg: string; provenance: { dimensions: number } };
+src/__tests__/triad.branches.test.ts:39:      debugSpy.mockRestore();
+src/__tests__/security.test.ts:167:   * Test Case: No Deprecated Dependencies
+src/__tests__/security.test.ts:168:   * Ground Truth: Package.json should not include known deprecated packages
+src/__tests__/security.test.ts:169:   * Failure Witness: Deprecated package found in dependencies
+src/__tests__/security.test.ts:171:  it('does not use known deprecated packages', () => {
+src/__tests__/security.test.ts:175:    const deprecatedPackages = [
+src/__tests__/security.test.ts:176:      'request', // Deprecated
+src/__tests__/security.test.ts:186:    for (const dep of deprecatedPackages) {
+src/__tests__/llmProviderAdapters.test.ts:40:    const response = await adapter.generateOptimizedCompletion('plan the proof', {
+src/__tests__/llmProviderAdapters.test.ts:112:    const response = await adapter.generateOptimizedCompletion('solve shard routing');
+src/__tests__/llmProviderAdapters.test.ts:132:    const response = await adapter.generateOptimizedCompletion('draft long context memo');
+src/__tests__/grokImageAdapter.test.ts:62:    const response = await adapter.generateOptimizedImage(
+src/__tests__/grokImageAdapter.test.ts:84:    await adapter.generateOptimizedImage('prompt', { n: 99 });
+src/__tests__/grokImageAdapter.test.ts:85:    await adapter.generateOptimizedImage('prompt', { n: 0 });
+src/__tests__/grokImageAdapter.test.ts:86:    await adapter.generateOptimizedImage('prompt', { n: -3 });
+src/__tests__/grokImageAdapter.test.ts:95:      adapter.generateOptimizedImage('prompt', {}, { humanFeedback: { veto: true } }),
+src/__tests__/vsi.parity.test.ts:184:      // Under --coverage, Istanbul injects `cov_xxxx` variables into the
+src/__tests__/grok.live.e2e.test.ts:37:    const response = await adapter.generateOptimizedCompletion(
+src/__tests__/canonicalMerkleParity.test.ts:23: * itself is the bug to fix.
+src/__tests__/adapters.test.ts:181:    const img = await adapter.generateOptimizedImage('hero shot', {
+src/__tests__/adapters.test.ts:189:    const vid = await adapter.generateOptimizedVideo('motion shot', {
+src/__tests__/adapters.test.ts:236:    const result = await adapter.generateOptimizedImage('configured target');
+src/__tests__/adapters.test.ts:354:    const img = await adapter.generateOptimizedImage('hero shot', {
+src/__tests__/adapters.test.ts:362:    const vid = await adapter.generateOptimizedVideo('motion shot', {
+src/__tests__/adapters.test.ts:480:    const result = await adapter.generateOptimizedImage('configured target');
+src/__tests__/adapters.test.ts:817:    const response = await adapter.generateOptimizedCompletion(
+src/__tests__/adapters.test.ts:847:    const response = await adapter.generateOptimizedCompletion(
+src/__tests__/adapters.test.ts:875:    await adapter.generateOptimizedCompletion('q', {
+src/__tests__/adapters.test.ts:890:    await adapter.generateOptimizedCompletion(
+src/__tests__/adapters.test.ts:902:    await adapter.generateOptimizedCompletion(
+src/__tests__/adapters.test.ts:934:      adapter.generateOptimizedCompletion(
+src/__tests__/adapters.test.ts:964:    await adapter.generateOptimizedCompletion('profile defaults');
+src/__tests__/adapters.test.ts:1283:    const response = await adapter.generateOptimizedCompletion(
+src/__tests__/adapters.test.ts:1313:    const response = await adapter.generateOptimizedCompletion(
+src/__tests__/adapters.test.ts:1341:    await adapter.generateOptimizedCompletion('q', {
+src/__tests__/adapters.test.ts:1357:    await adapter.generateOptimizedCompletion(
+src/__tests__/adapters.test.ts:1369:    await adapter.generateOptimizedCompletion(
+src/__tests__/adapters.test.ts:1400:      adapter.generateOptimizedCompletion(
+src/__tests__/adapters.test.ts:1430:    await adapter.generateOptimizedCompletion('profile defaults');
+src/__tests__/adapters.test.ts:1812:  it('rejects empty prompts on dispatchOptimizedTask', async () => {
+src/__tests__/adapters.test.ts:1818:      adapter.dispatchOptimizedTask('researcher', ''),
+src/__tests__/adapters.test.ts:1827:    const response = await adapter.dispatchOptimizedTask(
+src/__tests__/adapters.test.ts:1858:    await adapter.dispatchOptimizedTask(
+src/__tests__/adapters.test.ts:1884:      adapter.dispatchOptimizedTask(
+src/__tests__/adapters.test.ts:2054:  it('rejects empty prompts on dispatchOptimizedAlert', async () => {
+src/__tests__/adapters.test.ts:2056:    await expect(adapter.dispatchOptimizedAlert('')).rejects.toThrow(
+src/__tests__/adapters.test.ts:2063:    const response = await adapter.dispatchOptimizedAlert(
+src/__tests__/adapters.test.ts:2079:    const response = await adapter.dispatchOptimizedAlert(
+src/__tests__/adapters.test.ts:2111:    await adapter.dispatchOptimizedAlert('cached-event-B', {
+src/__tests__/adapters.test.ts:2133:      adapter.dispatchOptimizedAlert('vetoed-event', {
+src/__tests__/adapters.test.ts:2152:      adapter.dispatchOptimizedAlert('needs-slack', {
+src/__tests__/adapters.test.ts:2169:      adapter.dispatchOptimizedAlert('needs-linear', {
+src/__tests__/adapters.test.ts:2190:    await adapter.dispatchOptimizedAlert('force-linear-event', {
+src/__tests__/grokImagine.live.e2e.test.ts:73:    const refinement = await text.generateOptimizedCompletion(
+src/__tests__/grokImagine.live.e2e.test.ts:96:    const generation = await image.generateOptimizedImage(
+src/__tests__/triad.tsParity.test.ts:9: *                               (opt-in debug hook, inline math).
+src/__tests__/triad.tsParity.test.ts:67:        // any drift here is a real correctness bug.
+src/__tests__/longFormVideoOrchestrator.test.ts:119:    const generateOptimizedVideo = jest.fn(async (prompt: string, options?: Record<string, unknown>) => ({
+src/__tests__/longFormVideoOrchestrator.test.ts:126:    const clipAdapter = createMCOPVideoClipAdapter({ generateOptimizedVideo });
+src/__tests__/longFormVideoOrchestrator.test.ts:137:    expect(generateOptimizedVideo).toHaveBeenCalledWith('clip prompt', {
+src/__tests__/logger.test.ts:27:    process.env = { ...originalEnv, LOG_LEVEL: 'debug', NODE_ENV: 'production' };
+src/__tests__/logger.test.ts:30:      level: 'debug',
+src/__tests__/novaNeoEncoder.embedding.test.ts:97:  it('emits debug provenance including backend field', () => {
+src/__tests__/novaNeoEncoder.embedding.test.ts:99:    logger.level = 'debug';
+src/__tests__/novaNeoEncoder.embedding.test.ts:100:    const debugSpy = jest.spyOn(logger, 'debug').mockImplementation(() => {});
+src/__tests__/novaNeoEncoder.embedding.test.ts:104:      encoder.encode('debug-provenance');
+src/__tests__/novaNeoEncoder.embedding.test.ts:106:      expect(debugSpy).toHaveBeenCalled();
+src/__tests__/novaNeoEncoder.embedding.test.ts:107:      const firstCall = debugSpy.mock.calls[0][0] as {
+src/__tests__/novaNeoEncoder.embedding.test.ts:115:      debugSpy.mockRestore();
+src/app/page.tsx:8: * Create Next App starter. LCP-optimized: the hero is text-first with a
+src/app/page.tsx:11: * of `next/image priority`).  We avoid the optimizer for this asset
+src/components/useLCPProfiler.ts:15: * the LCP target and how to optimize it.
+src/components/PerformanceHUD.tsx:350:  // Pull LCP element attribution for element-level debugging.
+src/components/PerformanceHUD.tsx:432:           * overlay — a real keyboard a11y bug. React 19 supports the
+src/components/VSICoach.tsx:406:   * into a bug report.  Captures the live predictor state, the top
+src/adapters/qwenAdapter.ts:415:  async generateOptimizedCompletion(
+src/adapters/openAICompatibleMCOPAdapter.ts:80:  async generateOptimizedCompletion(
+src/adapters/freepikAdapter.ts:12: *  4. Remove deprecated turbo / premium_quality booleans from video upscaling
+src/adapters/freepikAdapter.ts:45:    '[MCOP] FreepikMCOPAdapter is deprecated. Freepik rebranded to Magnific ' +
+src/adapters/freepikAdapter.ts:63:/** @deprecated Use MagnificUpscaleFactor directly. */
+src/adapters/grokImageAdapter.ts:190:   * Convenience facade that mirrors `GrokMCOPAdapter.generateOptimizedCompletion`.
+src/adapters/grokImageAdapter.ts:195:  async generateOptimizedImage(
+src/adapters/linearSlackOrchestratorAdapter.ts:222:  async dispatchOptimizedAlert(
+src/adapters/claudeAdapter.ts:160:  async generateOptimizedCompletion(
+src/adapters/types.ts:123: * expose richer convenience methods (e.g. `generateOptimizedImage`) but
+src/adapters/grokAdapter.ts:433:   * `generateOptimizedCompletion` and the lower-level `generate` APIs.
+src/adapters/grokAdapter.ts:547:  generateOptimizedCompletion(
+src/adapters/grokAdapter.ts:553:  generateOptimizedCompletion(
+src/adapters/grokAdapter.ts:559:  async generateOptimizedCompletion(
+src/adapters/grokAdapter.ts:570:      ? startTriadSpan('mcop.organelle.generate_optimized', {
+src/adapters/grokAdapter.ts:746:      // processOrganelleResult (and the outer generateOptimized span).
+src/adapters/grokAdapter.ts:949:public async generateOptimizedCompletionWithOrganelleLedger(
+src/adapters/grokAdapter.ts:967:  return this.generateOptimizedCompletion(
+src/adapters/devinOrchestratorAdapter.ts:172:  async dispatchOptimizedTask(
+src/adapters/devinOrchestratorAdapter.ts:396:    const response = await adapter.dispatchOptimizedTask(
+src/adapters/magnificAdapter.ts:273:  async generateOptimizedImage(
+src/adapters/magnificAdapter.ts:293:  async generateOptimizedVideo(
+src/core/longFormVideoOrchestrator.ts:35:  generateOptimizedVideo(
+src/core/longFormVideoOrchestrator.ts:226:      const response = await adapter.generateOptimizedVideo(input.prompt, {
+src/core/novaNeoEncoder.ts:72:      this.logDebugProvenance(text, values);
+src/core/novaNeoEncoder.ts:100:      this.logDebugProvenance(text, values);
+src/core/novaNeoEncoder.ts:121:  private logDebugProvenance(text: string, values: ContextTensor): void {
+src/core/novaNeoEncoder.ts:122:    if (typeof logger.isLevelEnabled !== 'function' || !logger.isLevelEnabled('debug')) return;
+src/core/novaNeoEncoder.ts:123:    logger.debug({
+src/core/observability.ts:13:  | 'mcop.organelle.generate_optimized';
+src/benchmarks/promptingModes.ts:389:    const response = await adapter.generateOptimizedCompletion(
+src/benchmarks/promptingModes.ts:601:      'Optimize a PostgreSQL query plan for a time-series aggregation over 10B rows with 30-day sliding windows.',
+tests/parity/generate_fixtures.py:73:        # Control characters (must be \uXXXX-escaped).
+scripts/check-readme-code-blocks.mjs:10: *   2. Every ```bash / ```sh block must not contain TODO / FIXME / XXX
+scripts/check-readme-code-blocks.mjs:100:      if (/\b(TODO|FIXME|XXX)\b/.test(body)) {
+scripts/check-readme-code-blocks.mjs:101:        failures.push(`${rel}: shell example contains TODO/FIXME/XXX placeholder`);
+scripts/baselines/stigmergyResonanceBaseline.mjs:25:// this kernel and the production class would itself be a bug — the
+mcop_cuda_server/server.py:231:        log.debug(format, *args)
+mcop_package/fuzz/fuzz_canonical_encoding.py:44:    # Merkle-root corruption bug.
+mcop_package/mcop/engine.py:186:                logger.debug("Guardian solution verdict: %s", verdict.to_dict())
+mcop_package/mcop/engine.py:219:                    logger.debug(f"{mode.mode_name} generated {len(seeds)} seeds")
+mcop_package/mcop/engine.py:233:                    logger.debug(
+mcop_package/mcop/engine.py:354:                    logger.debug(
+mcop_package/mcop/mycelial.py:308:        # Pre-compute word sets to optimize similarity computation
+mcop_package/mcop/cli.py:23:    level = logging.DEBUG if verbose else logging.INFO
+mcop_package/mcop/adapters/higgsfield_adapter.py:178:    def optimize_cinematic_video(
+mcop_package/mcop/adapters/arcagi3_agent.py:1438:    """Player-tracking, oscillation-aware action chooser with debug provenance.
+mcop_package/mcop/adapters/arcagi3_agent.py:1462:    3. Per-step debug provenance. Every observed transition appends a
+mcop_package/mcop/adapters/arcagi3_agent.py:1465:       Wall-learning hits also emit a dedicated ``debug_wall_learning``
+mcop_package/mcop/adapters/arcagi3_agent.py:1468:       ``debug_loop_detected`` entry the first time a given centroid
+mcop_package/mcop/adapters/arcagi3_agent.py:1988:                    "type": "debug_goal_bfs",
+mcop_package/mcop/adapters/arcagi3_agent.py:2031:            # Etch a debug entry the first time a given oscillation
+mcop_package/mcop/adapters/arcagi3_agent.py:2044:                        "type": "debug_loop_detected",
+mcop_package/mcop/adapters/arcagi3_agent.py:2223:        # Emit a dedicated debug etch the first time a given (state,
+mcop_package/mcop/adapters/arcagi3_agent.py:2230:                    "type": "debug_wall_learning",
+mcop_package/mcop/canonical_encoding.py:17:  escapes non-ASCII as ``\\uXXXX``; RFC 8785 emits raw UTF-8 except for
+mcop_package/run_arcagi3_agent.py:135:        level=logging.DEBUG if args.verbose else logging.INFO,
+mcop_package/test_arcagi3_agent.py:97:    # The bug log: Grok picked ACTION5 with allowed=[ACTION1..ACTION4].
+mcop_package/test_arcagi3_agent.py:250:    # --verbose -- this is the gap the user called out in the bug report.
+mcop_package/test_arcagi3_agent.py:280:    """Reproduces the user's bug: Grok returns a perfectly valid JSON
+mcop_package/test_arcagi3_agent.py:390:    downstream debugging knows whether the model emitted prose vs. broken
+mcop_package/test_arcagi3_agent.py:1253:    # Both a blocked_wobble outcome record and a debug_wall_learning
+mcop_package/test_arcagi3_agent.py:1255:    # trailing index so future debug etches don't break the test.
+mcop_package/test_arcagi3_agent.py:1258:    assert "debug_wall_learning" in types
+mcop_package/test_arcagi3_agent.py:1282:        if r.get("action") == "ACTION4" and r.get("type") != "debug_wall_learning"
+mcop_package/test_arcagi3_agent.py:1287:    # No debug_wall_learning should be emitted for ambiguous drifts.
+mcop_package/test_arcagi3_agent.py:1289:        r["type"] != "debug_wall_learning"
+mcop_package/test_arcagi3_agent.py:1294:def test_holographic_strategy_emits_debug_loop_detected_on_oscillation() -> None:
+mcop_package/test_arcagi3_agent.py:1295:    """First-time oscillation triggers a debug_loop_detected provenance entry."""
+mcop_package/test_arcagi3_agent.py:1303:    debug_entries = [
+mcop_package/test_arcagi3_agent.py:1304:        r for r in strat.provenance if r["type"] == "debug_loop_detected"
+mcop_package/test_arcagi3_agent.py:1306:    assert len(debug_entries) == 1
+mcop_package/test_arcagi3_agent.py:1307:    entry = debug_entries[0]
+mcop_package/test_arcagi3_agent.py:1312:    debug_entries = [
+mcop_package/test_arcagi3_agent.py:1313:        r for r in strat.provenance if r["type"] == "debug_loop_detected"
+mcop_package/test_arcagi3_agent.py:1315:    assert len(debug_entries) == 1
+mcop_package/test_arcagi3_agent.py:1646:    Regression guard for the ls20 cycle bug: before discovery the
+mcop_package/test_arcagi3_agent.py:1696:    """Reproducer for the ls20 ACTION1->4 cycle bug.
+mcop_package/test_arcagi3_agent.py:1927:def test_holographic_strategy_choose_emits_debug_goal_bfs() -> None:
+mcop_package/test_arcagi3_agent.py:1928:    """When BFS picks an action, choose() must emit a debug_goal_bfs etch."""
+mcop_package/test_arcagi3_agent.py:1939:    bfs_etches = [r for r in strat.provenance if r["type"] == "debug_goal_bfs"]
+mcop_package/tests/test_adapters.py:104:    response = adapter.optimize_cinematic_video(
+mcop_package/tests/test_adapters.py:151:    response = adapter.optimize_cinematic_video("forced model", ["zoom"])
+mcop_package/tests/test_adapters.py:166:    response = adapter.optimize_cinematic_video(
+mcop_package/tests/test_adapters.py:177:    response2 = adapter.optimize_cinematic_video(
+mcop_package/tests/test_adapters.py:235:        adapter.optimize_cinematic_video("prompt", motion_refs=["zoom"])
+mcop_package/tests/test_adapters.py:249:        adapter.optimize_cinematic_video("prompt", motion_refs=["zoom"])
+mcop_package/tests/test_adapters.py:258:    response = adapter.optimize_cinematic_video("prompt", motion_refs=["pan"])
+packages/core/src/novaNeoEncoder.ts:11: * Minimal, opt-in debug hook. Consumers may wire this to any logger
+packages/core/src/novaNeoEncoder.ts:15:export type NovaNeoDebugHook = (event: {
+packages/core/src/novaNeoEncoder.ts:27:let debugHook: NovaNeoDebugHook | undefined;
+packages/core/src/novaNeoEncoder.ts:29:export function setNovaNeoDebugHook(hook: NovaNeoDebugHook | undefined): void {
+packages/core/src/novaNeoEncoder.ts:30:  debugHook = hook;
+packages/core/src/novaNeoEncoder.ts:82:    // Observability: emit provenance data to the opt-in debug hook only.
+packages/core/src/novaNeoEncoder.ts:84:    if (debugHook) {
+packages/core/src/novaNeoEncoder.ts:85:      debugHook({
+packages/core/src/novaNeoEncoder.ts:106:    if (debugHook) {
+packages/core/src/novaNeoEncoder.ts:107:      debugHook({

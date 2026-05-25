@@ -1,0 +1,6 @@
+ WARN  Unsupported engine: wanted: {"node":"22.22.3"} (current: {"node":"v22.12.0","pnpm":"9.15.0"})
+
+> @kuonirad/mcop-framework@2.3.1 deps:audit /home/ubuntu/repos/MCOP-Framework-2-0
+> pnpm audit --audit-level=high
+
+No known vulnerabilities found

@@ -1,0 +1,184 @@
+ WARN  Unsupported engine: wanted: {"node":"22.22.3"} (current: {"node":"v22.12.0","pnpm":"9.15.0"})
+
+> @kuonirad/mcop-framework@2.3.1 audit:claims /home/ubuntu/repos/MCOP-Framework-2-0
+> bash scripts/audit-repo-claims.sh
+
+
+=============================================================================
+Starting repository audit
+=============================================================================
+✔ PASS: Found command: git
+✔ PASS: Found command: node
+
+=============================================================================
+Environment
+=============================================================================
+
+=============================================================================
+Claim drift scan
+=============================================================================
+⚠ WARN: Potential claim drift detected: Overclaiming production readiness. See audit-artifacts/Overclaiming_production_readiness.txt
+✔ PASS: No claim drift found for: Next.js documentation drift
+⚠ WARN: Potential claim drift detected: License contradiction. See audit-artifacts/License_contradiction.txt
+⚠ WARN: Potential claim drift detected: Unproven benchmark claim. See audit-artifacts/Unproven_benchmark_claim.txt
+⚠ WARN: Potential claim drift detected: Version drift suspects. See audit-artifacts/Version_drift_suspects.txt
+✔ PASS: No claim drift found for: Import alias drift
+
+=============================================================================
+Package/version/license/import metadata
+=============================================================================
+✔ PASS: Package metadata audit passed
+
+=============================================================================
+Package manager setup
+=============================================================================
+✔ PASS: Found command: node
+✔ PASS: Found command: corepack
+
+=============================================================================
+Enable Corepack
+=============================================================================
++ corepack
+enable
+✔ PASS: Enable Corepack
+
+=============================================================================
+Prepare package manager: pnpm@9.15.0
+=============================================================================
++ corepack
+prepare
+pnpm@9.15.0
+--activate
+✔ PASS: Prepare package manager: pnpm@9.15.0
+✔ PASS: Found command: pnpm
+
+=============================================================================
+Install dependencies with frozen lockfile
+=============================================================================
++ pnpm
+install
+--frozen-lockfile
+✔ PASS: Install dependencies with frozen lockfile
+
+=============================================================================
+Proof gates
+=============================================================================
+
+=============================================================================
+pnpm script: lint
+=============================================================================
++ pnpm
+run
+lint
+✔ PASS: pnpm script: lint
+
+=============================================================================
+pnpm script: typecheck
+=============================================================================
++ pnpm
+run
+typecheck
+✔ PASS: pnpm script: typecheck
+
+=============================================================================
+pnpm script: test:coverage
+=============================================================================
++ pnpm
+run
+test:coverage
+✔ PASS: pnpm script: test:coverage
+
+=============================================================================
+pnpm script: build
+=============================================================================
++ pnpm
+run
+build
+✔ PASS: pnpm script: build
+
+=============================================================================
+pnpm audit high+
+=============================================================================
++ pnpm
+audit
+--audit-level=high
+✔ PASS: pnpm audit high+
+
+=============================================================================
+pnpm script: sbom
+=============================================================================
++ pnpm
+run
+sbom
+✔ PASS: pnpm script: sbom
+
+=============================================================================
+pnpm script: sbom:validate
+=============================================================================
++ pnpm
+run
+sbom:validate
+✔ PASS: pnpm script: sbom:validate
+
+=============================================================================
+pnpm script: cypress:run
+=============================================================================
++ pnpm
+run
+cypress:run
+✘ FAIL: pnpm script: cypress:run
+
+=============================================================================
+pnpm script: bench:smoke
+=============================================================================
++ pnpm
+run
+bench:smoke
+✔ PASS: pnpm script: bench:smoke
+
+=============================================================================
+pnpm script: determinism:test
+=============================================================================
++ pnpm
+run
+determinism:test
+✔ PASS: pnpm script: determinism:test
+
+=============================================================================
+pnpm script: docs:check
+=============================================================================
++ pnpm
+run
+docs:check
+✔ PASS: pnpm script: docs:check
+
+=============================================================================
+Core package build: @kullailabs/mcop-core
+=============================================================================
++ pnpm
+--filter
+@kullailabs/mcop-core
+build
+✔ PASS: Core package build: @kullailabs/mcop-core
+
+=============================================================================
+Final summary
+=============================================================================
+# Repository Claim Audit Summary
+
+- Timestamp: 2026-05-25T18:28:11Z
+- Git SHA: e65d486079375d8ce0ccf359885de16a5f69cbc3
+- Failures: 1
+- Warnings: 4
+
+## Reports
+
+- Environment: `audit-artifacts/environment.txt`
+- Package metadata: `audit-artifacts/package-metadata.txt`
+- Claim drift: `audit-artifacts/claim-drift.txt`
+- Full log: `audit-artifacts/audit.log`
+
+## Result
+
+FAILED
+ ELIFECYCLE  Command failed with exit code 1.
