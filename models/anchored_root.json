@@ -1,0 +1,15 @@
+{
+  "version": "mcop-onchain-anchor/1.0",
+  "root": "3e53db14a02c652b8f4d03e3c7a730dba39ba834a1492b2129c53a58c8bb76f0",
+  "algorithm": "rfc6962-sha256",
+  "manifest": "manifest.json",
+  "manifest_version": "mcop-cuda-kernel-manifest/2.0",
+  "anchor": {
+    "kind": "pinned-local",
+    "chain": null,
+    "contract": null,
+    "tx": null,
+    "block": null,
+    "note": "Default pinned anchor checked into the repository. It records the Merkle root of the canonical model manifest so PoUW verifiers have a trusted reference without a network round-trip. To anchor on a real chain, publish `root` to your registry contract or a transparency-log signed tree head, then fill in `chain`/`contract`/`tx`/`block` and set `kind` to e.g. `evm-storage-slot`. The PoUW verifier trusts ONLY the `root` field; the other fields are provenance metadata for auditors. Re-anchoring is a deliberate act: re-exporting a different model set changes `root` and MUST be followed by re-publishing the anchor."
+  }
+}
