@@ -41,6 +41,7 @@ import os
 import time
 from dataclasses import dataclass
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
 from typing import Any, Callable, Mapping
 
 from .kernels import KernelRegistry, default_registry
@@ -125,6 +126,65 @@ def _probe_backend() -> dict[str, Any]:
 
 
 # ---------------------------------------------------------------------------
+# Model manifest (read-only advertisement)
+# ---------------------------------------------------------------------------
+
+
+_MANIFEST_CACHE: dict[str, Any] = {}
+_MANIFEST_MISSING = object()
+
+
+def _load_model_manifest(path: str | None) -> Mapping[str, Any] | None:
+    """Load the Merkle-rooted model manifest, gracefully.
+
+    Returns ``None`` (never raises) when the path is unset/missing or the
+    optional ``mcop`` package is not installed — the server stays usable
+    without it, exactly like ``provenance.py``'s canonical-digest fallback.
+    Result is cached per path (the manifest is static per deployment).
+    """
+
+    if not path:
+        return None
+    if path in _MANIFEST_CACHE:
+        cached = _MANIFEST_CACHE[path]
+        return None if cached is _MANIFEST_MISSING else cached
+    try:
+        from mcop.model_manifest import load_manifest  # type: ignore[import-not-found]
+
+        manifest = load_manifest(Path(path))
+    except Exception:
+        _MANIFEST_CACHE[path] = _MANIFEST_MISSING
+        return None
+    _MANIFEST_CACHE[path] = manifest
+    return manifest
+
+
+def _manifest_advertisement(path: str | None) -> dict[str, Any] | None:
+    """Read-only /capabilities view of the manifest: the anchored Merkle
+    root + per-kernel ``model_id``. No PoUW receipt is minted here — the
+    reference kernels run on NumPy, so the server only *advertises* what an
+    accelerated run would attest, it does not claim a model executed."""
+
+    manifest = _load_model_manifest(path)
+    if not isinstance(manifest, Mapping):
+        return None
+    merkle = manifest.get("merkle")
+    kernels = manifest.get("kernels")
+    if not isinstance(merkle, Mapping) or not isinstance(kernels, Mapping):
+        return None
+    return {
+        "version": manifest.get("version"),
+        "algorithm": merkle.get("algorithm"),
+        "root": merkle.get("root"),
+        "models": {
+            name: entry.get("model_id")
+            for name, entry in kernels.items()
+            if isinstance(entry, Mapping)
+        },
+    }
+
+
+# ---------------------------------------------------------------------------
 # Handler core (transport-agnostic)
 # ---------------------------------------------------------------------------
 
@@ -150,10 +210,16 @@ class ServerConfig:
     stream_mode: str = "per-op"
     require_cuda: bool = False  # when True, refuse CPU fallback
     resolved_from: ResolvedFrom = "explicit-on"
+    # Path to the Merkle-rooted model manifest. Surfaced read-only on
+    # /capabilities so verifiers can fetch the anchored root + per-kernel
+    # model_ids. ``None`` ⇒ no manifest is advertised.
+    model_manifest_path: str | None = None
 
     @classmethod
     def from_env(cls) -> "ServerConfig":
         require = os.environ.get("MCOP_CUDA_REQUIRE", "").strip()
+        kernel_dir = os.environ.get("MCOP_CUDA_KERNEL_DIR", "models")
+        manifest_path = os.environ.get("MCOP_MODEL_MANIFEST") or os.path.join(kernel_dir, "manifest.json")
         return cls(
             host=os.environ.get("MCOP_CUDA_HOST", _DEFAULT_HOST),
             port=int(os.environ.get("MCOP_CUDA_PORT", "8765")),
@@ -161,6 +227,7 @@ class ServerConfig:
             stream_mode=os.environ.get("MCOP_CUDA_STREAMS", "per-op"),
             require_cuda=require in {"1", "true", "on"},
             resolved_from="explicit-on" if require in {"1", "true", "on"} else "auto-capable",
+            model_manifest_path=manifest_path,
         )
 
 
@@ -244,16 +311,17 @@ class _Handler(BaseHTTPRequestHandler):
             return
         if self.path == "/capabilities":
             probe = _probe_backend()
-            self._write_json(
-                200,
-                {
-                    **probe,
-                    "device": self.config.device,
-                    "streamMode": self.config.stream_mode,
-                    "resolvedFrom": self.config.resolved_from,
-                    "requireCuda": self.config.require_cuda,
-                },
-            )
+            body: dict[str, Any] = {
+                **probe,
+                "device": self.config.device,
+                "streamMode": self.config.stream_mode,
+                "resolvedFrom": self.config.resolved_from,
+                "requireCuda": self.config.require_cuda,
+            }
+            manifest = _manifest_advertisement(self.config.model_manifest_path)
+            if manifest is not None:
+                body["modelManifest"] = manifest
+            self._write_json(200, body)
             return
         self._write_json(404, {"error": "not_found", "path": self.path})
 

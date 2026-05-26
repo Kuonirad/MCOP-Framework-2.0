@@ -151,6 +151,16 @@ The microservice exposes `GET /health`, `GET /capabilities`,
 `POST /cuda/<op>`, `POST /cuda` (batch). All responses include a
 Merkle-rooted `_provenance` envelope.
 
+`GET /capabilities` also advertises the anchored model manifest when one
+is present (`MCOP_MODEL_MANIFEST`, or `<MCOP_CUDA_KERNEL_DIR>/manifest.json`):
+its `modelManifest` block carries the Merkle `root`, `algorithm`, and the
+per-kernel `model_id` map so a verifier can read the anchored root without
+a chain round-trip. This is **advertisement only** — the reference kernels
+run on NumPy, so the server does not mint a PoUW receipt (which would
+falsely assert an ONNX model executed). Receipt emission lives in the
+in-process `CUDAHardwareLayer` (set `modelManifest` on the layer), where a
+real ONNX session actually runs the attested model.
+
 ### Forcing CUDA-only dispatch
 
 Set `MCOP_CUDA_REQUIRE=1` (or `--require-cuda`) to refuse any CPU
