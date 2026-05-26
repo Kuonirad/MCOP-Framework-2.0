@@ -69,7 +69,7 @@ async function main() {
     stigmergy,
     etch,
     client: localClient,
-    defaultModel: 'grok-4.3', // or whatever your local build reports
+    defaultModel: 'grok-build', // Primary local build model (run `grok models` on your installation to confirm)
   });
 
   // 4. Optional: enable organelle mode (bidirectional MCOP execution inside the local Grok).
@@ -77,6 +77,7 @@ async function main() {
   const useOrganelle = !!process.env.ORGANELLE;
 
   const requestOptions: any = {
+    model: 'grok-build',               // Primary local build model (from `grok models`)
     temperature: 0.6,
     maxTokens: 1200,
     topP: 0.95,
