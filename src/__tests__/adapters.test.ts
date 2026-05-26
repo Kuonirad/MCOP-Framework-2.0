@@ -2289,7 +2289,7 @@ describe('VeilBridgeGrokClient (primary local Grok build integration)', () => {
         // no outputFormat provided -> organelleMode should default to streaming-json
         organelleMode: true,
         reasoningEffort: 'high',
-      } as any,
+      } as Partial<GrokCompletionOptions> & Record<string, unknown>,
     });
 
     expect(global.fetch).toHaveBeenCalledWith(
@@ -2322,7 +2322,7 @@ describe('VeilBridgeGrokClient (primary local Grok build integration)', () => {
         { role: 'assistant', content: 'reply' },
         { role: 'user', content: 'second' },
       ],
-      options: { model: 'grok-build' } as any,
+      options: { model: 'grok-build' } as Partial<GrokCompletionOptions> & Record<string, unknown>,
     });
 
     expect(result.content).toContain('part1');
@@ -2332,14 +2332,14 @@ describe('VeilBridgeGrokClient (primary local Grok build integration)', () => {
 
   it('handles AbortError and other fetch failures', async () => {
     const abortErr = new Error('aborted');
-    (abortErr as any).name = 'AbortError';
+    (abortErr as Error & { name?: string }).name = 'AbortError';
     (global.fetch as jest.Mock).mockRejectedValueOnce(abortErr);
 
     const client = new VeilBridgeGrokClient();
     await expect(
       client.createCompletion({
         messages: [{ role: 'user', content: 'test' }],
-        options: {} as any,
+        options: {} as Partial<GrokCompletionOptions> & Record<string, unknown>,
       })
     ).rejects.toThrow(/timed out/);
 
@@ -2347,7 +2347,7 @@ describe('VeilBridgeGrokClient (primary local Grok build integration)', () => {
     await expect(
       client.createCompletion({
         messages: [{ role: 'user', content: 'test' }],
-        options: {} as any,
+        options: {} as Partial<GrokCompletionOptions> & Record<string, unknown>,
       })
     ).rejects.toThrow(/network down/);
   });
