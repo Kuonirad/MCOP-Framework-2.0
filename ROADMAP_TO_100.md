@@ -16,7 +16,7 @@ The v2.4 line is an explicit **discoverability + adoption** push that compounds 
 operationally-mature core (96.6 % test coverage in the Jest snapshot, deterministic
 4.4 ms / 22,700 ops/sec reference run reproducible via
 [`examples/reproducible-benchmark/`](./examples/reproducible-benchmark/README.md),
-Merkle-chained provenance, BUSL-1.1 → MIT 2030-04-26) without violating any of those
+Merkle-chained provenance, Apache-2.0 open source) without violating any of those
 invariants. Every escalation is etched via `ProvenanceMetadata` and gated by
 `pnpm positive:audit`, so the protocol is fully reversible.
 
@@ -38,15 +38,15 @@ invariants. Every escalation is etched via `ProvenanceMetadata` and gated by
 - **Phase 2 — Benchmark Externalization** _(infrastructure shipped · preprint upload pending)_: lifted `src/benchmarks/promptingModes.ts` into the reproducible Jupyter + Docker bundle at [`examples/reproducible-benchmark/`](./examples/reproducible-benchmark/README.md); added the [`Reproducible 22,700 ops/sec · verified 2026-05-10`](./docs/badges/reproducible-benchmark.svg) verification badge to the README; the preprint scaffold lives at [`docs/benchmarks/preprint/`](./docs/benchmarks/preprint/README.md) (arXiv `cs.SE` + Hugging Face mirror + Zenodo DOI). Outstanding: render `paper.md` to PDF and complete the arXiv submission once a Cognition-side endorsement is in place.
 - **Phase 3 — Community Flywheel Activation:** curate ≥ 12 good-first-issues with `positive-impact` labels and an `EudaimonicEtch` bonus for merged PRs; ship `CONTRIBUTOR_JOY.md`.
 - **Phase 4 — Ecosystem Integration Deepening** _(infrastructure shipped · upstream PRs pending)_: shipped MCOP-as-memory-layer shims for [LangChain](./docs/integrations/langchain.md), [LlamaIndex](./docs/integrations/llamaindex.md), and [Haystack](./docs/integrations/haystack.md) in **both** TypeScript ([`src/integrations/`](./src/integrations/)) and Python ([`mcop_package/mcop/integrations/`](./mcop_package/mcop/integrations/)) — each shim is framework-agnostic and vendorable into an upstream PR; shipped the dedicated stdio [MCP Memory server](./docs/integrations/mcp-memory-server.md) at [`examples/mcop_memory_mcp_server/`](./examples/mcop_memory_mcp_server/) for Claude Desktop / Cursor / Continue. The Universal Adapter Protocol's existing Grok adapter ([`src/adapters/grokAdapter.ts`](./src/adapters/grokAdapter.ts)) already carries OpenAI-compatible tool-calling; the Grok image surface lives at [`src/adapters/grokImageAdapter.ts`](./src/adapters/grokImageAdapter.ts). Outstanding: file the upstream PRs against `langchain-ai/{langchain,langchainjs}`, `run-llama/{llama_index,LlamaIndexTS}`, and `deepset-ai/haystack` per [`docs/integrations/UPSTREAM_SUBMISSION_PLAN.md`](./docs/integrations/UPSTREAM_SUBMISSION_PLAN.md).
-- **Phase 5 — Narrative & Scarcity Weaponization:** publish "Source-Available until 2030" positioning (blog post + X thread) so the BUSL → MIT scheduled conversion reads as a temporal arbitrage for early adopters, not a restriction.
+- **Phase 5 — Open-Source Adoption Narrative:** publish "Apache-2.0, no strings attached" positioning (blog post + X thread) so the permissive open-source license reads as a low-friction invitation to adopt, embed, and contribute — including for commercial and production use.
 - **Phase 6 — Measurement & Self-Correction:** GitHub Action posting a weekly **Efficacy Delta** comment (Δ stars · Δ benchmark · Δ contributor resonance); auto-trigger `positive:audit` escalation review on any vector dropping > 15 %.
-- **Phase 7 — MIT Conversion Narrative Prep:** begin drafting the 2030 "Legacy to Open" transition plan in [`GOVERNANCE.md`](./GOVERNANCE.md) so the license flip lands as earned graduation.
+- **Phase 7 — Open-Source Governance Maturation:** document the project's open-source governance and contribution path in [`GOVERNANCE.md`](./GOVERNANCE.md) now that the codebase is Apache-2.0, lowering the barrier for sustained external maintainership.
 
 ### Invariants (non-negotiable)
 
 1. Every change must pass `pnpm lint && pnpm typecheck && pnpm test && pnpm positive:audit` before merge.
 2. No dilution of cryptographic lineage: SHA-256, Merkle chaining, ISO8601 timestamps, UUID-v4 traces, and rank-1 etch geometry stay byte-identical.
-3. BUSL-1.1 scarcity narrative is preserved verbatim until the `2030-04-26` Change Date.
+3. The project stays open source under the Apache License 2.0; license metadata across `LICENSE`, package manifests, and SPDX headers stays consistent and is enforced by the `License Guard` workflow.
 4. All escalations are etched via `ProvenanceMetadata` and live on a feature branch; `git revert` + re-etch fully restores prior efficacy state.
 
 ---

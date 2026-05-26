@@ -713,9 +713,9 @@ Maintainers watch all three channels.
 
 ## ⚖️ Licensing and Contributions
 
-As of 2026-04-26, this project is licensed under the **Business Source License 1.1**. By contributing to this repository, you agree that your contributions will be licensed under the same terms.
+This project is licensed under the **Apache License 2.0** (Apache-2.0). By contributing to this repository, you agree that your contributions will be licensed under the same terms, including the patent grant in Section 3 of the license.
 
-By submitting a contribution you also grant **Kevin John Kull** (the sole licensor of record, GitHub `@Kuonirad`) a perpetual, irrevocable right to relicense your contribution under the Change License — currently the MIT License — on the BUSL Change Date (`2030-04-26`) documented in [`NOTICE.md`](./NOTICE.md), so that the eventual MIT transition does not require per-contributor outreach.
+Apache-2.0 contributions are made under the license's own inbound=outbound terms: unless you explicitly state otherwise, any contribution you intentionally submit for inclusion is provided under Apache-2.0 (see Section 5 of the license). See [`NOTICE.md`](./NOTICE.md) for the project's full licensing history.
 
 ### Developer Certificate of Origin (DCO)
 
@@ -775,18 +775,18 @@ git commit -s -m "Your commit message"
 
 New source files SHOULD start with a single-line SPDX identifier so the
 licence is discoverable from the file alone — useful for downstream
-licence scanners and for the eventual MIT transition. Use:
+licence scanners. Use:
 
 ```ts
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: Apache-2.0
 ```
 
 ```js
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: Apache-2.0
 ```
 
 ```python
-# SPDX-License-Identifier: BUSL-1.1
+# SPDX-License-Identifier: Apache-2.0
 ```
 
 A repo-wide backfill is intentionally **not** required by this protocol —

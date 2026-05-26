@@ -1,10 +1,10 @@
-# NOTICE - License transition (MIT -> BUSL 1.1)
+# NOTICE — Licensing
 
 The `mcop` Python distribution is part of the KullAILABS MCOP Framework
-2.0 repository and follows the repository-level license transition.
+2.0 repository and is licensed under the **Apache License 2.0** (see
+[`LICENSE`](./LICENSE)). For the full licensing history and details,
+see the repository-level [NOTICE.md](../NOTICE.md).
 
-Releases that pre-date the BUSL 1.1 transition remain available under
-the MIT License under which they were originally distributed. New
-releases after the transition are governed by the Business Source
-License 1.1 in LICENSE and automatically convert to MIT on the Change
-Date described there.
+Releases originally distributed under the MIT License remain available
+under MIT for those versions; the MIT text is preserved in
+[`LICENSE-MIT-LEGACY`](./LICENSE-MIT-LEGACY).

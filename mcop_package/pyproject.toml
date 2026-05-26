@@ -15,7 +15,7 @@ authors = [
 maintainers = [
   { name = "Kevin John Kull (Kuonirad)", email = "kevinkull.kk@gmail.com" },
 ]
-license = { text = "Business Source License 1.1" }
+license = { text = "Apache-2.0" }
 keywords = [
   "mcop",
   "meta-cognitive",
@@ -28,6 +28,7 @@ keywords = [
 ]
 classifiers = [
   "Development Status :: 4 - Beta",
+  "License :: OSI Approved :: Apache Software License",
   "Intended Audience :: Developers",
   "Intended Audience :: Education",
   "Intended Audience :: Science/Research",

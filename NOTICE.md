@@ -1,95 +1,79 @@
-# NOTICE — License transition (MIT → BUSL 1.1)
+# NOTICE — Licensing
 
-The KullAILABS MCOP Framework 2.0 was originally distributed under the
-**MIT License**. As of **2026-04-26T03:16:27Z** (Commit: `66438ea3fc57f4af80d4e9d38f769a4e65d7839b`), all *new* commits, releases,
-and distributions of the project are licensed under the **Business
-Source License 1.1** (BUSL 1.1) contained in the top-level
+The KullAILABS MCOP Framework 2.0 is licensed under the
+**Apache License 2.0** (Apache-2.0). The full text is in the top-level
 [`LICENSE`](./LICENSE) file.
 
-This relicense applies **going forward only**. Specifically:
+Copyright © 2025-2026 Kevin John Kull (GitHub: [@Kuonirad](https://github.com/Kuonirad))
+and the KullAILABS MCOP Framework contributors.
 
-- **Every commit, git tag, GitHub Release, npm release of
-  `@kullailabs/mcop-core`, and PyPI release of `mcop_package` that
-  pre-dates this transition continues to be available under the MIT
-  License** under which it was originally distributed. The MIT terms
-  for those prior versions are preserved verbatim in
-  [`LICENSE-MIT-LEGACY`](./LICENSE-MIT-LEGACY).
-- **Every commit, tag, and release on or after the transition is
-  governed by BUSL 1.1.**
-- **Ecosystem integration shim files** in
-  `src/integrations/{langchain,llamaIndex,haystack}.ts` and
-  `mcop_package/mcop/integrations/{langchain,llamaindex,haystack}.py`
-  are carved out under the MIT License per
-  [`LICENSE-MIT-INTEGRATIONS`](./LICENSE-MIT-INTEGRATIONS), so they
-  can be vendored into MIT- and Apache-2.0-licensed upstream agent
-  frameworks. Each carved-out file carries an
-  `SPDX-License-Identifier: MIT` header.
+## License history
 
-## What BUSL 1.1 means in practice
+The project's license has changed over time. The current license
+(Apache-2.0) applies to all current and future commits, releases, and
+distributions.
 
-BUSL 1.1 is a **source-available** license — not an Open Source
-license — that **automatically converts to an Open Source license on
-a fixed Change Date**. For this project the parameters are:
-
-| Parameter | Value |
+| Period | License |
 |---|---|
-| Licensor | Kevin John Kull (GitHub: @Kuonirad) |
-| Licensed Work | KullAILABS MCOP Framework 2.0 |
-| Change Date | **2030-04-26** |
-| Change License | **MIT License** |
-| Additional Use Grant | Personal, internal-business, academic, and research use. Non-production use of any kind is permitted. |
+| Original release | MIT |
+| 2026-04-26 → 2026-05-26 | Business Source License 1.1 (source-available) |
+| 2026-05-26 onward | **Apache License 2.0** (open source) |
 
-### Prohibited Use Cases
+The relicensing **broadens** the rights granted — Apache-2.0 is an
+OSI-approved open-source license, so this move only adds permissions
+relative to the prior source-available BUSL 1.1 terms. As the sole
+copyright holder, the Licensor (Kevin John Kull) has the right to
+issue these terms; relicensing does not retroactively withdraw any
+grant already made under an earlier license.
 
-Without a separate commercial license from the Licensor, you may **NOT**:
+- **Versions originally distributed under MIT** remain available under
+  the MIT License for those versions. The MIT text is preserved in
+  [`LICENSE-MIT-LEGACY`](./LICENSE-MIT-LEGACY).
+- **Versions distributed under BUSL 1.1** (commits/tags between
+  2026-04-26 and the Apache-2.0 relicense) were source-available under
+  those terms; the current tree supersedes them with the more
+  permissive Apache-2.0 grant.
 
-1. **Compete with Licensor**: Offer the Licensed Work, or a derivative thereof, as a hosted, managed, or software-as-a-service product that competes with Licensor's paid offerings.
-2. **Embed in Commercial Products**: Embed the Licensed Work, or a derivative thereof, in a commercial product offered to third parties.
-3. **Broaden Rights**: Redistribute the Licensed Work, or a derivative thereof, under terms that grant rights broader than those granted by the BUSL 1.1 license.
+## What Apache 2.0 means in practice
 
-In short:
+Apache-2.0 is a permissive open-source license. You may use, copy,
+modify, distribute, and sublicense the Licensed Work — including for
+commercial and production use — subject to its terms, which include:
 
-- **Yes**, you may read, audit, modify, fork, and run the code for
-  personal, evaluation, academic, and internal-business purposes.
-- **Yes**, on 2030-04-26 the entire codebase as of that date
-  automatically becomes available under MIT — no further action by
-  the Licensor is required.
-- **No**, you may not run a hosted / managed service that competes
-  with the Licensor's paid offerings, or embed the project in a
-  commercial product distributed to third parties, without first
-  obtaining a separate commercial license from the Licensor.
+- **Attribution**: retain the copyright, license, and any `NOTICE`
+  text when you redistribute.
+- **State changes**: mark files you modify as changed.
+- **Patent grant**: contributors grant an express patent license; that
+  grant terminates for anyone who initiates patent litigation alleging
+  the Work infringes.
+- **No trademark grant**: the license does not grant rights to the
+  Licensor's names, logos, or trademarks.
+- **As-is**: the Work is provided without warranty.
 
-## Why BUSL 1.1
+## Ecosystem integration shims
 
-This pattern — used by Sentry, MariaDB, CockroachDB, HashiCorp
-(Terraform / Vault), Couchbase, and Redpanda — preserves the source
-code's auditability, lets the community participate, and ensures the
-work eventually returns to the open-source commons, while protecting
-the Licensor's ability to fund continued development of a deterministic
-triad architecture (NOVA-NEO encoder, Stigmergy v5, Holographic Etch)
-through commercial offerings.
+The framework-agnostic integration shims in
+`src/integrations/{langchain,llamaIndex,haystack}.ts` and
+`mcop_package/mcop/integrations/{langchain,llamaindex,haystack}.py`
+are licensed under the **MIT License** (see
+[`LICENSE-MIT-INTEGRATIONS`](./LICENSE-MIT-INTEGRATIONS)) so they
+remain trivially vendorable into uniformly MIT-licensed upstream agent
+frameworks. Each carries an `SPDX-License-Identifier: MIT` header.
+Apache-2.0 governs every other file in the repository.
 
 ## Contributor attribution
 
-External contributions made prior to the relicense were submitted
-under MIT and **the copyright in those contributions remains with
-their respective authors**. Their commits remain available under MIT
-in the git history; this relicense does not retroactively alter their
-prior grant. New contributions on or after 2026-04-26 are accepted
-under the terms of BUSL 1.1; contributors must certify their contributions
+Contributions are accepted under the project's current license. The
+copyright in each contribution remains with its author; contributors
+license their work under Apache-2.0 (and certify their contributions
 via the Developer Certificate of Origin (DCO) as described in
-[`CONTRIBUTING.md`](./CONTRIBUTING.md).
+[`CONTRIBUTING.md`](./CONTRIBUTING.md)). Contributions made under
+earlier licenses remain available under those licenses in the git
+history.
 
-## Commercial licensing
+## Contact
 
-For commercial licenses, OEM arrangements, or use cases not covered
-by the Additional Use Grant, contact:
+For questions about licensing or alternative arrangements, contact:
 
 - Email: kevinkull.kk@gmail.com
 - GitHub: [@Kuonirad](https://github.com/Kuonirad)
-
-## Trademarks
-
-"Business Source License" is a trademark of MariaDB Corporation Ab
-and is used with permission. Use of the BUSL 1.1 text and trademark
-follows the Covenants of Licensor in the LICENSE file.

@@ -1,25 +1,22 @@
 INTEGRATION SHIMS MIT CARVE-OUT — KullAILABS MCOP Framework 2.0
 
-The files listed below are intentionally carved out of the
-Business Source License 1.1 ("BUSL-1.1") that otherwise governs this
-repository (see top-level LICENSE) and are instead made available under
-the MIT License reproduced below. Each carved-out file carries an
-`SPDX-License-Identifier: MIT` header to make the grant
+The repository as a whole is licensed under the Apache License 2.0
+(see top-level LICENSE). The files listed below are instead made
+available under the MIT License reproduced below. Each such file
+carries an `SPDX-License-Identifier: MIT` header to make the grant
 machine-readable.
 
 Rationale: these shims are thin, framework-agnostic adapters that
 exist specifically to be vendored verbatim into MIT- and
 Apache-2.0-licensed upstream agent frameworks (LangChain, LlamaIndex,
-Haystack). Distributing them under MIT removes the principal legal
-obstacle to upstream contribution and is consistent with the
-repository's BUSL → MIT conversion plan (Change Date 2030-04-26 per
-top-level LICENSE), which already telegraphs the eventual destination
-of the whole codebase.
+Haystack). Apache 2.0 is already compatible with those upstreams, but
+keeping the shims under the simpler, more permissive MIT License keeps
+them maximally easy to vendor into uniformly MIT-licensed trees.
 
-The MIT carve-out applies ONLY to the integration shim files
-enumerated below and to verbatim, byte-identical copies of those files
-distributed elsewhere. The BUSL-1.1 in LICENSE continues to govern
-every other file in this repository.
+The MIT terms apply ONLY to the integration shim files enumerated
+below and to verbatim, byte-identical copies of those files
+distributed elsewhere. The Apache License 2.0 in LICENSE governs every
+other file in this repository.
 
 Carved-out files:
 

@@ -50,11 +50,13 @@ Plain English: *the second-generation toolkit built on top of MCOP — a
 Next.js / TypeScript app plus a Python SDK that orchestrates auditable AI
 reasoning and creative generation.*
 
-### BUSL 1.1 → MIT conversion (2030-04-26)
-**Business Source License 1.1** with an automatic conversion to **MIT** on
-`2030-04-26`. Plain English: *source-available now, fully open-source on that
-date*. Commits and releases prior to `2026-04-26` are already MIT (see
-`LICENSE-MIT-LEGACY`).
+### Apache License 2.0
+The project is licensed under the **Apache License 2.0**, an
+OSI-approved open-source license. Plain English: *you can use, modify,
+and redistribute it — including commercially — as long as you keep the
+copyright and license notices, state what you changed, and respect the
+patent terms*. Versions originally released under MIT remain available
+under MIT (see `LICENSE-MIT-LEGACY`).
 
 ---
 
