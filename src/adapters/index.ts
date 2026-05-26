@@ -19,6 +19,7 @@ export * from './genericProductionAdapter';
 export * from './regulatedProvenanceAdapter';
 export * from './grokAdapter';
 export * from './grokImageAdapter';
+export * from './veilBridgeGrokClient';
 export * from './qwenAdapter';
 export * from './claudeAdapter';
 export * from './deepSeekAdapter';
