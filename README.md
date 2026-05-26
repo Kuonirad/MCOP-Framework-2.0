@@ -11,7 +11,7 @@
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/Kuonirad/MCOP-Framework-2.0/badge)](https://scorecard.dev/viewer/?uri=github.com/Kuonirad/MCOP-Framework-2.0)
 [![Coverage](./docs/badges/coverage.svg)](./docs/badges/coverage.svg)
 [![Release](https://img.shields.io/github/v/release/Kuonirad/MCOP-Framework-2.0?style=flat-square&color=7b2dff)](https://github.com/Kuonirad/MCOP-Framework-2.0/releases)
-[![License: BUSL 1.1](https://img.shields.io/badge/License-BUSL%201.1-ffd700?style=flat-square)](LICENSE)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue?style=flat-square)](LICENSE)
 [![Maintained](https://img.shields.io/badge/maintained-yes-00ff88?style=flat-square)](./GOVERNANCE.md)
 [![Positive Impact](./docs/badges/positive-impact.svg)](./docs/POSITIVE_IMPACT_REPORT.md)
 [![Impact Score](https://img.shields.io/endpoint?cacheSeconds=300&style=flat-square&url=https%3A%2F%2Fraw.githubusercontent.com%2FKuonirad%2FMCOP-Framework-2.0%2Fmain%2F.github%2Fmetrics%2Fpositive-impact-score.json)](./docs/POSITIVE_IMPACT_REPORT.md)
@@ -70,7 +70,7 @@ Magnific, Utopai, and generic REST/MCP/HTTP production adapters. Ledger-aware Ho
 factories ship with **in-memory + file storage backends**, **async + Redis ledger forwarders**
 (retry, DLQ, and `unref()`-clean shutdown), and **snapshot ↔ ledger reconciliation** utilities.
 Cryptographic lineage at every step. **90.77%** test coverage.
-**Source-available under BUSL-1.1 with scheduled MIT conversion on 2030-04-26.**
+**Open source under the Apache License 2.0.**
 
 > **Why this matters:** unlike retrieval-augmented or chain-of-thought wrappers,
 > MCOP makes **every reasoning step replayable**, **byte-identically reproducible** across
@@ -153,7 +153,7 @@ feature comparison, May 2026 — public docs as of writing):
 | Native xAI Grok adapter (text + image generation) | ✅ | ⚠️ community | ❌ | ❌ |
 | Test coverage on documented API surface | **90.77%** | varies | varies | varies |
 | Reference benchmark (full pipeline) | **4.4 ms / 22,700 ops/sec** ([source](./src/benchmarks/promptingModes.ts)) | n/a | n/a | n/a |
-| License posture | **BUSL-1.1 → MIT 2030-04-26** | MIT | CC-BY-4.0 / MIT | MIT |
+| License posture | **Apache-2.0** | MIT | CC-BY-4.0 / MIT | MIT |
 | CodeQL + SBOM (CycloneDX) + Trojan-Source guard in CI | ✅ | ⚠️ partial | ⚠️ partial | ⚠️ partial |
 | Trusted publishing (OIDC, secretless) to npm + PyPI | ✅ | ❌ | ❌ | ❌ |
 
@@ -387,7 +387,7 @@ console.log({
 | CodeQL | Static analysis for JavaScript/TypeScript and security query suites. | [`.github/workflows/codeql.yml`](./.github/workflows/codeql.yml) |
 | Coverage | Jest coverage snapshot for the documented API surface; refreshed by `pnpm coverage:badge`. | [`docs/badges/coverage.svg`](./docs/badges/coverage.svg) · [`scripts/coverage-badge.mjs`](./scripts/coverage-badge.mjs) |
 | Release | Latest GitHub release tag. | [Releases](https://github.com/Kuonirad/MCOP-Framework-2.0/releases) |
-| License | BUSL-1.1 license with scheduled MIT conversion noted in `LICENSE`. | [`LICENSE`](./LICENSE) |
+| License | Apache License 2.0 — see `LICENSE`. | [`LICENSE`](./LICENSE) |
 | Maintained | Governance and maintainer process are documented. | [`GOVERNANCE.md`](./GOVERNANCE.md) |
 | Positive Impact | Eudaimonic / positive-resonance audit score; refreshed by `pnpm positive:audit`. | [`docs/badges/positive-impact.svg`](./docs/badges/positive-impact.svg) · [`docs/POSITIVE_IMPACT_REPORT.md`](./docs/POSITIVE_IMPACT_REPORT.md) |
 | Impact Score / Contributor Joy / Adoption Velocity / Beneficial Amplification | Dynamic shields.io endpoint badges for the four ImpactAuditor metrics; refreshed by the scheduled and release measurement loop. | [`.github/metrics`](./.github/metrics) · [`audit/positive-resonance-ledger.md`](./audit/positive-resonance-ledger.md) |
@@ -515,8 +515,8 @@ console.log((await memory.getMessages())[0].provenance?.merkleRoot);
 
   Step 5: PROVENANCE METADATA
     └── Final hash: SHA-256 verified
-    └── License: Business Source License 1.1 | BUSL-1.1
-    └── See also: LICENSE-MIT-LEGACY | NOTICE.md
+    └── License: Apache License 2.0 | Apache-2.0
+    └── See also: NOTICE.md | LICENSE-MIT-LEGACY
   ════════════════════════════════════════════════════════════
 ```
 
@@ -567,7 +567,7 @@ MCOP-Framework-2.0/
 ├── 🐳 Dockerfile                  # Production container
 ├── 📋 GOVERNANCE.md               # Project governance
 ├── 🔒 SECURITY.md                 # Security policy
-└── ⚖️  LICENSE                    # Business Source License 1.1
+└── ⚖️  LICENSE                    # Apache License 2.0
 ```
 
 ---
@@ -973,8 +973,8 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines · [CONTRIBUTOR_ONBOARDI
 
 ## ⚖️ License
 
-This project is licensed under the **Business Source License 1.1** (BUSL-1.1).
-See [LICENSE](./LICENSE) for full terms · [LICENSE-MIT-LEGACY](./LICENSE-MIT-LEGACY) for prior MIT components · [NOTICE.md](./NOTICE.md) for attributions.
+This project is licensed under the **Apache License 2.0** (Apache-2.0).
+See [LICENSE](./LICENSE) for full terms · [NOTICE.md](./NOTICE.md) for licensing history and attributions · [LICENSE-MIT-LEGACY](./LICENSE-MIT-LEGACY) for versions originally released under MIT · [LICENSE-MIT-INTEGRATIONS](./LICENSE-MIT-INTEGRATIONS) for the MIT-licensed integration shims.
 
 ---
 

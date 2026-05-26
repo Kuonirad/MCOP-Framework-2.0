@@ -483,4 +483,4 @@ See CONTRIBUTING.md for guidelines on contributing to M-COP.
 
 ## License
 
-Business Source License 1.1 (BUSL 1.1) — see the top-level LICENSE and NOTICE.md for the full terms, the Change Date, and the Additional Use Grant. Releases prior to 2026-04-26 remain available under MIT (see LICENSE-MIT-LEGACY).
+Apache License 2.0 (Apache-2.0) — see the top-level LICENSE and NOTICE.md for the full terms and licensing history. Versions originally released under MIT remain available under MIT (see LICENSE-MIT-LEGACY).

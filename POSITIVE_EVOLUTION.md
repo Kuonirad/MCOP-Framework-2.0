@@ -3,7 +3,7 @@
 MCOP v2.3 reframes trust work as flourishing: every audited defect now opens
 an additive capability loop while preserving the deterministic triad invariants
 (Merkle provenance, ISO8601 timestamps, UUID-v4 trace IDs, cosine alignment,
-observability spans, parity fixtures, and BUSL licensing).
+observability spans, parity fixtures, and Apache-2.0 licensing).
 
 ## Audit confirmation and positive replacements
 

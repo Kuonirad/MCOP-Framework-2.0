@@ -1,21 +1,21 @@
 PRESERVED LEGACY GRANT — KullAILABS MCOP Framework 2.0
 
 This file preserves the MIT License grant under which the KullAILABS
-MCOP Framework 2.0 was originally distributed. As of the Change Date
-captured in the top-level NOTICE.md, all *new* commits, releases, and
-distributions of the Licensed Work are governed by the Business
-Source License 1.1 contained in the top-level LICENSE file.
+MCOP Framework 2.0 was originally distributed. The project's license
+history is: originally MIT, briefly Business Source License 1.1
+(BUSL 1.1) from 2026-04-26, and — as of the relicense documented in
+the top-level NOTICE.md — the **Apache License 2.0** contained in the
+top-level LICENSE file. Apache 2.0 now governs all current and future
+commits, releases, and distributions of the Licensed Work.
 
-However, the relicense to BUSL 1.1 applies only going forward. Every
-commit, every git tag, every `npm` / `PyPI` release, and every fork
-that pre-dates the relicense remains available under the MIT terms
-reproduced below for those versions. You may continue to use any such
-prior version under the MIT terms below; the BUSL 1.1 in LICENSE
-governs only the post-relicense versions.
+Every commit, git tag, `npm` / `PyPI` release, and fork that was
+distributed under the MIT License remains available under the MIT
+terms reproduced below for those versions. You may continue to use any
+such prior version under those MIT terms; nothing in the later
+relicensing retroactively withdraws a grant already made.
 
-If you are uncertain whether a specific version is governed by MIT
-(prior versions) or BUSL 1.1 (post-relicense versions), consult the
-NOTICE.md file in the corresponding tag or commit, or contact
+If you are uncertain which license governs a specific version, consult
+the NOTICE.md file in the corresponding tag or commit, or contact
 kevinkull.kk@gmail.com.
 
 -----------------------------------------------------------------------

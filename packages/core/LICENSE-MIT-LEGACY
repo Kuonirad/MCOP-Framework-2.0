@@ -2,7 +2,9 @@ PRESERVED LEGACY GRANT - KullAILABS MCOP Framework 2.0
 
 This file preserves the MIT License grant under which prior versions
 of the KullAILABS MCOP Framework 2.0 and @kullailabs/mcop-core were
-distributed before the BUSL 1.1 transition.
+distributed. The project is now licensed under the Apache License 2.0
+(see LICENSE); versions originally released under MIT remain available
+under the MIT terms below.
 
 MIT License
 

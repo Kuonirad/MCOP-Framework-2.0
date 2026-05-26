@@ -7,6 +7,22 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased] — Automated Evidence Retrieval & Guardian v0.2
 
+### Changed
+- **Relicensed to Apache License 2.0 (open source).** The project moved
+  from the source-available Business Source License 1.1 to the
+  OSI-approved **Apache License 2.0**. As the sole copyright holder, the
+  Licensor (Kevin John Kull) issued these broader terms; the move only
+  adds permissions relative to BUSL 1.1. The root `LICENSE` and the
+  `packages/core/LICENSE` / `mcop_package/LICENSE` mirrors now contain
+  the verbatim Apache-2.0 text; `package.json`, `packages/core/package.json`,
+  `mcop_package/pyproject.toml`, and `CITATION.cff` advertise `Apache-2.0`;
+  SPDX headers across `src/`, `scripts/`, and tests switched from
+  `BUSL-1.1` to `Apache-2.0`; and `NOTICE.md`, `README.md`,
+  `CONTRIBUTING.md`, `public/llms.txt`, and the license guard were updated
+  accordingly. Versions originally released under MIT remain available
+  under MIT (`LICENSE-MIT-LEGACY`); the integration shims remain MIT
+  (`LICENSE-MIT-INTEGRATIONS`). See `NOTICE.md` for the full history.
+
 ### Added
 - **v2.4 release-readiness and operator artifacts.** Added
   `docs/releases/v2.4.0.md`, `docs/SEVEN_LAYER_MAPPING.md`,
