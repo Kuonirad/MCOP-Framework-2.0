@@ -18,8 +18,6 @@
  * `receiptId` is the RFC 8785 canonical digest of every other field.
  */
 
-import { readFileSync } from 'node:fs';
-
 import { canonicalDigest } from '../core/canonicalEncoding';
 import { verifyProof, isHexSha256, type ProofStep } from './merkleTree';
 import {
@@ -215,7 +213,7 @@ export class OnChainRootRegistry {
       options.readFile ??
       ((p: string) => {
         try {
-          return readFileSync(p, 'utf-8');
+          return readTextFile(p);
         } catch {
           return undefined;
         }
@@ -239,4 +237,11 @@ export class OnChainRootRegistry {
     }
     return null;
   }
+}
+
+function readTextFile(filePath: string): string | undefined {
+  const getBuiltinModule = process.getBuiltinModule;
+  const fs = getBuiltinModule?.('node:fs') ?? getBuiltinModule?.('fs');
+  if (!fs) return undefined;
+  return (fs as { readFileSync(path: string, encoding: 'utf-8'): string }).readFileSync(filePath, 'utf-8');
 }
