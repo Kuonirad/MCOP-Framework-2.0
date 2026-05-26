@@ -108,13 +108,19 @@ export class VeilBridgeGrokClient implements GrokClient {
       temperature: options.temperature,
       max_tokens: options.maxTokens,
       top_p: options.topP,
-      reasoning_effort: (options as Record<string, unknown>).reasoningEffort ?? (options as Record<string, unknown>).reasoning_effort,
-      effort: (options as Record<string, unknown>).effort,
+      reasoning_effort: typeof (options as Record<string, unknown>).reasoningEffort === 'string'
+        ? (options as Record<string, unknown>).reasoningEffort as string
+        : typeof (options as Record<string, unknown>).reasoning_effort === 'string'
+          ? (options as Record<string, unknown>).reasoning_effort as string
+          : undefined,
+      effort: typeof (options as Record<string, unknown>).effort === 'string' ? (options as Record<string, unknown>).effort as string : undefined,
       // When organelleMode is active, default to streaming-json for best structured artifact support
       // (the local Grok build can emit clean JSON deltas that the adapter parses for trace/etch merge).
-      output_format: (options as Record<string, unknown>).outputFormat ??
-                     (options as Record<string, unknown>).output_format ??
-                     ((options as Record<string, unknown>).organelleMode ? 'streaming-json' : undefined),
+      output_format: typeof (options as Record<string, unknown>).outputFormat === 'string'
+        ? (options as Record<string, unknown>).outputFormat as string
+        : typeof (options as Record<string, unknown>).output_format === 'string'
+          ? (options as Record<string, unknown>).output_format as string
+          : (options as Record<string, unknown>).organelleMode ? 'streaming-json' : undefined,
       stop: options.stop ? [...options.stop] : undefined,
     };
 
@@ -158,7 +164,7 @@ export class VeilBridgeGrokClient implements GrokClient {
         raw: { bridgeEvents: rawEvents },
       };
     } catch (err: unknown) {
-      if (err.name === 'AbortError') {
+      if (err && typeof err === 'object' && 'name' in err && (err as { name?: string }).name === 'AbortError') {
         throw new Error(
           `veil-bridge request timed out after ${this.timeoutMs}ms. ` +
             `Is your local Grok build (grok-veil + bridge) running?`
