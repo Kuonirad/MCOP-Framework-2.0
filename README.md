@@ -358,6 +358,7 @@ console.log({
 
 | Need | Start here |
 |:---|:---|
+| 12-month roadmap | [`ROADMAP.md`](./ROADMAP.md) |
 | Public API and coverage surface | [`docs/api/README.md`](./docs/api/README.md) |
 | SBOM generation and validation | [`docs/sbom/README.md`](./docs/sbom/README.md) |
 | Workspace layout (monorepo) | [`docs/MONOREPO.md`](./docs/MONOREPO.md) |
