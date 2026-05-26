@@ -25,6 +25,13 @@ import {
   type AcceleratedResult,
   attachAcceleratorProvenance,
 } from './Accelerator';
+// Type-only imports — erased at compile time, so the in-process layer's
+// static module graph stays free of `node:fs` (the PoUW + manifest
+// implementations are dynamically `import()`-ed only when a manifest is
+// configured, mirroring the optional `onnxruntime-node` peer import).
+import type { ModelManifest } from '../provenance/modelManifest';
+import type { PoUWReceipt } from '../provenance/pouwReceipt';
+import type { EtchProvenanceSink } from './provenanceSink';
 
 /* ------------------------------------------------------------------ */
 /* Spec-level kernel names                                            */
@@ -172,6 +179,30 @@ export interface CUDAHardwareLayerOptions {
    * Callers normally do not pass this directly.
    */
   resolvedFrom?: CUDAResolvedFrom;
+  /**
+   * Merkle-rooted model manifest (schema `mcop-cuda-kernel-manifest/2.0`).
+   * When provided, every {@link CUDAHardwareLayer.accelerate} dispatch
+   * mints a {@link PoUWReceipt} proving the executed kernel's `model_id`
+   * is a leaf of this manifest, and attaches it as `_pouwReceipt`. A
+   * verifier later checks that proof against the on-chain anchored root.
+   * Omitted ⇒ no receipt is emitted (Φ1–Φ5 behaviour is byte-identical).
+   */
+  modelManifest?: ModelManifest;
+  /**
+   * Optional append-only sink that receives one provenance entry per
+   * dispatch (work provenance + PoUW receipt when a manifest is set).
+   */
+  provenanceSink?: EtchProvenanceSink;
+  /**
+   * When `true` *and* a {@link modelManifest} is set, {@link
+   * CUDAHardwareLayer.loadKernels} recomputes every `model_id` from
+   * {@link kernelDir} and re-derives the Merkle root, throwing if the
+   * on-disk bytes do not match the manifest — a fail-closed integrity
+   * gate before any session is created. Off by default so injected
+   * `sessionFactory` tests (which have no real files on disk) are
+   * unaffected.
+   */
+  verifyModelsOnLoad?: boolean;
 }
 
 /**
@@ -293,6 +324,16 @@ function collectProviders(parsed: unknown, providers: Set<string> = new Set()): 
 /* The layer itself                                                   */
 /* ------------------------------------------------------------------ */
 
+/**
+ * Output of {@link CUDAHardwareLayer.accelerate}: the standard
+ * provenance-tagged result, optionally carrying a {@link PoUWReceipt}
+ * when a model manifest is configured.
+ */
+export type CUDAAcceleratedResult = AcceleratedResult<{
+  output: OnnxTensor | undefined;
+  outputs: Record<string, OnnxTensor>;
+}> & { _pouwReceipt?: PoUWReceipt };
+
 export class CUDAHardwareLayer {
   readonly enableCUDA: boolean;
   readonly device: string;
@@ -306,11 +347,15 @@ export class CUDAHardwareLayer {
    * override). Tracked even when the layer is disabled.
    */
   readonly resolvedFrom: CUDAResolvedFrom;
+  /** Configured model manifest, if PoUW emission is enabled. */
+  readonly modelManifest: ModelManifest | undefined;
 
   private readonly ortInjection: OnnxRuntimeApi | undefined;
   private readonly sessionFactory:
     | ((op: CUDAKernelOp, modelPath: string) => Promise<OnnxInferenceSession>)
     | undefined;
+  private readonly provenanceSink: EtchProvenanceSink | undefined;
+  private readonly verifyModelsOnLoad: boolean;
   private readonly sessions: Map<CUDAKernelOp, OnnxInferenceSession> = new Map();
   private loaded = false;
 
@@ -337,6 +382,9 @@ export class CUDAHardwareLayer {
     this.streams = options.streams ?? 'per-op';
     this.ortInjection = options.ortInjection;
     this.sessionFactory = options.sessionFactory;
+    this.modelManifest = options.modelManifest;
+    this.provenanceSink = options.provenanceSink;
+    this.verifyModelsOnLoad = options.verifyModelsOnLoad ?? false;
   }
 
   /**
@@ -373,6 +421,16 @@ export class CUDAHardwareLayer {
     if (this.loaded) return;
     const ort = this.sessionFactory ? undefined : this.ortInjection ?? (await loadOnnxRuntime());
     const dir = this.kernelDir.replace(/\/$/, '');
+    if (this.verifyModelsOnLoad && this.modelManifest) {
+      // Fail closed: recompute model_ids from disk and re-derive the
+      // Merkle root before any session is created, so a tampered or
+      // mismatched kernel never reaches the GPU under a valid receipt.
+      const { verifyManifest } = await import('../provenance/modelManifest');
+      const integrity = verifyManifest(this.modelManifest, dir);
+      if (!integrity.valid) {
+        throw new Error(`CUDAHardwareLayer model integrity check failed: ${integrity.reason}`);
+      }
+    }
     for (const op of CUDA_KERNEL_OPS) {
       const modelPath = `${dir}/mcop_${op}.onnx`;
       const session = this.sessionFactory
@@ -403,7 +461,7 @@ export class CUDAHardwareLayer {
   async accelerate(
     op: CUDAKernelOp,
     feeds: Record<string, OnnxTensor>,
-  ): Promise<AcceleratedResult<{ output: OnnxTensor | undefined; outputs: Record<string, OnnxTensor> }>> {
+  ): Promise<CUDAAcceleratedResult> {
     if (!this.enableCUDA) {
       throw new Error(
         'CUDAHardwareLayer is disabled (enableCUDA=false). Φ1 ladder default; flip the flag at Φ4 once verifiedDevice gates pass on a 1k-step run.',
@@ -432,7 +490,10 @@ export class CUDAHardwareLayer {
     // that produced a successful run, not just the device family.
     const substrateLineage = `${verified}/${this.streams}`;
 
-    return attachAcceleratorProvenance<{ output: OnnxTensor | undefined; outputs: Record<string, OnnxTensor> }>(
+    const result: CUDAAcceleratedResult = attachAcceleratorProvenance<{
+      output: OnnxTensor | undefined;
+      outputs: Record<string, OnnxTensor>;
+    }>(
       { output: primary, outputs },
       {
         op: KERNEL_TO_OPERATION[op],
@@ -447,6 +508,36 @@ export class CUDAHardwareLayer {
         resolvedFrom: this.resolvedFrom,
       },
     );
+
+    // PoUW: when a manifest is configured, bind this run to an attested
+    // model_id with a Merkle inclusion proof. The work digest is the
+    // provenance merkleRoot already computed above.
+    let pouwReceipt: PoUWReceipt | undefined;
+    if (this.modelManifest) {
+      const { buildModelPoUWReceipt } = await import('../provenance/pouwReceipt');
+      pouwReceipt = buildModelPoUWReceipt(this.modelManifest, {
+        kernel: op,
+        canonicalOp: KERNEL_TO_OPERATION[op],
+        workMerkleRoot: result._provenance.merkleRoot,
+        verifiedDevice: verified,
+        device: this.device,
+        durationMs: duration,
+      });
+      result._pouwReceipt = pouwReceipt;
+    }
+
+    if (this.provenanceSink) {
+      await this.provenanceSink.append({
+        type: 'accelerator-primitive',
+        op: KERNEL_TO_OPERATION[op],
+        device: this.device,
+        provenance: result._provenance,
+        pouwReceipt,
+        timestamp: result._provenance.timestamp,
+      });
+    }
+
+    return result;
   }
 }
 

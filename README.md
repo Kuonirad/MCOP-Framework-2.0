@@ -69,7 +69,7 @@ Grok models execute the triad in-model and merge their traces back into the host
 Magnific, Utopai, and generic REST/MCP/HTTP production adapters. Ledger-aware Holographic Etch
 factories ship with **in-memory + file storage backends**, **async + Redis ledger forwarders**
 (retry, DLQ, and `unref()`-clean shutdown), and **snapshot ↔ ledger reconciliation** utilities.
-Cryptographic lineage at every step. **90.76%** test coverage.
+Cryptographic lineage at every step. **90.8%** test coverage.
 **Source-available under BUSL-1.1 with scheduled MIT conversion on 2030-04-26.**
 
 > **Why this matters:** unlike retrieval-augmented or chain-of-thought wrappers,
@@ -151,7 +151,7 @@ feature comparison, May 2026 — public docs as of writing):
 | Self-healing dimension + bounded-curiosity recall guards | ✅ SelfHealingDimension + ResonantRecentQuery | ❌ | ❌ | ❌ |
 | Universal Adapter Protocol (OpenAI-compatible · Claude · DeepSeek · Kimi · Qwen · Grok/xAI · production REST/MCP) | ✅ | ✅ | ⚠️ partial | ⚠️ partial |
 | Native xAI Grok adapter (text + image generation) | ✅ | ⚠️ community | ❌ | ❌ |
-| Test coverage on documented API surface | **90.76%** | varies | varies | varies |
+| Test coverage on documented API surface | **90.8%** | varies | varies | varies |
 | Reference benchmark (full pipeline) | **4.4 ms / 22,700 ops/sec** ([source](./src/benchmarks/promptingModes.ts)) | n/a | n/a | n/a |
 | License posture | **BUSL-1.1 → MIT 2030-04-26** | MIT | CC-BY-4.0 / MIT | MIT |
 | CodeQL + SBOM (CycloneDX) + Trojan-Source guard in CI | ✅ | ⚠️ partial | ⚠️ partial | ⚠️ partial |
@@ -306,7 +306,7 @@ corepack prepare pnpm@9.15.0 --activate
 # 3. Install workspace dependencies (≈30 s on a warm cache)
 pnpm install
 
-# 4. Run the deterministic Jest suite — 90.76% covered (≈20 s)
+# 4. Run the deterministic Jest suite — 90.8% covered (≈20 s)
 pnpm test
 
 # 5. Generate the Positive Impact Report + Merkle-anchored audit badge (≈5 s)
@@ -530,7 +530,7 @@ console.log((await memory.getMessages())[0].provenance?.merkleRoot);
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6?style=for-the-badge&logo=typescript)](https://typescriptlang.org)
 [![Node.js](https://img.shields.io/badge/Node.js-22.22.3-339933?style=for-the-badge&logo=node.js)](https://nodejs.org)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ed?style=for-the-badge&logo=docker)](./Dockerfile)
-[![Jest](https://img.shields.io/badge/Jest-90.76%25-c21325?style=for-the-badge&logo=jest)](./jest.config.js)
+[![Jest](https://img.shields.io/badge/Jest-90.8%25-c21325?style=for-the-badge&logo=jest)](./jest.config.js)
 [![ESLint](https://img.shields.io/badge/ESLint-Strict-4b32c3?style=for-the-badge&logo=eslint)](./eslint.config.mjs)
 
 </div>
