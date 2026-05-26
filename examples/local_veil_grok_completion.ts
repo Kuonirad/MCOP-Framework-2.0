@@ -35,7 +35,6 @@ import {
 import {
   GrokMCOPAdapter,
   VeilBridgeGrokClient,           // the new adapter for your primary local build
-  createVeilBridgeGrokClient,
 } from '../src/adapters';
 
 async function main() {
@@ -76,7 +75,7 @@ async function main() {
   //    Set ORGANELLE=1 (or any truthy value) in the environment to activate.
   const useOrganelle = !!process.env.ORGANELLE;
 
-  const requestOptions: any = {
+  const requestOptions: Record<string, unknown> = {
     model: 'grok-build',               // Primary local build model (from `grok models`)
     temperature: 0.6,
     maxTokens: 1200,
@@ -117,9 +116,9 @@ async function main() {
   console.log('traceId        :', result.provenance.traceId);
   console.log('refinedPrompt  :', result.provenance.refinedPrompt?.slice(0, 160) + '...');
 
-  if ((result.result as any).organelle) {
+  if ((result.result as { organelle?: unknown }).organelle) {
     console.log('\n--- Organelle Artifacts (from local Grok) ---');
-    console.log(JSON.stringify((result.result as any).organelle, null, 2));
+    console.log(JSON.stringify((result.result as { organelle?: unknown }).organelle, null, 2));
   }
 
   console.log('\n=== Done. Your local Grok build is now a full MCOP participant. ===');

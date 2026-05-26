@@ -39,7 +39,7 @@ import type {
   GrokCompletionOptions,
   GrokCompletionResult,
   GrokUsage,
-  GrokRateLimitMetadata,
+  // GrokRateLimitMetadata, // unused in this local client impl
 } from './grokAdapter';
 
 export interface VeilBridgeGrokClientConfig {
@@ -108,13 +108,13 @@ export class VeilBridgeGrokClient implements GrokClient {
       temperature: options.temperature,
       max_tokens: options.maxTokens,
       top_p: options.topP,
-      reasoning_effort: (options as any).reasoningEffort ?? (options as any).reasoning_effort,
-      effort: (options as any).effort,
+      reasoning_effort: (options as Record<string, unknown>).reasoningEffort ?? (options as Record<string, unknown>).reasoning_effort,
+      effort: (options as Record<string, unknown>).effort,
       // When organelleMode is active, default to streaming-json for best structured artifact support
       // (the local Grok build can emit clean JSON deltas that the adapter parses for trace/etch merge).
-      output_format: (options as any).outputFormat ??
-                     (options as any).output_format ??
-                     ((options as any).organelleMode ? 'streaming-json' : undefined),
+      output_format: (options as Record<string, unknown>).outputFormat ??
+                     (options as Record<string, unknown>).output_format ??
+                     ((options as Record<string, unknown>).organelleMode ? 'streaming-json' : undefined),
       stop: options.stop ? [...options.stop] : undefined,
     };
 
@@ -157,7 +157,7 @@ export class VeilBridgeGrokClient implements GrokClient {
         usage,
         raw: { bridgeEvents: rawEvents },
       };
-    } catch (err: any) {
+    } catch (err: unknown) {
       if (err.name === 'AbortError') {
         throw new Error(
           `veil-bridge request timed out after ${this.timeoutMs}ms. ` +
