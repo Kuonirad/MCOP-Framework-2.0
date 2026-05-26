@@ -93,10 +93,45 @@ pip install torch onnx
 python3 scripts/export_cuda_kernels/export.py --out-dir models --backend pytorch --fp-variant fp16
 ```
 
-`models/manifest.json` carries a Merkle digest of every exported file
-in the schema `mcop-cuda-kernel-manifest/1.0`. Embed the manifest
+`models/manifest.json` (schema `mcop-cuda-kernel-manifest/2.0`) pins
+every exported kernel by `model_id = SHA-256(model bytes)` and commits
+the whole set with a single RFC 6962 Merkle root over the `model_id`
+leaves (ordered lexicographically by kernel name). Embed the manifest
 into your release artifact and reference it in `substrateLineage` so a
 runtime mismatch is detectable.
+
+### Model provenance — Merkle manifest + PoUW receipts
+
+The manifest closes the "verifiable framework, unverifiable model
+bytes" gap. Three artifacts, one byte-identical implementation in both
+runtimes (`src/provenance/*.ts` ↔ `mcop_package/mcop/{merkle,model_manifest,pouw}.py`,
+locked by the parity golden in `tests/parity/merkleTree.*`):
+
+1. **`model_id = SHA-256(model bytes)`** — the cryptographic identity of
+   one ONNX file. Recompute it from disk to detect a single flipped byte.
+2. **Merkle root** — the `model_id` leaves form an RFC 6962 tree
+   (leaf hash `H(0x00‖id)`, node hash `H(0x01‖l‖r)`; second-preimage
+   resistant, O(log n) proofs). `models/manifest.json → merkle.root` is
+   the head; it is what gets **anchored on-chain** (`models/anchored_root.json`).
+3. **PoUW receipts** — a Proof-of-Useful-Work receipt for an accelerated
+   run binds the work digest (`AcceleratorProvenance.merkleRoot`), the
+   `model_id` it executed, and a compact Merkle `inclusionProof`. A
+   verifier checks the proof folds to `manifestRoot` **and** that
+   `manifestRoot` equals the on-chain anchored root resolved by an
+   `OnChainRootRegistry` (`MCOP_MODEL_MANIFEST_ROOT` → `models/anchored_root.json`).
+
+Verify a receipt offline (no chain/ledger round-trip):
+
+```bash
+pnpm pouw:verify --receipt ./receipt.json --anchor models/anchored_root.json
+```
+
+The default anchor is a *pinned* root checked into the repo. To anchor
+on a real chain, publish `merkle.root` to your registry contract or a
+transparency-log signed tree head and rewrite `models/anchored_root.json`
+(or override `MCOP_MODEL_MANIFEST_ROOT`); the verifier trusts only the
+`root` field. Re-anchoring is deliberate: re-exporting a different model
+set changes the root and must be followed by re-publishing the anchor.
 
 ## Phase 3 — running the Python microservice
 

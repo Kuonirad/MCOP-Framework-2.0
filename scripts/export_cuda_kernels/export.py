@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Export the six MCOP CUDA kernels to ONNX with a sealed manifest.
+"""Export the six MCOP CUDA kernels to ONNX with a Merkle-rooted manifest.
 
 This is the **Phase 1** kernel artifact pipeline from the CUDA
 productionization plan. The reference backend produces deterministic,
@@ -11,33 +11,45 @@ trained kernels.
 Output:
 
 - ``<out-dir>/mcop_<op>.onnx`` for each kernel
-- ``<out-dir>/manifest.json`` with Merkle digest of each model
+- ``<out-dir>/manifest.json`` — schema ``mcop-cuda-kernel-manifest/2.0``
 
-The manifest's per-kernel ``merkle_root`` is the SHA-256 of the
-RFC 8785 canonical encoding of ``{"name": op, "bytes_sha256": <hex>,
-"fp_variant": "fp16" | "int8" | "fp32"}``. This makes the artifact
-hash byte-stable across machines while still detecting tampering of
-the underlying file.
+Each kernel is pinned by ``model_id = SHA-256(model bytes)``. The six
+``model_id`` values are the leaves of an RFC 6962 Merkle tree
+(:mod:`mcop.merkle`), ordered lexicographically by kernel name; the tree
+head is the manifest's ``merkle.root``. That root is what gets anchored
+on-chain (``models/anchored_root.json``) so a Proof-of-Useful-Work
+receipt can prove a ``model_id`` belongs to the canonical model set with
+a compact Merkle proof. See :mod:`mcop.model_manifest` and
+:mod:`mcop.pouw`.
 
-Run:
-
-.. code-block:: bash
+Run::
 
     python3 scripts/export_cuda_kernels/export.py --out-dir models --backend reference
 
-Output is byte-stable for ``--backend reference`` given the same
-``--seed``.
+The Merkle root is byte-stable for ``--backend reference`` given the same
+``--seed``: it is a pure function of the model bytes + leaf ordering, not
+of the wall-clock ``exported_at`` timestamp.
 """
 
 from __future__ import annotations
 
 import argparse
-import datetime as _dt
 import hashlib
 import json
 import sys
 from pathlib import Path
-from typing import Mapping
+
+# The Merkle-tree + manifest logic lives in the published ``mcop`` package
+# so the TypeScript runtime, the CUDA microservice, and this exporter all
+# share one byte-identical implementation. Fall back to the in-repo
+# ``mcop_package`` source tree when ``mcop`` is not pip-installed so the
+# exporter still runs from a fresh checkout.
+try:
+    from mcop.model_manifest import build_manifest
+except ModuleNotFoundError:  # pragma: no cover - exercised only without an installed mcop
+    _REPO_ROOT = Path(__file__).resolve().parents[2]
+    sys.path.insert(0, str(_REPO_ROOT / "mcop_package"))
+    from mcop.model_manifest import build_manifest
 
 KERNELS: tuple[str, ...] = (
     "encode",
@@ -49,19 +61,6 @@ KERNELS: tuple[str, ...] = (
 )
 
 
-def _canonical_digest(payload: object) -> str:
-    """RFC 8785–shaped digest. Falls back to stdlib sort_keys when
-    ``rfc8785`` is not installed."""
-
-    try:
-        import rfc8785  # type: ignore[import-not-found]
-
-        raw = rfc8785.dumps(payload)
-    except Exception:
-        raw = json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
-    return hashlib.sha256(raw).hexdigest()
-
-
 def _reference_onnx_blob(op: str, fp_variant: str, seed: int) -> bytes:
     """Produce a deterministic ONNX-shaped artifact for ``op``.
 
@@ -69,9 +68,9 @@ def _reference_onnx_blob(op: str, fp_variant: str, seed: int) -> bytes:
     sequence that mimics the shape of a small ONNX export with a clear
     magic header. ``CUDAHardwareLayer`` treats kernel loading as an
     opaque ``InferenceSession.create()`` so the layer's structural
-    tests don't care; the bytes exist so the Merkle digest is stable
-    and downstream consumers can verify the manifest against the file
-    on disk.
+    tests don't care; the bytes exist so the ``model_id`` (and therefore
+    the Merkle root) is stable and downstream consumers can verify the
+    manifest against the file on disk.
     """
 
     header = f"MCOP-ONNX-REF/1.0 op={op} fp={fp_variant} seed={seed}\n".encode("utf-8")
@@ -115,33 +114,18 @@ def _pytorch_export(op: str, out_path: Path, fp_variant: str) -> Path:  # pragma
 
 def export(out_dir: Path, *, backend: str, fp_variant: str, seed: int) -> dict[str, object]:
     out_dir.mkdir(parents=True, exist_ok=True)
-    manifest_kernels: dict[str, Mapping[str, object]] = {}
+    files: dict[str, Path] = {}
     for op in KERNELS:
         path = out_dir / f"mcop_{op}.onnx"
         if backend == "reference":
-            blob = _reference_onnx_blob(op, fp_variant, seed)
-            path.write_bytes(blob)
+            path.write_bytes(_reference_onnx_blob(op, fp_variant, seed))
         elif backend == "pytorch":  # pragma: no cover
             _pytorch_export(op, path, fp_variant)
         else:
             raise ValueError(f"unknown backend: {backend}")
-        bytes_sha = hashlib.sha256(path.read_bytes()).hexdigest()
-        merkle_root = _canonical_digest({"name": op, "bytes_sha256": bytes_sha, "fp_variant": fp_variant})
-        manifest_kernels[op] = {
-            "path": path.relative_to(out_dir.parent if out_dir.parent != Path("") else out_dir).as_posix(),
-            "merkle_root": merkle_root,
-            "bytes_sha256": bytes_sha,
-            "fp_variant": fp_variant,
-            "bytes": path.stat().st_size,
-        }
-    manifest = {
-        "version": "mcop-cuda-kernel-manifest/1.0",
-        "exported_at": _dt.datetime.now(tz=_dt.timezone.utc).isoformat().replace("+00:00", "Z"),
-        "backend": backend,
-        "fp_variant": fp_variant,
-        "seed": seed,
-        "kernels": manifest_kernels,
-    }
+        files[op] = path
+
+    manifest = build_manifest(files, backend=backend, fp_variant=fp_variant, seed=seed)
     manifest_path = out_dir / "manifest.json"
     manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return manifest
