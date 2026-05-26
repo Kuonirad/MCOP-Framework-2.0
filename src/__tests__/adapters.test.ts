@@ -21,6 +21,7 @@ import {
   mapProvenanceToFHIR,
   GrokApiError,
   GrokClient,
+  GrokCompletionOptions,
   MAPPING_GROK_PRODUCTION_PROFILE,
   GrokMCOPAdapter,
   HumanFeedback,
