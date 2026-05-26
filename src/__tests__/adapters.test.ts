@@ -21,6 +21,7 @@ import {
   mapProvenanceToFHIR,
   GrokApiError,
   GrokClient,
+  GrokCompletionOptions,
   MAPPING_GROK_PRODUCTION_PROFILE,
   GrokMCOPAdapter,
   HumanFeedback,
@@ -40,6 +41,8 @@ import {
   SubAgentClient,
   UtopaiClient,
   UtopaiMCOPAdapter,
+  VeilBridgeGrokClient,
+  createVeilBridgeGrokClient,
 } from '../adapters';
 
 const baseTriad = () => ({
@@ -2258,5 +2261,95 @@ describe('RegulatedProvenanceAdapter', () => {
         expect.objectContaining({ valueCode: 'UNVERIFIED' }),
       ]),
     );
+  });
+});
+
+describe('VeilBridgeGrokClient (primary local Grok build integration)', () => {
+  const originalFetch = global.fetch;
+
+  beforeEach(() => {
+    global.fetch = jest.fn();
+  });
+
+  afterEach(() => {
+    global.fetch = originalFetch;
+  });
+
+  it('constructs and calls the bridge with forwarded options (effort, output-format, organelleMode defaults to streaming-json)', async () => {
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      text: async () => 'event: chunk\ndata: hello\n\nevent: done\ndata: end\n\n',
+    });
+
+    const client = new VeilBridgeGrokClient({ bridgeUrl: 'http://127.0.0.1:57321' });
+    const result = await client.createCompletion({
+      messages: [{ role: 'user', content: 'test prompt' }],
+      options: {
+        model: 'grok-build',
+        effort: 'high',
+        // no outputFormat provided -> organelleMode should default to streaming-json
+        organelleMode: true,
+        reasoningEffort: 'high',
+      } as Partial<GrokCompletionOptions> & Record<string, unknown>,
+    });
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      'http://127.0.0.1:57321/api/prompt',
+      expect.objectContaining({
+        method: 'POST',
+        body: expect.stringContaining('"effort":"high"'),
+      })
+    );
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        body: expect.stringContaining('"output_format":"streaming-json"'),
+      })
+    );
+    expect(result.content).toContain('hello');
+  });
+
+  it('builds history and parses SSE chunks + errors correctly', async () => {
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      text: async () =>
+        'event: chunk\ndata: part1\n\nevent: chunk\ndata: part2\n\nevent: error\ndata: boom\n\nevent: done\ndata: end\n\n',
+    });
+
+    const client = createVeilBridgeGrokClient({ bridgeUrl: 'http://127.0.0.1:57321' });
+    const result = await client.createCompletion({
+      messages: [
+        { role: 'user', content: 'first' },
+        { role: 'assistant', content: 'reply' },
+        { role: 'user', content: 'second' },
+      ],
+      options: { model: 'grok-build' } as Partial<GrokCompletionOptions> & Record<string, unknown>,
+    });
+
+    expect(result.content).toContain('part1');
+    expect(result.content).toContain('part2');
+    expect(result.content).toContain('[bridge error] boom');
+  });
+
+  it('handles AbortError and other fetch failures', async () => {
+    const abortErr = new Error('aborted');
+    (abortErr as Error & { name?: string }).name = 'AbortError';
+    (global.fetch as jest.Mock).mockRejectedValueOnce(abortErr);
+
+    const client = new VeilBridgeGrokClient();
+    await expect(
+      client.createCompletion({
+        messages: [{ role: 'user', content: 'test' }],
+        options: {} as Partial<GrokCompletionOptions> & Record<string, unknown>,
+      })
+    ).rejects.toThrow(/timed out/);
+
+    (global.fetch as jest.Mock).mockRejectedValueOnce(new Error('network down'));
+    await expect(
+      client.createCompletion({
+        messages: [{ role: 'user', content: 'test' }],
+        options: {} as Partial<GrokCompletionOptions> & Record<string, unknown>,
+      })
+    ).rejects.toThrow(/network down/);
   });
 });
