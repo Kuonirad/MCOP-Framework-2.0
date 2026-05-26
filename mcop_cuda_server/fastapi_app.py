@@ -18,7 +18,7 @@ from typing import Any
 
 from .kernels import default_registry
 from .provenance import GhostGPUError
-from .server import ServerConfig, _probe_backend, execute_kernel
+from .server import ServerConfig, _manifest_advertisement, _probe_backend, execute_kernel
 
 
 def create_app(config: ServerConfig | None = None) -> Any:  # pragma: no cover - requires FastAPI
@@ -43,13 +43,17 @@ def create_app(config: ServerConfig | None = None) -> Any:  # pragma: no cover -
     @app.get("/capabilities")
     async def capabilities() -> dict[str, Any]:
         probe = _probe_backend()
-        return {
+        body: dict[str, Any] = {
             **probe,
             "device": cfg.device,
             "streamMode": cfg.stream_mode,
             "resolvedFrom": cfg.resolved_from,
             "requireCuda": cfg.require_cuda,
         }
+        manifest = _manifest_advertisement(cfg.model_manifest_path)
+        if manifest is not None:
+            body["modelManifest"] = manifest
+        return body
 
     @app.post("/cuda/{op}")
     async def cuda(op: str, body: dict[str, Any]) -> Any:

@@ -17,8 +17,6 @@
  */
 
 import { createHash } from 'node:crypto';
-import { readFileSync, statSync, existsSync } from 'node:fs';
-import * as path from 'node:path';
 
 import {
   inclusionProof,
@@ -63,6 +61,22 @@ export interface VerifyResult {
   readonly reason?: string;
 }
 
+export interface ManifestFileSystem {
+  readFileSync(filePath: string): Uint8Array;
+  readFileSync(filePath: string, encoding: 'utf-8'): string;
+  existsSync(filePath: string): boolean;
+  statSync(filePath: string): { isFile(): boolean };
+}
+
+export interface ManifestPathApi {
+  join(...parts: string[]): string;
+}
+
+export interface VerifyManifestOptions {
+  readonly fs?: ManifestFileSystem;
+  readonly path?: ManifestPathApi;
+}
+
 export class ManifestError extends Error {
   constructor(message: string) {
     super(message);
@@ -76,8 +90,8 @@ export function modelIdForBytes(data: Uint8Array): string {
 }
 
 /** Compute the `model_id` of an ONNX file from its bytes on disk. */
-export function modelIdForFile(filePath: string): string {
-  return modelIdForBytes(readFileSync(filePath));
+export function modelIdForFile(filePath: string, fs: ManifestFileSystem = nodeFs()): string {
+  return modelIdForBytes(fs.readFileSync(filePath));
 }
 
 /** Canonical leaf ordering: lexicographic by kernel name. */
@@ -152,10 +166,10 @@ export function buildManifest(
 }
 
 /** Load + structurally validate a manifest JSON file. */
-export function loadManifest(manifestPath: string): ModelManifest {
+export function loadManifest(manifestPath: string, fs: ManifestFileSystem = nodeFs()): ModelManifest {
   let parsed: unknown;
   try {
-    parsed = JSON.parse(readFileSync(manifestPath, 'utf-8'));
+    parsed = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
   } catch (err) {
     throw new ManifestError(`manifest is not valid JSON: ${(err as Error).message}`);
   }
@@ -208,7 +222,13 @@ export function inclusionProofForKernel(manifest: ModelManifest, kernel: string)
  * Recompute every `model_id` from disk and re-derive the Merkle root.
  * Returns `valid: false` with a reason on the first inconsistency.
  */
-export function verifyManifest(manifest: ModelManifest, modelsDir: string): VerifyResult {
+export function verifyManifest(
+  manifest: ModelManifest,
+  modelsDir: string,
+  options: VerifyManifestOptions = {},
+): VerifyResult {
+  const fs = options.fs ?? nodeFs();
+  const path = options.path ?? nodePath();
   const kernels = manifest?.kernels;
   if (kernels === null || typeof kernels !== 'object' || Object.keys(kernels).length === 0) {
     return { valid: false, reason: 'manifest has no kernels' };
@@ -232,10 +252,10 @@ export function verifyManifest(manifest: ModelManifest, modelsDir: string): Veri
       return { valid: false, reason: `kernel ${JSON.stringify(name)} has no path` };
     }
     const filePath = path.join(modelsDir, entry.path);
-    if (!existsSync(filePath) || !statSync(filePath).isFile()) {
+    if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {
       return { valid: false, reason: `model file missing: ${filePath}` };
     }
-    const actualId = modelIdForFile(filePath);
+    const actualId = modelIdForFile(filePath, fs);
     if (actualId !== entry.model_id) {
       return {
         valid: false,
@@ -285,4 +305,22 @@ function manifestLeafIds(manifest: ModelManifest): string[] {
     throw new ManifestError("manifest 'merkle.leaves' is not a list of hex strings");
   }
   return [...leaves];
+}
+
+function nodeFs(): ManifestFileSystem {
+  const getBuiltinModule = process.getBuiltinModule;
+  const fs = getBuiltinModule?.('node:fs') ?? getBuiltinModule?.('fs');
+  if (!fs) {
+    throw new ManifestError('manifest file operations require a Node.js runtime');
+  }
+  return fs as ManifestFileSystem;
+}
+
+function nodePath(): ManifestPathApi {
+  const getBuiltinModule = process.getBuiltinModule;
+  const path = getBuiltinModule?.('node:path') ?? getBuiltinModule?.('path');
+  if (!path) {
+    throw new ManifestError('manifest path operations require a Node.js runtime');
+  }
+  return path as ManifestPathApi;
 }

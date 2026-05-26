@@ -22,7 +22,7 @@ if str(ROOT) not in sys.path:
 
 from mcop_cuda_server import GhostGPUError, default_registry, parse_execution_provider
 from mcop_cuda_server.provenance import attach_provenance
-from mcop_cuda_server.server import ServerConfig, build_server, execute_kernel
+from mcop_cuda_server.server import _KERNEL_OPS, ServerConfig, build_server, execute_kernel
 
 
 def _serve_in_thread(server, host: str) -> None:
@@ -239,3 +239,36 @@ class TestExecuteKernelDirect:
         assert a["output"] == b["output"]
         assert a["_provenance"]["kernel"] == b["_provenance"]["kernel"]
         assert a["_provenance"]["verifiedDevice"] == b["_provenance"]["verifiedDevice"]
+
+
+class TestManifestAdvertisement:
+    _COMMITTED_ROOT = "3e53db14a02c652b8f4d03e3c7a730dba39ba834a1492b2129c53a58c8bb76f0"
+
+    def test_capabilities_exposes_manifest_root(self):
+        pytest.importorskip("mcop.model_manifest")
+        cfg = ServerConfig(
+            host="127.0.0.1",
+            port=0,
+            model_manifest_path=str(ROOT / "models" / "manifest.json"),
+        )
+        s = build_server(cfg)
+        thread = threading.Thread(target=s.serve_forever, daemon=True)
+        thread.start()
+        try:
+            status, body = _get_json(s, "/capabilities")
+            assert status == 200
+            assert "modelManifest" in body
+            manifest = body["modelManifest"]
+            assert manifest["algorithm"] == "rfc6962-sha256"
+            assert manifest["root"] == self._COMMITTED_ROOT
+            assert set(manifest["models"]) == set(_KERNEL_OPS)
+            # Advertisement only — no receipt is minted on the NumPy path.
+            assert all(len(mid) == 64 for mid in manifest["models"].values())
+        finally:
+            s.shutdown()
+            s.server_close()
+
+    def test_capabilities_omits_manifest_when_unset(self, server):
+        status, body = _get_json(server, "/capabilities")
+        assert status == 200
+        assert "modelManifest" not in body
