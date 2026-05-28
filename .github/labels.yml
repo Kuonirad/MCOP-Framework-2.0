@@ -1,0 +1,23 @@
+# MCOP Framework 2.0 — label manifest
+# Sync to GitHub with a label-sync action or the `gh label` CLI.
+# These labels make the public tracker reflect technical-debt reality.
+
+- name: technical-debt
+  color: "d4c5f9"
+  description: Known weakness or latent defect tracked before it becomes a live bug
+
+- name: "debt:documentation"
+  color: "0075ca"
+  description: Stale, missing, or misleading docs, badges, or anchors
+
+- name: "debt:compliance"
+  color: "b60205"
+  description: Security posture, licensing, or policy gaps
+
+- name: "debt:dead-code"
+  color: "5319e7"
+  description: Superseded modules or unreferenced code awaiting removal
+
+- name: "debt:reproducibility"
+  color: "0e8a16"
+  description: Gaps in reproducible-build guarantees or CI verification
