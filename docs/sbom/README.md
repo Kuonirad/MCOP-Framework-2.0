@@ -33,7 +33,7 @@ to *that* dependency tree, not the entire monorepo.
 
 CycloneDX is the OWASP-standard format for component-vulnerability
 correlation. GitHub, Snyk, and Dependency-Track all ingest it natively.
-SPDX is more legal-licensing-oriented; the BUSL-1.1 license here is
+SPDX is more legal-licensing-oriented; the Apache-2.0 license here is
 already covered by the in-repo `LICENSE` files and the `license-guard`
 workflow.
 

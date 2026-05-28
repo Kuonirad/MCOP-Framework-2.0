@@ -14,7 +14,7 @@ commands, and emits an audit report.
 | Gate | Purpose | Default severity |
 |---|---|---|
 | `capture_environment` | Records git SHA, branch, Node/pnpm versions, and OS into `audit-artifacts/environment.txt` so every run is reproducible. | Informational |
-| `audit_claim_drift` | Pattern-based scan for documentation drift: overclaiming production readiness, Next.js version contradictions, MIT-vs-BUSL license contradictions, unproven benchmark headlines, stale version strings, and import-alias drift. | Mixed (FAIL on Next.js/import drift, WARN otherwise) |
+| `audit_claim_drift` | Pattern-based scan for documentation drift: overclaiming production readiness, Next.js version contradictions, license contradictions (e.g. whole-project MIT claims against the current Apache-2.0 grant), unproven benchmark headlines, stale version strings, and import-alias drift. | Mixed (FAIL on Next.js/import drift, WARN otherwise) |
 | `audit_package_metadata` | Cross-validates root `package.json` and every workspace `package.json` against `EXPECTED_VERSION`, `CORE_PACKAGE`, `CANONICAL_IMPORT`, and the README. Catches cases where the README announces a Next.js or license posture the manifest does not back up. | FAIL on hard contradictions, WARN otherwise |
 | `setup_pnpm` | Activates the pinned `packageManager` via Corepack so the harness runs against the same pnpm CI uses. | FAIL if pnpm is not resolvable |
 | `install_dependencies` | `pnpm install --frozen-lockfile` against the committed `pnpm-lock.yaml`. | FAIL on lockfile drift |
