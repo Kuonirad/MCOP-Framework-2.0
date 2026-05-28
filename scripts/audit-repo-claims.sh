@@ -296,8 +296,8 @@ if (expectedVersion && root.version !== expectedVersion) {
 
 if (!root.license) {
   fail("Root package.json is missing license");
-} else if (!/BUSL|Business Source License/i.test(root.license)) {
-  warn(`Root license is '${root.license}'. Confirm this matches LICENSE and release docs.`);
+} else if (!/Apache-2\.0|Apache License 2\.0/i.test(root.license)) {
+  warn(`Root license is '${root.license}'. Confirm this matches LICENSE (Apache-2.0) and release docs.`);
 } else {
   pass(`Root license: ${root.license}`);
 }
@@ -325,8 +325,18 @@ if (readmeNext && nextMajor != null && Number(readmeNext[1]) !== nextMajor) {
   );
 }
 
-if (/MIT License|MIT-licensed|permissive for research and commercial use/i.test(readme)) {
-  fail("README contains MIT/permissive license wording. Verify this is not contradicting BUSL-1.1.");
+// Post Apache-2.0 relicense (NOTICE.md), the README's License section
+// legitimately references the MIT-legacy versions and the MIT-licensed
+// integration shims, so a bare "MIT-licensed" mention is no longer drift.
+// Apache-2.0 is itself permissive and permits commercial use. The real
+// drift to catch now is (a) the README failing to name the current
+// Apache-2.0 license, or (b) the README asserting the project AS A WHOLE
+// is MIT-licensed, contradicting the relicense.
+if (!/Apache License 2\.0|Apache-2\.0/i.test(readme)) {
+  fail("README does not name the current Apache-2.0 license. Verify the License section is in sync with LICENSE and NOTICE.md.");
+}
+if (/\bthis (project|framework|repository|repo) is (released|licensed|distributed) under the MIT\b/i.test(readme)) {
+  fail("README claims the project as a whole is MIT-licensed, contradicting the Apache-2.0 relicense (see NOTICE.md).");
 }
 
 if (readme.includes("@mcop/core") && canonicalImport !== "@mcop/core") {
@@ -422,10 +432,17 @@ audit_claim_drift() {
     "FAIL"
 
   # License contradiction exclusions: files that legitimately describe
-  # the BUSL-1.1 -> MIT change-license transition. Per the LICENSE +
-  # NOTICE.md design, these files MUST mention MIT in the transition
-  # context; flagging them is a false positive. New mentions of "MIT"
-  # outside this allow-list will still be caught.
+  # the licensing model after the Apache-2.0 relicense (NOTICE.md). The
+  # current license is Apache-2.0; the only MIT surfaces that remain are
+  # the preserved MIT-legacy grant and the MIT-licensed integration shims
+  # (LICENSE-MIT-LEGACY / LICENSE-MIT-INTEGRATIONS). Per the LICENSE +
+  # NOTICE.md design these files MUST mention MIT in the carve-out /
+  # history context; flagging them is a false positive. The root README's
+  # License section is the canonical licensing footer and references those
+  # same carve-out files, so it is allow-listed here exactly like NOTICE.md
+  # (the README's whole-project license claim is separately validated to be
+  # Apache-2.0 by the package-metadata audit). New mentions of "MIT" outside
+  # this allow-list will still be caught.
   search_claims \
     "License contradiction" \
     'MIT License|MIT-licensed|permissive for research and commercial use|commercial use' \
@@ -433,6 +450,7 @@ audit_claim_drift() {
     '!LICENSE' \
     '!LICENSE-*' \
     '!NOTICE.md' \
+    '!README.md' \
     '!packages/*/LICENSE' \
     '!packages/*/LICENSE-*' \
     '!packages/*/NOTICE.md' \
@@ -460,6 +478,7 @@ audit_claim_drift() {
     '!packages/core/README.md' \
     '!README.md' \
     '!ROADMAP_TO_100.md' \
+    '!ROADMAP.md' \
     '!src/integrations/index.ts' \
     '!public/**' \
     '!docs/benchmarks/**' \

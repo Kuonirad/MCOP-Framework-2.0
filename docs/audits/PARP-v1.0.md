@@ -2,7 +2,7 @@
 
 **Scope:** Kuonirad/MCOP-Framework-2.0
 **Aligned to:** MCOP Framework 2.x — NOVA-NEO Encoder, Stigmergy v5, Holographic Etch, Positive-Resonance Scoring, Proteome Substrate, Drift Sentinel.
-**License:** This protocol document is published under the same terms as the surrounding `docs/` content. It is purely procedural and does not embed or reference BUSL-1.1 core runtime code. Core runtime (`src/ledger/`, `src/orchestrator/`, `src/core/`, adapters, Drift Sentinel, Proteome) is licensed BUSL-1.1 and is **not** modified by PARP integration.
+**License:** This protocol document is published under the same terms as the surrounding `docs/` content. It is purely procedural. As of the 2026-05-26 relicense the entire repository — core runtime (`src/ledger/`, `src/orchestrator/`, `src/core/`, adapters, Drift Sentinel, Proteome) included — is licensed **Apache-2.0**, with the framework-agnostic integration shims in `src/integrations/` and `mcop_package/mcop/integrations/` carved out under MIT (see `NOTICE.md`). PARP integration does **not** modify the licensing of any source file.
 **Authoring invocation (for AI executors):**
 > *"Execute PARP v1.0 on MCOP-Framework-2.0. Begin at L0. Maintain full provenance trail. Prioritize verifiability and eudaimonic outcomes."*
 
@@ -139,11 +139,11 @@ Every fix MUST preserve or strengthen all of:
 **Goal.** Eliminate drift between claims, code, tests, and docs.
 
 - Systematic claim audit: every performance number, architectural claim, or "ships with" statement in `README.md`, `ARCHITECTURE.md`, `ROADMAP_TO_100.md` must verify against code/tests.
-- Run `pnpm audit:claims` and address every WARN. Current baseline WARN set (close in L3 follow-ups):
-  - Overclaiming production readiness
-  - License contradiction
-  - Unproven benchmark claim
-  - Version drift suspects
+- Run `pnpm audit:claims` and address every WARN. Original L0 baseline WARN set (all now closed in L3 follow-ups — `pnpm audit:claims` reports zero claim-drift WARNs and zero package-metadata errors at the latest version-history locus below):
+  - ~~Overclaiming production readiness~~ — resolved (#753, #754: hedged overclaim language + tightened pattern exclusions).
+  - ~~License contradiction~~ — resolved: the Apache-2.0 relicense (#759) is now reflected end-to-end (audit tooling expects Apache-2.0; integration-shim headers and the README/NOTICE licensing footers are recognized as legitimate MIT carve-outs, not contradictions).
+  - ~~Unproven benchmark claim~~ — resolved: `ROADMAP.md` coverage figure is allow-listed against its committed evidence (`docs/badges/coverage.svg`), consistent with the existing evidence-backed exclusion design.
+  - ~~Version drift suspects~~ — resolved (no current-version claims drift; historical references are allow-listed).
 - Ensure every public API surface has corresponding docs.
 - Update `CHANGELOG.md` with all fixes (Conventional Commits or MCOP-structured entries).
 - Sync `ROADMAP_TO_100.md` with actual post-remediation status.
@@ -159,7 +159,7 @@ Every fix MUST preserve or strengthen all of:
 - `pnpm sbom && pnpm sbom:validate` — must remain green; SBOMs MUST validate against their declared CycloneDX schema.
 - Review every `overrides` block in `package.json` — must remain necessary and minimal.
 - Dependabot / manual outdated check — open PRs for high-severity updates.
-- **License compliance sweep.** BUSL-1.1 (core) vs MIT (integrations / legacy). No accidental mixing in new files.
+- **License compliance sweep.** Apache-2.0 (repo-wide) vs MIT (integration shims + preserved legacy grant). No accidental mixing in new files; SPDX headers must match `NOTICE.md`.
 - `.github/` security workflows, CodeQL config, Trojan-Source guards remain enabled.
 - Review `SECURITY.md`, `TRUSTED_PUBLISHING_SETUP.md`, `GOVERNANCE.md`.
 - No hardcoded secrets, weak randomness, or provenance-bypass paths.
@@ -255,7 +255,7 @@ Add new scripts to `package.json` **only** when they become permanent improvemen
 - **AI-proposed incorrect fix.** Mandatory verification harness + test requirement prevents silent breakage.
 - **Scope creep.** Strict invariant preservation + minimal-change rule + per-finding branch isolation.
 - **External dependency breakage (LLM providers).** Document adapter resilience tests; never assume API stability.
-- **License boundary errors.** Explicit core (BUSL-1.1) vs integrations separation in every new file.
+- **License boundary errors.** Explicit Apache-2.0 (repo-wide) vs MIT (integration shims) separation in every new file.
 - **Ledger health / concurrency.** Extra scrutiny + chaos testing recommended in L2.
 - **Cypress baseline failure when no dev server is running.** Treat as an infrastructure precondition, not a code regression — re-run after `pnpm dev` is up, or carry as a known L0 baseline state.
 - **Node engine mismatch (`22.22.3` pinned, snapshot has `22.12.x`).** `pnpm` emits `Unsupported engine` WARN but still succeeds; verify reproducibility by diffing SBOMs across two passes — they MUST be byte-identical.
@@ -281,6 +281,7 @@ Any future version of this protocol must itself be audited by running PARP again
 | Version | Date | Author | Notes |
 |---------|------|--------|-------|
 | 1.0 | 2026-05-25 | PARP integration PR | Initial integration. L0 baseline executed at HEAD `e65d486`. See `artefacts/` for full evidence and the tracking issue for the L1 follow-up plan. |
+| 1.1 | 2026-05-28 | PARP L3 follow-up | Relicense-drift remediation at HEAD `1982166`. Aligned the `audit:claims` engine and PARP doc to the Apache-2.0 relicense (#759): package-metadata license check now expects Apache-2.0; the README license check validates the Apache-2.0 whole-project claim instead of failing on documented MIT carve-outs; stale `// Carve-out from repo-wide BUSL-1.1` headers in the TS+Python integration shims corrected to Apache-2.0 to match `NOTICE.md`. `pnpm audit:claims` now reports **0 claim-drift WARNs / 0 package-metadata errors** (was 1 FAIL + 2 WARNs). The 9 OSSF Scorecard `TokenPermissionsID` alerts (#9, #10, #44–#48) were closed in #751/#752 (job-scoped `permissions:` + documented `SECURITY-POSTURE-NOTES.md` justifications). Remaining backlog items #7 (BranchProtectionID) and #27 (CodeReviewID) are owner-only repo-settings changes outside the code surface. |
 
 ---
 

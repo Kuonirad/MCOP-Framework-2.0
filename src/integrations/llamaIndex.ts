@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Kevin John Kull (Kuonirad) and KullAILABS MCOP Framework contributors
-// Carve-out from repo-wide BUSL-1.1; see LICENSE-MIT-INTEGRATIONS for full terms.
+// Carve-out from repo-wide Apache-2.0; see LICENSE-MIT-INTEGRATIONS for full terms.
 /**
  * MCOP ↔ LlamaIndex integration shim.
  *
