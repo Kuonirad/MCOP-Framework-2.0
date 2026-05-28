@@ -11,11 +11,11 @@ import {
   NovaNeoEncoder,
   StigmergyV5,
 } from '../core';
+import { ClaudeMCOPAdapter } from '../adapters';
 import {
-  ClaudeMCOPAdapter,
   sdkClaudeClient,
   SDK_CLAUDE_DEFAULT_MODEL,
-} from '../adapters';
+} from '../adapters/sdkClaudeClient';
 
 const baseTriad = () => ({
   encoder: new NovaNeoEncoder({ dimensions: 32, normalize: true }),

@@ -22,7 +22,12 @@ export * from './grokImageAdapter';
 export * from './veilBridgeGrokClient';
 export * from './qwenAdapter';
 export * from './claudeAdapter';
-export * from './sdkClaudeClient';
+// NOTE: `sdkClaudeClient` (the official `@anthropic-ai/sdk`-backed ClaudeClient)
+// is intentionally NOT re-exported here. The Anthropic SDK is server-only (it
+// pulls Node built-ins such as `node:fs/promises`), and this barrel is imported
+// by client components (e.g. dialectical/DialecticalStudio.tsx). Re-exporting it
+// would drag the SDK into the client bundle and break the Turbopack build.
+// Import it directly from '@/adapters/sdkClaudeClient' in server-side code.
 export * from './deepSeekAdapter';
 export * from './kimiAdapter';
 export * from './multiProviderRouter';
