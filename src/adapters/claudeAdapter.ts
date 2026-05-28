@@ -10,7 +10,9 @@ import {
 import { trimTrailingSlashes } from '../utils/urlSafety';
 
 export type ClaudeModel =
+  | 'claude-opus-4-8'
   | 'claude-opus-4-7'
+  | 'claude-opus-4-6'
   | 'claude-sonnet-4-6'
   | 'claude-haiku-4-5-20251001'
   | 'claude-opus-4-1-20250805'
@@ -19,14 +21,50 @@ export type ClaudeModel =
   | 'claude-3-7-sonnet-20250219'
   | (string & {});
 
+/**
+ * Adaptive thinking control. Recommended for Opus 4.6+ and Sonnet 4.6.
+ * `'disabled'` omits thinking entirely; `'adaptive'` lets Claude decide how
+ * much to reason per request (no fixed token budget).
+ */
+export type ClaudeThinkingMode = 'adaptive' | 'disabled';
+
+/**
+ * Effort governs reasoning depth and overall token spend. Supported on
+ * Opus 4.5+ and Sonnet 4.6 (`'max'` and `'xhigh'` are Opus-tier only).
+ */
+export type ClaudeEffort = 'low' | 'medium' | 'high' | 'xhigh' | 'max';
+
 export interface ClaudeCompletionOptions {
   model?: ClaudeModel;
   maxTokens?: number;
+  /**
+   * Sampling temperature. Ignored by adaptive-thinking dispatch and rejected
+   * by Opus 4.7/4.8 (which remove sampling params) — SDK-backed clients strip
+   * it automatically for those models.
+   */
   temperature?: number;
+  /** Nucleus sampling. Same model-aware stripping rules as `temperature`. */
   topP?: number;
   systemPrompt?: string;
   stopSequences?: ReadonlyArray<string>;
   metadata?: Record<string, unknown>;
+  /**
+   * Adaptive thinking control. When omitted, SDK-backed clients enable
+   * adaptive thinking for models that support it and omit it otherwise.
+   */
+  thinking?: ClaudeThinkingMode;
+  /** Reasoning + token-spend effort (`output_config.effort`). */
+  effort?: ClaudeEffort;
+  /**
+   * Place a prompt-cache breakpoint on the system prompt. Defaults to `true`
+   * for SDK-backed clients; short prompts simply won't cache (no penalty).
+   */
+  cacheSystemPrompt?: boolean;
+  /**
+   * Force streaming. SDK-backed clients also auto-stream when `maxTokens`
+   * is large enough to risk an HTTP timeout on a unary request.
+   */
+  stream?: boolean;
 }
 
 export interface ClaudeRequest extends AdapterRequest {
@@ -38,6 +76,10 @@ export interface ClaudeRequest extends AdapterRequest {
 export interface ClaudeUsage {
   readonly inputTokens: number;
   readonly outputTokens: number;
+  /** Tokens served from the prompt cache (~0.1x cost). Present when known. */
+  readonly cacheReadInputTokens?: number;
+  /** Tokens written to the prompt cache (~1.25x cost). Present when known. */
+  readonly cacheCreationInputTokens?: number;
 }
 
 export interface ClaudeCompletionResult {
@@ -45,6 +87,8 @@ export interface ClaudeCompletionResult {
   readonly content: string;
   readonly stopReason: string | null;
   readonly usage: ClaudeUsage | null;
+  /** Summarized thinking text, when the model emitted any and it was surfaced. */
+  readonly thinking?: string;
   readonly raw?: unknown;
 }
 
@@ -68,6 +112,12 @@ export const CLAUDE_MODEL_MAPPINGS: Readonly<Record<string, {
   readonly defaultTemperature: number;
   readonly useCases: ReadonlyArray<string>;
 }>> = Object.freeze({
+  'claude-opus-4-8': Object.freeze({
+    model: 'claude-opus-4-8',
+    tier: 'flagship',
+    defaultTemperature: 0.25,
+    useCases: ['frontier-review', 'deep-analysis', 'long-horizon-agentic'],
+  }),
   'claude-sonnet-4-6': Object.freeze({
     model: 'claude-sonnet-4-6',
     tier: 'balanced',
