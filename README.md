@@ -105,7 +105,7 @@ The whitepaper's seven cognitive layers are mapped to live modules in
 <div align="center">
 
 [![▶ Cinematic Showcase](https://img.shields.io/badge/▶_CINEMATIC_SHOWCASE-Three.js_/showcase-0d1117?style=for-the-badge&labelColor=e8c98a&color=0d1117)](./public/showcase/index.html)
-[![Live Demo](https://img.shields.io/badge/LIVE_DEMO-mcop--framework.vercel.app-0d1117?style=for-the-badge&labelColor=00f0ff&color=0d1117)](https://kuonirad.github.io/MCOP-Framework-2.0)
+[![Live Demo](https://img.shields.io/badge/LIVE_DEMO-mcop--framework.vercel.app-0d1117?style=for-the-badge&labelColor=00f0ff&color=0d1117)](https://mcop-framework.vercel.app)
 [![npm](https://img.shields.io/badge/npm-@kullailabs/mcop--core-0d1117?style=for-the-badge&labelColor=cb3837&color=0d1117&logo=npm)](https://www.npmjs.com/package/@kullailabs/mcop-core)
 
 <a href="./public/showcase/index.html" title="Open the cinematic Three.js showcase">
@@ -259,6 +259,8 @@ Use the public repository surfaces when the work is bigger than a single patch:
 
 ## 🧠 System Architecture
 
+<a id="architecture"></a>
+
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                    MCOP PROCESSING PIPELINE                     │
@@ -399,10 +401,10 @@ console.log({
 
 <div align="center">
 
-[![Response Time](https://img.shields.io/badge/Response_Time-<50ms-00f0ff?style=for-the-badge&logo=lightning)](./docs/api/README.md)
-[![Throughput](https://img.shields.io/badge/Throughput-10K_req%2Fs-7b2dff?style=for-the-badge&logo=speedtest)](./docs/api/README.md)
-[![Uptime](https://img.shields.io/badge/Uptime-99.99%25-00ff88?style=for-the-badge&logo=statuspage)](./docs/api/README.md)
-[![Memory](https://img.shields.io/badge/Memory-<128MB-ffd700?style=for-the-badge&logo=databricks)](./docs/api/README.md)
+[![Full Pipeline](https://img.shields.io/badge/Full_Pipeline-4.4_ms-00f0ff?style=for-the-badge&logo=lightning)](./examples/reproducible-benchmark/README.md)
+[![Throughput](https://img.shields.io/badge/Throughput-22%2C700_ops%2Fsec-7b2dff?style=for-the-badge&logo=speedtest)](./examples/reproducible-benchmark/README.md)
+[![Stigmergy Recall](https://img.shields.io/badge/Stigmergy_Recall-0.8_ms-00ff88?style=for-the-badge&logo=statuspage)](./examples/reproducible-benchmark/README.md)
+[![Provenance Hash](https://img.shields.io/badge/Provenance_Hash-0.3_ms-ffd700?style=for-the-badge&logo=databricks)](./examples/reproducible-benchmark/README.md)
 
 </div>
 
