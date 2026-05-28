@@ -22,6 +22,7 @@ export * from './grokImageAdapter';
 export * from './veilBridgeGrokClient';
 export * from './qwenAdapter';
 export * from './claudeAdapter';
+export * from './sdkClaudeClient';
 export * from './deepSeekAdapter';
 export * from './kimiAdapter';
 export * from './multiProviderRouter';
