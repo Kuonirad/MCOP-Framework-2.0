@@ -41,6 +41,11 @@ import {
   type OrganelleProvenanceLink,
 } from '../utils/organelleMerge';
 import {
+  buildOrganelleSystemPrompt,
+  type OrganellePriorTrace,
+  type OrganellePromptOptions,
+} from '../utils/organellePrompt';
+import {
   startTriadSpan,
   finishTriadSpan,
   failTriadSpan,
@@ -70,6 +75,26 @@ export type GrokModel =
   | 'grok-4-1-fast-reasoning'
   | 'grok-4-1-fast-non-reasoning'
   | (string & {});
+
+export interface GrokOrganelleModeConfig extends Pick<
+  OrganellePromptOptions,
+  | 'protocolVersion'
+  | 'includeToolSupport'
+  | 'maxPriorTracesToShow'
+  | 'outputSchemaName'
+  | 'additionalInstructions'
+  | 'prettyPrintContext'
+> {
+  enabled?: boolean;
+  /** Which profile to instruct the model to use internally */
+  profile?: 'low-memory' | 'full';
+  /** Whether to attempt merging model-produced traces back into host stigmergy */
+  mergeTraces?: boolean;
+  /** Whether to attempt recording model-produced etches */
+  mergeEtches?: boolean;
+  /** If true, fail the request if we cannot parse organelle artifacts */
+  strictParsing?: boolean;
+}
 
 /** Per-request options forwarded to the xAI chat-completions endpoint. */
 export interface GrokCompletionOptions {
@@ -114,17 +139,7 @@ export interface GrokCompletionOptions {
    *
    * This turns Grok into a remote execution substrate for the MCOP triad.
    */
-  organelleMode?: boolean | {
-    enabled?: boolean;
-    /** Which profile to instruct the model to use internally */
-    profile?: 'low-memory' | 'full';
-    /** Whether to attempt merging model-produced traces back into host stigmergy */
-    mergeTraces?: boolean;
-    /** Whether to attempt recording model-produced etches */
-    mergeEtches?: boolean;
-    /** If true, fail the request if we cannot parse organelle artifacts */
-    strictParsing?: boolean;
-  };
+  organelleMode?: boolean | GrokOrganelleModeConfig;
 }
 
 export interface GrokStigmergyHistoryOptions {
@@ -948,21 +963,18 @@ public async processOrganelleResultWithLedger(
  */
 public async generateOptimizedCompletionWithOrganelleLedger(
   prompt: string,
-  organelleOptions: Partial<NonNullable<GrokCompletionOptions['organelleMode']>> & {
-    mergeTraces?: boolean;
-    mergeEtches?: boolean;
-  } = {},
+  organelleOptions: Partial<GrokOrganelleModeConfig> = {},
   extras: Pick<
     GrokRequest,
     'styleContext' | 'humanFeedback' | 'metadata' | 'entropyTarget'
   > = {}
 ) {
-  const baseMode = {
+  const baseMode: GrokOrganelleModeConfig = {
     enabled: true,
     mergeTraces: organelleOptions.mergeTraces !== false,
     mergeEtches: organelleOptions.mergeEtches !== false,
   };
-  const fullOrganelleMode = { ...baseMode, ...(organelleOptions as Record<string, unknown>) };
+  const fullOrganelleMode: GrokOrganelleModeConfig = { ...baseMode, ...organelleOptions };
 
   return this.generateOptimizedCompletion(
     prompt,
@@ -975,7 +987,7 @@ public async generateOptimizedCompletionWithOrganelleLedger(
 
   private buildOrganelleInstructions(
     options: GrokCompletionOptions,
-    _dispatch: PreparedDispatch,
+    dispatch: PreparedDispatch,
   ): string | undefined {
     const mode = options.organelleMode;
     if (!mode) return undefined;
@@ -990,22 +1002,28 @@ public async generateOptimizedCompletionWithOrganelleLedger(
       return undefined; // only low-memory supported in v1
     }
 
-    const instructions = [
-      `You are now operating as a host for the MCOP organelle under protocol grok-organelle-v2.`,
-      ``,
-      `You have been given the following compact LowMemoryMCOPProfile. You MUST use these exact parameters for all internal MCOP operations:`,
-      JSON.stringify(profileData, null, 2),
-      ``,
-      `Required behavior:`,
-      `- Perform internal encoding using the profile.`,
-      `- Do stigmergic recall against any history provided earlier in this conversation.`,
-      `- Execute at least one round of resonance + dialectical synthesis internally.`,
-      `- Emit structured artifacts at the end in the required JSON shape (see organelle contract).`,
-      ``,
-      `When possible, include a "contextTensorHint" field in your returned traces using JSON array format for high-fidelity reconstruction on the host side.`,
-    ].join('\n');
+    const maxPriorTraces = config.maxPriorTracesToShow ?? 12;
+    const priorTraces = maxPriorTraces > 0
+      ? this.stigmergy
+        .getRecent(maxPriorTraces + 1)
+        .filter((trace) => trace.id !== dispatch.trace.id)
+        .slice(-maxPriorTraces)
+        .map(toOrganellePriorTrace)
+      : [];
 
-    return instructions;
+    return buildOrganelleSystemPrompt(
+      new LowMemoryMCOPMode(profileData),
+      priorTraces,
+      dispatch.refinedPrompt,
+      {
+        protocolVersion: config.protocolVersion,
+        includeToolSupport: config.includeToolSupport,
+        maxPriorTracesToShow: config.maxPriorTracesToShow,
+        outputSchemaName: config.outputSchemaName,
+        additionalInstructions: config.additionalInstructions,
+        prettyPrintContext: config.prettyPrintContext,
+      },
+    );
   }
 
   private buildStigmergyHistoryBlock(
@@ -1069,6 +1087,26 @@ function formatStigmergyHistoryTrace(
     parts.push(`metadata=${JSON.stringify(redactHistoryMetadata(trace.metadata))}`);
   }
   return parts.filter(Boolean).join(' | ');
+}
+
+function toOrganellePriorTrace(trace: PheromoneTrace): OrganellePriorTrace {
+  const summaryParts = [
+    `hash=${trace.hash}`,
+    trace.parentHash ? `parent=${trace.parentHash}` : undefined,
+    `weight=${trace.weight.toFixed(4)}`,
+    `timestamp=${trace.timestamp}`,
+    trace.metadata ? `metadata=${JSON.stringify(redactHistoryMetadata(trace.metadata))}` : undefined,
+  ];
+  const contextTensorHint = trace.context.length > 0
+    ? JSON.stringify(trace.context.slice(0, 32))
+    : undefined;
+
+  return {
+    id: trace.id,
+    resonance: trace.weight,
+    summary: summaryParts.filter(Boolean).join(' | '),
+    contextTensorHint,
+  };
 }
 
 function redactHistoryMetadata(
