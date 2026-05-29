@@ -24,6 +24,21 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   (`LICENSE-MIT-INTEGRATIONS`). See `NOTICE.md` for the full history.
 
 ### Added
+- **Fast control loop (`src/control/`).** Closes the feedback loop the CUDA
+  kernels only sketched: the `homeostasis` op was an actuator and `evolveScore` a
+  sensor, but the pull-back ran open-loop at a fixed genome-set gain, with no
+  fast correction between the slow `NovaEvolveTuner` meta-tunes. `FastControlLoop`
+  adds the missing inner controller — a deterministic, anti-windup `PIDController`
+  with derivative-on-measurement — that each tick observes the substrate
+  (`equilibriumScore`), computes a control effort, and actuates the homeostasis
+  pull-back, Merkle-sealing every tick. It classifies the trajectory
+  (`converged` / `oscillating` / `diverging` / `saturated` / `unsettled`) into an
+  auditable verdict. `controlTargetsFromGenome` couples the slow genome to the
+  fast loop's setpoint and gains; a `ProteomeControlPlant` drives the real
+  150-node substrate, and a `FirstOrderPlant` makes the control-theory behaviour
+  analytically verifiable. See `docs/FAST_CONTROL_LOOP.md`. Covered by
+  `pidController.test.ts`, `fastControlLoop.test.ts`, and
+  `proteomeControlPlant.test.ts`.
 - **Pre-registered, multi-rater, held-out efficacy program (`src/efficacy/`).**
   The first framework signal that measures whether the cognitive machinery
   produces *better reasoning* rather than *better-attested* reasoning — and one

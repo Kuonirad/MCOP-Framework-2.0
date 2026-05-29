@@ -42,6 +42,7 @@
     "positive:verify": "POSITIVE_IMPACT_VERIFY=1 jest --runInBand --testPathPatterns=positiveImpactVerifier",
     "positive:quality": "POSITIVE_IMPACT_QUALITY=1 jest --runInBand --testPathPatterns=verificationQuality",
     "efficacy:test": "jest --testPathPatterns='efficacyStatistics|interRaterReliability|efficacyProgram'",
+    "control:test": "jest --testPathPatterns='pidController|fastControlLoop|proteomeControlPlant'",
     "self:audit": "python scripts/self_audit.py",
     "benchmark:arc-evo": "node scripts/benchmark-arc-evo.mjs",
     "benchmark:arc-ls20": "node scripts/benchmark-arc-ls20.mjs --mode=full",
