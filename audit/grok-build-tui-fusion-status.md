@@ -124,3 +124,4 @@ This is the practical expression of MCOP as a safe auditing organelle.
 
 ---
 **Repro Cycle Update (2026-05-29T23:34:26Z)**: Benchmark reproduction executed via live kernel. 21/21 tests passed, results.json byte-identical. New etch repro-fusion-etch-mprk6u0lysoye0 (resonance 0.9400) recorded under tenant grok-build-tui-repro-cycle. Fusion is operational and self-verifying.
+
