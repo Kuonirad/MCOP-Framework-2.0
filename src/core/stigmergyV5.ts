@@ -11,6 +11,12 @@ import type { StigmergyStorageBackend } from './stigmergyBackend';
 import { canonicalDigest } from './canonicalEncoding';
 import { randomUuidV4 } from './uuid';
 import { failTriadSpan, finishTriadSpan, startTriadSpan } from './observability';
+import {
+  DEFAULT_TEMPORAL_DYNAMICS,
+  PheromoneLedger,
+  type PheromoneStats,
+  type TemporalDynamicsConfig,
+} from './temporalStigmergy';
 
 export interface StigmergyConfig {
   resonanceThreshold?: number;
@@ -21,6 +27,19 @@ export interface StigmergyConfig {
   curiosityBonus?: number;
   /** Positive Feedback Hysteresis lift for high-resonance beneficial patterns. */
   growthBias?: number;
+  /**
+   * Temporal pheromone dynamics (advance #3). Off by default — when omitted or
+   * `enabled: false`, Stigmergy behaves exactly as v5: weights are static and
+   * recency is only a tiebreaker. When enabled, deposited trails evaporate with
+   * a half-life and are reinforced on re-traversal. See `temporalStigmergy.ts`.
+   */
+  temporalDynamics?: TemporalDynamicsConfig;
+  /**
+   * Injectable millisecond clock for temporal dynamics, so decay/reinforcement
+   * replay deterministically. Defaults to `Date.now`. Only consulted when
+   * temporal dynamics are enabled.
+   */
+  now?: () => number;
 }
 
 export class StigmergyV5 {
@@ -33,6 +52,9 @@ export class StigmergyV5 {
   private readonly curiosityBonus: number;
   private readonly growthBias: number;
   private readonly storage?: StigmergyStorageBackend;
+  private readonly temporal: Required<TemporalDynamicsConfig>;
+  private readonly pheromones?: PheromoneLedger;
+  private readonly nowMs: () => number;
 
   constructor(config: StigmergyConfig & { storage?: StigmergyStorageBackend } = {}) {
     const adaptive = config.adaptiveThreshold;
@@ -47,13 +69,25 @@ export class StigmergyV5 {
     this.growthBias = clamp01(config.growthBias ?? 0.15);
     this.storage = config.storage;
 
+    // Temporal pheromone dynamics (advance #3). Construct the ledger before
+    // hydration so loaded traces lay down deposits too.
+    this.temporal = { ...DEFAULT_TEMPORAL_DYNAMICS, ...(config.temporalDynamics ?? {}) };
+    this.nowMs = config.now ?? (() => Date.now());
+    if (this.temporal.enabled) {
+      this.pheromones = new PheromoneLedger(this.temporal);
+    }
+
     // Hydrate from durable backend if provided (important for organelle persistence across sessions)
     if (this.storage) {
       const loaded = this.storage.loadRecentTraces?.(this.traces.capacity) ?? [];
       if (Array.isArray(loaded)) {
         // oldest first for correct insertion order
         for (const t of [...loaded].reverse()) {
-          this.traces.push(t);
+          const evicted = this.traces.push(t);
+          if (this.pheromones) {
+            this.pheromones.deposit(t.id, Math.max(0, t.weight), this.nowMs());
+            if (evicted) this.pheromones.forget(evicted.id);
+          }
         }
       }
     }
@@ -113,7 +147,14 @@ export class StigmergyV5 {
       };
 
       // O(1): CircularBuffer replaces the previous O(n) Array.shift() pattern.
-      this.traces.push(trace);
+      const evicted = this.traces.push(trace);
+
+      // Lay down the initial pheromone; forget any evicted trace so the ledger
+      // stays bounded to the trace buffer.
+      if (this.pheromones) {
+        this.pheromones.deposit(id, Math.max(0, weight), this.nowMs());
+        if (evicted) this.pheromones.forget(evicted.id);
+      }
 
       // Write-through to durable backend (enables cross-session organelle memory)
       if (this.storage) {
@@ -182,6 +223,15 @@ export class StigmergyV5 {
       const positiveFeedbackScore = this.getPositiveFeedbackHysteresisScore(bestScore);
       if (bestTrace && positiveFeedbackScore >= threshold) {
         this.lastAcceptedThreshold = threshold;
+        // Temporal dynamics: a resonant match is a re-traversal of the trail, so
+        // reinforce it (decay-to-now + gain). Reported as pheromoneStrength.
+        let pheromoneStrength: number | undefined;
+        if (this.pheromones) {
+          const now = this.nowMs();
+          pheromoneStrength = this.temporal.reinforceOnResonance
+            ? this.pheromones.reinforce(bestTrace.id, now)
+            : this.pheromones.strength(bestTrace.id, now);
+        }
         finishTriadSpan(span, {
           'mcop.resonance.score': bestScore,
           'mcop.resonance.positive_feedback_score': positiveFeedbackScore,
@@ -193,6 +243,7 @@ export class StigmergyV5 {
           trace: bestTrace,
           thresholdUsed: threshold,
           positiveFeedbackScore,
+          ...(pheromoneStrength !== undefined ? { pheromoneStrength } : {}),
         };
       }
 
@@ -233,6 +284,9 @@ export class StigmergyV5 {
     const threshold = this.getAdaptiveResonanceThreshold();
     const queryMag = options.context ? magnitude(options.context) : 0;
     const curiosity = clamp01(options.curiosityBonus ?? this.curiosityBonus);
+    // Single clock read for the whole ranking so every trace decays to the same
+    // instant. Only consulted when temporal dynamics are enabled.
+    const now = this.pheromones ? this.nowMs() : 0;
     const ranked: Array<{ trace: ResonantRecentTrace; insertionOrder: number }> = [];
 
     this.traces.forEach((trace, insertionOrder) => {
@@ -256,18 +310,23 @@ export class StigmergyV5 {
           )));
       }
 
-      const lowResonanceGap = Math.max(0, threshold - contextualScore);
+      // Temporal dynamics: fade the geometric score by the trail's current
+      // pheromone strength so stale trails sink in the attention ranking. When
+      // disabled, strengthFactor is 1 and behaviour is identical to v5.
+      const strengthFactor = this.pheromones ? this.pheromones.strength(trace.id, now) : 1;
+      const temporalScore = contextualScore * strengthFactor;
+
+      const lowResonanceGap = Math.max(0, threshold - temporalScore);
       const curiosityLift = options.includeLowResonance === false
         ? 0
         : curiosity * lowResonanceGap;
-      ranked.push({
-        trace: {
-          ...trace,
-          resonanceScore: clamp01(contextualScore + curiosityLift),
-          curiosityLift,
-        },
-        insertionOrder,
-      });
+      const rankedTrace: ResonantRecentTrace = {
+        ...trace,
+        resonanceScore: clamp01(temporalScore + curiosityLift),
+        curiosityLift,
+      };
+      if (this.pheromones) rankedTrace.pheromoneStrength = strengthFactor;
+      ranked.push({ trace: rankedTrace, insertionOrder });
     });
 
     ranked.sort((a, b) =>
@@ -284,6 +343,49 @@ export class StigmergyV5 {
       capacity: this.traces.capacity,
       lifetimePushes: this.traces.lifetimePushes,
     };
+  }
+
+  /* ---- Temporal pheromone dynamics (advance #3) ----------------------- */
+
+  /** True when temporal evaporation/reinforcement is active. */
+  isTemporalEnabled(): boolean {
+    return this.pheromones !== undefined;
+  }
+
+  /**
+   * Current decayed pheromone strength of a trace, or `undefined` when temporal
+   * dynamics are disabled. A faded trail returns a low value (down to `floor`).
+   */
+  getPheromoneStrength(traceId: string): number | undefined {
+    if (!this.pheromones) return undefined;
+    return this.pheromones.strength(traceId, this.nowMs());
+  }
+
+  /**
+   * Explicitly reinforce a trace (decay-to-now + gain), e.g. when a downstream
+   * consumer confirms a trail was useful. Returns the new strength, or
+   * `undefined` when temporal dynamics are disabled or the id is unknown.
+   */
+  reinforceTrace(traceId: string): number | undefined {
+    if (!this.pheromones || !this.pheromones.has(traceId)) return undefined;
+    return this.pheromones.reinforce(traceId, this.nowMs());
+  }
+
+  /**
+   * Prune ledger entries whose strength has decayed to/below `minStrength` at
+   * the current instant. Returns the pruned trace ids (empty when disabled).
+   * Note: this prunes the *pheromone* layer only; the Merkle-sealed trace chain
+   * is immutable and unaffected.
+   */
+  pruneFadedTraces(minStrength = 0): string[] {
+    if (!this.pheromones) return [];
+    return this.pheromones.prune(this.nowMs(), minStrength);
+  }
+
+  /** Aggregate pheromone statistics, or `undefined` when disabled. */
+  getTemporalStats(): PheromoneStats | undefined {
+    if (!this.pheromones) return undefined;
+    return this.pheromones.stats(this.nowMs());
   }
 
 

@@ -1,6 +1,7 @@
 export * from './types';
 export * from './novaNeoEncoder';
 export * from './stigmergyV5';
+export * from './temporalStigmergy';
 export * from './holographicEtch';
 export * from './positiveResonanceAmplifier';
 export * from './lowMemoryMCOPMode';
