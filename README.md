@@ -212,6 +212,11 @@ kernel's scoring math drifts or the cited evidence is edited without
 regenerating, the gate fails. Regenerate the attestation with `pnpm
 positive:attest`.
 
+Latest published validation snapshot:
+- [`ad642420`](https://github.com/Kuonirad/MCOP-Framework-2.0/commit/ad6424208207ae95dd10451034bc8b9d49660ecd) completed 19/19 GitHub check runs successfully on 2026-05-29.
+- The green matrix covered Node.js tests (20.x, 22.x, 22.22.3), Python package tests (3.10, 3.12), npm package packaging, build, security, CodeQL, Cypress against the standalone production server, Lighthouse, Scorecard, Trojan-source scan, malicious-load testing, release-draft generation, Docker build-and-push, and CUDA/proteome CPU-fallback smoke.
+- The same export captured the Grok Build TUI + MCOP-2.0 fusion audits: conductor on-ramp Guardian resonance 0.9529, fusion-status Guardian resonance 0.9343, constitutional approval rule resonance 0.9207, and export approval resonance 0.9592, with provenance recorded in `audit/ledger.jsonl`.
+
 Current state: the contributor-joy, adoption-velocity, and beneficial-outcome
 metrics are no longer formulas — they are computed by the
 `PositiveResonanceAmplifier` over real growth events, cited by hash, and
