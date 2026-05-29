@@ -1,6 +1,6 @@
 # Grok as MCOP Organelle Host — Bidirectional Symbiosis
 
-**Status:** Design / Vision (May 2026)  
+**Status:** Partially Implemented (Core Prompt Builder + Adapter Wiring complete as of June 2026)  
 **Owner:** Grok + MCOP symbiosis initiative  
 **Related:**
 - `src/adapters/grokAdapter.ts`
@@ -233,3 +233,45 @@ See also:
 - `src/utils/organelleMerge.ts`
 - `mcop_package/mcop/triad.py`
 - `examples/grok_mcop_organelle_experiment.ts` (v0.3+)
+
+### Canonical Organelle Prompt Builder + Adapter Integration
+
+A production-grade, reusable prompt construction utility was extracted:
+
+- `src/utils/organellePrompt.ts` now exports `buildOrganelleSystemPrompt(profile, priorTraces, task, options?)`
+  - Supports both strict JSON output and tool-calling variants (`includeToolSupport`).
+  - Accepts `LowMemoryMCOPProfile` or `LowMemoryMCOPMode`.
+  - Handles rich configuration: `maxPriorTracesToShow`, `additionalInstructions`, etc.
+
+This utility was wired directly into the adapter:
+
+- `GrokMCOPAdapter.buildOrganelleInstructions` now delegates to the canonical builder.
+- When `organelleMode` is active, the adapter automatically:
+  - Builds the correct `LowMemoryMCOPProfile`.
+  - Injects recent host Stigmergy traces (converted to `OrganellePriorTrace` with reconstruction hints).
+  - Respects new config options: `includeToolSupport`, `maxPriorTracesToShow`, `additionalInstructions`.
+
+The `organelleMode` config object on `GrokCompletionOptions` was extended to expose these options directly to callers.
+
+**Status:** Implemented (June 2026)
+
+This completes the core "shipping the organelle" mechanism described in Phase 1–2 of the original roadmap. Callers can now use:
+
+```ts
+const adapter = GrokMCOPAdapter.createLedgerAware({ ... });
+
+const response = await adapter.generateOptimizedCompletion(prompt, {
+  organelleMode: {
+    enabled: true,
+    includeToolSupport: false,
+    maxPriorTracesToShow: 8,
+    additionalInstructions: "Focus on positive-resonance trajectories.",
+  },
+});
+```
+
+See also:
+- `src/adapters/grokAdapter.ts` (`buildOrganelleInstructions`)
+- `src/utils/organellePrompt.ts`
+- `examples/grok_self_organelle_roundtrip.ts` (self-referential demo using the wired path)
+- `examples/grok_organelle_live_wired_demo.ts` (focused live demonstration)
