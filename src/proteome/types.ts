@@ -148,6 +148,39 @@ export interface ProteomeConfig {
 }
 
 /**
+ * Thermodynamic metadata attached to a proteome step when the ThermoTruth
+ * layer is enabled (`MCOP_ENABLE_THERMO` / `enableThermo`). Computed by
+ * {@link ../core/thermoTruthKernel.computeFreeEnergy} over the per-node
+ * ensemble, this supplies *physical natural constraints* alongside the
+ * heuristic {@link ProteomeStepResult.equilibriumScore}.
+ *
+ * The block is purely additive: it is NOT folded into {@link
+ * ProteomeStepResult.merkleRoot}, so the sealed root is byte-identical
+ * whether or not thermo is enabled (Merkle parity is preserved).
+ */
+export interface ProteomeThermoMetadata {
+  /** Helmholtz free energy `F = U − T·S` over the per-node ensemble. */
+  readonly freeEnergy: number;
+  /** Internal energy `U = Σ E_i`. */
+  readonly internalEnergy: number;
+  /** Equipartition temperature `T = (2/3)·σ²` over node state vectors. */
+  readonly temperature: number;
+  /** Shannon entropy `S` (bits) of the quantized node-state distribution. */
+  readonly entropy: number;
+  /** Negentropy `J = log2(N) − S ≥ 0` — the order / flourishing signal. */
+  readonly negentropy: number;
+  /** Partition function `Z = Σ exp(−β·E_i)`. */
+  readonly partitionFunction: number;
+  /**
+   * `ΔF = F_t − F_{t−1}` — the step's free-energy change. Negative means the
+   * substrate is relaxing toward equilibrium; a positive spike is an
+   * entropy-production / drift signal Guardian can veto on. `undefined` on the
+   * first thermo-enabled step (no prior `F` to difference against).
+   */
+  readonly deltaFreeEnergy?: number;
+}
+
+/**
  * Single-step result returned by {@link ProteomeOrchestrator.step}.
  *
  * Every field except `provenance` is a *summary* — the full per-node
@@ -189,6 +222,12 @@ export interface ProteomeStepResult {
   readonly merkleRoot: string;
   /** Provenance leaf — replicates the {@link AcceleratorProvenance} shape. */
   readonly provenance: ProteomeStepProvenance;
+  /**
+   * Thermodynamic metadata — present only when the ThermoTruth layer is
+   * enabled. Absent (`undefined`) by default, so existing consumers are
+   * unaffected.
+   */
+  readonly thermo?: ProteomeThermoMetadata;
 }
 
 /**
@@ -222,6 +261,14 @@ export interface ProteomeStepProvenance {
     readonly equilibriumEnergy: number;
     readonly payoffScale: number;
   };
+  /**
+   * Thermodynamic grounding for this step — present only when the ThermoTruth
+   * layer is enabled. Mirrors {@link ProteomeStepResult.thermo} so the
+   * archival provenance leaf carries the physical signal (free-energy
+   * distance, negentropy production) for downstream Guardian / positive-audit
+   * citation. Additive: excluded from the Merkle digest.
+   */
+  readonly thermo?: ProteomeThermoMetadata;
 }
 
 /**

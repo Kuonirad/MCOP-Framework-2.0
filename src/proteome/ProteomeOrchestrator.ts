@@ -36,6 +36,8 @@
  */
 
 import { canonicalDigest } from '../core/canonicalEncoding';
+import { computeFreeEnergy, type ThermoMicrostate } from '../core/thermoTruthKernel';
+import { resolveEnableThermo } from '../config/mcop.config';
 import {
   CUDAHardwareLayer,
   type OnnxTensor,
@@ -52,6 +54,7 @@ import {
   type ProteomeSnapshot,
   type ProteomeStepProvenance,
   type ProteomeStepResult,
+  type ProteomeThermoMetadata,
 } from './types';
 
 /* ------------------------------------------------------------------ */
@@ -111,6 +114,19 @@ export interface ProteomeOrchestratorOptions {
   cudaLayer?: CUDAHardwareLayer;
   /** Override `now()` for deterministic provenance timestamps in tests. */
   now?: () => Date;
+  /**
+   * Opt into the ThermoTruth physical-constraint layer. When `true`, each
+   * {@link ProteomeOrchestrator.step} computes the per-node ensemble's
+   * Helmholtz free energy `F = U − T·S`, negentropy, and step-over-step `ΔF`,
+   * and attaches them as additive {@link ProteomeThermoMetadata} on the step
+   * result + provenance leaf.
+   *
+   * Defaults to {@link resolveEnableThermo} (the `MCOP_ENABLE_THERMO` env var,
+   * off unless explicitly set), so the layer stays dark until a creator opts
+   * in. Enabling it never alters node dynamics or the Merkle root — it is a
+   * pure scoring pass over the already-evolved state.
+   */
+  enableThermo?: boolean;
 }
 
 /**
@@ -129,8 +145,11 @@ export class ProteomeOrchestrator {
   private readonly _nodes: ProteomeNode[];
   private readonly _cudaLayer: CUDAHardwareLayer | undefined;
   private readonly _now: () => Date;
+  private readonly _enableThermo: boolean;
   private _stepCount = 0;
   private _merkleRoot: string | undefined;
+  /** Previous step's free energy, for the `ΔF` signal. Undefined until the first thermo step. */
+  private _prevFreeEnergy: number | undefined;
   /** PRNG used for the mutation stream. Re-seeded only via reset(). */
   private _rand: () => number;
   /**
@@ -161,6 +180,7 @@ export class ProteomeOrchestrator {
     this.mutationTemperature = this._config.mutationTemperature;
     this._cudaLayer = options.cudaLayer;
     this._now = options.now ?? (() => new Date());
+    this._enableThermo = options.enableThermo ?? resolveEnableThermo();
     this._rand = mulberry32(this._config.seed ^ 0xa5a5a5a5);
     this._graph = buildSparseGraph(
       this._config.nodeCount,
@@ -202,6 +222,11 @@ export class ProteomeOrchestrator {
   /** Cumulative step count since construction. */
   get stepCount(): number {
     return this._stepCount;
+  }
+
+  /** Whether the ThermoTruth physical-constraint layer is active for this orchestrator. */
+  get thermoEnabled(): boolean {
+    return this._enableThermo;
   }
 
   /** Game-theoretic payoff matrix surface — re-exported for introspection. */
@@ -284,6 +309,9 @@ export class ProteomeOrchestrator {
     const energyVariance = variance / energies.length;
     const equilibriumScore = this._scoreEquilibrium(meanEnergy, energyVariance);
 
+    // NOTE: the thermo layer is intentionally NOT part of this digest — the
+    // Merkle root must stay byte-identical whether or not thermo is enabled so
+    // existing replay logs verify unchanged (Merkle parity).
     const merkleRoot = canonicalDigest({
       parent: this._merkleRoot ?? null,
       step: this._stepCount,
@@ -291,6 +319,11 @@ export class ProteomeOrchestrator {
       states: this._nodes.map((n) => Array.from(n.state)),
     });
     this._merkleRoot = merkleRoot;
+
+    // ---- 6. ThermoTruth physical-constraint scoring (additive, flag-gated).
+    // Pure read-only pass over the already-evolved node ensemble — node state,
+    // energy, and the Merkle root above are all untouched by this branch.
+    const thermo = this._enableThermo ? this._computeThermo() : undefined;
 
     const provenance: ProteomeStepProvenance = Object.freeze({
       kernel: cudaProvenance ? 'proteome-graph-step' : 'proteome-cpu-step',
@@ -306,6 +339,7 @@ export class ProteomeOrchestrator {
         equilibriumEnergy: equilibrium,
         payoffScale,
       }),
+      ...(thermo ? { thermo } : {}),
     });
 
     return Object.freeze({
@@ -315,6 +349,33 @@ export class ProteomeOrchestrator {
       equilibriumScore,
       merkleRoot,
       provenance,
+      ...(thermo ? { thermo } : {}),
+    });
+  }
+
+  /**
+   * Score the current node ensemble with the ThermoTruth kernel. Treats each
+   * node as a microstate (`energy` + `state` vector) and returns the Helmholtz
+   * free energy, negentropy, and step-over-step `ΔF`. Read-only: does not
+   * mutate node state. Only called when {@link _enableThermo} is set.
+   */
+  private _computeThermo(): ProteomeThermoMetadata {
+    const microstates: ThermoMicrostate[] = this._nodes.map((n) => ({
+      energy: n.energy,
+      stateVector: n.state,
+    }));
+    const metrics = computeFreeEnergy(microstates);
+    const deltaFreeEnergy =
+      this._prevFreeEnergy === undefined ? undefined : metrics.freeEnergy - this._prevFreeEnergy;
+    this._prevFreeEnergy = metrics.freeEnergy;
+    return Object.freeze({
+      freeEnergy: metrics.freeEnergy,
+      internalEnergy: metrics.internalEnergy,
+      temperature: metrics.temperature,
+      entropy: metrics.entropy,
+      negentropy: metrics.negentropy,
+      partitionFunction: metrics.partitionFunction,
+      ...(deltaFreeEnergy === undefined ? {} : { deltaFreeEnergy }),
     });
   }
 
@@ -347,6 +408,7 @@ export class ProteomeOrchestrator {
     }
     this._stepCount = 0;
     this._merkleRoot = undefined;
+    this._prevFreeEnergy = undefined;
     this._rand = mulberry32(this._config.seed ^ 0xa5a5a5a5);
     this.homeostasis = this._config.homeostasis;
     this.mutationTemperature = this._config.mutationTemperature;
@@ -553,5 +615,6 @@ export type {
   ProteomeSnapshot,
   ProteomeStepProvenance,
   ProteomeStepResult,
+  ProteomeThermoMetadata,
 };
 export { PROTEOME_PAYOFF_MATRIX };

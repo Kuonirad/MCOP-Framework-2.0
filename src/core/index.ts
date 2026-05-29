@@ -18,6 +18,7 @@ export * from './longFormVideoOrchestrator';
 export * from './observability';
 export * from './novaEvolveTuner';
 export * from './driftSentinelKernel';
+export * from './thermoTruthKernel';
 export * from './stigmergyBackend';
 export * from './etchBackend';
 export * from './snapshotTypes';

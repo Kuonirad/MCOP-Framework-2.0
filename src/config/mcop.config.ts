@@ -91,6 +91,31 @@ export function parseEnableCUDAEnv(raw: string | undefined): MCOPCUDAEnableMode 
   return false;
 }
 
+/**
+ * Parse the `MCOP_ENABLE_THERMO` env var into a boolean. Conservative
+ * default-off: the ThermoTruth physical-constraint layer is purely
+ * additive provenance, but it stays dark until a creator opts in.
+ *
+ * Recognised inputs (case-insensitive, trimmed):
+ *   - `'1'`, `'true'`, `'on'`, `'yes'` → `true`
+ *   - everything else (incl. undefined / empty / unknown) → `false`
+ */
+export function parseEnableThermoEnv(raw: string | undefined): boolean {
+  if (raw === undefined) return false;
+  const value = raw.trim().toLowerCase();
+  return value === '1' || value === 'true' || value === 'on' || value === 'yes';
+}
+
+/**
+ * Resolve the process-wide ThermoTruth enablement from the environment.
+ * Consumers (e.g. {@link ProteomeOrchestrator}) read this as the default
+ * when no explicit `enableThermo` option is supplied, so a single env var
+ * lights up the physical-constraint layer across the whole runtime.
+ */
+export function resolveEnableThermo(): boolean {
+  return parseEnableThermoEnv(process.env.MCOP_ENABLE_THERMO);
+}
+
 export interface MCOPNovaEvolveTunerConfig {
   readonly enabled: boolean;
   readonly metaTuneInterval: number;
