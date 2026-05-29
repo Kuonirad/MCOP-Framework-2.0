@@ -24,6 +24,19 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   (`LICENSE-MIT-INTEGRATIONS`). See `NOTICE.md` for the full history.
 
 ### Added
+- **Pre-registered, multi-rater, held-out efficacy program (`src/efficacy/`).**
+  The first framework signal that measures whether the cognitive machinery
+  produces *better reasoning* rather than *better-attested* reasoning — and one
+  the `NovaEvolveTuner` structurally cannot optimise against. A sealed
+  pre-registration (canonical hash, frozen before results) defends against
+  HARKing; a capability-gated `HeldOutVault` plus a leakage scan over the
+  tuner's observed trace stream defends against train-on-test; multiple blinded
+  raters gated by Krippendorff's alpha defend against single-judge bias; and a
+  distribution-free effect size (Cliff's delta, Hodges–Lehmann, a seeded
+  bootstrap CI, Mann–Whitney U) decides the hypothesis. `runEfficacyProgram`
+  emits a Merkle-sealed, replayable `EfficacyReport`. See
+  `docs/EFFICACY_PROGRAM.md`. Covered by `efficacyStatistics.test.ts`,
+  `interRaterReliability.test.ts`, and `efficacyProgram.test.ts`.
 - **v2.4 release-readiness and operator artifacts.** Added
   `docs/releases/v2.4.0.md`, `docs/SEVEN_LAYER_MAPPING.md`,
   `docs/api/orchestrator.md`, Drift Sentinel / Guardian Grafana and Datadog
