@@ -24,6 +24,21 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   (`LICENSE-MIT-INTEGRATIONS`). See `NOTICE.md` for the full history.
 
 ### Added
+- **Temporal dynamics for Stigmergy (`src/core/temporalStigmergy.ts`).** Adds the
+  two forces the stigmergy metaphor was missing: pheromone **evaporation** (a
+  deposit decays with a configurable half-life, `strength = max(floor, deposit ·
+  2^(−Δt/halfLife))`) and **reinforcement** (re-traversal decays-to-now then tops
+  the trail up, saturating at a cap). A deterministic `PheromoneLedger` layers
+  beside the Merkle-sealed trace chain without touching trace hashes, so
+  provenance is unchanged. `StigmergyV5` integrates it **opt-in** (`temporalDynamics:
+  { enabled: true, … }` + an injectable `now` clock): `recordTrace` deposits,
+  `getResonance` reinforces the matched trail and reports `pheromoneStrength`,
+  and `getResonantRecent` folds strength into the ranking so a stale trail sinks
+  below an equally-similar fresh one. New API: `isTemporalEnabled`,
+  `getPheromoneStrength`, `reinforceTrace`, `pruneFadedTraces`, `getTemporalStats`.
+  With dynamics disabled the v5 surface is byte-for-byte unchanged. See
+  `docs/TEMPORAL_STIGMERGY.md`. Covered by `temporalStigmergy.test.ts` and
+  `stigmergyTemporal.test.ts`.
 - **Fast control loop (`src/control/`).** Closes the feedback loop the CUDA
   kernels only sketched: the `homeostasis` op was an actuator and `evolveScore` a
   sensor, but the pull-back ran open-loop at a fixed genome-set gain, with no
