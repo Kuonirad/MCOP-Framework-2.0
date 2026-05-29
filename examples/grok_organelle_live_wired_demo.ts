@@ -31,8 +31,6 @@ import {
   HolographicEtch,
 } from '../src/core';
 
-import { LowMemoryMCOPMode, GROK_4_3_LOW_MEMORY_MCOP_PRESET } from '../src/core/lowMemoryMCOPMode';
-
 async function main() {
   console.log('=== Grok Organelle Live Wired Demo ===\n');
 
@@ -123,7 +121,7 @@ async function main() {
   console.log('--- Response received ---\n');
   console.log('organelleProvenance:', JSON.stringify(response.organelleProvenance, null, 2));
 
-  const result = response.result as any;
+  const result: GrokCompletionResult = response.result;
   console.log('\nParsed artifacts from model:');
   console.dir(result?.organelle?.artifacts, { depth: 2 });
 
