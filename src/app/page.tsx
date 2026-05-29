@@ -31,15 +31,15 @@ const softwareApplicationJsonLd = {
   name: "MCOP Framework 2.0",
   applicationCategory: "DeveloperApplication",
   applicationSubCategory: "AI Orchestration Framework",
-  operatingSystem: "Cross-platform (Node.js 20+, Python 3.11+)",
+  operatingSystem: "Cross-platform (Node.js 22.x, Python 3.12)",
   softwareVersion: "2.4",
   description:
-    "Deterministic, auditable Meta-Cognitive Optimization Protocol with NOVA-NEO encoder, Stigmergy v5 resonance store, Holographic Etch engine, the v2.4 Proteome substrate (150-node sparse interaction graph driving chaotic + game-theoretic abstraction discovery via the Φ1–Φ5 CUDA hardware layer), the Drift Sentinel Kernel — a continuously-running Δ(T_d, B_e) sensor that turns ensemble-behavior drift into stigmergic signals, Divergence Telemetry, and Merkle-linked rewind for the indirect-injection attack class — and the bidirectional Grok-MCOP Organelle Host integration that lets capable Grok models execute the triad in-model and merge their traces back into the host through async + Redis ledger forwarders with retry + DLQ. Ships the Universal Adapter Protocol v2.1 for Magnific, Higgsfield, Utopai, and any REST/MCP/HTTP pipeline.",
+    "Deterministic, auditable Meta-Cognitive Optimization Protocol with NOVA-NEO encoder, Stigmergy v5 resonance store, Holographic Etch engine, the v2.4 Proteome substrate (150-node sparse interaction graph driving chaotic + game-theoretic abstraction discovery via the Φ1–Φ5 CUDA hardware layer), the ThermoTruth free-energy layer — an opt-in (MCOP_ENABLE_THERMO, default off) deterministic Helmholtz F = U − T·S physical-constraint substrate that attaches additive, non-destructive thermodynamic metadata without altering dynamics or Merkle roots — the Drift Sentinel Kernel — a continuously-running Δ(T_d, B_e) sensor that turns ensemble-behavior drift into stigmergic signals, Divergence Telemetry, and Merkle-linked rewind for the indirect-injection attack class — and the bidirectional Grok-MCOP Organelle Host integration that lets capable Grok models execute the triad in-model and merge their traces back into the host through async + Redis ledger forwarders with retry + DLQ. Ships the Universal Adapter Protocol v2.1 for Magnific, Higgsfield, Utopai, and any REST/MCP/HTTP pipeline.",
   url: SITE_URL,
   codeRepository:
     "https://github.com/Kuonirad/MCOP-Framework-2.0",
   programmingLanguage: ["TypeScript", "Python"],
-  license: "https://mariadb.com/bsl11/",
+  license: "https://www.apache.org/licenses/LICENSE-2.0",
   isAccessibleForFree: true,
   publisher: { "@id": `${SITE_URL}#organization` },
   author: { "@id": `${SITE_URL}#organization` },
@@ -65,14 +65,14 @@ const techArticleJsonLd = {
   "@id": `${SITE_URL}#article`,
   headline: "MCOP Framework 2.0 — Deterministic, Auditable Triad Orchestration",
   description:
-    "Reference page for the Meta-Cognitive Optimization Protocol's triad architecture, kernel set, v2.4 Proteome substrate, Drift Sentinel Kernel, bidirectional Grok-MCOP Organelle Host with ledger-aware async forwarders, Universal Adapter Protocol v2.1, and live Core Web Vitals telemetry.",
+    "Reference page for the Meta-Cognitive Optimization Protocol's triad architecture, kernel set, v2.4 Proteome substrate, the ThermoTruth free-energy physical-constraint layer, Drift Sentinel Kernel, bidirectional Grok-MCOP Organelle Host with ledger-aware async forwarders, Universal Adapter Protocol v2.1, and live Core Web Vitals telemetry.",
   inLanguage: "en",
   url: SITE_URL,
   mainEntityOfPage: SITE_URL,
   proficiencyLevel: "Expert",
-  dependencies: "Next.js 15.5, React 19, TypeScript 5.9, Node.js 20+",
+  dependencies: "Next.js 15.5, React 19, TypeScript 5.9, Node.js 22.x",
   keywords:
-    "MCOP, deterministic AI, stigmergy, holographic etch, drift sentinel, indirect injection detection, Merkle lineage, Universal Adapter Protocol, Grok organelle host, bidirectional MCOP, ledger-aware etch, async ledger forwarder, organelle merge, snapshot reconciliation",
+    "MCOP, deterministic AI, stigmergy, holographic etch, drift sentinel, thermodynamic free energy, Helmholtz free energy, negentropy, indirect injection detection, Merkle lineage, Universal Adapter Protocol, Grok organelle host, bidirectional MCOP, ledger-aware etch, async ledger forwarder, organelle merge, snapshot reconciliation",
   publisher: { "@id": `${SITE_URL}#organization` },
   author: {
     "@type": "Person",
@@ -180,6 +180,12 @@ export default function Home() {
       badge: "New in v2.4",
       body: "150-node sparse interaction graph with replicator-dynamics payoffs, homeostatic pull-back, and Gaussian mutation. Drives chaotic + game-theoretic abstraction discovery via the Φ1–Φ5 CUDA graphAggregate kernel; MetaTuner-tuneable edge-of-chaos knobs.",
       tone: "from-amber-500/20 to-amber-500/5 ring-amber-400/40",
+    },
+    {
+      title: "ThermoTruth Free-Energy Layer",
+      badge: "New · Opt-in (MCOP_ENABLE_THERMO)",
+      body: "Deterministic Helmholtz free-energy substrate (F = U − T·S) over the Proteome ensemble: equipartition temperature, Shannon entropy / negentropy, Boltzmann partition function, and a monotonic free-energy descent. Off by default — when enabled it attaches additive, non-destructive thermodynamic metadata and a ΔF signal without changing node dynamics, equilibrium scores, or sealed Merkle roots.",
+      tone: "from-cyan-500/20 to-cyan-500/5 ring-cyan-400/40",
     },
     {
       title: "Drift Sentinel Kernel",
@@ -354,13 +360,17 @@ await grok.generate({
                 <strong>MCOP Framework 2.0</strong> is an open-source
                 Meta-Cognitive Optimization Protocol that turns large-language-model
                 orchestration into a <em>deterministic, replayable</em> pipeline.
-                It composes five kernels — the NOVA-NEO Encoder
+                It composes six kernels — the NOVA-NEO Encoder
                 (SHA-256-deterministic context tensors), Stigmergy v5 (cosine
                 resonance over a Merkle-chained pheromone store), the
                 Holographic Etch (rank-1 confidence accumulator), the v2.4
                 Proteome (a 150-node sparse interaction graph driving
                 chaotic + game-theoretic abstraction discovery via the
-                Φ1–Φ5 CUDA hardware layer), and the Drift Sentinel Kernel
+                Φ1–Φ5 CUDA hardware layer), the ThermoTruth free-energy
+                layer (an opt-in, default-off Helmholtz F = U − T·S
+                physical-constraint substrate that attaches non-destructive
+                thermodynamic metadata without altering dynamics or Merkle
+                roots), and the Drift Sentinel Kernel
                 (a continuously-running Δ(T_d, B_e) sensor that turns
                 ensemble-behavior drift into stigmergic signals, Divergence
                 Telemetry, and Merkle-linked rewind for the indirect-injection
@@ -374,7 +384,7 @@ await grok.generate({
                 models execute the triad in-model and merges their traces
                 back into the host through ledger-aware Holographic Etch
                 with async + Redis forwarders (retry + DLQ). License:
-                BUSL 1.1.
+                Apache-2.0.
               </p>
             </aside>
             <p className="max-w-3xl text-base text-slate-400">
@@ -655,7 +665,7 @@ await grok.generate({
           </section>
 
           <footer className="mt-8 flex flex-wrap items-center justify-between gap-4 border-t border-white/10 pt-8 text-sm text-slate-400">
-            <span>© {new Date().getFullYear()} KullAI Labs · BUSL 1.1 licensed</span>
+            <span>© {new Date().getFullYear()} KullAI Labs · Apache-2.0 licensed</span>
             <div className="flex gap-4">
               <a
                 className="hover:text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 rounded focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"

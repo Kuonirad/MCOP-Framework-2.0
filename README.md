@@ -59,7 +59,8 @@ challenge, and improve.
 **deterministic 4.4 ms reasoning pipeline** (22,700 ops/sec) that pairs a **NOVA-NEO
 SHA-256 encoder**, **Stigmergy v5 pheromone memory with Merkle-chained provenance**, and a
 **Holographic Etch** append-only ledger with **eudaimonic scoring**. The current v2.4 surface adds
-a **150-node Proteome substrate** for chaotic + game-theoretic abstraction discovery, a
+a **150-node Proteome substrate** for chaotic + game-theoretic abstraction discovery, an opt-in
+**ThermoTruth free-energy layer** (`F = U − T·S`, gated by `MCOP_ENABLE_THERMO`, Merkle-neutral), a
 **Drift Sentinel Kernel** for Δ(T_d, B_e) divergence telemetry, and a **Guardian-signed telemetry
 hardening layer** that commits JCS-canonical policy, matrix-evolution, and L1 reset blocks through
 dependency-injected substrate bridges. The adapter mesh now includes async OpenAI-compatible
@@ -284,6 +285,7 @@ Use the public repository surfaces when the work is bigger than a single patch:
 | 🟣 **Stigmergy v5** | `StigmergyV5` | Pheromone memory | Cosine recall · Merkle-chained |
 | 🔴 **Holographic Etch** | `HolographicEtch` | Confidence ledger | Append-only · Rank-1 · Replayable |
 | 🧬 **Proteome (v2.4)** | `ProteomeOrchestrator` | 150-node sparse substrate | Replicator dynamics · Edge-of-chaos · CUDA-routed |
+| 🔥 **ThermoTruth** | `thermoTruthKernel` | Free-energy physical constraint (opt-in) | `F = U − T·S` · Deterministic · Merkle-neutral |
 | 🛰️ **Drift Sentinel** | `DriftSentinelKernel` | Δ(T_d, B_e) sensor for indirect-injection drift | Welford-online σ-threshold · Stigmergic signals · Merkle-linked rewind |
 | 🟡 **Provenance** | `ProvenanceMetadata` | Cryptographic lineage | SHA-256 · ISO8601 · UUID-v4 |
 
@@ -371,6 +373,7 @@ console.log({
 | Trust-substrate roadmap | [`docs/TRUST_SUBSTRATE_ROADMAP.md`](./docs/TRUST_SUBSTRATE_ROADMAP.md) |
 | CUDA productionization | [`docs/CUDA_PRODUCTION.md`](./docs/CUDA_PRODUCTION.md) |
 | Proteome layer and ARC LS20 scaffold | [`docs/PROTEOME_LAYER.md`](./docs/PROTEOME_LAYER.md) |
+| ThermoTruth free-energy layer (opt-in) | [`src/core/thermoTruthKernel.ts`](./src/core/thermoTruthKernel.ts) · gated by `MCOP_ENABLE_THERMO` |
 | Drift Sentinel Kernel | [`docs/features/drift-sentinel-kernel.md`](./docs/features/drift-sentinel-kernel.md) |
 | Bidirectional Grok-MCOP organelle host | [`docs/adapters/GROK_AS_MCOP_ORGANELLE_HOST.md`](./docs/adapters/GROK_AS_MCOP_ORGANELLE_HOST.md) |
 | Runnable organelle host experiment | [`examples/grok_mcop_organelle_experiment.ts`](./examples/grok_mcop_organelle_experiment.ts) |
@@ -587,6 +590,7 @@ MCOP-Framework-2.0/
 | 🟢 CUDA Hardware Layer (Φ1–Φ5 scaffolding) | ![Scaffolded](https://img.shields.io/badge/SCAFFOLDED-00ff88?style=flat-square) | v2.3 |
 | 🟢 Proteome Layer + LS20 ARC scaffold | ![Done](https://img.shields.io/badge/COMPLETE-00ff88?style=flat-square) | v2.4 |
 | 🟢 Drift Sentinel + Guardian telemetry hardening | ![Done](https://img.shields.io/badge/COMPLETE-00ff88?style=flat-square) | v2.4 |
+| 🟢 ThermoTruth free-energy layer (opt-in, `MCOP_ENABLE_THERMO`) | ![Done](https://img.shields.io/badge/COMPLETE-00ff88?style=flat-square) | v2.4 |
 | 🟢 Redis Streams gossip transport | ![Done](https://img.shields.io/badge/COMPLETE-00ff88?style=flat-square) | v2.4 |
 | 🟢 Bidirectional Grok-MCOP organelle host (`organelleMode` + ledger forwarders + reconciliation) | ![Done](https://img.shields.io/badge/COMPLETE-00ff88?style=flat-square) | v2.4 |
 | 🟡 CUDA Productionization | ![Roadmap](https://img.shields.io/badge/ROADMAP-ffd700?style=flat-square) | v2.4+ |
@@ -687,6 +691,64 @@ pnpm benchmark:arc-ls20:smoke
 # Inspect the byte-stable baseline
 cat docs/benchmarks/arc_ls20.json | jq '.summary'
 ```
+
+---
+
+## 🔥 ThermoTruth Free-Energy Layer
+
+The **ThermoTruth kernel** ([`src/core/thermoTruthKernel.ts`](src/core/thermoTruthKernel.ts))
+infuses a **deterministic Helmholtz free-energy** physical constraint over the
+Proteome ensemble:
+
+```
+F = U − T·S
+```
+
+where `U` is the internal energy (Σ microstate energies), `T` the
+equipartition temperature (`T = (2/3)·σ²`), and `S` the Shannon entropy of the
+state distribution. It also exposes the Boltzmann partition function
+`Z = Σ exp(−β·E)`, negentropy (`S_max − S`, with `S_max = log₂ N`), and a
+greedy `relaxToEquilibrium` descent that produces a monotonically
+non-increasing free-energy trajectory. Everything is **clock-free and
+RNG-free** — identical inputs yield byte-identical metrics.
+
+### Opt-in and non-destructive
+
+The layer is **off by default**, gated by the `MCOP_ENABLE_THERMO` environment
+variable (`resolveEnableThermo()` in [`src/config/mcop.config.ts`](src/config/mcop.config.ts);
+override per-instance with the `enableThermo` orchestrator option). When
+enabled, `ProteomeOrchestrator` scores each step with the kernel and attaches
+**additive** thermodynamic metadata to both the step result and its provenance,
+plus a `ΔF` signal from the second step onward.
+
+> **Non-destructive guarantee.** The thermo metadata is intentionally **excluded
+> from the Merkle digest**. Enabling it never changes node dynamics, the
+> `equilibriumScore`, `energyVariance`, `totalEnergy`, or the sealed Merkle
+> root for a given seed — it only attaches observational metadata.
+
+### Use it
+
+```bash
+# Enable the physical-constraint layer process-wide
+MCOP_ENABLE_THERMO=1 pnpm <your-command>
+```
+
+```ts
+import { ProteomeOrchestrator } from '@kuonirad/mcop-framework';
+
+// Per-instance opt-in (overrides the env var)
+const proteome = new ProteomeOrchestrator({ seed: 0xc0ffee }, { enableThermo: true });
+const { thermo } = await proteome.step();
+// thermo → { freeEnergy, internalEnergy, temperature, entropy, negentropy,
+//            partitionFunction, deltaFreeEnergy? }
+```
+
+### Regression coverage
+
+| Suite | Covers |
+|:---|:---|
+| `src/__tests__/thermoTruthKernel.test.ts` | `F = U − T·S` identity, equipartition temperature, entropy/negentropy bounds, partition function, empty/singleton parity, determinism, annealing schedule, monotonic relaxation, input immutability |
+| `src/__tests__/proteomeThermo.test.ts` | Off-by-default, Merkle parity, dynamics parity (equilibrium/energy unchanged), additive metadata on result + provenance, `ΔF` from step 2, cross-run determinism, reset clears the `ΔF` baseline |
 
 ---
 
