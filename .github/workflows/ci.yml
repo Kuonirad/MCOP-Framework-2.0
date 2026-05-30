@@ -97,6 +97,26 @@ jobs:
           if-no-files-found: warn
           retention-days: 7
 
+  conformance:
+    name: Conformance spec
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Setup project environment
+        uses: ./.github/actions/setup-project
+        with:
+          node-version: 22.22.3
+
+      # Pins the deterministic contracts (canonical-digest determinism, hot-path
+      # TS<->Python parity + provenance, and the approved-changeset gate) that
+      # any conforming implementation must satisfy. See docs/CONFORMANCE_SPEC.md.
+      - name: Run conformance suite
+        run: pnpm conformance:test
+
   security:
     runs-on: ubuntu-latest
     timeout-minutes: 30

@@ -26,6 +26,10 @@ const config = {
     // Client-only telemetry component: relies on PerformanceObserver APIs
     // that are not polyfilled in jsdom. Exercised in e2e / browser suites.
     '!src/app/_components/WebVitalsSentinel.tsx',
+    // Env-gated CI gate (`MCOP_GATE=1`): skipped in the normal coverage run and
+    // exercised only by the approved-changeset workflow, so exclude it from the
+    // coverage denominator.
+    '!src/**/*.ci.test.ts',
   ],
   coverageThreshold: {
     global: {

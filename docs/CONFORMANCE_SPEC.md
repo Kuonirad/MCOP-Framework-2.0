@@ -106,6 +106,26 @@ is detectable by anyone, forever.
 - the **suite** itself — conformant when all contracts pass, non-conformant (and
   fault-isolating a throwing contract) otherwise, with a deterministic report root.
 
+## Enforced in CI
+
+Both surfaces are wired in as checks, so the gate is policy, not just a library:
+
+- **Conformance spec** — the `Conformance spec` job (`.github/workflows/ci.yml`)
+  runs `pnpm conformance:test` on every push and PR; a non-conformant build
+  fails CI.
+- **Approved-changeset gate** — the `Approved Changeset Gate` workflow
+  (`.github/workflows/approved-changeset.yml`) runs on `pull_request` and
+  `pull_request_review`. It reconstructs the changeset from the PR's git diff,
+  resolves required owners from `.github/CODEOWNERS`, ingests the PR's review
+  approvals, and runs `pnpm changeset:gate` (the env-gated
+  `approvedChangesetGate.ci` test). **Only approvals bound to the current head
+  commit count** — pushing a new commit moves the head SHA, so a stale approval
+  stops satisfying the gate and the check goes red until a fresh owner approval.
+
+Together with branch protection's `require_code_owner_reviews`, this makes every
+merge a provably-approved, content-bound changeset — verifiable offline by anyone,
+not just trusted because GitHub's UI showed a green check.
+
 ## Roadmap complete
 
 With this, all four advances the analysis named are in place:
