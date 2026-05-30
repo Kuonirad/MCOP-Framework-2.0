@@ -5,9 +5,23 @@ on:
     types: [published]
   push:
     branches: [main]
+    # `scripts/release.sh` ships a release by pushing a `v*` tag (it does NOT
+    # create a GitHub Release), so the container publish has to fire on the tag
+    # push itself — `release: published` alone never runs for that path. The
+    # `v*` glob excludes the Python `py-v*` tags handled by `publish-pypi.yml`,
+    # and the job-level `if` below keeps gating the actual build.
+    tags:
+      - 'v*'
 
 permissions:
   contents: read
+
+# A tagged release can arrive as a tag push (via `scripts/release.sh`) and, if
+# the same tag is later published as a GitHub Release, as a `release` event too.
+# Serialize per-ref so two runs never race to push the same image tags to GHCR.
+concurrency:
+  group: publish-container-${{ github.ref }}
+  cancel-in-progress: false
 
 env:
   REGISTRY: ghcr.io
