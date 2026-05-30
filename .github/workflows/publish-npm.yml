@@ -25,6 +25,10 @@ name: Publish npm package
 #
 # Triggers:
 #   • GitHub Release tagged `npm-v*` (e.g. `npm-v0.1.0`) → real publish
+#   • Push of an `npm-v*` tag → real publish. Mirrors the container path in
+#     publish.yml: releases here are shipped by pushing a version tag (not by
+#     hand-creating a GitHub Release), so the publish has to fire on the tag
+#     push itself — `release: published` alone never runs for that path.
 #   • Manual dispatch with `dry_run: true` (default) → validation only
 #
 # Requirements enforced in-workflow:
@@ -36,6 +40,9 @@ name: Publish npm package
 on:
   release:
     types: [published]
+  push:
+    tags:
+      - 'npm-v*'
   workflow_dispatch:
     inputs:
       dry_run:
@@ -57,7 +64,8 @@ jobs:
     runs-on: ubuntu-latest
     if: >-
       github.event_name == 'workflow_dispatch' ||
-      (github.event_name == 'release' && startsWith(github.event.release.tag_name, 'npm-v'))
+      (github.event_name == 'release' && startsWith(github.event.release.tag_name, 'npm-v')) ||
+      (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/npm-v'))
     timeout-minutes: 15
     environment:
       name: npm
@@ -115,7 +123,7 @@ jobs:
         run: npm ci --ignore-scripts=false || npm ci --ignore-scripts=false
 
       - name: Verify package version matches release tag
-        if: github.event_name == 'release'
+        if: github.event_name == 'release' || github.event_name == 'push'
         run: |
           tag="${GITHUB_REF_NAME#npm-v}"
           pkg_version=$(node -p "require('./package.json').version")
@@ -133,7 +141,7 @@ jobs:
       # actionable error instead of dying inside `npm publish` with a
       # generic non-zero exit.
       - name: Pre-flight — verify package + scope are bootstrapped on npm
-        if: github.event_name == 'release'
+        if: github.event_name == 'release' || github.event_name == 'push'
         run: |
           pkg_name=$(node -p "require('./package.json').name")
           echo "Probing npm registry for ${pkg_name}…"
@@ -224,6 +232,7 @@ jobs:
       - name: Publish to npm (trusted publishing + automatic provenance)
         if: >-
           github.event_name == 'release' ||
+          github.event_name == 'push' ||
           (github.event_name == 'workflow_dispatch' && inputs.dry_run == false)
         run: |
           # IMPORTANT: We need npm to see *no* NODE_AUTH_TOKEN at all (not
