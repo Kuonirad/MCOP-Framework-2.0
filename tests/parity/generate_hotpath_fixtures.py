@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2026 Kevin John Kull (Kuonirad) and KullAILABS MCOP Framework contributors
 """Generate the hot-path kernel parity fixtures.
 
 The five hot-path operations (encode, recall/cosineRecall, etch/holographic
