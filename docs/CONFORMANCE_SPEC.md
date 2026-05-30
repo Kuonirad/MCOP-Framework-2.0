@@ -116,11 +116,18 @@ Both surfaces are wired in as checks, so the gate is policy, not just a library:
 - **Approved-changeset gate** — the `Approved Changeset Gate` workflow
   (`.github/workflows/approved-changeset.yml`) runs on `pull_request` and
   `pull_request_review`. It reconstructs the changeset from the PR's git diff,
-  resolves required owners from `.github/CODEOWNERS`, ingests the PR's review
-  approvals, and runs `pnpm changeset:gate` (the env-gated
-  `approvedChangesetGate.ci` test). **Only approvals bound to the current head
-  commit count** — pushing a new commit moves the head SHA, so a stale approval
-  stops satisfying the gate and the check goes red until a fresh owner approval.
+  resolves required owners from `.github/CODEOWNERS`, and ingests the PR's review
+  approvals. Its job is the **content-binding** check GitHub misses, not a
+  duplicate of "needs approval" (branch protection's `require_code_owner_reviews`
+  already blocks the *merge* until a CODEOWNER approves). So the gate:
+  - **passes** when an owner approval is bound to the current head commit, **or**
+    when the PR is merely awaiting review (no owner approval yet — merge stays
+    gated by branch protection); and
+  - **fails** only on an integrity violation — a **stale** approval (an owner
+    approved an earlier commit, then the diff moved) or a **tampered** manifest.
+
+  Pushing a new commit moves the head SHA, so an approval that is not re-issued
+  becomes stale and the check goes red until a fresh owner approval lands.
 
 Together with branch protection's `require_code_owner_reviews`, this makes every
 merge a provably-approved, content-bound changeset — verifiable offline by anyone,

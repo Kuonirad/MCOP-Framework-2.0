@@ -31,9 +31,13 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   provably-approved, content-bound changeset: it rebuilds the changeset from the
   PR diff, resolves required owners from `.github/CODEOWNERS`, ingests the PR's
   review approvals, and runs the env-gated `approvedChangesetGate.ci` test
-  (`pnpm changeset:gate`). Only approvals bound to the current head commit count,
-  so editing after approval flips the check red. Turns the advance-#4 gate from a
-  library into enforced policy. See `docs/CONFORMANCE_SPEC.md` → "Enforced in CI".
+  (`pnpm changeset:gate`). The gate is the content-binding safety net GitHub
+  misses — it passes when an owner approval is bound to the current head or the
+  PR is simply awaiting review (merge stays gated by branch protection), and
+  fails only on an integrity violation: a stale approval (owner approved an
+  earlier commit, then the diff moved) or a tampered manifest. Turns the
+  advance-#4 gate from a library into enforced policy. See
+  `docs/CONFORMANCE_SPEC.md` → "Enforced in CI".
   Also relocates the hot-path golden fixture from `tests/parity/` into
   `src/conformance/` so the production conformance contract's import resolves
   inside the Docker / Next build context (which excludes `tests/`) — fixing a

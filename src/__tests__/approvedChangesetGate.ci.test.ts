@@ -4,12 +4,21 @@
  * @fileoverview Approved-changeset CI gate (env-gated, like `positive:attest`).
  *
  * Runs only when `MCOP_GATE=1` (the dedicated workflow sets it); otherwise the
- * whole describe is skipped so the normal `pnpm test` run is unaffected. The
- * gate reconstructs the PR's changeset from the real git diff, resolves the
- * required owners from `.github/CODEOWNERS`, ingests the PR's review approvals
- * (only those bound to the current head commit count — GitHub's own staleness
- * notion, mirrored by the lib's content-binding), and fails unless the change
- * is a provably-approved, content-bound changeset.
+ * whole describe is skipped so the normal `pnpm test` run is unaffected.
+ *
+ * Division of labour: GitHub branch protection's `require_code_owner_reviews`
+ * already blocks a *merge* until a CODEOWNER approves, so this gate does NOT
+ * re-implement "needs approval" as a red X on every in-progress PR. Its unique
+ * job is the **content-binding** check GitHub misses when "dismiss stale
+ * reviews" is off: an approval is bound to the head commit it was submitted
+ * against, so if the diff changes after approval the approval is *stale* and the
+ * gate fails. The gate therefore:
+ *
+ *   - PASSES when a CODEOWNER approval is bound to the current head, OR when the
+ *     PR is simply awaiting review (no owner approval yet — merge stays gated by
+ *     branch protection);
+ *   - FAILS only on an integrity violation: a stale approval (owner approved an
+ *     earlier commit, then the diff moved) or a tampered changeset manifest.
  */
 
 import { execFileSync } from 'node:child_process';
@@ -43,7 +52,7 @@ function gitNameStatus(base: string, head: string): Array<{ path: string; status
 }
 
 (GATE_ENABLED ? describe : describe.skip)('approved-changeset CI gate', () => {
-  it('the PR head is a provably-approved, content-bound changeset', () => {
+  it('the PR head carries no stale or tampered owner approval', () => {
     const base = process.env.GATE_BASE_SHA ?? 'origin/main';
     const head = process.env.GATE_HEAD_SHA ?? 'HEAD';
     const author = process.env.GATE_PR_AUTHOR ?? 'unknown';
@@ -64,24 +73,44 @@ function gitNameStatus(base: string, head: string): Array<{ path: string; status
       parseCodeowners(codeowners),
     );
 
-    // Only approvals submitted against the current head commit bind to the
-    // current content; approvals on an earlier commit are not carried forward.
-    const boundApprovals = reviewApprovals
-      .filter((a) => a.commitId === head && requiredOwners.includes(a.approver))
-      .map((a) => approveChangeset(changeset, a.approver));
+    // Owner approvals, excluding the author's own (self-approval never counts).
+    const ownerApprovals = reviewApprovals.filter(
+      (a) => requiredOwners.includes(a.approver) && a.approver !== author,
+    );
+    const boundApprovals = ownerApprovals.filter((a) => a.commitId === head);
+    const staleApprovers = [...new Set(ownerApprovals.filter((a) => a.commitId !== head).map((a) => a.approver))];
 
-    const result = validateApprovedChangeset(changeset, boundApprovals, {
-      requiredOwners,
-      minApprovals: 1,
-      forbidSelfApproval: true,
-    });
+    // Case 1 — a CODEOWNER approval is bound to the current head: validate it
+    // through the lib (content-binding + self-approval + tamper checks).
+    if (boundApprovals.length > 0) {
+      const result = validateApprovedChangeset(
+        changeset,
+        boundApprovals.map((a) => approveChangeset(changeset, a.approver)),
+        { requiredOwners, minApprovals: 1, forbidSelfApproval: true },
+      );
+      if (result.verdict !== 'approved') {
+        throw new Error(`Approved-changeset gate failed: ${result.verdict} — ${result.rationale}`);
+      }
+      expect(result.verdict).toBe('approved');
+      return;
+    }
 
-    if (result.verdict !== 'approved') {
+    // Case 2 — an owner approved, but only on an earlier commit: the diff moved
+    // under them. This is the content-binding violation the gate exists to catch.
+    if (staleApprovers.length > 0) {
       throw new Error(
-        `Approved-changeset gate failed: ${result.verdict} — ${result.rationale} ` +
-          `(required owners: ${requiredOwners.join(', ') || 'none'}; changeset ${changeset.changesetHash.slice(0, 12)}…)`,
+        `Approved-changeset gate failed: stale-approval — ${staleApprovers.join(', ')} approved an ` +
+          `earlier commit, but the head is now ${head.slice(0, 12)} (changeset ` +
+          `${changeset.changesetHash.slice(0, 12)}…). Re-approve at the current head.`,
       );
     }
-    expect(result.verdict).toBe('approved');
+
+    // Case 3 — no owner approval yet: not a violation. The merge is still gated
+    // by branch protection's required code-owner review; the gate stays green.
+    console.log(
+      `approved-changeset: awaiting code-owner review (required owners: ${requiredOwners.join(', ') || 'none'}). ` +
+        `Merge remains gated by branch protection.`,
+    );
+    expect(staleApprovers).toHaveLength(0);
   });
 });
