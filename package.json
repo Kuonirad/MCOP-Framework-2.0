@@ -46,6 +46,7 @@
     "temporal:test": "jest --testPathPatterns='temporalStigmergy|stigmergyTemporal'",
     "hotpath:test": "jest --testPathPatterns='hotPathParity|hotPathRouter'",
     "conformance:test": "jest --testPathPatterns='codeowners|approvedChangeset|conformanceSuite'",
+    "changeset:gate": "MCOP_GATE=1 jest --runInBand --testPathPatterns=approvedChangesetGate.ci",
     "self:audit": "python scripts/self_audit.py",
     "benchmark:arc-evo": "node scripts/benchmark-arc-evo.mjs",
     "benchmark:arc-ls20": "node scripts/benchmark-arc-ls20.mjs --mode=full",

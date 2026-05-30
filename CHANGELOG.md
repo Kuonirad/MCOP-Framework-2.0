@@ -24,6 +24,24 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   (`LICENSE-MIT-INTEGRATIONS`). See `NOTICE.md` for the full history.
 
 ### Added
+- **Conformance + approved-changeset gates enforced in CI.** The conformance
+  suite is now a required `Conformance spec` job in `ci.yml` (`pnpm
+  conformance:test`), and a new `Approved Changeset Gate` workflow
+  (`.github/workflows/approved-changeset.yml`) validates that every PR head is a
+  provably-approved, content-bound changeset: it rebuilds the changeset from the
+  PR diff, resolves required owners from `.github/CODEOWNERS`, ingests the PR's
+  review approvals, and runs the env-gated `approvedChangesetGate.ci` test
+  (`pnpm changeset:gate`). The gate is the content-binding safety net GitHub
+  misses — it passes when an owner approval is bound to the current head or the
+  PR is simply awaiting review (merge stays gated by branch protection), and
+  fails only on an integrity violation: a stale approval (owner approved an
+  earlier commit, then the diff moved) or a tampered manifest. Turns the
+  advance-#4 gate from a library into enforced policy. See
+  `docs/CONFORMANCE_SPEC.md` → "Enforced in CI".
+  Also relocates the hot-path golden fixture from `tests/parity/` into
+  `src/conformance/` so the production conformance contract's import resolves
+  inside the Docker / Next build context (which excludes `tests/`) — fixing a
+  `pnpm run build` failure in the container introduced with advance #4.
 - **Conformance spec + approved-changeset gate (`src/conformance/`).** Directly
   attacks the Bus-Factor-1 risk by making the framework checkable instead of
   trusted. `runConformanceSuite` runs the deterministic contracts any

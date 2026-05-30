@@ -1,0 +1,85 @@
+name: Approved Changeset Gate
+
+# Validates that the PR head is a provably-approved, content-bound changeset:
+# the changed files are rolled into one canonical changeset hash, the required
+# owners are resolved from .github/CODEOWNERS, and only review approvals bound to
+# the current head commit count. Editing after approval moves the head SHA, so a
+# stale approval no longer satisfies the gate. See docs/CONFORMANCE_SPEC.md.
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
+  pull_request_review:
+    types: [submitted, dismissed, edited]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: approved-changeset-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  approved-changeset:
+    # Bot-authored PRs cannot meaningfully carry human owner approvals; branch
+    # protection still gates their merges via the other required checks.
+    if: >-
+      github.event.pull_request.user.login != 'dependabot[bot]' &&
+      github.event.pull_request.user.login != 'github-actions[bot]' &&
+      github.event.pull_request.user.login != 'release-drafter[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout PR head
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+
+      - name: Setup project environment
+        uses: ./.github/actions/setup-project
+        with:
+          node-version: 22.22.3
+
+      - name: Collect review approvals
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          curl -sS \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${REPO}/pulls/${PR_NUMBER}/reviews?per_page=100" \
+            > reviews.json
+          node --input-type=module <<'NODE'
+          import { readFileSync, writeFileSync } from 'node:fs';
+          const reviews = JSON.parse(readFileSync('reviews.json', 'utf8'));
+          // Effective state per reviewer: last non-COMMENTED review wins
+          // (COMMENTED does not dismiss a prior approval, per GitHub semantics).
+          const latest = new Map();
+          for (const r of Array.isArray(reviews) ? reviews : []) {
+            if (!r.user || r.state === 'COMMENTED') continue;
+            latest.set(r.user.login, r);
+          }
+          const approvals = [...latest.values()]
+            .filter((r) => r.state === 'APPROVED')
+            .map((r) => ({ approver: `@${r.user.login}`, commitId: r.commit_id }));
+          writeFileSync('approvals.json', JSON.stringify(approvals));
+          console.log(`bound-eligible approvals: ${JSON.stringify(approvals)}`);
+          NODE
+
+      - name: Validate approved changeset
+        env:
+          MCOP_GATE: '1'
+          GATE_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          GATE_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          GATE_PR_AUTHOR: ${{ format('@{0}', github.event.pull_request.user.login) }}
+          GATE_PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          GATE_APPROVALS="$(cat approvals.json)" pnpm changeset:gate
