@@ -24,6 +24,22 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   (`LICENSE-MIT-INTEGRATIONS`). See `NOTICE.md` for the full history.
 
 ### Added
+- **Conformance spec + approved-changeset gate (`src/conformance/`).** Directly
+  attacks the Bus-Factor-1 risk by making the framework checkable instead of
+  trusted. `runConformanceSuite` runs the deterministic contracts any
+  reimplementation/second maintainer must satisfy — canonical-digest determinism,
+  hot-path TS↔Python parity, hot-path provenance shape + replayable root, and the
+  approval gate — sealing a Merkle-rooted `ConformanceReport`. The
+  **approved-changeset gate** (`validateApprovedChangeset`) turns "a human
+  approved it" into a content-bound record: a changeset is a content-hashed file
+  manifest rolled into one `changesetHash`; an approval binds to that exact hash;
+  validation recomputes from the files and yields `approved` / `tampered` /
+  `stale-approval` / `self-approval-rejected` / `insufficient-approvals`, so
+  approving-then-editing is detectable offline. Required owners resolve from the
+  real `.github/CODEOWNERS` so the gate cannot drift from the GitHub-enforced
+  rule. See `docs/CONFORMANCE_SPEC.md`. Covered by `codeowners.test.ts`,
+  `approvedChangeset.test.ts`, and `conformanceSuite.test.ts`. Completes the
+  four-advance roadmap (#770–#774 + this).
 - **Hot-path unification (`src/hardware/hotPathRouter.ts`).** Routes all five
   hot-path operations — encode, recall, etch, evolve, and homeostasis — through
   one provenance-attached accelerator boundary, instead of each living in its
