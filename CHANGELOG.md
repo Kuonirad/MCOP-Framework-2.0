@@ -24,6 +24,21 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   (`LICENSE-MIT-INTEGRATIONS`). See `NOTICE.md` for the full history.
 
 ### Added
+- **Hot-path unification (`src/hardware/hotPathRouter.ts`).** Routes all five
+  hot-path operations — encode, recall, etch, evolve, and homeostasis — through
+  one provenance-attached accelerator boundary, instead of each living in its
+  own module with an uneven accelerator story. `HotPathRouter.dispatch` routes
+  to the wired CUDA `Accelerator` when present, or runs a deterministic CPU
+  reference kernel (a byte-for-byte port of `mcop_cuda_server/kernels.py`),
+  attaches uniform `AcceleratorProvenance` to every result, and appends a
+  Merkle-chained entry to one hot-path log (`getProvenanceLog` /
+  `getHotPathRoot` / `getStats`). The chain root is built from deterministic
+  fields only, so it replays identically across runs. Cross-runtime parity is
+  enforced by a golden fixture generated from the Python reference
+  (`tests/parity/hotPathKernels.golden.json` via
+  `generate_hotpath_fixtures.py`). This is the single boundary the forthcoming
+  conformance spec will pin. See `docs/HOT_PATH_UNIFICATION.md`. Covered by
+  `hotPathParity.test.ts` and `hotPathRouter.test.ts`.
 - **Temporal dynamics for Stigmergy (`src/core/temporalStigmergy.ts`).** Adds the
   two forces the stigmergy metaphor was missing: pheromone **evaporation** (a
   deposit decays with a configurable half-life, `strength = max(floor, deposit ·

@@ -44,6 +44,7 @@
     "efficacy:test": "jest --testPathPatterns='efficacyStatistics|interRaterReliability|efficacyProgram'",
     "control:test": "jest --testPathPatterns='pidController|fastControlLoop|proteomeControlPlant'",
     "temporal:test": "jest --testPathPatterns='temporalStigmergy|stigmergyTemporal'",
+    "hotpath:test": "jest --testPathPatterns='hotPathParity|hotPathRouter'",
     "self:audit": "python scripts/self_audit.py",
     "benchmark:arc-evo": "node scripts/benchmark-arc-evo.mjs",
     "benchmark:arc-ls20": "node scripts/benchmark-arc-ls20.mjs --mode=full",
