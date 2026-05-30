@@ -20,7 +20,7 @@ import {
   holographicUpdateKernel,
   homeostasisKernel,
 } from '../hardware';
-import golden from '../../tests/parity/hotPathKernels.golden.json';
+import golden from './hotPathKernels.golden.json';
 import { approveChangeset, validateApprovedChangeset } from './approval';
 import { buildChangeset } from './changeset';
 import type { ConformanceContract, ContractResult } from './types';

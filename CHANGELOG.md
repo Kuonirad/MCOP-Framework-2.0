@@ -34,6 +34,10 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   (`pnpm changeset:gate`). Only approvals bound to the current head commit count,
   so editing after approval flips the check red. Turns the advance-#4 gate from a
   library into enforced policy. See `docs/CONFORMANCE_SPEC.md` → "Enforced in CI".
+  Also relocates the hot-path golden fixture from `tests/parity/` into
+  `src/conformance/` so the production conformance contract's import resolves
+  inside the Docker / Next build context (which excludes `tests/`) — fixing a
+  `pnpm run build` failure in the container introduced with advance #4.
 - **Conformance spec + approved-changeset gate (`src/conformance/`).** Directly
   attacks the Bus-Factor-1 risk by making the framework checkable instead of
   trusted. `runConformanceSuite` runs the deterministic contracts any

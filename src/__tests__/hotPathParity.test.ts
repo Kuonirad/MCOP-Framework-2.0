@@ -7,7 +7,7 @@ import {
   holographicUpdateKernel,
   homeostasisKernel,
 } from '../hardware/referenceKernels';
-import golden from '../../tests/parity/hotPathKernels.golden.json';
+import golden from '../conformance/hotPathKernels.golden.json';
 
 type Case = { op: string; kernel: string; input: Record<string, unknown>; expected: Record<string, unknown> };
 
