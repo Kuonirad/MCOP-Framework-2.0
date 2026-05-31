@@ -230,6 +230,24 @@ class GuardianMetaReasoner:
                 "Regenerate seed hypotheses or relax pruning criteria."
             )
 
+        # Exception paths are first-class epistemic signals: any hypothesis
+        # that errored during refinement escalates the whole chain to human
+        # review, regardless of the grounding score of its surviving peers.
+        errored = [
+            h for h in chain.hypotheses if h.state == EpistemicState.ERROR
+        ]
+        if errored:
+            verdict.requires_human_review = True
+            verdict.status = GuardianStatus.REQUIRES_HUMAN_REVIEW
+            verdict.notes.append(
+                f"{len(errored)} hypothesis(es) errored during refinement "
+                "— chain escalated for human review."
+            )
+            verdict.recommendations.append(
+                "Inspect hypothesis metadata['error'] for the captured "
+                "exception and re-run the affected reasoning step."
+            )
+
         return verdict
 
     # ----- Solution -------------------------------------------------------

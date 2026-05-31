@@ -31,6 +31,15 @@ class EpistemicState(Enum):
     VALIDATED = auto()     # Passed intermediate validation
     PRUNED = auto()        # Eliminated by evidence
     SYNTHESIZED = auto()   # Merged into final solution
+    ERROR = auto()         # Refinement raised an exception (see metadata['error'])
+
+
+# Epistemic states that exclude a hypothesis from being treated as a live,
+# synthesis-eligible reasoning step. PRUNED hypotheses were deliberately
+# eliminated by evidence; ERROR hypotheses crashed during refinement and are
+# preserved as first-class epistemic objects (with diagnostic metadata) rather
+# than silently dropped, so the Guardian can escalate them.
+INACTIVE_STATES = frozenset({EpistemicState.PRUNED, EpistemicState.ERROR})
 
 
 @dataclass
@@ -115,13 +124,16 @@ class ReasoningChain:
             self.total_grounding = 0.0
             return
 
-        active = [h for h in self.hypotheses if h.state != EpistemicState.PRUNED]
+        active = [h for h in self.hypotheses if h.state not in INACTIVE_STATES]
         if active:
             self.total_grounding = sum(h.grounding_index for h in active) / len(active)
+        else:
+            # Every hypothesis was pruned or errored — no live grounding.
+            self.total_grounding = 0.0
 
     def get_active_hypotheses(self) -> List[Hypothesis]:
-        """Get non-pruned hypotheses."""
-        return [h for h in self.hypotheses if h.state != EpistemicState.PRUNED]
+        """Get hypotheses that are neither pruned nor in an error state."""
+        return [h for h in self.hypotheses if h.state not in INACTIVE_STATES]
 
     def __repr__(self):
         return f"ReasoningChain({self.id}: depth={self.depth}, hypotheses={len(self.hypotheses)})"
@@ -199,6 +211,25 @@ class MCOPContext:
     diversity_threshold: float = 0.3  # Minimum diversity to preserve
     grounding_threshold: float = 0.4  # Minimum grounding to proceed
     confidence_threshold: float = 0.6  # Minimum confidence for solution
+    metadata: Dict[str, Any] = field(default_factory=dict)
+    # Set once a solve() has run against this context. The engine uses it to
+    # detect (and defensively re-initialise) a context that is being reused
+    # across calls, so per-call working state never leaks between solves.
+    consumed: bool = False
+
+    def reset_working_state(self) -> None:
+        """Clear per-call working state while preserving the problem and
+        configured thresholds.
+
+        This makes a context safe to reuse across :meth:`MCOPEngine.solve`
+        invocations: hypotheses, chains, the evidence pool, and the iteration
+        cursor are discarded, but the problem definition and threshold
+        configuration carry forward unchanged.
+        """
+        self.hypotheses = {}
+        self.chains = {}
+        self.evidence_pool = []
+        self.current_iteration = 0
 
     def add_hypothesis(self, hypothesis: Hypothesis) -> str:
         """Add hypothesis to context and return its ID."""

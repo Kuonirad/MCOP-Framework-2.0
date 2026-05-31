@@ -24,6 +24,35 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   (`LICENSE-MIT-INTEGRATIONS`). See `NOTICE.md` for the full history.
 
 ### Added
+- **`EpistemicState.ERROR` — exception paths as first-class epistemic objects.**
+  The Python engine's mycelial chaining loop (`MCOPEngine._build_chains`) now
+  wraps each refinement iteration: a failure in any reasoning-mode callback or
+  in evidence gathering no longer aborts the whole solve. The offending
+  hypothesis is promoted to the new `EpistemicState.ERROR` state, the exception
+  is captured as structured `metadata['error']` (type, message, iteration), and
+  the chain is closed gracefully. `ReasoningChain.get_active_hypotheses` and
+  grounding aggregation now exclude both `PRUNED` and `ERROR` hypotheses via the
+  shared `INACTIVE_STATES` set. The `GuardianMetaReasoner` escalates any chain
+  containing an errored hypothesis to `REQUIRES_HUMAN_REVIEW`, and
+  `MCOPEngine.solve` rolls per-chain Guardian verdicts into a solution-level
+  `metadata['guardian']['chain_summary']` and surfaces the escalation in
+  `key_uncertainties`. Robustness becomes a measurable, auditable signal rather
+  than a lost stack trace. See `tests/test_engine_robustness.py`.
+
+### Fixed
+- **Context isolation across reused `MCOPContext` instances.** `MCOPEngine.solve`
+  now defensively re-initialises a context's per-call working state (hypotheses,
+  chains, evidence pool, iteration cursor) when the same context is passed to a
+  second solve, preventing cross-call state leakage and double-counted grounding.
+  The first use of a pre-populated context is left untouched.
+- **Evidence de-duplication during synthesis.** `_synthesize_solution` now keys
+  collected evidence by `Evidence.id` (falling back to a `(content, source)`
+  pair), so the same retrieved item reused across iterations/chains is no longer
+  double-counted in the solution's `evidence_chain`.
+- **Removed dead `avg_confidence` computation** in `_synthesize_solution` and
+  hardened `_select_alternative_mode` against modes outside the canonical
+  rotation (falls back instead of raising `ValueError`).
+
 - **Conformance + approved-changeset gates enforced in CI.** The conformance
   suite is now a required `Conformance spec` job in `ci.yml` (`pnpm
   conformance:test`), and a new `Approved Changeset Gate` workflow
