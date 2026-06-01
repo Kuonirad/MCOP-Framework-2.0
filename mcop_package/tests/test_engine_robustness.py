@@ -148,3 +148,53 @@ def test_alternative_mode_selection_handles_unknown_mode():
         nxt = engine._select_alternative_mode(mode)
         assert isinstance(nxt, ReasoningMode)
         assert nxt != mode
+
+
+def _mode_chain(mode: ReasoningMode, grounding: float) -> ReasoningChain:
+    chain = ReasoningChain(total_grounding=grounding)
+    chain.hypotheses.append(Hypothesis(mode=mode))
+    return chain
+
+
+def test_diversity_preservation_drops_duplicate_modes():
+    """Regression: a chain whose mode was admitted while filling the
+    minimum-alternatives quota must not let a *second* chain of the same
+    mode slip through the diversity gate."""
+    engine = MCOPEngine(MCOPConfig())  # min_alternatives=2
+    A = ReasoningMode.CAUSAL
+    B = ReasoningMode.STRUCTURAL
+    C = ReasoningMode.SELECTIVE
+    chains = [
+        _mode_chain(A, 0.9),
+        _mode_chain(B, 0.8),
+        _mode_chain(B, 0.7),  # duplicate mode — must be rejected
+        _mode_chain(C, 0.6),
+    ]
+    preserved = engine._preserve_diversity(chains, None)
+    modes = [c.hypotheses[0].mode for c in preserved]
+    # No duplicate reasoning mode survives diversity preservation.
+    assert len(modes) == len(set(modes))
+    assert set(modes) == {A, B, C}
+
+
+def test_diversity_ledger_attached_to_solution():
+    engine = MCOPEngine(MCOPConfig(max_iterations=2))
+    solution = engine.solve(Problem(description="measure my diversity"))
+
+    ledger = solution.metadata["diversity"]
+    assert 0.0 <= ledger["diversity_index"] <= 1.0
+    assert ledger["distinct_modes"] == len(ledger["mode_coverage"])
+    assert ledger["total_modes"] == len(ReasoningMode)
+    assert isinstance(ledger["anchoring_risk"], bool)
+
+
+def test_diversity_ledger_flags_anchoring_risk():
+    engine = MCOPEngine(MCOPConfig())
+    # A single surviving mode => anchoring risk is surfaced, not hidden.
+    only_one_mode = [
+        _mode_chain(ReasoningMode.CAUSAL, 0.9),
+        _mode_chain(ReasoningMode.CAUSAL, 0.5),
+    ]
+    ledger = engine._compute_diversity_ledger(only_one_mode)
+    assert ledger["distinct_modes"] == 1
+    assert ledger["anchoring_risk"] is True
