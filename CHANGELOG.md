@@ -40,6 +40,19 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   than a lost stack trace. See `tests/test_engine_robustness.py`.
 
 ### Fixed
+- **Diversity-preservation mode leak (turned into a measurable Diversity
+  Ledger).** `MCOPEngine._preserve_diversity` seeded its `modes_seen` set only
+  from the top chain and never recorded the modes of chains kept while filling
+  the `min_alternatives` quota, so a second chain of an already-preserved mode
+  could slip past the diversity gate — silently defeating the anti-anchoring
+  guarantee. Every preserved chain's mode is now recorded. Rather than stop at
+  a patch, the corrected behaviour is elevated into a first-class epistemic
+  signal: a **Diversity Ledger** on `solution.metadata['diversity']`
+  (`mode_coverage`, `distinct_modes`, normalised `diversity_index`, and an
+  `anchoring_risk` flag), with a low-diversity outcome surfaced as an explicit
+  `key_uncertainties` badge — the same "measure, surface, never silently drop"
+  contract the Guardian applies to grounding. See
+  `tests/test_engine_robustness.py`.
 - **Context isolation across reused `MCOPContext` instances.** `MCOPEngine.solve`
   now defensively re-initialises a context's per-call working state (hypotheses,
   chains, evidence pool, iteration cursor) when the same context is passed to a

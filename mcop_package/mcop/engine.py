@@ -604,21 +604,71 @@ class MCOPEngine:
         # Always keep top chain
         preserved = [sorted_chains[0]]
 
-        # Keep chains from different modes
-        modes_seen = {sorted_chains[0].hypotheses[0].mode if sorted_chains[0].hypotheses else None}
+        # Track the reasoning mode of *every* preserved chain. Earlier this
+        # set was only seeded from the top chain and never updated during the
+        # "fill to min_alternatives" phase, so a mode admitted while filling
+        # was invisible to the later diversity gate and a second chain of the
+        # same mode could slip through — silently defeating the anti-anchoring
+        # guarantee. We now record each mode as it is preserved.
+        modes_seen = {self._chain_mode(sorted_chains[0])}
 
         for chain in sorted_chains[1:]:
+            chain_mode = self._chain_mode(chain)
             if len(preserved) >= self.config.min_alternatives:
-                # Check if this chain offers diversity
-                if chain.hypotheses:
-                    chain_mode = chain.hypotheses[0].mode
-                    if chain_mode not in modes_seen:
-                        preserved.append(chain)
-                        modes_seen.add(chain_mode)
+                # Beyond the minimum, only admit chains that broaden mode
+                # coverage — that is the orthogonal-perspective contract.
+                if chain.hypotheses and chain_mode not in modes_seen:
+                    preserved.append(chain)
+                    modes_seen.add(chain_mode)
             else:
+                # Still filling the minimum-alternatives quota: keep the
+                # chain *and* record its mode so the gate above stays honest.
                 preserved.append(chain)
+                modes_seen.add(chain_mode)
 
         return preserved
+
+    @staticmethod
+    def _chain_mode(chain: ReasoningChain) -> Optional[ReasoningMode]:
+        """Return a chain's representative reasoning mode (its root's mode).
+
+        Empty chains have no mode; we return ``None`` so they collapse to a
+        single bucket rather than masquerading as distinct perspectives.
+        """
+        return chain.hypotheses[0].mode if chain.hypotheses else None
+
+    def _compute_diversity_ledger(
+        self,
+        chains: List[ReasoningChain],
+    ) -> Dict[str, Any]:
+        """Turn diversity into a first-class, auditable epistemic signal.
+
+        Rather than letting anti-anchoring be an invisible side effect of
+        :meth:`_preserve_diversity`, we measure it: the ledger records which
+        reasoning modes survived, how many distinct perspectives remain, and
+        a normalised ``diversity_index`` in ``[0, 1]`` (distinct modes over
+        the total number of reasoning modes). A low index is flagged as an
+        explicit anchoring risk so downstream agents and human reviewers can
+        act on it — the same "measure, surface, never silently drop" contract
+        the Guardian applies to grounding.
+        """
+        modes = [
+            self._chain_mode(c) for c in chains if self._chain_mode(c) is not None
+        ]
+        distinct = {m for m in modes}
+        total_modes = len(ReasoningMode)
+        diversity_index = (len(distinct) / total_modes) if total_modes else 0.0
+        # Anchoring risk when fewer than two orthogonal perspectives survive.
+        anchoring_risk = len(distinct) < 2
+
+        return {
+            "preserved_chains": len(chains),
+            "mode_coverage": sorted(m.name for m in distinct),
+            "distinct_modes": len(distinct),
+            "total_modes": total_modes,
+            "diversity_index": round(diversity_index, 4),
+            "anchoring_risk": anchoring_risk,
+        }
 
     def _synthesize_solution(
         self,
@@ -691,6 +741,20 @@ class MCOPEngine:
         # Identify key uncertainties
         uncertainties = self._identify_uncertainties(chains, context)
 
+        # Diversity Ledger — quantify the anti-anchoring posture of the
+        # surviving chains and surface low-diversity outcomes as an explicit,
+        # auditable risk rather than an invisible side effect.
+        diversity = self._compute_diversity_ledger(chains)
+        if diversity["anchoring_risk"]:
+            badge = (
+                "Anchoring risk: only "
+                f"{diversity['distinct_modes']} reasoning mode(s) survived "
+                f"diversity preservation (diversity_index "
+                f"{diversity['diversity_index']:.2f})."
+            )
+            if badge not in uncertainties:
+                uncertainties.append(badge)
+
         solution = Solution(
             problem_id=context.problem.id,
             content=solution_content,
@@ -701,6 +765,7 @@ class MCOPEngine:
             alternative_solutions=alternatives[:3],  # Top 3 alternatives
             key_uncertainties=uncertainties
         )
+        solution.metadata["diversity"] = diversity
 
         return solution
 
