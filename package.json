@@ -79,7 +79,7 @@
   },
   "packageManager": "pnpm@9.15.0",
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.100.0",
+    "@anthropic-ai/sdk": "^0.100.1",
     "canonicalize": "^3.0.0",
     "next": "15.5.18",
     "openai": "^6.37.0",
