@@ -151,6 +151,19 @@ class MCOPEngine:
             confidence_threshold=self.config.confidence_threshold
         )
 
+        # Context isolation guard. A context that has already driven a solve()
+        # carries that call's hypotheses/chains/evidence. Reusing it verbatim
+        # would leak prior state into this run and double-count grounding, so
+        # we defensively re-initialise the working collections. The first use
+        # of a (possibly pre-populated) context is left untouched.
+        if context.consumed:
+            logger.warning(
+                "MCOPContext reused across solve() calls — resetting per-call "
+                "working state to prevent cross-call leakage."
+            )
+            context.reset_working_state()
+        context.consumed = True
+
         logger.info(f"M-COP solving: {problem.description[:50]}...")
 
         # Phase 1: Seed Generation
@@ -184,6 +197,12 @@ class MCOPEngine:
             verdict = self.guardian.check_solution(solution)
             if self.config.verbose:
                 logger.debug("Guardian solution verdict: %s", verdict.to_dict())
+
+            # Leverage the per-chain verdicts recorded during validation:
+            # roll them up into a solution-level summary and propagate any
+            # human-review escalation (e.g. an errored chain) onto the
+            # solution so it cannot be ratified while a chain is unresolved.
+            self._aggregate_chain_verdicts(solution, diverse_chains)
 
         # Reset retriever cache between solve() invocations to keep
         # this engine instance reusable without leaking per-call state.
@@ -281,43 +300,86 @@ class MCOPEngine:
             for iteration in range(context.max_iterations):
                 context.current_iteration = iteration
 
-                # Get the appropriate mode for this hypothesis
-                mode = self._mode_for(current)
+                # Each iteration is wrapped so that a failure in any mode
+                # callback (refine/evaluate/prune/spawn) or in evidence
+                # gathering does not abort the entire solve. Instead the
+                # offending hypothesis is promoted to a first-class ERROR
+                # epistemic object: its state is recorded, the exception is
+                # captured in metadata, and the Guardian can escalate it
+                # downstream. The chain is then closed gracefully.
+                try:
+                    # Get the appropriate mode for this hypothesis
+                    mode = self._mode_for(current)
 
-                # Generate evidence (in production, this would query external sources)
-                evidence = self._gather_evidence(current, context)
+                    # Generate evidence (in production, this would query
+                    # external sources)
+                    evidence = self._gather_evidence(current, context)
 
-                # Refine hypothesis
-                refined = mode.refine_hypothesis(current, evidence, context)
+                    # Refine hypothesis
+                    refined = mode.refine_hypothesis(current, evidence, context)
 
-                # Evaluate
-                confidence = mode.evaluate_hypothesis(refined, context)
-                refined.confidence = confidence
+                    # Evaluate
+                    confidence = mode.evaluate_hypothesis(refined, context)
+                    refined.confidence = confidence
 
-                # Check for pruning
-                if mode.should_prune(refined, context):
-                    refined.state = EpistemicState.PRUNED
+                    # Check for pruning
+                    if mode.should_prune(refined, context):
+                        refined.state = EpistemicState.PRUNED
+                        break
+
+                    # Check for completion
+                    if confidence >= context.confidence_threshold:
+                        refined.state = EpistemicState.VALIDATED
+                        chain.is_complete = True
+                        break
+
+                    # Continue chain with child hypothesis
+                    child = self._spawn_child_hypothesis(refined, context)
+                    if child:
+                        chain.add_hypothesis(child)
+                        context.add_hypothesis(child)
+                        current = child
+                    else:
+                        break
+
+                except Exception as exc:  # graceful degradation, not a crash
+                    self._mark_hypothesis_error(current, exc, iteration)
+                    chain.metadata.setdefault("errors", []).append(
+                        current.metadata["error"]
+                    )
+                    logger.warning(
+                        "Chain growth failed at iteration %d for hypothesis "
+                        "%s: %s", iteration, current.id, exc,
+                    )
                     break
 
-                # Check for completion
-                if confidence >= context.confidence_threshold:
-                    refined.state = EpistemicState.VALIDATED
-                    chain.is_complete = True
-                    break
-
-                # Continue chain with child hypothesis
-                child = self._spawn_child_hypothesis(refined, context)
-                if child:
-                    chain.add_hypothesis(child)
-                    context.add_hypothesis(child)
-                    current = child
-                else:
-                    break
-
+            chain._update_total_grounding()
             chains.append(chain)
             context.add_chain(chain)
 
         return chains
+
+    def _mark_hypothesis_error(
+        self,
+        hypothesis: Hypothesis,
+        exc: Exception,
+        iteration: int,
+    ) -> None:
+        """Promote a hypothesis whose refinement raised into an ERROR object.
+
+        The exception is captured as structured metadata so the failure
+        becomes an auditable, measurable epistemic signal rather than a lost
+        stack trace. The Guardian uses ``state == ERROR`` to escalate the
+        owning chain to human review.
+        """
+        hypothesis.state = EpistemicState.ERROR
+        hypothesis.confidence = 0.0
+        hypothesis.metadata["error"] = {
+            "type": type(exc).__name__,
+            "message": str(exc),
+            "iteration": iteration,
+            "hypothesis_id": hypothesis.id,
+        }
 
     def _gather_evidence(
         self,
@@ -428,7 +490,13 @@ class MCOPEngine:
             ReasoningMode.COMPOSITIONAL
         ]
 
-        current_idx = mode_order.index(current_mode)
+        # A custom or auxiliary hypothesis may carry a mode that is not in the
+        # canonical rotation; fall back to the first registered mode rather
+        # than raising ValueError on .index().
+        try:
+            current_idx = mode_order.index(current_mode)
+        except ValueError:
+            return mode_order[0]
         next_idx = (current_idx + 1) % len(mode_order)
         return mode_order[next_idx]
 
@@ -464,6 +532,52 @@ class MCOPEngine:
 
         return chains
 
+    def _aggregate_chain_verdicts(
+        self,
+        solution: Solution,
+        chains: List[ReasoningChain],
+    ) -> None:
+        """Roll up per-chain Guardian verdicts onto the solution.
+
+        ``_validate_chains`` records a verdict in each ``chain.metadata``;
+        here we summarise those verdicts and, crucially, propagate any
+        ``REQUIRES_HUMAN_REVIEW`` escalation (such as an errored chain) onto
+        the solution. The solution is never silently downgraded in content —
+        only its Guardian metadata and uncertainties are annotated.
+        """
+        statuses: Dict[str, int] = {}
+        escalated = 0
+        errored_chains = 0
+        for chain in chains:
+            verdict = chain.metadata.get("guardian")
+            if not verdict:
+                continue
+            status = verdict.get("status", "UNKNOWN")
+            statuses[status] = statuses.get(status, 0) + 1
+            if verdict.get("requires_human_review"):
+                escalated += 1
+            if chain.metadata.get("errors"):
+                errored_chains += 1
+
+        if not statuses and not errored_chains:
+            return
+
+        summary = {
+            "chain_status_counts": statuses,
+            "chains_requiring_human_review": escalated,
+            "errored_chains": errored_chains,
+        }
+        guardian_meta = solution.metadata.setdefault("guardian", {})
+        guardian_meta["chain_summary"] = summary
+
+        if errored_chains:
+            badge = (
+                f"Guardian escalation: {errored_chains} reasoning chain(s) "
+                "hit an error path — see chain metadata['errors']."
+            )
+            if badge not in solution.key_uncertainties:
+                solution.key_uncertainties.append(badge)
+
     def _preserve_diversity(
         self,
         chains: List[ReasoningChain],
@@ -490,21 +604,71 @@ class MCOPEngine:
         # Always keep top chain
         preserved = [sorted_chains[0]]
 
-        # Keep chains from different modes
-        modes_seen = {sorted_chains[0].hypotheses[0].mode if sorted_chains[0].hypotheses else None}
+        # Track the reasoning mode of *every* preserved chain. Earlier this
+        # set was only seeded from the top chain and never updated during the
+        # "fill to min_alternatives" phase, so a mode admitted while filling
+        # was invisible to the later diversity gate and a second chain of the
+        # same mode could slip through — silently defeating the anti-anchoring
+        # guarantee. We now record each mode as it is preserved.
+        modes_seen = {self._chain_mode(sorted_chains[0])}
 
         for chain in sorted_chains[1:]:
+            chain_mode = self._chain_mode(chain)
             if len(preserved) >= self.config.min_alternatives:
-                # Check if this chain offers diversity
-                if chain.hypotheses:
-                    chain_mode = chain.hypotheses[0].mode
-                    if chain_mode not in modes_seen:
-                        preserved.append(chain)
-                        modes_seen.add(chain_mode)
+                # Beyond the minimum, only admit chains that broaden mode
+                # coverage — that is the orthogonal-perspective contract.
+                if chain.hypotheses and chain_mode not in modes_seen:
+                    preserved.append(chain)
+                    modes_seen.add(chain_mode)
             else:
+                # Still filling the minimum-alternatives quota: keep the
+                # chain *and* record its mode so the gate above stays honest.
                 preserved.append(chain)
+                modes_seen.add(chain_mode)
 
         return preserved
+
+    @staticmethod
+    def _chain_mode(chain: ReasoningChain) -> Optional[ReasoningMode]:
+        """Return a chain's representative reasoning mode (its root's mode).
+
+        Empty chains have no mode; we return ``None`` so they collapse to a
+        single bucket rather than masquerading as distinct perspectives.
+        """
+        return chain.hypotheses[0].mode if chain.hypotheses else None
+
+    def _compute_diversity_ledger(
+        self,
+        chains: List[ReasoningChain],
+    ) -> Dict[str, Any]:
+        """Turn diversity into a first-class, auditable epistemic signal.
+
+        Rather than letting anti-anchoring be an invisible side effect of
+        :meth:`_preserve_diversity`, we measure it: the ledger records which
+        reasoning modes survived, how many distinct perspectives remain, and
+        a normalised ``diversity_index`` in ``[0, 1]`` (distinct modes over
+        the total number of reasoning modes). A low index is flagged as an
+        explicit anchoring risk so downstream agents and human reviewers can
+        act on it — the same "measure, surface, never silently drop" contract
+        the Guardian applies to grounding.
+        """
+        modes = [
+            self._chain_mode(c) for c in chains if self._chain_mode(c) is not None
+        ]
+        distinct = {m for m in modes}
+        total_modes = len(ReasoningMode)
+        diversity_index = (len(distinct) / total_modes) if total_modes else 0.0
+        # Anchoring risk when fewer than two orthogonal perspectives survive.
+        anchoring_risk = len(distinct) < 2
+
+        return {
+            "preserved_chains": len(chains),
+            "mode_coverage": sorted(m.name for m in distinct),
+            "distinct_modes": len(distinct),
+            "total_modes": total_modes,
+            "diversity_index": round(diversity_index, 4),
+            "anchoring_risk": anchoring_risk,
+        }
 
     def _synthesize_solution(
         self,
@@ -536,11 +700,20 @@ class MCOPEngine:
         else:
             best_hypothesis = max(best_hypotheses, key=lambda h: h.confidence)
 
-        # Collect all evidence
-        all_evidence = []
+        # Collect all evidence, de-duplicating items that appear on multiple
+        # hypotheses/chains (e.g. the same retrieved Evidence reused across
+        # iterations). Dedup is keyed by Evidence.id, falling back to a
+        # (content, source) pair for items constructed without a stable id.
+        all_evidence: List[Evidence] = []
+        seen_evidence: set = set()
         for chain in chains:
             for h in chain.hypotheses:
-                all_evidence.extend(h.evidence)
+                for e in h.evidence:
+                    key = e.id or (e.content, e.source)
+                    if key in seen_evidence:
+                        continue
+                    seen_evidence.add(key)
+                    all_evidence.append(e)
 
         # Build solution content
         if best_hypothesis:
@@ -548,8 +721,8 @@ class MCOPEngine:
         else:
             solution_content = "No conclusive solution found"
 
-        # Calculate aggregate confidence and grounding
-        avg_confidence = sum(c.total_grounding for c in chains) / len(chains)
+        # Aggregate grounding — the strongest chain sets the solution's
+        # grounding index.
         max_grounding = max(c.total_grounding for c in chains)
 
         # Build alternative solutions
@@ -568,6 +741,20 @@ class MCOPEngine:
         # Identify key uncertainties
         uncertainties = self._identify_uncertainties(chains, context)
 
+        # Diversity Ledger — quantify the anti-anchoring posture of the
+        # surviving chains and surface low-diversity outcomes as an explicit,
+        # auditable risk rather than an invisible side effect.
+        diversity = self._compute_diversity_ledger(chains)
+        if diversity["anchoring_risk"]:
+            badge = (
+                "Anchoring risk: only "
+                f"{diversity['distinct_modes']} reasoning mode(s) survived "
+                f"diversity preservation (diversity_index "
+                f"{diversity['diversity_index']:.2f})."
+            )
+            if badge not in uncertainties:
+                uncertainties.append(badge)
+
         solution = Solution(
             problem_id=context.problem.id,
             content=solution_content,
@@ -578,6 +765,7 @@ class MCOPEngine:
             alternative_solutions=alternatives[:3],  # Top 3 alternatives
             key_uncertainties=uncertainties
         )
+        solution.metadata["diversity"] = diversity
 
         return solution
 

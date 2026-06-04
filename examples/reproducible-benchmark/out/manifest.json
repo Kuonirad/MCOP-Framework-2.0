@@ -1,0 +1,26 @@
+{
+  "version": "mcop-reproducible-benchmark/1.0",
+  "verifiedAt": "2026-05-29T23:34:35.663Z",
+  "verdict": "pass",
+  "source": "Grok Build TUI + MCOP-Framework-2.0 live fusion reproduction",
+  "snapshot": {
+    "path": "docs/benchmarks/results.json",
+    "sha256": "2109dffbd10c69a70b089338df5ccead5df09b0f4732d582a4f5507fbee13d9d",
+    "byteIdenticalToCommitted": true,
+    "capturedAt": "2026-04-27T22:30:00.000Z"
+  },
+  "headlineBudget": {
+    "mcop-mediated.avgLatencyMs": 6.32,
+    "mcop-mediated.avgTriadMs": 1.54,
+    "human-only.avgLatencyMs": 3.98,
+    "pure-ai.avgLatencyMs": 5.94,
+    "claim": "Reproducible deterministic pipeline · byte-identical regression baseline (reproduced in fused Grok TUI session)"
+  },
+  "tests": {
+    "passed": 21,
+    "suite": "src/__tests__/benchmarks.test.ts"
+  },
+  "kernel": "MCOP-Framework-2.0 @kullailabs/mcop-core (NovaNeoEncoder + StigmergyV5 + HolographicEtch)",
+  "fusionEtch": "repro-fusion-etch-mprk6u0lysoye0",
+  "resonance": 0.94
+}

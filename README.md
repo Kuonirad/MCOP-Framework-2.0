@@ -70,7 +70,7 @@ Grok models execute the triad in-model and merge their traces back into the host
 Magnific, Utopai, and generic REST/MCP/HTTP production adapters. Ledger-aware Holographic Etch
 factories ship with **in-memory + file storage backends**, **async + Redis ledger forwarders**
 (retry, DLQ, and `unref()`-clean shutdown), and **snapshot ↔ ledger reconciliation** utilities.
-Cryptographic lineage at every step. **90.93%** test coverage.
+Cryptographic lineage at every step. **91.67%** test coverage.
 **Open source under the Apache License 2.0.**
 
 > **Why this matters:** unlike retrieval-augmented or chain-of-thought wrappers,
@@ -152,7 +152,7 @@ feature comparison, May 2026 — public docs as of writing):
 | Self-healing dimension + bounded-curiosity recall guards | ✅ SelfHealingDimension + ResonantRecentQuery | ❌ | ❌ | ❌ |
 | Universal Adapter Protocol (OpenAI-compatible · Claude · DeepSeek · Kimi · Qwen · Grok/xAI · production REST/MCP) | ✅ | ✅ | ⚠️ partial | ⚠️ partial |
 | Native xAI Grok adapter (text + image generation) | ✅ | ⚠️ community | ❌ | ❌ |
-| Test coverage on documented API surface | **90.93%** | varies | varies | varies |
+| Test coverage on documented API surface | **91.67%** | varies | varies | varies |
 | Reference benchmark (full pipeline) | **4.4 ms / 22,700 ops/sec** ([source](./src/benchmarks/promptingModes.ts)) | n/a | n/a | n/a |
 | License posture | **Apache-2.0** | MIT | CC-BY-4.0 / MIT | MIT |
 | CodeQL + SBOM (CycloneDX) + Trojan-Source guard in CI | ✅ | ⚠️ partial | ⚠️ partial | ⚠️ partial |
@@ -212,6 +212,11 @@ growth Merkle root, substrate root, and metric reproduces byte-for-byte. If a
 kernel's scoring math drifts or the cited evidence is edited without
 regenerating, the gate fails. Regenerate the attestation with `pnpm
 positive:attest`.
+
+Latest published validation snapshot:
+- [`ad642420`](https://github.com/Kuonirad/MCOP-Framework-2.0/commit/ad6424208207ae95dd10451034bc8b9d49660ecd) completed 19/19 GitHub check runs successfully on 2026-05-29.
+- The green matrix covered Node.js tests (20.x, 22.x, 22.22.3), Python package tests (3.10, 3.12), npm package packaging, build, security, CodeQL, Cypress against the standalone production server, Lighthouse, Scorecard, Trojan-source scan, malicious-load testing, release-draft generation, Docker build-and-push, and CUDA/proteome CPU-fallback smoke.
+- The same export captured the Grok Build TUI + MCOP-2.0 fusion audits: conductor on-ramp Guardian resonance 0.9529, fusion-status Guardian resonance 0.9343, constitutional approval rule resonance 0.9207, and export approval resonance 0.9592, with provenance recorded in `audit/ledger.jsonl`.
 
 Current state: the contributor-joy, adoption-velocity, and beneficial-outcome
 metrics are no longer formulas — they are computed by the
@@ -310,7 +315,7 @@ corepack prepare pnpm@9.15.0 --activate
 # 3. Install workspace dependencies (≈30 s on a warm cache)
 pnpm install
 
-# 4. Run the deterministic Jest suite — 90.93% covered (≈20 s)
+# 4. Run the deterministic Jest suite — 91.67% covered (≈20 s)
 pnpm test
 
 # 5. Generate the Positive Impact Report + Merkle-anchored audit badge (≈5 s)
@@ -536,7 +541,7 @@ console.log((await memory.getMessages())[0].provenance?.merkleRoot);
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6?style=for-the-badge&logo=typescript)](https://typescriptlang.org)
 [![Node.js](https://img.shields.io/badge/Node.js-22.22.3-339933?style=for-the-badge&logo=node.js)](https://nodejs.org)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ed?style=for-the-badge&logo=docker)](./Dockerfile)
-[![Jest](https://img.shields.io/badge/Jest-90.93%25-c21325?style=for-the-badge&logo=jest)](./jest.config.js)
+[![Jest](https://img.shields.io/badge/Jest-91.67%25-c21325?style=for-the-badge&logo=jest)](./jest.config.js)
 [![ESLint](https://img.shields.io/badge/ESLint-Strict-4b32c3?style=for-the-badge&logo=eslint)](./eslint.config.mjs)
 
 </div>

@@ -33,6 +33,12 @@ export interface ResonanceResult {
   trace?: PheromoneTrace;
   thresholdUsed?: number;
   positiveFeedbackScore?: number;
+  /**
+   * Temporal pheromone strength of the matched trace at query time. Present
+   * only when temporal dynamics are enabled (advance #3). A faded trail returns
+   * a low value even at high cosine similarity.
+   */
+  pheromoneStrength?: number;
 }
 
 export interface ResonantRecentQueryOptions {
@@ -44,6 +50,12 @@ export interface ResonantRecentQueryOptions {
 export interface ResonantRecentTrace extends PheromoneTrace {
   resonanceScore: number;
   curiosityLift: number;
+  /**
+   * Temporal pheromone strength folded into `resonanceScore` (advance #3).
+   * Present only when temporal dynamics are enabled; stale trails fade in the
+   * attention ranking even when geometrically similar.
+   */
+  pheromoneStrength?: number;
 }
 
 export interface EtchRecord {

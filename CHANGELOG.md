@@ -24,6 +24,140 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   (`LICENSE-MIT-INTEGRATIONS`). See `NOTICE.md` for the full history.
 
 ### Added
+- **`EpistemicState.ERROR` — exception paths as first-class epistemic objects.**
+  The Python engine's mycelial chaining loop (`MCOPEngine._build_chains`) now
+  wraps each refinement iteration: a failure in any reasoning-mode callback or
+  in evidence gathering no longer aborts the whole solve. The offending
+  hypothesis is promoted to the new `EpistemicState.ERROR` state, the exception
+  is captured as structured `metadata['error']` (type, message, iteration), and
+  the chain is closed gracefully. `ReasoningChain.get_active_hypotheses` and
+  grounding aggregation now exclude both `PRUNED` and `ERROR` hypotheses via the
+  shared `INACTIVE_STATES` set. The `GuardianMetaReasoner` escalates any chain
+  containing an errored hypothesis to `REQUIRES_HUMAN_REVIEW`, and
+  `MCOPEngine.solve` rolls per-chain Guardian verdicts into a solution-level
+  `metadata['guardian']['chain_summary']` and surfaces the escalation in
+  `key_uncertainties`. Robustness becomes a measurable, auditable signal rather
+  than a lost stack trace. See `tests/test_engine_robustness.py`.
+
+### Fixed
+- **Diversity-preservation mode leak (turned into a measurable Diversity
+  Ledger).** `MCOPEngine._preserve_diversity` seeded its `modes_seen` set only
+  from the top chain and never recorded the modes of chains kept while filling
+  the `min_alternatives` quota, so a second chain of an already-preserved mode
+  could slip past the diversity gate — silently defeating the anti-anchoring
+  guarantee. Every preserved chain's mode is now recorded. Rather than stop at
+  a patch, the corrected behaviour is elevated into a first-class epistemic
+  signal: a **Diversity Ledger** on `solution.metadata['diversity']`
+  (`mode_coverage`, `distinct_modes`, normalised `diversity_index`, and an
+  `anchoring_risk` flag), with a low-diversity outcome surfaced as an explicit
+  `key_uncertainties` badge — the same "measure, surface, never silently drop"
+  contract the Guardian applies to grounding. See
+  `tests/test_engine_robustness.py`.
+- **Context isolation across reused `MCOPContext` instances.** `MCOPEngine.solve`
+  now defensively re-initialises a context's per-call working state (hypotheses,
+  chains, evidence pool, iteration cursor) when the same context is passed to a
+  second solve, preventing cross-call state leakage and double-counted grounding.
+  The first use of a pre-populated context is left untouched.
+- **Evidence de-duplication during synthesis.** `_synthesize_solution` now keys
+  collected evidence by `Evidence.id` (falling back to a `(content, source)`
+  pair), so the same retrieved item reused across iterations/chains is no longer
+  double-counted in the solution's `evidence_chain`.
+- **Removed dead `avg_confidence` computation** in `_synthesize_solution` and
+  hardened `_select_alternative_mode` against modes outside the canonical
+  rotation (falls back instead of raising `ValueError`).
+
+- **Conformance + approved-changeset gates enforced in CI.** The conformance
+  suite is now a required `Conformance spec` job in `ci.yml` (`pnpm
+  conformance:test`), and a new `Approved Changeset Gate` workflow
+  (`.github/workflows/approved-changeset.yml`) validates that every PR head is a
+  provably-approved, content-bound changeset: it rebuilds the changeset from the
+  PR diff, resolves required owners from `.github/CODEOWNERS`, ingests the PR's
+  review approvals, and runs the env-gated `approvedChangesetGate.ci` test
+  (`pnpm changeset:gate`). The gate is the content-binding safety net GitHub
+  misses — it passes when an owner approval is bound to the current head or the
+  PR is simply awaiting review (merge stays gated by branch protection), and
+  fails only on an integrity violation: a stale approval (owner approved an
+  earlier commit, then the diff moved) or a tampered manifest. Turns the
+  advance-#4 gate from a library into enforced policy. See
+  `docs/CONFORMANCE_SPEC.md` → "Enforced in CI".
+  Also relocates the hot-path golden fixture from `tests/parity/` into
+  `src/conformance/` so the production conformance contract's import resolves
+  inside the Docker / Next build context (which excludes `tests/`) — fixing a
+  `pnpm run build` failure in the container introduced with advance #4.
+- **Conformance spec + approved-changeset gate (`src/conformance/`).** Directly
+  attacks the Bus-Factor-1 risk by making the framework checkable instead of
+  trusted. `runConformanceSuite` runs the deterministic contracts any
+  reimplementation/second maintainer must satisfy — canonical-digest determinism,
+  hot-path TS↔Python parity, hot-path provenance shape + replayable root, and the
+  approval gate — sealing a Merkle-rooted `ConformanceReport`. The
+  **approved-changeset gate** (`validateApprovedChangeset`) turns "a human
+  approved it" into a content-bound record: a changeset is a content-hashed file
+  manifest rolled into one `changesetHash`; an approval binds to that exact hash;
+  validation recomputes from the files and yields `approved` / `tampered` /
+  `stale-approval` / `self-approval-rejected` / `insufficient-approvals`, so
+  approving-then-editing is detectable offline. Required owners resolve from the
+  real `.github/CODEOWNERS` so the gate cannot drift from the GitHub-enforced
+  rule. See `docs/CONFORMANCE_SPEC.md`. Covered by `codeowners.test.ts`,
+  `approvedChangeset.test.ts`, and `conformanceSuite.test.ts`. Completes the
+  four-advance roadmap (#770–#774 + this).
+- **Hot-path unification (`src/hardware/hotPathRouter.ts`).** Routes all five
+  hot-path operations — encode, recall, etch, evolve, and homeostasis — through
+  one provenance-attached accelerator boundary, instead of each living in its
+  own module with an uneven accelerator story. `HotPathRouter.dispatch` routes
+  to the wired CUDA `Accelerator` when present, or runs a deterministic CPU
+  reference kernel (a byte-for-byte port of `mcop_cuda_server/kernels.py`),
+  attaches uniform `AcceleratorProvenance` to every result, and appends a
+  Merkle-chained entry to one hot-path log (`getProvenanceLog` /
+  `getHotPathRoot` / `getStats`). The chain root is built from deterministic
+  fields only, so it replays identically across runs. Cross-runtime parity is
+  enforced by a golden fixture generated from the Python reference
+  (`tests/parity/hotPathKernels.golden.json` via
+  `generate_hotpath_fixtures.py`). This is the single boundary the forthcoming
+  conformance spec will pin. See `docs/HOT_PATH_UNIFICATION.md`. Covered by
+  `hotPathParity.test.ts` and `hotPathRouter.test.ts`.
+- **Temporal dynamics for Stigmergy (`src/core/temporalStigmergy.ts`).** Adds the
+  two forces the stigmergy metaphor was missing: pheromone **evaporation** (a
+  deposit decays with a configurable half-life, `strength = max(floor, deposit ·
+  2^(−Δt/halfLife))`) and **reinforcement** (re-traversal decays-to-now then tops
+  the trail up, saturating at a cap). A deterministic `PheromoneLedger` layers
+  beside the Merkle-sealed trace chain without touching trace hashes, so
+  provenance is unchanged. `StigmergyV5` integrates it **opt-in** (`temporalDynamics:
+  { enabled: true, … }` + an injectable `now` clock): `recordTrace` deposits,
+  `getResonance` reinforces the matched trail and reports `pheromoneStrength`,
+  and `getResonantRecent` folds strength into the ranking so a stale trail sinks
+  below an equally-similar fresh one. New API: `isTemporalEnabled`,
+  `getPheromoneStrength`, `reinforceTrace`, `pruneFadedTraces`, `getTemporalStats`.
+  With dynamics disabled the v5 surface is byte-for-byte unchanged. See
+  `docs/TEMPORAL_STIGMERGY.md`. Covered by `temporalStigmergy.test.ts` and
+  `stigmergyTemporal.test.ts`.
+- **Fast control loop (`src/control/`).** Closes the feedback loop the CUDA
+  kernels only sketched: the `homeostasis` op was an actuator and `evolveScore` a
+  sensor, but the pull-back ran open-loop at a fixed genome-set gain, with no
+  fast correction between the slow `NovaEvolveTuner` meta-tunes. `FastControlLoop`
+  adds the missing inner controller — a deterministic, anti-windup `PIDController`
+  with derivative-on-measurement — that each tick observes the substrate
+  (`equilibriumScore`), computes a control effort, and actuates the homeostasis
+  pull-back, Merkle-sealing every tick. It classifies the trajectory
+  (`converged` / `oscillating` / `diverging` / `saturated` / `unsettled`) into an
+  auditable verdict. `controlTargetsFromGenome` couples the slow genome to the
+  fast loop's setpoint and gains; a `ProteomeControlPlant` drives the real
+  150-node substrate, and a `FirstOrderPlant` makes the control-theory behaviour
+  analytically verifiable. See `docs/FAST_CONTROL_LOOP.md`. Covered by
+  `pidController.test.ts`, `fastControlLoop.test.ts`, and
+  `proteomeControlPlant.test.ts`.
+- **Pre-registered, multi-rater, held-out efficacy program (`src/efficacy/`).**
+  The first framework signal that measures whether the cognitive machinery
+  produces *better reasoning* rather than *better-attested* reasoning — and one
+  the `NovaEvolveTuner` structurally cannot optimise against. A sealed
+  pre-registration (canonical hash, frozen before results) defends against
+  HARKing; a capability-gated `HeldOutVault` plus a leakage scan over the
+  tuner's observed trace stream defends against train-on-test; multiple blinded
+  raters gated by Krippendorff's alpha defend against single-judge bias; and a
+  distribution-free effect size (Cliff's delta, Hodges–Lehmann, a seeded
+  bootstrap CI, Mann–Whitney U) decides the hypothesis. `runEfficacyProgram`
+  emits a Merkle-sealed, replayable `EfficacyReport`. See
+  `docs/EFFICACY_PROGRAM.md`. Covered by `efficacyStatistics.test.ts`,
+  `interRaterReliability.test.ts`, and `efficacyProgram.test.ts`.
 - **v2.4 release-readiness and operator artifacts.** Added
   `docs/releases/v2.4.0.md`, `docs/SEVEN_LAYER_MAPPING.md`,
   `docs/api/orchestrator.md`, Drift Sentinel / Guardian Grafana and Datadog
