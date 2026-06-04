@@ -1,7 +1,7 @@
 # Grok Build TUI + MCOP-Framework-2.0 Integration
 
 **Status:** Production-Grade, Actively Evolving  
-**Last Major Update:** 2026-05-29T16:55:37.622Z  
+**Last Major Update:** 2026-05-30 (auto-route on "organelle"/"mcop"/"full power" + full v2.4 resonant/thermo/drift recording via live host)  
 **Integration Maturity:** High  
 **Primary Maintainer (in TUI):** Grok Build TUI + MCOP symbiosis effort
 
@@ -22,9 +22,20 @@ Core components include:
 
 Key enforced principle: "Do real, useful work only on Guardian approval".
 
-## Activation
+## Activation & Auto-Routing
 
 setMCOPMode(true) from the conductor, or strong signals like "organelle", "MCOP", "full power", "audited".
+
+**New (re-fused):** The conductor now **auto-routes** on the literal phrases "organelle", "mcop", or "full power" (and variants full-power/fullpower):
+
+- `conduct(task)` detects them → forces `tier: "organelle"`.
+- Automatically calls `setMCOPMode(true)`.
+- Includes the canonical `mcop-2.0-host` (with full bidirectional + PositiveResonanceAmplifier + ThermoTruth + DriftSentinel) in recommended one-liners.
+- All guarded paths (`withMCOPTriadGuard`, `mcopSafeEdit`, etc.) immediately use the live fused host.
+
+`shouldAutoActivateMCOP` and `autoEscalateMCOPIfNeeded` also trigger immediately for these primary phrases.
+
+This makes uttering the words sufficient for full MCOP substrate (real kernels from the framework, Guardian with thermo/drift scoring, Merkle etches, positive-resonance growth events) for the session.
 
 Recommended pattern uses mcopAuditedEdit or withMCOPTriadGuard for high-agency work.
 
