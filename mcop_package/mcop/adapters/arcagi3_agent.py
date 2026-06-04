@@ -1524,7 +1524,7 @@ class HolographicShadowStrategy:
     # attraction on the same order as the wall-hit penalty (1.0) only
     # in the limit of perfectly aligned drift; exploration still wins
     # when no aligned action has been observed yet.
-    GOAL_ALIGNMENT_WEIGHT = 0.5
+    GOAL_ALIGNMENT_WEIGHT = 0.8  # increased to leverage full MCOP goal-shadow from holographicEtch + positiveResonanceAmplifier in the repo
     # Default search depth for the goal-BFS planner. Generous enough
     # that the planner can route around several walls but small enough
     # to bound per-step cost on a 64x64 grid.
@@ -1566,7 +1566,7 @@ class HolographicShadowStrategy:
         # no per-game hint about which axis any action moves on.
         # ``goal_alignment_weight=0.0`` disables the bias entirely.
         goal_alignment_weight: float = GOAL_ALIGNMENT_WEIGHT,
-        min_action_observations_for_alignment: int = 2,
+        min_action_observations_for_alignment: int = 1,  # lowered to engage goal alignment faster using repo MCOP patterns
         # Goal-BFS planner. Once at least
         # ``goal_bfs_min_action_drifts`` distinct actions have an
         # observed mean drift, plan a shortest-path through the
@@ -2005,6 +2005,9 @@ class HolographicShadowStrategy:
                 data = {"x": x, "y": y}
             return (bfs_pick, data)
         oscillating = self._detect_oscillation()
+        resonance = float(memory_summary.get("resonance", 0.0)) if memory_summary else 0.0
+        # Resonance term ported from PositiveResonanceAmplifier + memory_summary in the repo
+        # Boosts actions when the current frame has high MCOP resonance (stigmergy alignment)
         scored = sorted(
             available_action_names,
             key=lambda n: (
@@ -2014,7 +2017,7 @@ class HolographicShadowStrategy:
                     oscillating,
                     player_centroid,
                     goal_centroid,
-                ),
+                ) - 0.4 * resonance,  # stronger resonance pull from repo
                 n,
             ),
         )
