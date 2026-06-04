@@ -38,6 +38,7 @@
     "sbom": "node scripts/generate-sbom.mjs",
     "sbom:validate": "node scripts/validate-sbom.mjs",
     "positive:audit": "node scripts/positive-audit.mjs",
+    "audit:auditor-kernel": "node scripts/auditor-kernel-etch.mjs",
     "positive:attest": "POSITIVE_IMPACT_ATTEST=1 jest --runInBand --testPathPatterns=positiveImpactVerifier",
     "positive:verify": "POSITIVE_IMPACT_VERIFY=1 jest --runInBand --testPathPatterns=positiveImpactVerifier",
     "positive:quality": "POSITIVE_IMPACT_QUALITY=1 jest --runInBand --testPathPatterns=verificationQuality",

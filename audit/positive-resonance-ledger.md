@@ -1789,3 +1789,45 @@ This is a documentation / integration contribution that documents one of the dee
 ```
 
 ---
+
+
+## 2026-06-04T20:53:57.009Z — Auditor Kernel Etch (PR #786)
+
+**Auditor Kernel:** v1.0.0 (deterministic, primitive-backed)
+**Resonance (kernel-derived):** 1
+**Resonance multiplier:** ×1.2
+**Conservative human-path:** 14.7 h
+**Adjusted value:** 17.64 (hours × multiplier)
+**Thermo free-energy delta:** not recorded
+**Guardian:** PASS · **Merged:** true · **Commit:** `c8f058031bf98bd0a218938adf6e9321dd297b47`
+
+Every figure above is either a declared conservative estimate (per-item hours) or a value produced by the framework's own kernels (resonance via NovaNeoEncoder → HolographicEtch → PositiveResonanceAmplifier; Merkle roots via canonical SHA-256). No metric was hand-written.
+
+| Work item | Est. human h | Landed | Domain | Etch hash |
+|:---|---:|:---:|:---|:---|
+| Bidirectional MCOP-2.0 organelle host re-fusion wiring | 8 | yes | joy | `ab87e9c591ee` |
+| Conductor auto-route on organelle/mcop/full power phrases | 4 | yes | joy | `3ca480e82b2b` |
+| Integration guide + fusion recording documentation | 2.7 | yes | doc-code-sync | `b2404e776e60` |
+
+- **Growth Merkle root:** `c38abefc32ea75360e805ea86e58af4aceb8a5db567ece922ec5b50eb49b69ef`
+- **Provenance Merkle root:** `11dd16138aeb8c0bf7331c32cec7bc279504d6eb99ce66c49131ddab0d14d202`
+- **Provenance:** Canonical SHA-256 over the kernel-derived audit payload, anchored to commit c8f058031bf98bd0a218938adf6e9321dd297b47.
+
+```json
+{
+  "auditorKernelVersion": "1.0.0",
+  "sessionId": "grok-build-tui-fusion-pr-recording",
+  "productiveHours": 14.7,
+  "adjustedValue": 17.64,
+  "resonance": 1,
+  "resonanceMultiplier": 1.2,
+  "thermoFreeEnergyDelta": null,
+  "guardianVerdict": "PASS",
+  "merged": true,
+  "commitHash": "c8f058031bf98bd0a218938adf6e9321dd297b47",
+  "growthMerkleRoot": "c38abefc32ea75360e805ea86e58af4aceb8a5db567ece922ec5b50eb49b69ef",
+  "merkleRoot": "11dd16138aeb8c0bf7331c32cec7bc279504d6eb99ce66c49131ddab0d14d202"
+}
+```
+
+---
