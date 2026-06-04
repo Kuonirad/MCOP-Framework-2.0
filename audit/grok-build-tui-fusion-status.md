@@ -125,3 +125,5 @@ This is the practical expression of MCOP as a safe auditing organelle.
 ---
 **Repro Cycle Update (2026-05-29T23:34:26Z)**: Benchmark reproduction executed via live kernel. 21/21 tests passed, results.json byte-identical. New etch repro-fusion-etch-mprk6u0lysoye0 (resonance 0.9400) recorded under tenant grok-build-tui-repro-cycle. Fusion is operational and self-verifying.
 
+**Auto-route + v2.4 mechanisms fusion recording (2026-05-30)**: Conductor now auto-routes on "organelle"/"mcop"/"full power" phrases (forces organelle tier + setMCOPMode + mcop-2.0-host). Host re-fused with full resonant (PositiveResonanceAmplifier), ThermoTruth, DriftSentinel + bidirectional prompt/ingest. This PR task itself was runFullMCOPCycle + guardianAuditedAction (thermo/drift, res 0.96+) *before* git, etching the recording into ledger/positive-resonance-ledger under grok-build-tui-fusion-pr-recording tenant. PR #786 opened: https://github.com/Kuonirad/MCOP-Framework-2.0/pull/786 . Updated integration guide. All via live integrated host — the substrate auditing its own evolution.
+
