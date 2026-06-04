@@ -1535,6 +1535,31 @@ class HolographicShadowStrategy:
     # falls back to the score-based chooser (which already has
     # goal-directional bias from PR #648).
     GOAL_BFS_MIN_ACTION_DRIFTS = 2
+    # Always-on per-(state, action) novelty penalty applied on *every*
+    # score-based pick, not only once an ABAB oscillation is detected.
+    # This diversifies action choice from the first steps instead of
+    # locking onto whichever action happened to move first (the ls20
+    # "ACTION1 for 8 steps" failure mode). Kept small relative to the
+    # move-rate (≈1.0) and wall (−1.0) signal so learned movement still
+    # dominates once real evidence accumulates.
+    EXPLORATION_TRIES_WEIGHT = 0.15
+    # PositiveResonanceAmplifier port. MCOP memory resonance (from
+    # ``memory_summary['resonance']``, the stigmergy alignment score)
+    # multiplies the goal-directional term by
+    # ``1 + RESONANCE_AMPLIFY_WEIGHT * resonance`` so high-resonance
+    # frames trust the learned goal shadow more while low-resonance
+    # frames fall back to plain exploration. resonance == 0 reproduces
+    # the pre-resonance ordering exactly. Note: the previous
+    # implementation added ``−0.4 * resonance`` uniformly to every
+    # candidate's sort key, which left the *ordering* unchanged — the
+    # resonance signal was silently inert. This per-action form makes
+    # it actually influence selection.
+    RESONANCE_AMPLIFY_WEIGHT = 0.5
+    # Resonance at or above this level is surfaced as a
+    # ``positive_growth_event`` (logged at INFO and etched into
+    # provenance) so post-run inspection can correlate high-resonance
+    # steps with the action chosen.
+    RESONANCE_EVENT_THRESHOLD = 0.25
 
     def __init__(
         self,
@@ -1567,6 +1592,10 @@ class HolographicShadowStrategy:
         # ``goal_alignment_weight=0.0`` disables the bias entirely.
         goal_alignment_weight: float = GOAL_ALIGNMENT_WEIGHT,
         min_action_observations_for_alignment: int = 1,  # lowered to engage goal alignment faster using repo MCOP patterns
+        # Exploration / resonance shaping (see class-level constants).
+        exploration_tries_weight: float = EXPLORATION_TRIES_WEIGHT,
+        resonance_amplify_weight: float = RESONANCE_AMPLIFY_WEIGHT,
+        resonance_event_threshold: float = RESONANCE_EVENT_THRESHOLD,
         # Goal-BFS planner. Once at least
         # ``goal_bfs_min_action_drifts`` distinct actions have an
         # observed mean drift, plan a shortest-path through the
@@ -1590,6 +1619,10 @@ class HolographicShadowStrategy:
             raise ValueError("goal_bfs_max_depth must be >= 0")
         if goal_bfs_min_action_drifts < 1:
             raise ValueError("goal_bfs_min_action_drifts must be >= 1")
+        if exploration_tries_weight < 0:
+            raise ValueError("exploration_tries_weight must be >= 0")
+        if resonance_amplify_weight < 0:
+            raise ValueError("resonance_amplify_weight must be >= 0")
         self.fallback = fallback or RandomStrategy()
         self.goal_color = goal_color
         self.player_color = player_color
@@ -1603,6 +1636,9 @@ class HolographicShadowStrategy:
         self.min_action_observations_for_alignment = (
             min_action_observations_for_alignment
         )
+        self.exploration_tries_weight = exploration_tries_weight
+        self.resonance_amplify_weight = resonance_amplify_weight
+        self.resonance_event_threshold = resonance_event_threshold
         self.action_stats: Dict[str, Dict[str, float]] = {}
         # Per-action mean player-centroid drift, accumulated online
         # from observe(). action_drift_sums[name] = (sum_dr, sum_dc),
@@ -1799,6 +1835,7 @@ class HolographicShadowStrategy:
         oscillating: bool,
         player_centroid: Optional[Tuple[float, float]] = None,
         goal_centroid: Optional[Tuple[float, float]] = None,
+        resonance: float = 0.0,
     ) -> float:
         wall_hits = self.walls.get((state_hash, name), 0)
         stats = self.action_stats.get(name, {})
@@ -1816,17 +1853,31 @@ class HolographicShadowStrategy:
         # Pure cosine ∈ [-1, 1]; weight is configurable. ARC-compliant:
         # both vectors are learned strictly online and the alignment
         # term degrades gracefully to 0 when either is unavailable.
+        # MCOP memory resonance amplifies this positive signal
+        # (PositiveResonanceAmplifier): at resonance r the contribution
+        # scales by ``1 + resonance_amplify_weight * r`` so a confident
+        # goal shadow is trusted more. resonance == 0 leaves the term
+        # at its unamplified value, preserving prior behaviour.
         if self.goal_alignment_weight > 0:
-            score += self.goal_alignment_weight * self._goal_alignment(
-                name, player_centroid, goal_centroid
+            amplifier = 1.0 + self.resonance_amplify_weight * resonance
+            score += (
+                self.goal_alignment_weight
+                * amplifier
+                * self._goal_alignment(name, player_centroid, goal_centroid)
             )
+        # Always-on novelty penalty: bias away from the most-tried action
+        # at *this* state from the very first steps, before any ABAB
+        # oscillation is detected. Small enough that a single learned
+        # wall (−1.0) or a high move-rate still wins.
+        tries_here = self.state_action_tries.get((state_hash, name), 0)
+        score -= self.exploration_tries_weight * tries_here
         if oscillating:
-            # Novelty seeking: prefer the action we have tried least at
-            # *this* state, even when no wall has been registered yet.
-            # This breaks ABAB cycles like (25,46)<->(25,48) where both
-            # alternating actions register as "real_move" and so neither
-            # gets a wall penalty under normal scoring.
-            tries_here = self.state_action_tries.get((state_hash, name), 0)
+            # Stronger novelty seeking once an ABAB cycle is detected:
+            # prefer the action we have tried least at this state even
+            # when no wall has been registered yet. This breaks cycles
+            # like (25,46)<->(25,48) where both alternating actions
+            # register as "real_move" and so neither gets a wall penalty
+            # under normal scoring.
             score -= 0.6 * tries_here + 0.5 * n
         return score
 
@@ -2005,23 +2056,68 @@ class HolographicShadowStrategy:
                 data = {"x": x, "y": y}
             return (bfs_pick, data)
         oscillating = self._detect_oscillation()
-        resonance = float(memory_summary.get("resonance", 0.0)) if memory_summary else 0.0
-        # Resonance term ported from PositiveResonanceAmplifier + memory_summary in the repo
-        # Boosts actions when the current frame has high MCOP resonance (stigmergy alignment)
+        resonance = (
+            float(memory_summary.get("resonance", 0.0))
+            if memory_summary
+            else 0.0
+        )
+        # Score every candidate once (resonance now amplifies the
+        # per-action goal-alignment term inside _score_action rather
+        # than being added uniformly to every key, where it could not
+        # affect the ordering). Caching the scores lets us log the
+        # winning pick alongside the runner-up breakdown below.
+        action_scores = {
+            name: self._score_action(
+                name,
+                state_hash,
+                oscillating,
+                player_centroid,
+                goal_centroid,
+                resonance,
+            )
+            for name in available_action_names
+        }
+        # Highest score wins; lexical action name breaks ties so the
+        # pick stays deterministic across runs.
         scored = sorted(
             available_action_names,
-            key=lambda n: (
-                -self._score_action(
-                    n,
-                    state_hash,
-                    oscillating,
-                    player_centroid,
-                    goal_centroid,
-                ) - 0.4 * resonance,  # stronger resonance pull from repo
-                n,
-            ),
+            key=lambda n: (-action_scores[n], n),
         )
         chosen = scored[0]
+        # Explicit observability for the previously-silent resonance and
+        # exploration score modifiers: emit one concise line per
+        # score-based pick so their effect is visible in run traces.
+        tries_at_state = self.state_action_tries.get((state_hash, chosen), 0)
+        logger.info(
+            "holographic-shadow score pick=%s score=%.3f resonance=%.3f "
+            "oscillating=%s tries@state=%d runners-up=%s",
+            chosen,
+            action_scores[chosen],
+            resonance,
+            oscillating,
+            tries_at_state,
+            {n: round(action_scores[n], 3) for n in scored[1:4]},
+        )
+        # Surface a PositiveGrowthEvent when the frame carries strong
+        # MCOP resonance, so high-signal steps can be correlated with
+        # the action taken during post-run analysis.
+        if resonance >= self.resonance_event_threshold:
+            logger.info(
+                "holographic-shadow PositiveGrowthEvent resonance=%.3f "
+                "pick=%s score=%.3f",
+                resonance,
+                chosen,
+                action_scores[chosen],
+            )
+            self.provenance.append(
+                {
+                    "type": "positive_growth_event",
+                    "resonance": round(resonance, 4),
+                    "pick": chosen,
+                    "score": round(action_scores[chosen], 4),
+                    "state_hash": state_hash,
+                }
+            )
         data = {}
         if chosen in COMPLEX_ACTIONS:
             x, y = self._complex_default

@@ -1814,6 +1814,113 @@ def test_holographic_strategy_alignment_weight_validation() -> None:
         HolographicShadowStrategy(goal_alignment_weight=-0.1)
 
 
+def test_holographic_strategy_resonance_amplifies_goal_alignment() -> None:
+    """Resonance must scale the *per-action* goal-alignment term.
+
+    Regression for the silently-inert resonance signal: the previous
+    implementation added ``−0.4 * resonance`` uniformly to every
+    candidate's sort key, so a constant cancelled out and the ordering
+    never moved. The amplifier form scales each action's alignment, so
+    a goal-aligned action scores strictly higher as resonance rises.
+    """
+    strat = HolographicShadowStrategy(
+        player_color=9,
+        goal_alignment_weight=0.5,
+        min_action_observations_for_alignment=1,
+        resonance_amplify_weight=1.0,
+    )
+    # Teach ACTION1 a drift toward the goal (positive alignment).
+    grid = _HoloFrame(_grid_with_color([(0, 0, 9), (5, 0, 8)]))
+    strat._last_state_hash = strat._state_hash(grid)
+    strat._last_player_centroid = strat._player_centroid(grid)
+    strat.observe(grid, "ACTION1", _HoloFrame(_grid_with_color([(2, 0, 9), (5, 0, 8)])))
+
+    state_hash = strat._state_hash(grid)
+    pc = strat._player_centroid(grid)
+    gc = strat._goal_centroid(grid)
+    unamplified = strat._score_action("ACTION1", state_hash, False, pc, gc, 0.0)
+    amplified = strat._score_action("ACTION1", state_hash, False, pc, gc, 1.0)
+    assert amplified > unamplified
+
+
+def test_holographic_strategy_resonance_flips_pick_toward_goal() -> None:
+    """High resonance must be able to change the chosen action.
+
+    ACTION2 has the better raw move-rate (wins at resonance 0); ACTION1
+    is goal-aligned. Amplifying the alignment term with resonance tips
+    the choice to ACTION1 — proving resonance now affects selection,
+    not just the (unobservable) magnitude of every key.
+    """
+    strat = HolographicShadowStrategy(
+        player_color=9,
+        goal_alignment_weight=0.5,
+        min_action_observations_for_alignment=1,
+        resonance_amplify_weight=1.0,
+        enable_goal_bfs=False,
+    )
+    # ACTION1: never "moves" (move_rate 0) but its mean drift points at
+    # the goal. ACTION2: always moves with a large delta (high base
+    # score) but its mean drift points away from the goal.
+    strat.action_stats["ACTION1"] = {
+        "count": 2.0, "moved_count": 0.0, "total_centroid_delta": 0.0,
+    }
+    strat.action_stats["ACTION2"] = {
+        "count": 2.0, "moved_count": 2.0, "total_centroid_delta": 10.0,
+    }
+    strat.action_drift_sums["ACTION1"] = (2.0, 0.0)   # toward goal (+row)
+    strat.action_drift_counts["ACTION1"] = 2
+    strat.action_drift_sums["ACTION2"] = (-2.0, 0.0)  # away from goal
+    strat.action_drift_counts["ACTION2"] = 2
+    grid = _HoloFrame(_grid_with_color([(0, 0, 9), (5, 0, 8)]))
+
+    low, _ = strat.choose(grid, [], {"resonance": 0.0}, ["ACTION1", "ACTION2"])
+    high, _ = strat.choose(grid, [], {"resonance": 1.0}, ["ACTION1", "ACTION2"])
+    assert low == "ACTION2"
+    assert high == "ACTION1"
+
+
+def test_holographic_strategy_exploration_penalises_repeats_pre_oscillation() -> None:
+    """Always-on novelty: a repeated action loses to an untried one even
+    before any ABAB oscillation is detected.
+
+    Both actions carry identical move stats, so without the always-on
+    exploration penalty the lexical tiebreak would lock onto ACTION1
+    (the ls20 "ACTION1 for 8 steps" failure mode). The penalty on the
+    already-tried action hands the pick to the untried ACTION2.
+    """
+    strat = HolographicShadowStrategy(
+        player_color=9,
+        goal_alignment_weight=0.0,
+        enable_goal_bfs=False,
+    )
+    for name in ("ACTION1", "ACTION2"):
+        strat.action_stats[name] = {
+            "count": 3.0, "moved_count": 3.0, "total_centroid_delta": 3.0,
+        }
+    grid = _HoloFrame(_grid_with_color([(0, 0, 9), (5, 0, 8)]))
+    state_hash = strat._state_hash(grid)
+    strat.state_action_tries[(state_hash, "ACTION1")] = 4  # heavily tried
+    chosen, _ = strat.choose(grid, [], {}, ["ACTION1", "ACTION2"])
+    assert chosen == "ACTION2"
+
+
+def test_holographic_strategy_emits_positive_growth_event_on_high_resonance() -> None:
+    """High-resonance picks must be logged and etched as a
+    ``positive_growth_event`` for post-run correlation."""
+    strat = HolographicShadowStrategy(
+        player_color=9, enable_goal_bfs=False, resonance_event_threshold=0.25
+    )
+    grid = _HoloFrame(_grid_with_color([(0, 0, 9), (5, 0, 8)]))
+    strat.choose(grid, [], {"resonance": 0.42}, ["ACTION1", "ACTION2"])
+    events = [p for p in strat.provenance if p.get("type") == "positive_growth_event"]
+    assert len(events) == 1
+    assert events[0]["resonance"] == 0.42
+    # Below-threshold resonance must not emit an event.
+    strat.choose(grid, [], {"resonance": 0.1}, ["ACTION1", "ACTION2"])
+    events = [p for p in strat.provenance if p.get("type") == "positive_growth_event"]
+    assert len(events) == 1
+
+
 # ---- HolographicShadowStrategy goal-BFS planner ---------------------------
 
 

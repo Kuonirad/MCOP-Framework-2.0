@@ -11,7 +11,11 @@ on:
       game_id:
         description: "Game id (e.g. ls20). Leave blank to just list available games."
         required: false
-        default: "8"
+        # Blank by default so a dispatch with no game id lists the
+        # available games (see the `inputs.game_id == ''` step) instead
+        # of attempting to run the non-existent game "8" — that default
+        # was an accidental copy of the goal_color default below.
+        default: ""
         type: string
       strategy:
         description: "Action selection strategy (mcop_package/run_arcagi3_agent.py)"
