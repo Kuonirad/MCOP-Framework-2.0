@@ -2005,6 +2005,9 @@ class HolographicShadowStrategy:
                 data = {"x": x, "y": y}
             return (bfs_pick, data)
         oscillating = self._detect_oscillation()
+        resonance = float(memory_summary.get("resonance", 0.0)) if memory_summary else 0.0
+        # Resonance term ported from PositiveResonanceAmplifier + memory_summary in the repo
+        # Boosts actions when the current frame has high MCOP resonance (stigmergy alignment)
         scored = sorted(
             available_action_names,
             key=lambda n: (
@@ -2014,7 +2017,7 @@ class HolographicShadowStrategy:
                     oscillating,
                     player_centroid,
                     goal_centroid,
-                ),
+                ) - 0.4 * resonance,  # stronger resonance pull from repo
                 n,
             ),
         )
