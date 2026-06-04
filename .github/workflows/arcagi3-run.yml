@@ -11,7 +11,7 @@ on:
       game_id:
         description: "Game id (e.g. ls20). Leave blank to just list available games."
         required: false
-        default: ""
+        default: "8"
         type: string
       strategy:
         description: "Action selection strategy (mcop_package/run_arcagi3_agent.py)"
@@ -48,7 +48,7 @@ on:
       goal_color:
         description: "Pixel colour index of the goal tile (holographic strategy only). Leave blank to use library default (8)."
         required: false
-        default: ""
+        default: "8"
         type: string
       player_color:
         description: "Pixel colour index of the player sprite (holographic strategy only). Leave blank to auto-detect."
