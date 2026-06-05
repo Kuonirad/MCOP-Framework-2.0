@@ -70,6 +70,11 @@ Grok models execute the triad in-model and merge their traces back into the host
 Magnific, Utopai, and generic REST/MCP/HTTP production adapters. Ledger-aware Holographic Etch
 factories ship with **in-memory + file storage backends**, **async + Redis ledger forwarders**
 (retry, DLQ, and `unref()`-clean shutdown), and **snapshot ↔ ledger reconciliation** utilities.
+A deterministic **audit-kernels family** turns that provenance into accounting: the **Impact
+Auditor** scores positive impact, the **Auditor Kernel** estimates the verified value (ROI) of a
+merged cycle, and the **Velocity Auditor** proves the AI-velocity multiplier (`humanBaseline ÷
+observed`, hours saved, eudaimonic delta) — each figure kernel-derived, ThermoTruth-gated, and
+Merkle-sealed, never hand-written.
 Cryptographic lineage at every step. **91.87%** test coverage.
 **Open source under the Apache License 2.0.**
 
@@ -97,6 +102,7 @@ Cryptographic lineage at every step. **91.87%** test coverage.
 | Provider mesh | [`src/adapters/`](./src/adapters/) routes OpenAI-compatible, Claude, DeepSeek, Kimi, Qwen, Grok/xAI, image, regulated-provenance, and generic production calls without hardcoding secrets. |
 | Organelle host & ledger I/O | [`src/adapters/grokAdapter.ts`](./src/adapters/grokAdapter.ts) exposes `organelleMode` for bidirectional in-model triad execution; [`src/ledger/`](./src/ledger/) ships ledger-aware Holographic Etch factories with background + Redis async forwarders (retry, DLQ, clean shutdown); [`src/core/etchBackend.ts`](./src/core/etchBackend.ts) and [`src/core/stigmergyBackend.ts`](./src/core/stigmergyBackend.ts) provide in-memory + file storage backends; [`src/utils/organelleMerge.ts`](./src/utils/organelleMerge.ts) and [`src/utils/ledgerReconciliation.ts`](./src/utils/ledgerReconciliation.ts) cover trace reconstruction, merge, and snapshot ↔ ledger reconciliation. |
 | Distributed runtime | [`src/cluster/redisStreamsGossipTransport.ts`](./src/cluster/redisStreamsGossipTransport.ts) adds Redis Streams gossip transport alongside the in-memory bus. |
+| Audit kernels | [`src/audit/`](./src/audit/) ships the deterministic, primitive-backed Impact Auditor, Auditor Kernel (verified-value/ROI), and Velocity Auditor (AI-velocity multiplier + hours saved + eudaimonic delta) — kernel-derived, ThermoTruth-gated, Merkle-sealed, and replayable. Run via `pnpm positive:audit`, `pnpm audit:auditor-kernel`, and `pnpm audit:velocity`. |
 | Security posture | CodeQL, Dependabot, Trojan-Source guard, SBOM generation, workflow hygiene verification, and pinned CI runtimes are merge-blocking surfaces. |
 
 The whitepaper's seven cognitive layers are mapped to live modules in
@@ -150,6 +156,7 @@ feature comparison, May 2026 — public docs as of writing):
 | Append-only confidence ledger w/ replayable rank-1 etches | ✅ Holographic Etch | ❌ | ❌ | ❌ |
 | Eudaimonic / positive-resonance scoring on every accepted etch | ✅ EudaimonicEtch | ❌ | ❌ | ❌ |
 | Self-healing dimension + bounded-curiosity recall guards | ✅ SelfHealingDimension + ResonantRecentQuery | ❌ | ❌ | ❌ |
+| Kernel-derived value & AI-velocity proofs (ROI + ×-velocity, Merkle-sealed) | ✅ Impact Auditor + Auditor Kernel + Velocity Auditor | ❌ | ❌ | ❌ |
 | Universal Adapter Protocol (OpenAI-compatible · Claude · DeepSeek · Kimi · Qwen · Grok/xAI · production REST/MCP) | ✅ | ✅ | ⚠️ partial | ⚠️ partial |
 | Native xAI Grok adapter (text + image generation) | ✅ | ⚠️ community | ❌ | ❌ |
 | Test coverage on documented API surface | **91.87%** | varies | varies | varies |
@@ -240,6 +247,18 @@ forgeries (corrupt hash, flipped metric, forged citation, perturbed input) and
 thus drives the evaluation of the verification's own discriminating power: a
 stacked recursion (measured → verifiable → verifier-validated), all operational
 evidence rather than architecture prose.
+
+The same primitives now power two sibling **audit kernels** that turn provenance
+into accounting. The **Auditor Kernel**
+([`src/audit/auditorKernel.ts`](./src/audit/auditorKernel.ts)) estimates the
+verified value (ROI) of a merged cycle — a conservative human-path estimate
+lifted by a kernel-derived resonance multiplier — and the **Velocity Auditor**
+([`src/audit/velocityAuditor.ts`](./src/audit/velocityAuditor.ts)) proves the
+**AI-velocity multiplier** (`humanBaseline ÷ observed`), the hours saved, and the
+eudaimonic delta, gated by a Drift Sentinel free-energy check and sealed with a
+deterministic, replayable Merkle root (and a Merkle-derived `runId`). Run them
+with `pnpm audit:auditor-kernel` and `pnpm audit:velocity`; the **Audit Kernels**
+section below documents the full surface.
 
 - **Canonical home:** `https://github.com/Kuonirad/MCOP-Framework-2.0`
 - **Canonical local path:** `MCOP-Framework-2.0`
@@ -380,6 +399,8 @@ console.log({
 | Proteome layer and ARC LS20 scaffold | [`docs/PROTEOME_LAYER.md`](./docs/PROTEOME_LAYER.md) |
 | ThermoTruth free-energy layer (opt-in) | [`src/core/thermoTruthKernel.ts`](./src/core/thermoTruthKernel.ts) · gated by `MCOP_ENABLE_THERMO` |
 | Drift Sentinel Kernel | [`docs/features/drift-sentinel-kernel.md`](./docs/features/drift-sentinel-kernel.md) |
+| Audit kernels (Impact · Verified-Value · AI-Velocity) | [`src/audit/`](./src/audit/) — run with `pnpm positive:audit`, `pnpm audit:auditor-kernel`, `pnpm audit:velocity` |
+| Velocity Auditor deep dive | [`docs/features/velocity-auditor.md`](./docs/features/velocity-auditor.md) |
 | Bidirectional Grok-MCOP organelle host | [`docs/adapters/GROK_AS_MCOP_ORGANELLE_HOST.md`](./docs/adapters/GROK_AS_MCOP_ORGANELLE_HOST.md) |
 | Runnable organelle host experiment | [`examples/grok_mcop_organelle_experiment.ts`](./examples/grok_mcop_organelle_experiment.ts) |
 | Decentralized agent coordination | [`docs/DECENTRALIZED_AGENT_COORDINATION.md`](./docs/DECENTRALIZED_AGENT_COORDINATION.md) |
@@ -554,6 +575,7 @@ console.log((await memory.getMessages())[0].provenance?.merkleRoot);
 MCOP-Framework-2.0/
 ├── 🧠 src/
 │   ├── core/                      # NOVA-NEO, Stigmergy, Etch, Drift Sentinel, embeddings, storage backends
+│   ├── audit/                     # Impact Auditor, Auditor Kernel (ROI), Velocity Auditor (AI-velocity proofs)
 │   ├── adapters/                  # Provider mesh + Universal Adapter Protocol + organelle host
 │   ├── telemetry/                 # Guardian-signed hardening and reset-block commits
 │   ├── orchestrator/              # Dependency-injected orchestration hooks
@@ -598,6 +620,7 @@ MCOP-Framework-2.0/
 | 🟢 ThermoTruth free-energy layer (opt-in, `MCOP_ENABLE_THERMO`) | ![Done](https://img.shields.io/badge/COMPLETE-00ff88?style=flat-square) | v2.4 |
 | 🟢 Redis Streams gossip transport | ![Done](https://img.shields.io/badge/COMPLETE-00ff88?style=flat-square) | v2.4 |
 | 🟢 Bidirectional Grok-MCOP organelle host (`organelleMode` + ledger forwarders + reconciliation) | ![Done](https://img.shields.io/badge/COMPLETE-00ff88?style=flat-square) | v2.4 |
+| 🟢 Audit kernels (Impact · Auditor Kernel · Velocity Auditor) | ![Done](https://img.shields.io/badge/COMPLETE-00ff88?style=flat-square) | v2.4 |
 | 🟡 CUDA Productionization | ![Roadmap](https://img.shields.io/badge/ROADMAP-ffd700?style=flat-square) | v2.4+ |
 | 🟡 LS20 ARC real-task ingestion | ![Roadmap](https://img.shields.io/badge/ROADMAP-ffd700?style=flat-square) | v2.5 |
 | 🔵 Hosted Provenance Ledger | ![Planned](https://img.shields.io/badge/PLANNED-7b2dff?style=flat-square) | v3.x |
@@ -1032,6 +1055,63 @@ if (!report.fullyReconciled) {
 | [`src/__tests__/createLedgerAwareHolographicEtch.test.ts`](./src/__tests__/createLedgerAwareHolographicEtch.test.ts) | Factory helpers |
 | [`src/__tests__/grokAdapterLedgerAware.test.ts`](./src/__tests__/grokAdapterLedgerAware.test.ts) | `createLedgerAware` factory wiring |
 | [`src/__tests__/grokOrganelleProcessing.test.ts`](./src/__tests__/grokOrganelleProcessing.test.ts) | `processOrganelleResult` validation, merge, strict-mode errors, `organelleMode` in `generate()` |
+
+---
+
+## 🧮 Audit Kernels — Impact · Verified-Value · AI-Velocity
+
+Three deterministic, primitive-backed kernels in [`src/audit/`](./src/audit/) turn the
+Merkle-chained provenance trail into **accounting** — positive impact, verified value, and AI
+velocity. Every figure is produced by the framework's own kernels
+(`NovaNeoEncoder → HolographicEtch → PositiveResonanceAmplifier`, with the
+[Drift Sentinel](#-drift-sentinel-kernel) as a ThermoTruth free-energy gate), never hand-written,
+and every report carries a canonical SHA-256 (RFC 8785 JCS) Merkle root that is byte-identically
+replayable.
+
+| Kernel | File | Question it answers | Headline outputs |
+|:---|:---|:---|:---|
+| **Impact Auditor** | [`src/audit/impactAuditor.ts`](./src/audit/impactAuditor.ts) | How positive was this work? | `positiveImpactScore`, contributor-joy / adoption-velocity / beneficial-amplification, growth Merkle root |
+| **Auditor Kernel** | [`src/audit/auditorKernel.ts`](./src/audit/auditorKernel.ts) | What verified value did a merged cycle represent? | `productiveHours`, kernel-derived `resonance`, `resonanceMultiplier`, `adjustedValue`, Merkle root |
+| **Velocity Auditor** | [`src/audit/velocityAuditor.ts`](./src/audit/velocityAuditor.ts) | How much faster was the AI-human cycle? | `aiMultiplier`, `hoursSaved`, `eudaimonicDelta`, `freeEnergyDivergence`, deterministic `runId`, Merkle root |
+
+### Velocity Auditor — the math
+
+```
+aiMultiplier         = humanBaselineHours / observedHours       (1 when not AI-assisted)
+hoursSaved           = max(0, humanBaselineHours − observedHours)
+positiveImpactScore  = mean kernel resonance over landed work   ∈ [0, 1]
+eudaimonicDelta      = positiveImpactScore × aiMultiplier
+freeEnergyDivergence = Δ(T_d, B_e) from the Drift Sentinel      (ThermoTruth gate)
+```
+
+The classifier emits a report only when the cycle **merged**, the **guardian passed**, there is
+**landed work**, the kernel-derived **resonance clears the floor**, and the **free-energy
+divergence is sub-critical** — otherwise it returns `null` rather than attest a velocity it cannot
+thermodynamically reconcile. `runId` is a deterministic RFC-9562 v8 UUID derived from the Merkle
+root, so a replayed audit reproduces the same identifier byte-for-byte. Full design:
+[`docs/features/velocity-auditor.md`](./docs/features/velocity-auditor.md).
+
+### Run them
+
+```bash
+pnpm positive:audit            # Impact Auditor → POSITIVE_IMPACT_REPORT + badges + ledger
+pnpm audit:auditor-kernel      # Auditor Kernel verified-value etch (Merkle-sealed)
+pnpm audit:velocity --dry-run  # Velocity Auditor: compute + print, no writes
+pnpm audit:velocity            # Velocity Auditor live etch + self-audit closure (run post-merge)
+```
+
+The Velocity Auditor closes the loop on itself: [`scripts/velocity-auditor-etch.mjs`](./scripts/velocity-auditor-etch.mjs)
+runs the Impact Auditor over the Velocity Auditor's own verification gates and etches that
+self-audit as a Merkle **child** of the velocity proof — a bounded chain from session → velocity
+proof → self-audit.
+
+### Regression coverage
+
+| Suite | Covers |
+|:---|:---|
+| [`src/__tests__/impactAuditor.test.ts`](./src/__tests__/impactAuditor.test.ts) | Eudaimonic etch scoring, growth-event metrics, substrate equilibrium signal, citations, determinism |
+| [`src/__tests__/auditorKernel.test.ts`](./src/__tests__/auditorKernel.test.ts) | Resonance multiplier, conservative human-path estimate, productivity classifier, fully-provenanced report, timestamp-independent hashes |
+| [`src/__tests__/velocityAuditor.test.ts`](./src/__tests__/velocityAuditor.test.ts) | AI-velocity multiplier, hours-saved aggregation, ThermoTruth drift gate, deterministic Merkle-derived `runId`, byte-identical replay (18 tests) |
 
 ---
 
