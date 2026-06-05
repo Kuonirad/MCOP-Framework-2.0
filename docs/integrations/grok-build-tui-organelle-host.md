@@ -1,7 +1,7 @@
 # Grok Build TUI + MCOP-Framework-2.0 Integration
 
 **Status:** Production-Grade, Actively Evolving  
-**Last Major Update:** 2026-05-30 (auto-route on "organelle"/"mcop"/"full power" + full v2.4 resonant/thermo/drift recording via live host)  
+**Last Major Update:** 2026-06-05 (100% auditing services + bidirectional organelle experiment with full audit context)
 **Integration Maturity:** High  
 **Primary Maintainer (in TUI):** Grok Build TUI + MCOP symbiosis effort
 
@@ -53,13 +53,22 @@ Multiple full MCOP cycles, high-fidelity bidirectional meta-experiments with pro
 
 All major decisions live in the framework's own audit/ledger.jsonl.
 
+## 100% Auditing Services (Complete Fusion)
+
+The TUI now drives every MCOP auditing service 100%:
+- `host.runFullMCOPAuditSuite()` exercises ImpactAuditor, all positive/verifier/quality/meta/telemetry surfaces, and every audit script (parity, eco, debt, claims, license, self).
+- Conductor decision includes `mustRunFullMCOPAudit`; use `enforceMCOPAuditsForDecision(decision, task)` or direct calls.
+- Results always Merkle-etched + positive-resonance growth recorded (so framework `pnpm positive:audit` / `positive:verify` incorporate TUI activity natively).
+- `runSpecificAudit("meta" | "positive" | "scripts" | ...)` for scoped use.
+- All mutations recommended via `mcopAuditedEdit` after suite + guardian (thermo+drift).
+
 ## Relationship to Framework Vision
 
 Directly advances the "Grok as MCOP Organelle Host" direction described in docs/adapters/GROK_AS_MCOP_ORGANELLE_HOST.md.
 
 ## Future Directions
 
-Deeper automatic bidirectional reflection, richer external model calls in organelleMode, stronger defaults, and potential upstream contributions.
+Deeper automatic bidirectional reflection, richer external model calls in organelleMode, stronger defaults, and potential upstream contributions. The substrate now self-audits at 100% depth from the host.
 
 ---
 
