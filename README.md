@@ -1115,6 +1115,25 @@ proof → self-audit.
 
 ---
 
+## 💜 Sponsor MCOP
+
+MCOP is Apache-2.0 and stays that way. Sponsorship funds the unglamorous work that
+keeps the claims honest: external benchmark replay, Merkle-provenance tooling, and
+adapter maintenance.
+
+[**Sponsor on GitHub →**](https://github.com/sponsors/Kuonirad)
+
+**Private sponsorships welcome.** GitHub lets you sponsor privately — your name stays
+off the public list while you still receive sponsor updates and tier benefits. This
+suits teams that want to accelerate deterministic agent orchestration and provenance
+work without public signaling. Organizations can request invoiced billing.
+
+Recurring sponsors get early access to in-progress kernels and a direct line for
+audit and adoption questions. Want to fund a specific line of work — external replay,
+a new adapter? [Open a discussion](https://github.com/Kuonirad/MCOP-Framework-2.0/discussions).
+
+---
+
 ## 🤝 Contributing
 
 See [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines · [CONTRIBUTOR_ONBOARDING.md](./CONTRIBUTOR_ONBOARDING.md) for setup · [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md) for standards
