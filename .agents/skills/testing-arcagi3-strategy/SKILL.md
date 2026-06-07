@@ -59,6 +59,10 @@ The agent is competition-compliant by construction (online learning, full proven
 
 6. **Determinism / replay** — drive a fresh strategy through the same hand-built frame sequence twice; the provenance type streams must be identical. Use `_HoloFrame` and `_grid_with_goal()` from `mcop_package/test_arcagi3_agent.py` as the canonical test stub. Note: `HolographicShadowStrategy`'s no-trusted-goal bootstrap regime (`goal_color=None`, the production default) uses an **epsilon-greedy explorer seeded from `exploration_seed` (default `0`)**, so a fresh strategy still replays identically; `run_arcagi3_agent` routes `--seed` to it (blank → 0). Replay only breaks if you explicitly pass `exploration_seed=None`. The canonical regression is `test_holographic_strategy_bootstrap_replay_is_deterministic`.
 
+7. **Official remote environment — no offline data, by construction** — `arcagi3-run.yml` sets `OPERATION_MODE` (default `competition`; also `online`), so the `arc-agi` SDK plays against the remote arcprize.org environment and **never downloads game files to disk**. That makes the no-offline-data / no-peeking rule *structural*, not a promise. `ONLY_RESET_LEVELS=true` enforces the competition reset rule (a `GAME_OVER` reset restarts the current level, never the whole game). Use `normal` mode only for offline dev — it *does* fetch the game source to `environment_files/<id>/<ver>/<id>.py` (useful for debugging the env), but never copy a game-specific fact from there into a strategy: that would break the no-per-game-hardcoding rule.
+
+8. **CI-enforced compliance, offline** — `test_holographic_play_runtime_compliance_against_fake_env` runs in normal CI (zero ARC quota): it drives a full `play()` loop against the fake env and asserts items 2–5 (scorecard set, closed-set actions, allow-listed provenance, `provenance >= steps`). The gated live test (below) proves item 1 (egress boundary) against the real network. Together they make "100% compliant" continuously checked, not just asserted in a PR description.
+
 ## Gated live tests already in the repo
 
 For LLM-backed strategies the canonical live test is already wired and gated by an env var so CI never runs it. The one-command recipes:
@@ -70,6 +74,14 @@ QWEN_LIVE_E2E=1 ARC_API_KEY="$ARC_API_KEY" QWEN_API_KEY="$QWEN_API_KEY" \
 ```
 
 Expected wall-clock against `ls20-9607627b` with `max_actions=40`: roughly 5 minutes per parametrised case for `qwen3.5-flash` (so ~10–18 minutes for both). Prefer to plan testing sessions accordingly — don't poll output too aggressively. The test prints a `=== QWEN ARC-AGI-3 LIVE ARTEFACT ===` JSON envelope on success containing `strategy`, `model`, `scorecard_id`, `game_id`, `final_state`, `levels_completed`, `n_steps`, and `hosts_dialed`. Stamp that envelope into the PR test report as proof.
+
+```bash
+# Holographic (pure-online, NO LLM key) -- asserts arcprize.org-only egress
+HOLO_LIVE_E2E=1 ARC_API_KEY="$ARC_API_KEY" OPERATION_MODE=competition \
+    python -m pytest mcop_package/test_holographic_arcagi3_live.py -s -v
+```
+
+The holographic case is fast (no LLM round-trips — seconds, not minutes) and prints a `=== HOLOGRAPHIC ARC-AGI-3 LIVE ARTEFACT ===` envelope with `scorecard_id`, `levels_completed`, `goal_color_discovered`, `provenance_types`, and `hosts_dialed` (must be arcprize.org only). Optional `HOLO_LIVE_GAME=<id>` overrides the default game. **Do not set any LLM key** when running it — the egress assertion fails if a non-arcprize.org host is dialed, which is exactly the property it guards.
 
 ## Live-run harness skeleton (for new strategies without a gated test yet)
 

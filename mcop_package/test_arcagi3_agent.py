@@ -798,6 +798,61 @@ def test_play_normal_completion_still_works(monkeypatch: Any) -> None:
     assert result.levels_completed == 1
 
 
+# Canonical ARC-AGI-3 compliance vocabularies (kept in sync with
+# .agents/skills/testing-arcagi3-strategy/SKILL.md). The holographic
+# strategy is a pure-online strategy: it must emit only these provenance
+# types and only closed-set action names.
+HOLO_PROVENANCE_ALLOWED = {
+    "real_move",
+    "blocked_wobble",
+    "ambiguous_drift",
+    "debug_wall_learning",
+    "debug_loop_detected",
+    "debug_goal_bfs",
+    "positive_growth_event",
+}
+CLOSED_ACTION_VOCAB = {f"ACTION{i}" for i in range(1, 7)} | {"RESET"}
+
+
+def test_holographic_play_runtime_compliance_against_fake_env(
+    monkeypatch: Any,
+) -> None:
+    """ARC Prize compliance, enforced in CI without ARC quota.
+
+    Drives a full ``play()`` loop with ``HolographicShadowStrategy``
+    against the fake env and asserts the runtime contract the live
+    skill (`.agents/skills/testing-arcagi3-strategy/SKILL.md`) verifies
+    against arcprize.org:
+
+    * official scorecard opened (``scorecard_id`` set),
+    * every action name is in the closed ARC vocabulary,
+    * every provenance ``type`` is allow-listed (a new/typo'd type is a
+      regression), and
+    * ``observe()`` ran at least once per step (``provenance >= steps``),
+      proving the strategy learned online rather than no-op'd.
+    """
+    from mcop.adapters.arcagi3_agent import MCOPArcAgi3Agent
+
+    env = _FakeEnv()
+    arcade = _FakeArcade(env=env)
+    _patch_sdk_with(monkeypatch, arcade)
+
+    # goal_color=None exercises the online-discovery bootstrap path.
+    strategy = HolographicShadowStrategy(goal_color=None)
+    agent = MCOPArcAgi3Agent(strategy=strategy, api_key="x", max_actions=30)
+    result = agent.play("ls20")
+
+    assert result.scorecard_id is not None
+    assert len(result.steps) >= 1
+    unknown_actions = {s.action for s in result.steps} - CLOSED_ACTION_VOCAB
+    assert not unknown_actions, f"non-closed-set actions: {unknown_actions!r}"
+    seen_types = {p["type"] for p in strategy.provenance}
+    assert seen_types <= HOLO_PROVENANCE_ALLOWED, (
+        f"un-allow-listed provenance types: {seen_types - HOLO_PROVENANCE_ALLOWED!r}"
+    )
+    assert len(strategy.provenance) >= len(result.steps)
+
+
 # ---- Per-step INFO log + stuck-detector ------------------------------------
 
 class _ScriptedStrategy:
