@@ -64,6 +64,15 @@ on:
         required: false
         default: ""
         type: string
+      operation_mode:
+        description: "ARC SDK operation mode. 'competition' (recommended) and 'online' run ONLY against the official remote arcprize.org environment -- no game files are downloaded locally, so the no-offline-data rule holds by construction. 'normal' downloads games to run locally (dev/offline only)."
+        required: false
+        default: "competition"
+        type: choice
+        options:
+          - competition
+          - online
+          - normal
 
 permissions:
   contents: read
@@ -107,6 +116,8 @@ jobs:
         if: ${{ inputs.game_id == '' }}
         env:
           ARC_API_KEY: ${{ secrets.ARC_API_KEY }}
+          # Same official-remote posture as the play step (see below).
+          OPERATION_MODE: ${{ inputs.operation_mode }}
         run: |
           python -m mcop_package.run_arcagi3_agent
 
@@ -131,6 +142,14 @@ jobs:
           MCOP_ENCODER_DIMS: "32"
           MCOP_MAX_TRACES: "256"
           HOLOGRAPHIC_GOAL_COLOR: ${{ inputs.goal_color }}
+          # ARC Prize compliance. 'competition'/'online' run only against
+          # the official remote arcprize.org environment, so no game files
+          # are ever fetched to disk -- the no-offline-data / no-peeking
+          # rule holds by construction (not just by promise). ONLY_RESET_LEVELS
+          # enforces the competition reset rule: the agent's GAME_OVER reset
+          # restarts the current level, never the whole game.
+          OPERATION_MODE: ${{ inputs.operation_mode }}
+          ONLY_RESET_LEVELS: "true"
         # GitHub Actions' default shell is `bash --noprofile --norc -eo
         # pipefail`, which aborts the step the moment the pipeline
         # fails. We need the post-pipe branch to run anyway so we can
