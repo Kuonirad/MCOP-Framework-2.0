@@ -15,7 +15,7 @@ import logging
 import os
 import signal
 import sys
-from typing import Any
+from typing import Any, Optional
 
 from mcop.adapters.arcagi3_agent import (
     GrokStrategy,
@@ -29,7 +29,6 @@ from mcop.adapters.arcagi3_agent import (
     DEFAULT_QWEN_MODEL,
     LOW_MEMORY_ENCODER_DIMS,
     SDKUnavailable,
-    GOAL_COLOR,
 )
 
 
@@ -115,13 +114,16 @@ def main() -> int:
     )
     parser.add_argument("--verbose", action="store_true")
     parser.add_argument(
-    "--goal-color",
-    type=int,
-    default=None,
-    help=(
-        "Pixel colour index of the goal tile for the holographic strategy. "
-        f"Defaults to HOLOGRAPHIC_GOAL_COLOR env var, then the library default ({GOAL_COLOR})."
-    ),
+        "--goal-color",
+        type=int,
+        default=None,
+        help=(
+            "Pixel colour index of the goal tile for the holographic "
+            "strategy. Defaults to the HOLOGRAPHIC_GOAL_COLOR env var; if "
+            "that is unset/blank the goal colour is discovered online from "
+            "the first level advance (recommended -- a wrong fixed colour "
+            "stalls the agent at 0 levels)."
+        ),
     )
     parser.add_argument(
         "--player-color",
@@ -149,10 +151,33 @@ def main() -> int:
     elif args.strategy == "mapping-qwen":
         strategy = MappingQwenStrategy(model=args.qwen_model)
     elif args.strategy == "holographic":
+        # Goal colour resolution, in priority order:
+        #   1. explicit --goal-color (note: ``is not None`` so colour 0 is
+        #      honoured, unlike the old ``or`` which silently dropped it),
+        #   2. a non-blank HOLOGRAPHIC_GOAL_COLOR env var,
+        #   3. None == "discover it online".
+        # Defaulting to None (rather than the old hard-coded 8) is the
+        # core fix: a wrong fixed goal colour made the agent navigate into
+        # a non-matching target that acts as a wall and oscillate there
+        # forever (0 levels on every game), and the online goal-colour
+        # detector could never correct it because it only learns from a
+        # level advance that never came. With None the strategy explores
+        # until an advance reveals the real goal colour, then locks on.
+        gc_env = os.environ.get("HOLOGRAPHIC_GOAL_COLOR", "").strip()
+        if args.goal_color is not None:
+            goal_color: Optional[int] = args.goal_color
+        elif gc_env:
+            goal_color = int(gc_env)
+        else:
+            goal_color = None
         strategy = HolographicShadowStrategy(
-            goal_color=args.goal_color
-            or int(os.environ.get("HOLOGRAPHIC_GOAL_COLOR", GOAL_COLOR)),
+            goal_color=goal_color,
             player_color=args.player_color,
+            # Seed the bootstrap exploration. Default to 0 (deterministic /
+            # replayable) for ARC Prize + provenance compliance; --seed
+            # lets an operator pick a different but still-reproducible
+            # trajectory.
+            exploration_seed=args.seed if args.seed is not None else 0,
         )
     else:
         strategy = RandomStrategy(seed=args.seed)

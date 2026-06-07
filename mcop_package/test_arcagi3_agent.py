@@ -1637,6 +1637,34 @@ def test_player_color_detector_rejects_low_variance_candidates() -> None:
     assert det.current() is None
 
 
+def test_player_color_detector_hysteresis_resists_marginal_flip_flop() -> None:
+    """Once committed, a colour only yields to a clearly-better challenger.
+
+    Two colours with near-equal action-drift variance otherwise make the
+    argmax flip every observation, and each flip resets the strategy's
+    state caches -- thrashing the exploration history. Hysteresis keeps the
+    committed colour unless a rival beats it by ``switch_margin``.
+    """
+    det = _PlayerColorDetector(
+        min_observations=1, min_actions=2, min_variance=0.0, switch_margin=1.5
+    )
+    # Colour 1 variance 4.0, colour 2 variance 2.25 -> commit colour 1.
+    det.drifts = {
+        (1, "A"): [(0.0, 0.0)], (1, "B"): [(4.0, 0.0)],
+        (2, "A"): [(0.0, 0.0)], (2, "B"): [(3.0, 0.0)],
+    }
+    det.observations_seen = 10
+    assert det.current() == 1
+    # Colour 2 now marginally higher (var ~5.06 < 4.0 * 1.5) -> stays on 1.
+    det.drifts[(2, "B")] = [(4.5, 0.0)]
+    det.observations_seen = 11  # invalidate the obs-count cache
+    assert det.current() == 1
+    # Colour 2 now dominates strongly (var 100 >= 4.0 * 1.5) -> switches.
+    det.drifts[(2, "B")] = [(20.0, 0.0)]
+    det.observations_seen = 12
+    assert det.current() == 2
+
+
 # ---- HolographicShadowStrategy auto-discovery (player) ---------------------
 
 
@@ -2143,6 +2171,177 @@ def test_holographic_strategy_auto_discovery_can_be_disabled() -> None:
     assert strat.goal_color == 8  # unchanged
     # Detector still runs (so discovery can be enabled later) but is not applied.
     assert strat._goal_detector.current() == 7
+
+
+# ---- robust bootstrap: no trusted goal colour (goal_color=None) ------------
+
+def test_holographic_strategy_goal_none_disables_goal_seeking() -> None:
+    # The production default. With no trusted goal colour there is no goal
+    # centroid, so goal-BFS and goal-alignment are inert -- the agent must
+    # NOT navigate toward a phantom colour (the bug that pinned every game
+    # at 0 levels by walking into a non-matching target that acts as a wall
+    # and oscillating there). Goal-seeking re-engages only once a colour is
+    # discovered from a real level advance.
+    grid = _grid_with_goal([(2, 4), (4, 2)])  # colour-8 cells present
+    strat = HolographicShadowStrategy(goal_color=None)
+    assert strat._goal_centroid(_HoloFrame(grid)) is None
+    assert strat._goal_bfs((1.0, 1.0), None, ALLOWED_4) is None
+    assert strat._goal_alignment("ACTION1", (0.0, 0.0), None) == 0.0
+
+
+def test_holographic_strategy_frontier_prefers_least_visited_next_state() -> None:
+    # In the bootstrap regime the frontier term biases toward the action
+    # whose learned next-state has been visited least, which is what drives
+    # real coverage instead of fixation.
+    strat = HolographicShadowStrategy(goal_color=None)
+    sh = "S"
+    strat._forward_model.transitions[(sh, "ACTION1")] = "hot"
+    strat._forward_model.transitions[(sh, "ACTION2")] = "cold"
+    strat.state_visits["hot"] = 9
+    strat.state_visits["cold"] = 0
+    assert strat._score_action("ACTION2", sh, False) > strat._score_action(
+        "ACTION1", sh, False
+    )
+
+
+def test_holographic_strategy_frontier_uniform_when_forward_model_empty() -> None:
+    # With no learned transitions every next-state is unknown, so the
+    # frontier term is uniform and cannot change the ordering -- this is
+    # what keeps early pre-learning steps on their prior behaviour.
+    strat = HolographicShadowStrategy(goal_color=None)
+    assert strat._score_action("ACTION1", "S", False) == strat._score_action(
+        "ACTION2", "S", False
+    )
+
+
+def test_holographic_strategy_frontier_off_when_goal_color_set() -> None:
+    # With a goal colour set (explicit operator colour / unit tests) the
+    # frontier term is disabled, so next-state visit counts do not affect
+    # the score -- behaviour matches the pre-fix goal-seeking strategy.
+    strat = HolographicShadowStrategy(goal_color=8)
+    sh = "S"
+    strat._forward_model.transitions[(sh, "ACTION1")] = "hot"
+    strat._forward_model.transitions[(sh, "ACTION2")] = "cold"
+    strat.state_visits["hot"] = 9
+    strat.state_visits["cold"] = 0
+    assert strat._score_action("ACTION1", sh, False) == strat._score_action(
+        "ACTION2", sh, False
+    )
+
+
+def test_holographic_strategy_bootstrap_state_hash_distinguishes_grids() -> None:
+    # No goal, no player yet: the goal-mask key is all-zero and player_pos
+    # is None, so the strategy keys on a downsampled grid snapshot instead.
+    # Distinct grids must hash distinctly (else the frontier term cannot
+    # tell states apart and exploration stalls); identical grids must agree.
+    strat = HolographicShadowStrategy(goal_color=None, player_color=None)
+    a = _HoloFrame(_grid_with_color([(0, 0, 5)]))
+    b = _HoloFrame(_grid_with_color([(7, 7, 5)]))
+    assert strat._state_hash(a) != strat._state_hash(b)
+    assert strat._state_hash(a) == strat._state_hash(
+        _HoloFrame(_grid_with_color([(0, 0, 5)]))
+    )
+
+
+def test_holographic_strategy_click_sweep_varies_targets() -> None:
+    # Click-driven games (only a complex action available, no movable
+    # player) must probe different cells instead of clicking one fixed
+    # point forever. Successive ACTION6 picks sweep distinct targets.
+    strat = HolographicShadowStrategy(goal_color=None, exploration_epsilon=0.0)
+    frame = _HoloFrame(_grid_with_color([(1, 1, 5), (2, 2, 5), (3, 3, 7), (5, 5, 7)]))
+    targets = []
+    for _ in range(4):
+        name, data = strat.choose(frame, [], {}, ["ACTION6"])
+        assert name == "ACTION6"
+        targets.append((data["x"], data["y"]))
+    assert len(set(targets)) >= 3
+
+
+def test_holographic_strategy_click_sweep_falls_back_on_featureless_grid() -> None:
+    # A uniform grid has nothing meaningful to click, so the sweep yields
+    # nothing and the configured default coordinate is used.
+    strat = HolographicShadowStrategy(
+        goal_color=None, exploration_epsilon=0.0, complex_action_default=(7, 9)
+    )
+    chosen, data = strat.choose(_HoloFrame(_grid_with_goal([])), [], {}, ["ACTION6"])
+    assert chosen == "ACTION6"
+    assert data == {"x": 7, "y": 9}
+
+
+def test_holographic_strategy_epsilon_greedy_explores_multiple_actions() -> None:
+    # With epsilon=1.0 in the bootstrap regime every pick is a uniformly
+    # random available action, so over many calls more than one action is
+    # chosen (the trajectory variety a deterministic walk lacks).
+    strat = HolographicShadowStrategy(
+        goal_color=None, exploration_epsilon=1.0, exploration_seed=0
+    )
+    frame = _HoloFrame(_grid_with_color([(0, 0, 5)]))
+    picks = set()
+    for _ in range(20):
+        name, _ = strat.choose(frame, [], {}, ALLOWED_4)
+        picks.add(name)
+    assert len(picks) >= 2
+
+
+def test_holographic_strategy_bootstrap_replay_is_deterministic() -> None:
+    # ARC Prize / repo compliance (skill item 6: determinism / replay). A
+    # fresh strategy with the default (fixed) exploration seed must replay
+    # identically on the same frame sequence, even though the bootstrap
+    # regime (goal_color=None) uses the exploration RNG. Drive twice and
+    # require identical action AND provenance-type streams.
+    frames = [
+        _HoloFrame(_grid_with_color([(i % 6, (i * 2) % 6, 5)]))
+        for i in range(12)
+    ]
+
+    def run() -> Tuple[List[str], List[str]]:
+        strat = HolographicShadowStrategy(goal_color=None)  # default seed=0
+        actions: List[str] = []
+        for i in range(len(frames) - 1):
+            name, _ = strat.choose(frames[i], [], {}, ALLOWED_4)
+            actions.append(name)
+            strat.observe(frames[i], name, frames[i + 1])
+        return actions, [p["type"] for p in strat.provenance]
+
+    actions_a, prov_a = run()
+    actions_b, prov_b = run()
+    assert actions_a == actions_b
+    assert prov_a == prov_b
+    # Non-vacuous: the stochastic exploration path actually varied actions
+    # (otherwise determinism would be trivially true).
+    assert len(set(actions_a)) >= 2
+
+
+def test_holographic_strategy_goal_set_pick_is_deterministic() -> None:
+    # Epsilon applies only in the bootstrap regime. With a goal colour set,
+    # selection stays deterministic (lex tiebreak) even at epsilon=1.0 and a
+    # nondeterministic seed, so goal-seeking behaviour is unchanged.
+    frame = _HoloFrame(_grid_with_goal([(7, 7)]))
+    picks = set()
+    for _ in range(10):
+        strat = HolographicShadowStrategy(
+            goal_color=8, player_color=9,
+            exploration_epsilon=1.0, exploration_seed=None,
+        )
+        name, _ = strat.choose(frame, [], {}, ALLOWED_4)
+        picks.add(name)
+    assert len(picks) == 1
+
+
+def test_holographic_strategy_frontier_weight_validation() -> None:
+    import pytest
+
+    with pytest.raises(ValueError):
+        HolographicShadowStrategy(frontier_weight=-0.1)
+
+
+def test_holographic_strategy_exploration_epsilon_validation() -> None:
+    import pytest
+
+    with pytest.raises(ValueError):
+        HolographicShadowStrategy(exploration_epsilon=1.5)
+    with pytest.raises(ValueError):
+        HolographicShadowStrategy(exploration_epsilon=-0.1)
 
 
 # ---- run_arcagi3_agent CLI dispatch ---------------------------------------

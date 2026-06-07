@@ -804,15 +804,26 @@ class _PlayerColorDetector:
         min_observations: int = 4,
         min_actions: int = 2,
         min_variance: float = 0.5,
+        switch_margin: float = 1.5,
     ) -> None:
         self.min_observations = min_observations
         self.min_actions = min_actions
         self.min_variance = min_variance
+        # Hysteresis: once a player colour is committed, a challenger
+        # must beat its variance by this factor before we switch. Two
+        # colours with near-equal action-drift variance (e.g. the player
+        # sprite and a goal token that both shift with the camera) would
+        # otherwise make the argmax flip-flop every observation, and each
+        # flip resets the strategy's state-dependent caches -- thrashing
+        # the very forward-model / visit history exploration relies on.
+        self.switch_margin = switch_margin
         # per-(colour, action_name) -> list of (dr, dc) drift vectors
         self.drifts: Dict[Tuple[int, str], List[Tuple[float, float]]] = {}
         self.observations_seen = 0
         self._cached: Optional[int] = None
         self._cache_obs_count = -1
+        # Sticky committed choice for the hysteresis above.
+        self._committed: Optional[int] = None
 
     def observe(
         self,
@@ -879,6 +890,18 @@ class _PlayerColorDetector:
         )
         if best_var < self.min_variance:
             return None
+        # Hysteresis: stick with the committed colour unless a different
+        # colour beats it by ``switch_margin``. The first qualifying
+        # discovery commits freely (nothing to beat).
+        committed = self._committed
+        if (
+            committed is not None
+            and committed != best_colour
+            and committed in scores
+            and best_var < scores[committed] * self.switch_margin
+        ):
+            best_colour = committed
+        self._committed = best_colour
         self._cached = best_colour
         self._cache_obs_count = self.observations_seen
         return best_colour
@@ -1543,6 +1566,32 @@ class HolographicShadowStrategy:
     # move-rate (≈1.0) and wall (−1.0) signal so learned movement still
     # dominates once real evidence accumulates.
     EXPLORATION_TRIES_WEIGHT = 0.15
+    # Frontier-exploration weight. Active ONLY while no goal colour is
+    # trusted yet (``goal_color is None`` -- the bootstrap regime before
+    # any level advance has been credited to a colour). In that regime
+    # the strategy has no meaningful goal direction, so instead of
+    # fixating on a phantom default-colour centroid (the bug that pinned
+    # every game at 0 levels: navigating into a non-matching lock that
+    # acts as a wall, then oscillating), it drives toward the
+    # least-visited learned next-state. This is what bootstraps the goal
+    # detector: systematic coverage eventually triggers a level advance,
+    # which credits the real goal colour, which flips the strategy out of
+    # explore mode and into the goal-seeking machinery below. Sized to
+    # dominate the optimistic move-rate prior (≈0.5-1.0) so the agent
+    # actually fans out instead of repeating the first action that moved.
+    # Once a goal colour is known the term switches off and goal-BFS /
+    # goal-alignment lead, so behaviour with an explicit ``goal_color``
+    # (e.g. unit tests, an operator-supplied colour) is unchanged.
+    FRONTIER_WEIGHT = 1.5
+    # Epsilon for epsilon-greedy exploration in the bootstrap regime
+    # (``goal_color is None``). Fraction of steps that take a uniformly
+    # random available action instead of the frontier-greedy pick, with
+    # random tie-breaking on the greedy steps. Adds the trajectory
+    # variety a deterministic walk lacks, which is what lets the agent
+    # cover enough of a stochastic game to trip the first level advance.
+    # Ignored once a goal colour is known (goal-seeking stays
+    # deterministic).
+    EXPLORATION_EPSILON = 0.25
     # PositiveResonanceAmplifier port. MCOP memory resonance (from
     # ``memory_summary['resonance']``, the stigmergy alignment score)
     # multiplies the goal-directional term by
@@ -1564,7 +1613,13 @@ class HolographicShadowStrategy:
     def __init__(
         self,
         fallback: Optional[Strategy] = None,
-        goal_color: int = GOAL_COLOR,
+        # ``None`` means "no trusted goal colour yet -- explore until a
+        # level advance reveals it" (the robust production default set by
+        # run_arcagi3_agent). An explicit int trusts that colour as the
+        # goal from step 0 (operator override / deterministic tests). The
+        # class default stays GOAL_COLOR so callers that omit it keep the
+        # historical goal-seeking behaviour.
+        goal_color: Optional[int] = GOAL_COLOR,
         move_threshold_cells: int = MOVE_THRESHOLD_CELLS,
         move_threshold_centroid: float = MOVE_THRESHOLD_CENTROID,
         wobble_threshold_centroid: float = WOBBLE_THRESHOLD_CENTROID,
@@ -1594,6 +1649,19 @@ class HolographicShadowStrategy:
         min_action_observations_for_alignment: int = 1,  # lowered to engage goal alignment faster using repo MCOP patterns
         # Exploration / resonance shaping (see class-level constants).
         exploration_tries_weight: float = EXPLORATION_TRIES_WEIGHT,
+        # Frontier-exploration weight, active only in the no-trusted-goal
+        # bootstrap regime (``goal_color is None``). See FRONTIER_WEIGHT.
+        frontier_weight: float = FRONTIER_WEIGHT,
+        # Epsilon-greedy exploration in the bootstrap regime. See
+        # EXPLORATION_EPSILON. ``exploration_seed`` seeds the PRNG used for
+        # the random jumps / tie-breaks. Defaults to a FIXED seed (0) so a
+        # fresh strategy replays identically given the same frame sequence
+        # -- ARC Prize / repo determinism-and-replay compliance (a run is
+        # reproducible and auditable). Pass a different int for a different
+        # but still-reproducible trajectory; pass None only for a
+        # deliberately nondeterministic run.
+        exploration_epsilon: float = EXPLORATION_EPSILON,
+        exploration_seed: Optional[int] = 0,
         resonance_amplify_weight: float = RESONANCE_AMPLIFY_WEIGHT,
         resonance_event_threshold: float = RESONANCE_EVENT_THRESHOLD,
         # Goal-BFS planner. Once at least
@@ -1621,6 +1689,10 @@ class HolographicShadowStrategy:
             raise ValueError("goal_bfs_min_action_drifts must be >= 1")
         if exploration_tries_weight < 0:
             raise ValueError("exploration_tries_weight must be >= 0")
+        if frontier_weight < 0:
+            raise ValueError("frontier_weight must be >= 0")
+        if not 0.0 <= exploration_epsilon <= 1.0:
+            raise ValueError("exploration_epsilon must be in [0, 1]")
         if resonance_amplify_weight < 0:
             raise ValueError("resonance_amplify_weight must be >= 0")
         self.fallback = fallback or RandomStrategy()
@@ -1637,8 +1709,19 @@ class HolographicShadowStrategy:
             min_action_observations_for_alignment
         )
         self.exploration_tries_weight = exploration_tries_weight
+        self.frontier_weight = frontier_weight
+        self.exploration_epsilon = exploration_epsilon
+        self._rng = random.Random(exploration_seed)
         self.resonance_amplify_weight = resonance_amplify_weight
         self.resonance_event_threshold = resonance_event_threshold
+        # Click-sweep state for click-driven games (only ACTION6 / a
+        # complex action available, no movable player). A fixed default
+        # coordinate makes the agent click the same cell forever; instead
+        # we lazily build a systematic sweep of candidate cells from the
+        # first frame we need it on and advance through it on each complex
+        # pick. See _next_click_target / _build_click_targets.
+        self._click_targets: List[Tuple[int, int]] = []
+        self._click_ptr = 0
         self.action_stats: Dict[str, Dict[str, float]] = {}
         # Per-action mean player-centroid drift, accumulated online
         # from observe(). action_drift_sums[name] = (sum_dr, sum_dc),
@@ -1741,6 +1824,31 @@ class HolographicShadowStrategy:
             return None
         return (sum(rs) / len(rs), sum(cs) / len(cs))
 
+    @staticmethod
+    def _grid_fingerprint(frame: Any) -> List[List[List[int]]]:
+        """Downsampled (~16x16 per layer) snapshot of the whole grid.
+
+        Used as the bootstrap state key (no goal, no player yet). The
+        stride collapses sub-cell jitter while preserving cell-level
+        changes, so distinct play states hash distinctly without the key
+        exploding on a 64x64 frame.
+        """
+        snapshot: List[List[List[int]]] = []
+        for layer in _grid_as_list(frame):
+            h = len(layer)
+            w = len(layer[0]) if (layer and layer[0]) else 0
+            if not h or not w:
+                continue
+            sr = max(1, h // 16)
+            sc = max(1, w // 16)
+            snapshot.append(
+                [
+                    [int(layer[r][c]) for c in range(0, w, sc)]
+                    for r in range(0, h, sr)
+                ]
+            )
+        return snapshot
+
     def _state_hash(self, frame: Any) -> str:
         # Goal-colour mask gives the strategy an invariant landmark
         # against which it can later bias planning, but it is the
@@ -1754,6 +1862,22 @@ class HolographicShadowStrategy:
         # ACTION1→4 cycle. Including the player centroid (binned to
         # integer cells, post-discovery) ensures walls accrue per
         # position so the strategy actually navigates.
+        #
+        # Pure-bootstrap exception: when there is no trusted goal colour
+        # AND no player has been discovered yet, both components above are
+        # degenerate -- the goal mask is all-zero (goal_color is None
+        # matches nothing) and player_pos is None -- so every frame would
+        # collapse to one key and the frontier term could not tell states
+        # apart, stalling exploration before discovery ever fires. Key on
+        # a downsampled snapshot of the whole grid instead, so any
+        # meaningful change (the player sprite moving, a clicked cell
+        # toggling) yields a distinct state and exploration can fan out.
+        if self.goal_color is None and self.player_color is None:
+            payload = json.dumps(
+                {"snap": self._grid_fingerprint(frame)},
+                default=_json_default,
+            ).encode()
+            return hashlib.sha256(payload).hexdigest()[:16]
         masked = [
             [
                 [1 if v == self.goal_color else 0 for v in row]
@@ -1871,6 +1995,25 @@ class HolographicShadowStrategy:
         # wall (−1.0) or a high move-rate still wins.
         tries_here = self.state_action_tries.get((state_hash, name), 0)
         score -= self.exploration_tries_weight * tries_here
+        # Frontier exploration (bootstrap regime only). Until a goal
+        # colour is trusted, bias toward the action whose learned
+        # next-state has been visited least -- and maximally toward
+        # actions whose next-state is still unknown (an unexplored
+        # frontier). This is what lets the agent fan out and actually
+        # cover the level instead of fixating; it is what bootstraps the
+        # goal detector toward the first level advance. When the forward
+        # model is empty every next-state is unknown, so the term is
+        # uniform across actions and cannot change the ordering -- which
+        # keeps explicit-goal callers (goal_color set, e.g. tests) and
+        # early pre-learning steps on exactly their prior behaviour.
+        if self.goal_color is None and self.frontier_weight > 0:
+            nxt = self._forward_model.transitions.get((state_hash, name))
+            frontier = (
+                1.0
+                if nxt is None
+                else 1.0 / (1.0 + self.state_visits.get(nxt, 0))
+            )
+            score += self.frontier_weight * frontier
         if oscillating:
             # Stronger novelty seeking once an ABAB cycle is detected:
             # prefer the action we have tried least at this state even
@@ -1978,6 +2121,70 @@ class HolographicShadowStrategy:
             depth += 1
         return None
 
+    def _build_click_targets(self, frame: Any) -> List[Tuple[int, int]]:
+        """Systematic sweep of candidate click cells for a complex action.
+
+        Returns ``(x, y)`` pairs (x = column, y = row) covering the grid
+        on a coarse stride (~16x16), with non-background cells first so
+        the interactive elements of a click-driven game are probed before
+        empty floor. Returns ``[]`` for a featureless grid (no cell
+        differs from the background), so the caller falls back to the
+        configured ``complex_action_default`` -- this preserves the
+        single-cell default behaviour when there is nothing to sweep.
+        """
+        grid = _grid_as_list(frame)
+        layer = grid[0] if grid else []
+        h = len(layer)
+        w = len(layer[0]) if (layer and layer[0]) else 0
+        if not h or not w:
+            return []
+        counts: Dict[int, int] = {}
+        for row in layer:
+            for v in row:
+                counts[int(v)] = counts.get(int(v), 0) + 1
+        if not counts:
+            return []
+        # Background = most common colour; ties broken by lowest index
+        # for determinism.
+        background = max(counts.items(), key=lambda kv: (kv[1], -kv[0]))[0]
+        step = max(1, min(h, w) // 16)
+        nonbg: List[Tuple[int, int]] = []
+        bgcells: List[Tuple[int, int]] = []
+        seen: set = set()
+        for r in range(0, h, step):
+            for c in range(0, w, step):
+                key = (c, r)
+                if key in seen:
+                    continue
+                seen.add(key)
+                (nonbg if int(layer[r][c]) != background else bgcells).append(key)
+        # Only sweep when the grid actually has features; a uniform grid
+        # has nothing meaningful to click, so signal "use the default".
+        return nonbg + bgcells if nonbg else []
+
+    def _next_click_target(self, frame: Any) -> Tuple[int, int]:
+        """Next ``(x, y)`` in the click sweep, cycling when exhausted.
+
+        Falls back to ``complex_action_default`` when the grid has no
+        sweepable features.
+        """
+        if not self._click_targets:
+            self._click_targets = self._build_click_targets(frame)
+        if not self._click_targets:
+            return self._complex_default
+        target = self._click_targets[self._click_ptr % len(self._click_targets)]
+        self._click_ptr += 1
+        return target
+
+    def _action_data(self, name: str, frame: Any) -> Dict[str, Any]:
+        """Payload for ``name``: a swept click target for complex actions
+        (so click-driven games actually probe different cells), empty for
+        simple directional actions."""
+        if name not in COMPLEX_ACTIONS:
+            return {}
+        x, y = self._next_click_target(frame)
+        return {"x": x, "y": y}
+
     def choose(
         self,
         frame: Any,
@@ -2010,11 +2217,7 @@ class HolographicShadowStrategy:
                     planned,
                     len(self._forward_model.terminal_states),
                 )
-                data: Dict[str, Any] = {}
-                if planned in COMPLEX_ACTIONS:
-                    x, y = self._complex_default
-                    data = {"x": x, "y": y}
-                return (planned, data)
+                return (planned, self._action_data(planned, frame))
         # Goal-BFS planner: shortest-path search through the learned
         # per-position wall map using the learned per-action drifts
         # as the move table. Only engages when both the player and
@@ -2050,11 +2253,7 @@ class HolographicShadowStrategy:
                     "positions_with_walls": len(self.position_walls),
                 }
             )
-            data = {}
-            if bfs_pick in COMPLEX_ACTIONS:
-                x, y = self._complex_default
-                data = {"x": x, "y": y}
-            return (bfs_pick, data)
+            return (bfs_pick, self._action_data(bfs_pick, frame))
         oscillating = self._detect_oscillation()
         resonance = (
             float(memory_summary.get("resonance", 0.0))
@@ -2078,12 +2277,36 @@ class HolographicShadowStrategy:
             for name in available_action_names
         }
         # Highest score wins; lexical action name breaks ties so the
-        # pick stays deterministic across runs.
+        # pick stays deterministic across runs (goal-seeking regime).
         scored = sorted(
             available_action_names,
             key=lambda n: (-action_scores[n], n),
         )
-        chosen = scored[0]
+        if self.goal_color is None:
+            # Bootstrap regime: stochastic exploration. A purely
+            # deterministic explorer commits to a single trajectory, so
+            # on these (stochastic) games it under-covers relative to a
+            # noisy random walk -- which matters because completing a
+            # level here is largely a coverage/variety game until the
+            # goal colour is discovered. Epsilon-greedy over the frontier
+            # score gives both: mostly frontier-directed, occasionally a
+            # random jump, with random tie-breaking among equal-score
+            # actions. Driven by ``self._rng`` (seeded from
+            # ``exploration_seed``, default fixed) so the trajectory is
+            # reproducible -- a fresh strategy replays identically on the
+            # same frames, satisfying the determinism/replay compliance
+            # requirement while still exploring within a run.
+            if self._rng.random() < self.exploration_epsilon:
+                chosen = self._rng.choice(available_action_names)
+            else:
+                best = action_scores[scored[0]]
+                top = [
+                    n for n in available_action_names
+                    if action_scores[n] >= best - 1e-9
+                ]
+                chosen = self._rng.choice(top)
+        else:
+            chosen = scored[0]
         # Explicit observability for the previously-silent resonance and
         # exploration score modifiers: emit one concise line per
         # score-based pick so their effect is visible in run traces.
@@ -2118,10 +2341,7 @@ class HolographicShadowStrategy:
                     "state_hash": state_hash,
                 }
             )
-        data = {}
-        if chosen in COMPLEX_ACTIONS:
-            x, y = self._complex_default
-            data = {"x": x, "y": y}
+        data = self._action_data(chosen, frame)
         if oscillating:
             logger.info(
                 "holographic-shadow oscillation detected; novelty pick=%s",
@@ -2171,9 +2391,9 @@ class HolographicShadowStrategy:
             discovered = self._goal_detector.current()
             if discovered is not None and discovered != self.goal_color:
                 logger.info(
-                    "holographic-shadow goal-colour discovered: %d -> %d "
+                    "holographic-shadow goal-colour discovered: %s -> %d "
                     "(advances=%d); resetting state-dependent caches",
-                    self.goal_color,
+                    self.goal_color,  # may be None (no trusted goal yet)
                     discovered,
                     self._goal_detector.advances_seen,
                 )
