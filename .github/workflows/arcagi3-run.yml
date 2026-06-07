@@ -50,9 +50,9 @@ on:
         default: false
         type: boolean
       goal_color:
-        description: "Pixel colour index of the goal tile (holographic strategy only). Leave blank to use library default (8)."
+        description: "Pixel colour index of the goal tile (holographic strategy only). Leave blank to auto-discover the goal colour online from the first level advance (recommended -- a wrong fixed colour stalls the agent at 0 levels)."
         required: false
-        default: "8"
+        default: ""
         type: string
       player_color:
         description: "Pixel colour index of the player sprite (holographic strategy only). Leave blank to auto-detect."
@@ -60,7 +60,7 @@ on:
         default: ""
         type: string
       seed:
-        description: "PRNG seed (random strategy only). Leave blank for non-deterministic."
+        description: "PRNG seed. For 'random': leave blank for non-deterministic. For 'holographic': seeds bootstrap exploration; blank uses the deterministic default (0) so runs are reproducible/auditable."
         required: false
         default: ""
         type: string
