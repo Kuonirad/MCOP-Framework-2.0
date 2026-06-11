@@ -158,7 +158,7 @@ import { defaultGrokClient, GrokMCOPAdapter } from '@/adapters';
 
 const adapter = new GrokMCOPAdapter({
   encoder: new NovaNeoEncoder({ dimensions: 8192, normalize: true }),
-  stigmergy: new StigmergyV5({ resonanceThreshold: 0.65, maxTraces: 4096 }),
+  stigmergy: new StigmergyV5({ maxTraces: 4096 }), // threshold auto-calibrates; see docs/RESONANCE_CALIBRATION.md
   etch: new HolographicEtch({ confidenceFloor: 0, auditLog: true }),
   client: defaultGrokClient(),
   defaultModel: 'grok-3-mini',
