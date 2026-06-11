@@ -8,6 +8,22 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased] — Automated Evidence Retrieval & Guardian v0.2
 
 ### Changed
+- **Calibrated resonance: the magic `0.65` threshold is gone.** When no
+  explicit `resonanceThreshold` is configured, `StigmergyV5` now derives its
+  base threshold in closed form from the encoder's unrelated-text null model:
+  τ(M, α, n) = Φ⁻¹((1−α)^(1/n)) / √M, where M is the effective tensor
+  dimensionality (saturating at 32 for the SHA-256 hash backend, whose tiling
+  adds no information), n the trace-buffer capacity, and α the false-resonance
+  budget (default 1%). For the stock configuration this yields τ ≈ 0.7816.
+  **Finding:** under the same null model the legacy `0.65` admitted a 21.5%
+  per-query false-resonance rate at full default-buffer occupancy (Gaussian
+  bound; ≈ 5.6% measured by Monte Carlo with real SHA-256 tensors) — spurious
+  matches the temporal-pheromone layer then reinforced. Explicit
+  `resonanceThreshold` / numeric `adaptiveThreshold` configurations are
+  unaffected, and the adaptive calibrator still takes over after 3 traces.
+  Derivation, reproduction script, and migration notes in
+  `docs/RESONANCE_CALIBRATION.md`; constants pinned in
+  `src/__tests__/resonanceCalibration.test.ts`.
 - **Relicensed to Apache License 2.0 (open source).** The project moved
   from the source-available Business Source License 1.1 to the
   OSI-approved **Apache License 2.0**. As the sole copyright holder, the
@@ -24,6 +40,22 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   (`LICENSE-MIT-INTEGRATIONS`). See `NOTICE.md` for the full history.
 
 ### Added
+- **`resonanceCalibration` module — closed-form noise floors as a public API.**
+  `analyticThreshold(M, {alpha, candidates})`, `falseResonanceRate`,
+  `effectiveTensorDimensions`, and dependency-free `normalCdf` /
+  `inverseNormalCdf` (Acklam) are exported from both `src/core` and
+  `packages/core`, alongside a new `StigmergyConfig.noiseFloor` block
+  (`alpha`, `backend`, `tensorDimensions`, `candidates`) for tuning the
+  calibration per deployment.
+- **Dual-key traces — cryptographic identity and semantic locality as
+  orthogonal axes of one sealed object.** `recordTrace(..., { semanticContext })`
+  binds an optional embedding tensor under the same RFC 8785 canonical digest
+  as the hash tensor, and `getResonance(query, { keyspace: 'semantic' })`
+  recalls along the semantic axis (skipping single-key traces) while
+  `'context'` remains the exact-match/integrity axis. Traces recorded without
+  a semantic key keep digests byte-identical to v5, so existing chains,
+  golden fixtures, and TS↔Python parity are untouched. See
+  `docs/RESONANCE_CALIBRATION.md`.
 - **`EpistemicState.ERROR` — exception paths as first-class epistemic objects.**
   The Python engine's mycelial chaining loop (`MCOPEngine._build_chains`) now
   wraps each refinement iteration: a failure in any reasoning-mode callback or
