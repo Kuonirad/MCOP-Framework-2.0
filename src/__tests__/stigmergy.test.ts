@@ -1,5 +1,6 @@
 import { StigmergyV5 } from '../core/stigmergyV5';
 import { ContextTensor } from '../core/types';
+import { canonicalDigest } from '../core/canonicalEncoding';
 
 describe('StigmergyV5 Security & Functionality', () => {
   let stigmergy: StigmergyV5;
@@ -70,5 +71,82 @@ describe('ResonantRecentQuery', () => {
     const stig = new StigmergyV5();
     stig.recordTrace([1, 0], [1, 0]);
     expect(stig.getResonantRecent(-5)).toEqual([]);
+  });
+});
+
+describe('Dual-key traces (hash identity + semantic locality)', () => {
+  test('semantic key is bound under the same canonical digest as the hash key', () => {
+    const stig = new StigmergyV5();
+    const trace = stig.recordTrace([1, 0], [1, 0], { domain: 'dual' }, {
+      semanticContext: [0.2, 0.8],
+    });
+
+    const dualKeyDigest = canonicalDigest({
+      payload: {
+        id: trace.id,
+        context: trace.context,
+        synthesisVector: trace.synthesisVector,
+        metadata: trace.metadata,
+        weight: trace.weight,
+        semanticContext: trace.semanticContext,
+      },
+      parentHash: null,
+    });
+    const singleKeyDigest = canonicalDigest({
+      payload: {
+        id: trace.id,
+        context: trace.context,
+        synthesisVector: trace.synthesisVector,
+        metadata: trace.metadata,
+        weight: trace.weight,
+      },
+      parentHash: null,
+    });
+
+    expect(trace.hash).toBe(dualKeyDigest);
+    expect(trace.hash).not.toBe(singleKeyDigest);
+    expect(trace.semanticMagnitude).toBeCloseTo(Math.hypot(0.2, 0.8), 12);
+  });
+
+  test('single-key traces keep their v5 digest byte-identical', () => {
+    const stig = new StigmergyV5();
+    const trace = stig.recordTrace([1, 0], [1, 0]);
+    const v5Digest = canonicalDigest({
+      payload: {
+        id: trace.id,
+        context: trace.context,
+        synthesisVector: trace.synthesisVector,
+        metadata: undefined,
+        weight: trace.weight,
+      },
+      parentHash: null,
+    });
+    expect(trace.hash).toBe(v5Digest);
+  });
+
+  test('semantic and context keyspaces are orthogonal recall axes', () => {
+    const stig = new StigmergyV5({ resonanceThreshold: 0.9, adaptiveThreshold: false });
+    const hashKey = [1, 0, 0];
+    const semanticKey = [0, 0.6, 0.8];
+    const trace = stig.recordTrace(hashKey, hashKey, undefined, {
+      semanticContext: semanticKey,
+    });
+
+    const semanticHit = stig.getResonance(semanticKey, { keyspace: 'semantic' });
+    expect(semanticHit.trace?.id).toBe(trace.id);
+    expect(semanticHit.score).toBeCloseTo(1, 9);
+
+    // The semantic key must not resonate in the cryptographic keyspace…
+    expect(stig.getResonance(semanticKey).trace).toBeUndefined();
+    // …and the hash key still matches in its own keyspace.
+    expect(stig.getResonance(hashKey).trace?.id).toBe(trace.id);
+  });
+
+  test('semantic queries skip traces sealed without a semantic key', () => {
+    const stig = new StigmergyV5({ resonanceThreshold: 0.1, adaptiveThreshold: false });
+    stig.recordTrace([1, 0], [1, 0]);
+    const result = stig.getResonance([1, 0], { keyspace: 'semantic' });
+    expect(result.trace).toBeUndefined();
+    expect(result.score).toBe(0);
   });
 });

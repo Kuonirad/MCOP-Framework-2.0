@@ -1,18 +1,51 @@
 import {
   ContextTensor,
   PheromoneTrace,
+  RecordTraceOptions,
+  ResonanceQueryOptions,
   ResonanceResult,
   ResonantRecentQueryOptions,
   ResonantRecentTrace,
 } from './types';
+import {
+  analyticThreshold,
+  effectiveTensorDimensions,
+  SHA256_TENSOR_DIMENSIONS,
+  type EncoderBackendKind,
+  type NoiseFloorOptions,
+} from './resonanceCalibration';
 import { cosineWithMagnitudes, magnitude, padVector } from './vectorMath';
 import { CircularBuffer } from './circularBuffer';
 import { canonicalDigest } from './canonicalEncoding';
 import { randomUUID } from 'node:crypto';
 
+export interface NoiseFloorConfig extends NoiseFloorOptions {
+  /**
+   * Output dimensionality of the encoder feeding this memory. Hash-family
+   * backends saturate at 32 effective dimensions (SHA-256 tiling), so this
+   * only matters for the embedding backend.
+   */
+  tensorDimensions?: number;
+  /** Encoder backend feeding this memory. Default `'hash'`. */
+  backend?: EncoderBackendKind;
+}
+
 export interface StigmergyConfig {
+  /**
+   * Explicit base resonance threshold. When omitted, the threshold is no
+   * longer a magic constant: it is derived analytically from the encoder's
+   * unrelated-text null model via `analyticThreshold` so the false-resonance
+   * rate is bounded at `noiseFloor.alpha` (default 1%) even at full buffer
+   * occupancy. See `resonanceCalibration.ts` for the derivation.
+   */
   resonanceThreshold?: number;
   maxTraces?: number;
+  /**
+   * Tunes the analytic noise floor used when `resonanceThreshold` is omitted.
+   * `candidates` defaults to the trace-buffer capacity (worst case: a query
+   * scans a full buffer of unrelated traces).
+   */
+  noiseFloor?: NoiseFloorConfig;
   adaptiveThreshold?: number | boolean; // 2026-05-03 audit → v2.2.1 (numeric override or boolean toggle)
   hysteresisBand?: number;
   calibrationWindow?: number;
@@ -34,7 +67,18 @@ export class StigmergyV5 {
   constructor(config: StigmergyConfig = {}) {
     const adaptive = config.adaptiveThreshold;
     const numericAdaptive = typeof adaptive === 'number' ? adaptive : undefined;
-    this.resonanceThreshold = clamp01(numericAdaptive ?? config.resonanceThreshold ?? 0.65);
+    const noiseFloor = config.noiseFloor ?? {};
+    const calibratedFloor = analyticThreshold(
+      effectiveTensorDimensions(
+        noiseFloor.backend ?? 'hash',
+        noiseFloor.tensorDimensions ?? SHA256_TENSOR_DIMENSIONS,
+      ),
+      {
+        alpha: noiseFloor.alpha,
+        candidates: noiseFloor.candidates ?? config.maxTraces ?? 2048,
+      },
+    );
+    this.resonanceThreshold = clamp01(numericAdaptive ?? config.resonanceThreshold ?? calibratedFloor);
     this.traces = new CircularBuffer<PheromoneTrace>(config.maxTraces ?? 2048);
     this.adaptiveThreshold = typeof adaptive === 'boolean' ? adaptive : true;
     this.hysteresisBand = Math.max(0, config.hysteresisBand ?? 0.05);
@@ -55,7 +99,9 @@ export class StigmergyV5 {
     context: ContextTensor,
     synthesisVector: number[],
     metadata?: Record<string, unknown>,
+    options?: RecordTraceOptions,
   ): PheromoneTrace {
+    const semanticContext = options?.semanticContext;
     const parentHash = this.traces.last()?.hash;
     const id = randomUUID();
 
@@ -75,7 +121,12 @@ export class StigmergyV5 {
       comparableSynthesisMag,
     );
 
-    const payload = { id, context, synthesisVector, metadata, weight };
+    // Dual-key binding: when a semantic (embedding) key accompanies the
+    // hash key, both are sealed under one canonical digest. Omitting the
+    // field entirely keeps single-key hashes byte-identical to v5.
+    const payload = semanticContext !== undefined
+      ? { id, context, synthesisVector, metadata, weight, semanticContext }
+      : { id, context, synthesisVector, metadata, weight };
     const hash = this.merkleHash(payload, parentHash);
 
     const trace: PheromoneTrace = {
@@ -89,6 +140,10 @@ export class StigmergyV5 {
       metadata,
       timestamp: new Date().toISOString(),
     };
+    if (semanticContext !== undefined) {
+      trace.semanticContext = semanticContext;
+      trace.semanticMagnitude = magnitude(semanticContext);
+    }
 
     // O(1): CircularBuffer replaces the previous O(n) Array.shift() pattern.
     this.traces.push(trace);
@@ -96,7 +151,8 @@ export class StigmergyV5 {
     return trace;
   }
 
-  getResonance(context: ContextTensor): ResonanceResult {
+  getResonance(context: ContextTensor, options: ResonanceQueryOptions = {}): ResonanceResult {
+    const keyspace = options.keyspace ?? 'context';
     const queryMag = magnitude(context);
     if (queryMag === 0) {
       return { score: 0, thresholdUsed: this.resonanceThreshold };
@@ -106,12 +162,17 @@ export class StigmergyV5 {
     let bestTrace: PheromoneTrace | undefined;
 
     this.traces.forEach((trace) => {
-      const { a: comparableContext, b: comparableTraceContext } = alignVectors(context, trace.context);
+      // Dual-key dispatch: semantic queries match the embedding key and
+      // skip traces sealed without one; context queries are unchanged.
+      const keyVector = keyspace === 'semantic' ? trace.semanticContext : trace.context;
+      if (!keyVector) return;
+      const cachedKeyMag = keyspace === 'semantic' ? trace.semanticMagnitude : trace.magnitude;
+      const { a: comparableContext, b: comparableTraceContext } = alignVectors(context, keyVector);
       const comparableQueryMag = comparableContext === context
         ? queryMag
         : magnitude(comparableContext);
-      const traceMag = comparableTraceContext === trace.context
-        ? trace.magnitude ?? magnitude(trace.context)
+      const traceMag = comparableTraceContext === keyVector
+        ? cachedKeyMag ?? magnitude(keyVector)
         : magnitude(comparableTraceContext);
       if (traceMag === 0 || comparableQueryMag === 0) return;
 

@@ -22,10 +22,37 @@ export interface PheromoneTrace {
   parentHash?: string;
   context: ContextTensor;
   magnitude?: number; // Optimization: Cached Euclidean norm of the context tensor
+  /**
+   * Dual-key trace: optional embedding tensor carrying semantic locality
+   * alongside the hash tensor's cryptographic identity (`context`). When
+   * present it is bound under the same canonical digest as the rest of the
+   * payload, so semantic recall and integrity verification are orthogonal
+   * axes of one sealed object.
+   */
+  semanticContext?: ContextTensor;
+  /** Cached Euclidean norm of `semanticContext`. */
+  semanticMagnitude?: number;
   synthesisVector: number[];
   weight: number;
   metadata?: Record<string, unknown>;
   timestamp: string;
+}
+
+/**
+ * Which key of a dual-key trace a resonance query matches against:
+ * `'context'` = hash tensor (cryptographic identity, exact-match memory),
+ * `'semantic'` = embedding tensor (semantic locality). Traces recorded
+ * without a semantic key are skipped by `'semantic'` queries.
+ */
+export type ResonanceKeyspace = 'context' | 'semantic';
+
+export interface ResonanceQueryOptions {
+  keyspace?: ResonanceKeyspace;
+}
+
+export interface RecordTraceOptions {
+  /** Embedding tensor to seal alongside the hash tensor (dual-key trace). */
+  semanticContext?: ContextTensor;
 }
 
 export interface ResonanceResult {

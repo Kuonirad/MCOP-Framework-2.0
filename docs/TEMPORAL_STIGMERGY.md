@@ -65,7 +65,8 @@ no clock is read, and no new fields appear on results. When enabled:
 import { StigmergyV5 } from '@/core';
 
 const stig = new StigmergyV5({
-  resonanceThreshold: 0.65,
+  // resonanceThreshold omitted → calibrated analytic noise floor
+  // (see docs/RESONANCE_CALIBRATION.md)
   temporalDynamics: {
     enabled: true,
     halfLifeMs: 60_000,       // trails halve every minute…
