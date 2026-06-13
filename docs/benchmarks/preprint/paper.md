@@ -1,6 +1,13 @@
 # MCOP Framework 2.0 — Reproducible deterministic prompting-mode benchmark
 
 > **Preprint scaffold v0.1 · placeholders in `<…>` spans are filled in at submission time from the bundle's `manifest.json`.**
+>
+> **Headline claim moved.** The credibility anchor for this work is byte-identity,
+> not throughput — see the companion preprint
+> [`byte-identity.md`](./byte-identity.md) ("Identical cognition state, byte for
+> byte, across four runtimes"). The numbers below bound *triad overhead* on a
+> deterministic mock LLM; they are a secondary, hardware-dependent result and are
+> framed as such to avoid ops/sec quibbles.
 
 * **Authors.** Kevin Kull · MCOP Framework 2.0 contributors.
 * **Repository.** `Kuonirad/MCOP-Framework-2.0` · branch tagged at submission with `mcop-benchmark/<schema-version>`.
@@ -13,6 +20,16 @@
 ---
 
 ## Abstract
+
+The headline property of this work is **byte-identity**: the cognition-state
+digest reproduces bit-for-bit across four independent runtimes (Node `crypto`,
+a portable pure-JS SHA-256, WebCrypto `subtle`, and Python `hashlib`) — the
+claim a referee can falsify in ninety seconds without trusting our hardware,
+documented in the companion preprint [`byte-identity.md`](./byte-identity.md)
+and pinned by `src/__tests__/byteIdentity.test.ts` +
+`mcop_package/tests/parity/test_byte_identity_parity.py`. The throughput figures
+below are a *secondary* result that bounds triad overhead under a deterministic
+mock LLM.
 
 We describe a deterministic, reproducible, byte-identical benchmark for
 recursive meta-cognitive prompting pipelines. The harness compares three
