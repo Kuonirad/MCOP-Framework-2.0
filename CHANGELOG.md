@@ -8,6 +8,26 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased] — Automated Evidence Retrieval & Guardian v0.2
 
 ### Changed
+- **The provenanced film — the credits are a root hash.** A long-form generated
+  film can now ship with a verifiable **provenance sidecar**: every shot is
+  Merkle-traceable to its prompt, seed, adapter call, and — via the
+  orchestrator's existing **Direct Forcing** loop — the fingerprint of the
+  previously generated clip it conditioned on. New `filmProvenance` module
+  composes the `longFormVideoOrchestrator` with the D2 Merkle Mountain Range:
+  each shot is an MMR claim whose record cryptographically seals the Direct
+  Forcing edge (`priorFingerprintDigest`) and the chain (`priorShotLeaf`), so a
+  viewer's browser verifies both **membership** (`O(log n)` per shot against one
+  `creditRoot`) and **lineage** (each shot really conditioned on the prior
+  clip's real output). `LongFormVideoOrchestrator.generate` takes
+  `recordFilmProvenance` and returns a `filmSidecar`; an interactive
+  [`/film`](src/app/film) page lets a viewer fold the proofs and watch the
+  lineage break on edit; the lunar-documentary sidecar ships at
+  `public/films/lunar-documentary.provenance.json`. The Direct Forcing loop now
+  does cryptographic work, not ceremony. **Trust boundary, stated on the page:**
+  a verified film proves it was assembled as recorded — not that the footage is
+  real or that a prompt's provenance is the training data's. Provider-agnostic
+  (Vidu/Kling/Higgsfield/Wan plug into the same `VideoClipAdapter`); non-breaking
+  (sidecar omitted unless enabled). See `docs/PROVENANCED_FILM.md`.
 - **Free-energy-governed graph-of-thought — physical halting, not administrative.**
   `PGoT` no longer stops expanding only at `maxFanout`/`maxDepth`. A new
   `freeEnergyGovernor` wires the existing `ThermoTruthKernel` into the expansion

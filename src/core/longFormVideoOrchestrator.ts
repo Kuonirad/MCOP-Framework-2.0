@@ -2,6 +2,7 @@ import { HashingTrickBackend, defaultEmbeddingBackend } from './embeddingEngine'
 import { StigmergyV5 } from './stigmergyV5';
 import { HolographicEtch } from './holographicEtch';
 import { SynthesisProvenanceTracer } from './provenanceTracer';
+import { FilmProvenanceRecorder, type FilmProvenanceSidecar } from './filmProvenance';
 import type { ContextTensor } from './types';
 
 /**
@@ -78,6 +79,18 @@ export interface LongFormGenerateOptions {
   embeddingDimensions?: number;
   /** Forwarded to the adapter as `input.options`. */
   adapterOptions?: Record<string, unknown>;
+  /**
+   * When set, record a verifiable film provenance sidecar (each shot bound to
+   * the prior clip's fingerprint via the Direct Forcing chain). The result's
+   * `filmSidecar` carries the credit root. See {@link ./filmProvenance}.
+   */
+  recordFilmProvenance?: boolean;
+  /** Film title stamped into the sidecar. */
+  filmTitle?: string;
+  /** Model identifier recorded per shot (provenance only). */
+  modelId?: string;
+  /** Adapter/provider name recorded per shot (provenance only). */
+  adapterName?: string;
 }
 
 export interface ClipRecord {
@@ -96,6 +109,13 @@ export interface LongFormGenerateResult {
   clips: ClipRecord[];
   /** Final Merkle root after all clips, or `undefined` if zero produced. */
   finalRoot: string | undefined;
+  /**
+   * Verifiable provenance sidecar — present when `recordFilmProvenance` is
+   * enabled. Every shot is Merkle-traceable to its prompt, seed, adapter, and
+   * the fingerprint of the clip it conditioned on; `creditRoot` is the film's
+   * single credit hash. See {@link ./filmProvenance}.
+   */
+  filmSidecar?: FilmProvenanceSidecar;
 }
 
 export interface LongFormVideoOrchestratorDeps {
@@ -139,6 +159,10 @@ export class LongFormVideoOrchestrator {
     const dim = options.embeddingDimensions ?? DEFAULT_DIM;
 
     const clips: ClipRecord[] = [];
+    const film = options.recordFilmProvenance
+      ? new FilmProvenanceRecorder(options.filmTitle)
+      : undefined;
+    const seed = options.adapterOptions?.seed as number | string | undefined;
 
     for (let i = 0; i < totalClips; i++) {
       const remaining = options.totalDurationSec - i * clipSec;
@@ -184,6 +208,20 @@ export class LongFormVideoOrchestrator {
         `clip-${i}:${output.assetUrl}`,
       );
 
+      // Provenance sidecar: seal this shot — prompt, seed, adapter, asset, and
+      // the Direct Forcing edge (the prior clip's fingerprint) — into the film
+      // MMR, so every shot is independently traceable to a single credit root.
+      film?.recordShot({
+        shotIndex: i,
+        prompt: augmentedPrompt,
+        seed,
+        model: options.modelId,
+        adapter: options.adapterName,
+        durationSeconds: duration,
+        assetUrl: output.assetUrl,
+        fingerprint,
+      });
+
       clips.push({
         clipIndex: i,
         prompt: augmentedPrompt,
@@ -196,7 +234,11 @@ export class LongFormVideoOrchestrator {
       });
     }
 
-    return { clips, finalRoot: this.tracer.getRoot() };
+    return {
+      clips,
+      finalRoot: this.tracer.getRoot(),
+      ...(film ? { filmSidecar: film.sidecar() } : {}),
+    };
   }
 
   /** Verify the orchestrator's underlying provenance chain. */

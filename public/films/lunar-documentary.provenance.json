@@ -1,0 +1,387 @@
+{
+  "version": "mcop-film-provenance/1.0",
+  "title": "Earthlight: A Lunar Traverse",
+  "creditRoot": "f9a938360ada8692c226218b2a64cc545df9dc95d12140e8be7a6f602b7eaf43",
+  "shotCount": 8,
+  "directForcing": true,
+  "shots": [
+    {
+      "shotIndex": 0,
+      "prompt": "[opening shot] A documentary in earthlight: a solitary rover crosses the lunar south pole, mapping shadowed craters where water ice may hide.",
+      "seed": 4242,
+      "model": "wan-2.1",
+      "adapter": "deterministic-stub",
+      "durationSeconds": 5,
+      "assetUrl": "https://reel.local/lunar/clip-0.mp4",
+      "fingerprintDigest": "976412cfd0c0b5c13b6b44821a4d62a65beb1b7040bc2bcb633afb26485530e5",
+      "priorFingerprintDigest": null,
+      "priorShotLeaf": null
+    },
+    {
+      "shotIndex": 1,
+      "prompt": "[continuation of clip 1 of 8 (prior coherence 0.425)] A documentary in earthlight: a solitary rover crosses the lunar south pole, mapping shadowed craters where water ice may hide.",
+      "seed": 4242,
+      "model": "wan-2.1",
+      "adapter": "deterministic-stub",
+      "durationSeconds": 5,
+      "assetUrl": "https://reel.local/lunar/clip-1.mp4",
+      "fingerprintDigest": "95ea17a4f66210dd88b64dc280b130258ce159e975db59d7a32b14bbe2a68898",
+      "priorFingerprintDigest": "976412cfd0c0b5c13b6b44821a4d62a65beb1b7040bc2bcb633afb26485530e5",
+      "priorShotLeaf": "61c89a80f4e646372e11fd1f78930239eb47bb24c43f91baa9a6ae71f23f6cad"
+    },
+    {
+      "shotIndex": 2,
+      "prompt": "[continuation of clip 2 of 8 (prior coherence 0.000)] A documentary in earthlight: a solitary rover crosses the lunar south pole, mapping shadowed craters where water ice may hide.",
+      "seed": 4242,
+      "model": "wan-2.1",
+      "adapter": "deterministic-stub",
+      "durationSeconds": 5,
+      "assetUrl": "https://reel.local/lunar/clip-2.mp4",
+      "fingerprintDigest": "3ea3103adaee041afb2d92387e9e237423444c58ed6438e57fe45edee312bc2e",
+      "priorFingerprintDigest": "95ea17a4f66210dd88b64dc280b130258ce159e975db59d7a32b14bbe2a68898",
+      "priorShotLeaf": "878f4aafa2877d7f37287ee4cb08afed09ccaf6cf63e535515f0390333e1a4d9"
+    },
+    {
+      "shotIndex": 3,
+      "prompt": "[continuation of clip 3 of 8 (prior coherence 0.000)] A documentary in earthlight: a solitary rover crosses the lunar south pole, mapping shadowed craters where water ice may hide.",
+      "seed": 4242,
+      "model": "wan-2.1",
+      "adapter": "deterministic-stub",
+      "durationSeconds": 5,
+      "assetUrl": "https://reel.local/lunar/clip-3.mp4",
+      "fingerprintDigest": "8217bccdb6d1d44e50bd27fce44de041650c1ded6a5c0b36992338c0cb8fc117",
+      "priorFingerprintDigest": "3ea3103adaee041afb2d92387e9e237423444c58ed6438e57fe45edee312bc2e",
+      "priorShotLeaf": "7c29c9d424cfcedc52c71b739305037f1e4a21aad3baad6e5786a076a7caed93"
+    },
+    {
+      "shotIndex": 4,
+      "prompt": "[continuation of clip 4 of 8 (prior coherence 0.000)] A documentary in earthlight: a solitary rover crosses the lunar south pole, mapping shadowed craters where water ice may hide.",
+      "seed": 4242,
+      "model": "wan-2.1",
+      "adapter": "deterministic-stub",
+      "durationSeconds": 5,
+      "assetUrl": "https://reel.local/lunar/clip-4.mp4",
+      "fingerprintDigest": "cf5dce64e7484efa88b2edb8f05d39071deacf371ce7a0ef1e41ab10b04c7285",
+      "priorFingerprintDigest": "8217bccdb6d1d44e50bd27fce44de041650c1ded6a5c0b36992338c0cb8fc117",
+      "priorShotLeaf": "9831a3e466265ee89171115d936653180897a6ccc9870f8c97f4e0264e399bf2"
+    },
+    {
+      "shotIndex": 5,
+      "prompt": "[continuation of clip 5 of 8 (prior coherence 0.000)] A documentary in earthlight: a solitary rover crosses the lunar south pole, mapping shadowed craters where water ice may hide.",
+      "seed": 4242,
+      "model": "wan-2.1",
+      "adapter": "deterministic-stub",
+      "durationSeconds": 5,
+      "assetUrl": "https://reel.local/lunar/clip-5.mp4",
+      "fingerprintDigest": "0554699eee16e42bced534d291a4195629cc2fd0f3426dbd5081687a64fad0ea",
+      "priorFingerprintDigest": "cf5dce64e7484efa88b2edb8f05d39071deacf371ce7a0ef1e41ab10b04c7285",
+      "priorShotLeaf": "3385ffdbabcd03628d9504f2621c6b1a3ddc832cc78b6d0b95bfa9fa734cd38d"
+    },
+    {
+      "shotIndex": 6,
+      "prompt": "[continuation of clip 6 of 8 (prior coherence 0.000)] A documentary in earthlight: a solitary rover crosses the lunar south pole, mapping shadowed craters where water ice may hide.",
+      "seed": 4242,
+      "model": "wan-2.1",
+      "adapter": "deterministic-stub",
+      "durationSeconds": 5,
+      "assetUrl": "https://reel.local/lunar/clip-6.mp4",
+      "fingerprintDigest": "40eefa13869878ff15aa9c31c655c55e2c311952c552ea75d72c08fb92a73a9c",
+      "priorFingerprintDigest": "0554699eee16e42bced534d291a4195629cc2fd0f3426dbd5081687a64fad0ea",
+      "priorShotLeaf": "74efd28e9c0e44d25f50e4f840d81e6a85f9d80a11cda7b7f1bdc4a558edd606"
+    },
+    {
+      "shotIndex": 7,
+      "prompt": "[continuation of clip 7 of 8 (prior coherence 0.000)] A documentary in earthlight: a solitary rover crosses the lunar south pole, mapping shadowed craters where water ice may hide.",
+      "seed": 4242,
+      "model": "wan-2.1",
+      "adapter": "deterministic-stub",
+      "durationSeconds": 5,
+      "assetUrl": "https://reel.local/lunar/clip-7.mp4",
+      "fingerprintDigest": "9479c6a9b8257e025ee934119879d0a9d546b60f097fc8c238c64f120ae90f6a",
+      "priorFingerprintDigest": "40eefa13869878ff15aa9c31c655c55e2c311952c552ea75d72c08fb92a73a9c",
+      "priorShotLeaf": "bad7c19740dbdb6da5a09f55ccf21d5a057d0824350057ed8943ff9e6f253605"
+    }
+  ],
+  "receipts": [
+    {
+      "version": "mcop-reasoning-receipt/1.0",
+      "epoch": "mmr-rfc6962-sha256/1",
+      "claim": {
+        "shotIndex": 0,
+        "prompt": "[opening shot] A documentary in earthlight: a solitary rover crosses the lunar south pole, mapping shadowed craters where water ice may hide.",
+        "seed": 4242,
+        "model": "wan-2.1",
+        "adapter": "deterministic-stub",
+        "durationSeconds": 5,
+        "assetUrl": "https://reel.local/lunar/clip-0.mp4",
+        "fingerprintDigest": "976412cfd0c0b5c13b6b44821a4d62a65beb1b7040bc2bcb633afb26485530e5",
+        "priorFingerprintDigest": null,
+        "priorShotLeaf": null
+      },
+      "leafEntry": "61c89a80f4e646372e11fd1f78930239eb47bb24c43f91baa9a6ae71f23f6cad",
+      "leafIndex": 0,
+      "size": 8,
+      "proof": [
+        {
+          "sibling": "ed5514e55c64de34abeb04909ee53d8338384da5359ca32a76566877b5d03b56",
+          "side": "right"
+        },
+        {
+          "sibling": "ad865789b9cb7a3dccfbf14e504d46aeb4157b07d668baef8ac8b223ce67ee5c",
+          "side": "right"
+        },
+        {
+          "sibling": "c8257d5ac10b146d37bfdd83b00a6d11ad921df80e7d2e967bffbe179bbdf65b",
+          "side": "right"
+        }
+      ],
+      "root": "f9a938360ada8692c226218b2a64cc545df9dc95d12140e8be7a6f602b7eaf43",
+      "receiptId": "b6b754a1af2d3aeedb376225e16d7866f65dbbfbf027eb35e2bd03e9678a3ad2"
+    },
+    {
+      "version": "mcop-reasoning-receipt/1.0",
+      "epoch": "mmr-rfc6962-sha256/1",
+      "claim": {
+        "shotIndex": 1,
+        "prompt": "[continuation of clip 1 of 8 (prior coherence 0.425)] A documentary in earthlight: a solitary rover crosses the lunar south pole, mapping shadowed craters where water ice may hide.",
+        "seed": 4242,
+        "model": "wan-2.1",
+        "adapter": "deterministic-stub",
+        "durationSeconds": 5,
+        "assetUrl": "https://reel.local/lunar/clip-1.mp4",
+        "fingerprintDigest": "95ea17a4f66210dd88b64dc280b130258ce159e975db59d7a32b14bbe2a68898",
+        "priorFingerprintDigest": "976412cfd0c0b5c13b6b44821a4d62a65beb1b7040bc2bcb633afb26485530e5",
+        "priorShotLeaf": "61c89a80f4e646372e11fd1f78930239eb47bb24c43f91baa9a6ae71f23f6cad"
+      },
+      "leafEntry": "878f4aafa2877d7f37287ee4cb08afed09ccaf6cf63e535515f0390333e1a4d9",
+      "leafIndex": 1,
+      "size": 8,
+      "proof": [
+        {
+          "sibling": "66fc9357ae70f6120ddff733655303b34b73cc88872fec7c4521da0173db44d2",
+          "side": "left"
+        },
+        {
+          "sibling": "ad865789b9cb7a3dccfbf14e504d46aeb4157b07d668baef8ac8b223ce67ee5c",
+          "side": "right"
+        },
+        {
+          "sibling": "c8257d5ac10b146d37bfdd83b00a6d11ad921df80e7d2e967bffbe179bbdf65b",
+          "side": "right"
+        }
+      ],
+      "root": "f9a938360ada8692c226218b2a64cc545df9dc95d12140e8be7a6f602b7eaf43",
+      "receiptId": "3a9168c849ca9b8398d7ed6bc0cc9e157101b2b51724664b8bbcde2b7bbcd404"
+    },
+    {
+      "version": "mcop-reasoning-receipt/1.0",
+      "epoch": "mmr-rfc6962-sha256/1",
+      "claim": {
+        "shotIndex": 2,
+        "prompt": "[continuation of clip 2 of 8 (prior coherence 0.000)] A documentary in earthlight: a solitary rover crosses the lunar south pole, mapping shadowed craters where water ice may hide.",
+        "seed": 4242,
+        "model": "wan-2.1",
+        "adapter": "deterministic-stub",
+        "durationSeconds": 5,
+        "assetUrl": "https://reel.local/lunar/clip-2.mp4",
+        "fingerprintDigest": "3ea3103adaee041afb2d92387e9e237423444c58ed6438e57fe45edee312bc2e",
+        "priorFingerprintDigest": "95ea17a4f66210dd88b64dc280b130258ce159e975db59d7a32b14bbe2a68898",
+        "priorShotLeaf": "878f4aafa2877d7f37287ee4cb08afed09ccaf6cf63e535515f0390333e1a4d9"
+      },
+      "leafEntry": "7c29c9d424cfcedc52c71b739305037f1e4a21aad3baad6e5786a076a7caed93",
+      "leafIndex": 2,
+      "size": 8,
+      "proof": [
+        {
+          "sibling": "33e390b6d00516a740393432054c85c437e1672d0bdb7c281c3c7b466d608e07",
+          "side": "right"
+        },
+        {
+          "sibling": "d7e3d86dac56f2b5525f32f8fc86a91e2621194df51690a6a8fa3d2c3eb41fa8",
+          "side": "left"
+        },
+        {
+          "sibling": "c8257d5ac10b146d37bfdd83b00a6d11ad921df80e7d2e967bffbe179bbdf65b",
+          "side": "right"
+        }
+      ],
+      "root": "f9a938360ada8692c226218b2a64cc545df9dc95d12140e8be7a6f602b7eaf43",
+      "receiptId": "7e83a2b772ee5aa2066b141a4571240857918184e439df2b4a32668fe9175570"
+    },
+    {
+      "version": "mcop-reasoning-receipt/1.0",
+      "epoch": "mmr-rfc6962-sha256/1",
+      "claim": {
+        "shotIndex": 3,
+        "prompt": "[continuation of clip 3 of 8 (prior coherence 0.000)] A documentary in earthlight: a solitary rover crosses the lunar south pole, mapping shadowed craters where water ice may hide.",
+        "seed": 4242,
+        "model": "wan-2.1",
+        "adapter": "deterministic-stub",
+        "durationSeconds": 5,
+        "assetUrl": "https://reel.local/lunar/clip-3.mp4",
+        "fingerprintDigest": "8217bccdb6d1d44e50bd27fce44de041650c1ded6a5c0b36992338c0cb8fc117",
+        "priorFingerprintDigest": "3ea3103adaee041afb2d92387e9e237423444c58ed6438e57fe45edee312bc2e",
+        "priorShotLeaf": "7c29c9d424cfcedc52c71b739305037f1e4a21aad3baad6e5786a076a7caed93"
+      },
+      "leafEntry": "9831a3e466265ee89171115d936653180897a6ccc9870f8c97f4e0264e399bf2",
+      "leafIndex": 3,
+      "size": 8,
+      "proof": [
+        {
+          "sibling": "45c7f4b07665e0ea2bbb7c0abb7370e386109e5c237d66522257cb46be38b4aa",
+          "side": "left"
+        },
+        {
+          "sibling": "d7e3d86dac56f2b5525f32f8fc86a91e2621194df51690a6a8fa3d2c3eb41fa8",
+          "side": "left"
+        },
+        {
+          "sibling": "c8257d5ac10b146d37bfdd83b00a6d11ad921df80e7d2e967bffbe179bbdf65b",
+          "side": "right"
+        }
+      ],
+      "root": "f9a938360ada8692c226218b2a64cc545df9dc95d12140e8be7a6f602b7eaf43",
+      "receiptId": "96c99cbb05745fc45ec1221eb41829005d05c9490ddf7084c1e8f4bb20cd1c43"
+    },
+    {
+      "version": "mcop-reasoning-receipt/1.0",
+      "epoch": "mmr-rfc6962-sha256/1",
+      "claim": {
+        "shotIndex": 4,
+        "prompt": "[continuation of clip 4 of 8 (prior coherence 0.000)] A documentary in earthlight: a solitary rover crosses the lunar south pole, mapping shadowed craters where water ice may hide.",
+        "seed": 4242,
+        "model": "wan-2.1",
+        "adapter": "deterministic-stub",
+        "durationSeconds": 5,
+        "assetUrl": "https://reel.local/lunar/clip-4.mp4",
+        "fingerprintDigest": "cf5dce64e7484efa88b2edb8f05d39071deacf371ce7a0ef1e41ab10b04c7285",
+        "priorFingerprintDigest": "8217bccdb6d1d44e50bd27fce44de041650c1ded6a5c0b36992338c0cb8fc117",
+        "priorShotLeaf": "9831a3e466265ee89171115d936653180897a6ccc9870f8c97f4e0264e399bf2"
+      },
+      "leafEntry": "3385ffdbabcd03628d9504f2621c6b1a3ddc832cc78b6d0b95bfa9fa734cd38d",
+      "leafIndex": 4,
+      "size": 8,
+      "proof": [
+        {
+          "sibling": "78f9d7bc09713d200898d3c8e46ae96f52786773d09a7089e855d55b02d40780",
+          "side": "right"
+        },
+        {
+          "sibling": "c52bf1e9e24be598fdf7b7eb5aa3156d35ecab12994d7f7061df619cfbc279df",
+          "side": "right"
+        },
+        {
+          "sibling": "22dd3ee8357feafbc2a758303c033f8aac5599e6dce91f08c84f60d537d7c237",
+          "side": "left"
+        }
+      ],
+      "root": "f9a938360ada8692c226218b2a64cc545df9dc95d12140e8be7a6f602b7eaf43",
+      "receiptId": "26c0c1b932f0000c273c1d53559465a3fefa26d1929acf5d3a50bef233ebeb1d"
+    },
+    {
+      "version": "mcop-reasoning-receipt/1.0",
+      "epoch": "mmr-rfc6962-sha256/1",
+      "claim": {
+        "shotIndex": 5,
+        "prompt": "[continuation of clip 5 of 8 (prior coherence 0.000)] A documentary in earthlight: a solitary rover crosses the lunar south pole, mapping shadowed craters where water ice may hide.",
+        "seed": 4242,
+        "model": "wan-2.1",
+        "adapter": "deterministic-stub",
+        "durationSeconds": 5,
+        "assetUrl": "https://reel.local/lunar/clip-5.mp4",
+        "fingerprintDigest": "0554699eee16e42bced534d291a4195629cc2fd0f3426dbd5081687a64fad0ea",
+        "priorFingerprintDigest": "cf5dce64e7484efa88b2edb8f05d39071deacf371ce7a0ef1e41ab10b04c7285",
+        "priorShotLeaf": "3385ffdbabcd03628d9504f2621c6b1a3ddc832cc78b6d0b95bfa9fa734cd38d"
+      },
+      "leafEntry": "74efd28e9c0e44d25f50e4f840d81e6a85f9d80a11cda7b7f1bdc4a558edd606",
+      "leafIndex": 5,
+      "size": 8,
+      "proof": [
+        {
+          "sibling": "3a644f2134a82d34515cf9277480e5b834d018a57803079eef78c3ffb53f1c75",
+          "side": "left"
+        },
+        {
+          "sibling": "c52bf1e9e24be598fdf7b7eb5aa3156d35ecab12994d7f7061df619cfbc279df",
+          "side": "right"
+        },
+        {
+          "sibling": "22dd3ee8357feafbc2a758303c033f8aac5599e6dce91f08c84f60d537d7c237",
+          "side": "left"
+        }
+      ],
+      "root": "f9a938360ada8692c226218b2a64cc545df9dc95d12140e8be7a6f602b7eaf43",
+      "receiptId": "be252e34abeb6de0d3c95f8e4c32fb8c1d3e7a9c286504018734b44520e973e0"
+    },
+    {
+      "version": "mcop-reasoning-receipt/1.0",
+      "epoch": "mmr-rfc6962-sha256/1",
+      "claim": {
+        "shotIndex": 6,
+        "prompt": "[continuation of clip 6 of 8 (prior coherence 0.000)] A documentary in earthlight: a solitary rover crosses the lunar south pole, mapping shadowed craters where water ice may hide.",
+        "seed": 4242,
+        "model": "wan-2.1",
+        "adapter": "deterministic-stub",
+        "durationSeconds": 5,
+        "assetUrl": "https://reel.local/lunar/clip-6.mp4",
+        "fingerprintDigest": "40eefa13869878ff15aa9c31c655c55e2c311952c552ea75d72c08fb92a73a9c",
+        "priorFingerprintDigest": "0554699eee16e42bced534d291a4195629cc2fd0f3426dbd5081687a64fad0ea",
+        "priorShotLeaf": "74efd28e9c0e44d25f50e4f840d81e6a85f9d80a11cda7b7f1bdc4a558edd606"
+      },
+      "leafEntry": "bad7c19740dbdb6da5a09f55ccf21d5a057d0824350057ed8943ff9e6f253605",
+      "leafIndex": 6,
+      "size": 8,
+      "proof": [
+        {
+          "sibling": "9598f1005d1c1fca7c2ceb8a7c69376ecfc5c246665119eba86b3d9ebce7f6dd",
+          "side": "right"
+        },
+        {
+          "sibling": "e24f888e339098b81066f80cda2b48c3bbddeeef9b40df115fed214f899227e0",
+          "side": "left"
+        },
+        {
+          "sibling": "22dd3ee8357feafbc2a758303c033f8aac5599e6dce91f08c84f60d537d7c237",
+          "side": "left"
+        }
+      ],
+      "root": "f9a938360ada8692c226218b2a64cc545df9dc95d12140e8be7a6f602b7eaf43",
+      "receiptId": "076a01b16efb16bc02546b0671cd1bf5806e136b213efa65ce4a59400027f16f"
+    },
+    {
+      "version": "mcop-reasoning-receipt/1.0",
+      "epoch": "mmr-rfc6962-sha256/1",
+      "claim": {
+        "shotIndex": 7,
+        "prompt": "[continuation of clip 7 of 8 (prior coherence 0.000)] A documentary in earthlight: a solitary rover crosses the lunar south pole, mapping shadowed craters where water ice may hide.",
+        "seed": 4242,
+        "model": "wan-2.1",
+        "adapter": "deterministic-stub",
+        "durationSeconds": 5,
+        "assetUrl": "https://reel.local/lunar/clip-7.mp4",
+        "fingerprintDigest": "9479c6a9b8257e025ee934119879d0a9d546b60f097fc8c238c64f120ae90f6a",
+        "priorFingerprintDigest": "40eefa13869878ff15aa9c31c655c55e2c311952c552ea75d72c08fb92a73a9c",
+        "priorShotLeaf": "bad7c19740dbdb6da5a09f55ccf21d5a057d0824350057ed8943ff9e6f253605"
+      },
+      "leafEntry": "c39942deb9f90ee3fc7a7daa3f2d165f4003b21e4aea4027ebddde87a4830129",
+      "leafIndex": 7,
+      "size": 8,
+      "proof": [
+        {
+          "sibling": "641909017e18399a3792b32265ea983d00d639fcfa8277c3666b3b8a01c5d7da",
+          "side": "left"
+        },
+        {
+          "sibling": "e24f888e339098b81066f80cda2b48c3bbddeeef9b40df115fed214f899227e0",
+          "side": "left"
+        },
+        {
+          "sibling": "22dd3ee8357feafbc2a758303c033f8aac5599e6dce91f08c84f60d537d7c237",
+          "side": "left"
+        }
+      ],
+      "root": "f9a938360ada8692c226218b2a64cc545df9dc95d12140e8be7a6f602b7eaf43",
+      "receiptId": "64d4caa34c6660e37b3c4ff04786261dcdb98fe75a8bb37ed3f1d95d4357fdde"
+    }
+  ]
+}
