@@ -24,7 +24,8 @@ itself — never hard-coded.
 
 | File                        | Purpose                                                                                  |
 | --------------------------- | ---------------------------------------------------------------------------------------- |
-| [`paper.md`](./paper.md)    | arXiv-style markdown skeleton: Abstract · Introduction · Pipeline · Methodology · Reproducibility · Results · Threats to Validity · Provenance · Conclusion · References. |
+| [`byte-identity.md`](./byte-identity.md) | **The headline preprint.** Reframes the claim from ops/sec to byte-identity across four runtimes — the property a referee checks in ninety seconds. Backed by `src/__tests__/byteIdentity.test.ts`, `mcop_package/tests/parity/test_byte_identity_parity.py`, and `docs/benchmarks/byte-identity-manifest.json`. |
+| [`paper.md`](./paper.md)    | arXiv-style markdown skeleton (the *secondary*, throughput-bounding result): Abstract · Introduction · Pipeline · Methodology · Reproducibility · Results · Threats to Validity · Provenance · Conclusion · References. |
 | [`submission.md`](./submission.md) | Where, how, and with what checksums to upload (arXiv `cs.SE` + Hugging Face mirror + zenodo DOI). |
 | `figures/`                  | Empty directory; figures are emitted by the Jupyter notebook into `out/figures/` and copied here at submission time. |
 

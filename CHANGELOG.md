@@ -8,6 +8,23 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased] — Automated Evidence Retrieval & Guardian v0.2
 
 ### Changed
+- **Byte-identity as the headline claim — identical cognition state across four
+  runtimes.** Reframes the reproducibility story away from ops/sec (which invites
+  hardware quibbles) to the property a referee can falsify in ninety seconds: the
+  cognition-state digest `SHA-256(RFC-8785-canonical-JSON(payload))` — the
+  substrate under every MCOP provenance hash — is byte-identical across **Node
+  `crypto`, a portable pure-JS SHA-256, WebCrypto `subtle`, and Python
+  `hashlib`**. A shared fixture (including the signed-zero / `1e21` / non-BMP
+  serialisation edge cases where naive JSON diverges) is pinned by a Python
+  golden (`tests/parity/byteIdentity.golden.json`), checked through three JS
+  runtimes in `src/__tests__/byteIdentity.test.ts` and from Python in
+  `mcop_package/tests/parity/test_byte_identity_parity.py`, and reported in the
+  emitted `docs/benchmarks/byte-identity-manifest.json` (`allRuntimesAgree:
+  true`, one `consensusRoot`). New headline preprint
+  `docs/benchmarks/preprint/byte-identity.md`; the existing throughput paper is
+  demoted to a secondary result. This is the credibility anchor under the D2
+  receipts and the D4 film — both publish digests that this proves reproduce
+  everywhere.
 - **The provenanced film — the credits are a root hash.** A long-form generated
   film can now ship with a verifiable **provenance sidecar**: every shot is
   Merkle-traceable to its prompt, seed, adapter call, and — via the

@@ -1,0 +1,81 @@
+{
+  "schema": "mcop-byte-identity/1.0",
+  "generatedBy": "src/__tests__/byteIdentity.test.ts",
+  "note": "SHA-256(RFC-8785-canonical-JSON(payload)) — the substrate under every MCOP provenance hash.",
+  "runtimes": [
+    "node-crypto",
+    "portable-js",
+    "webcrypto-subtle",
+    "python-hashlib"
+  ],
+  "consensusRoot": "a88cbe610b15f5509ea6fbf2cfafc4b3bb6872ca91281dbed3caa06178e74428",
+  "allRuntimesAgree": true,
+  "perPayload": [
+    {
+      "subsystem": "nova-neo-encode",
+      "digest": "e38093ba17397a3a2e4d3fe825f4c3313c86e781ab2bc5e8cd87d3a590e3585d",
+      "agreement": {
+        "node-crypto": true,
+        "portable-js": true,
+        "webcrypto-subtle": true,
+        "python-hashlib": true
+      },
+      "allAgree": true
+    },
+    {
+      "subsystem": "stigmergy-trace",
+      "digest": "a5f92c9121601aba325123b2fe64f7d1e790b1e7cd04df0ea6585ffd6e7958c4",
+      "agreement": {
+        "node-crypto": true,
+        "portable-js": true,
+        "webcrypto-subtle": true,
+        "python-hashlib": true
+      },
+      "allAgree": true
+    },
+    {
+      "subsystem": "holographic-etch",
+      "digest": "bdabd5348cb8ce3eb71b17e928431f3b1dbe03ccd5ebe92fd25ba6bbd3b76c79",
+      "agreement": {
+        "node-crypto": true,
+        "portable-js": true,
+        "webcrypto-subtle": true,
+        "python-hashlib": true
+      },
+      "allAgree": true
+    },
+    {
+      "subsystem": "reasoning-receipt-leaf",
+      "digest": "00ebf76f7a634918426ceaedaa71af47bdc9e2d178ea53aec01438f68eb170a5",
+      "agreement": {
+        "node-crypto": true,
+        "portable-js": true,
+        "webcrypto-subtle": true,
+        "python-hashlib": true
+      },
+      "allAgree": true
+    },
+    {
+      "subsystem": "film-shot",
+      "digest": "ab6e91a5c2c42eb77b6027e2de5e0eeb9776424fd12320e1a91d395d13473b37",
+      "agreement": {
+        "node-crypto": true,
+        "portable-js": true,
+        "webcrypto-subtle": true,
+        "python-hashlib": true
+      },
+      "allAgree": true
+    },
+    {
+      "subsystem": "serialisation-edges",
+      "digest": "4a34a3797e3d83472b644fe55313a7c80c04bf7e200faa3269fc578dd86617e5",
+      "agreement": {
+        "node-crypto": true,
+        "portable-js": true,
+        "webcrypto-subtle": true,
+        "python-hashlib": true
+      },
+      "allAgree": true
+    }
+  ]
+}

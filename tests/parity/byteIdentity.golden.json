@@ -1,0 +1,62 @@
+{
+  "schema": "mcop-byte-identity/1.0",
+  "note": "SHA-256(RFC-8785-canonical-JSON(payload)). Byte-identical across node, portable-JS, WebCrypto, and Python.",
+  "fixture": [
+    {
+      "subsystem": "nova-neo-encode",
+      "text": "a solitary rover crosses the lunar south pole",
+      "dimensions": 256,
+      "normalize": true
+    },
+    {
+      "subsystem": "stigmergy-trace",
+      "context": [
+        0.1,
+        0.2,
+        0.3
+      ],
+      "synthesisVector": [
+        0.4,
+        0.5,
+        0.6
+      ],
+      "weight": 0.9876543210987654
+    },
+    {
+      "subsystem": "holographic-etch",
+      "deltaWeight": -0.015625,
+      "note": "clip-3",
+      "flourishingScore": 0.5
+    },
+    {
+      "subsystem": "reasoning-receipt-leaf",
+      "claim": {
+        "id": 4,
+        "text": "tau ~= 0.7816"
+      }
+    },
+    {
+      "subsystem": "film-shot",
+      "shotIndex": 2,
+      "seed": 4242,
+      "priorFingerprintDigest": null
+    },
+    {
+      "subsystem": "serialisation-edges",
+      "emoji": "🜂",
+      "nonBmp": "𐍈",
+      "signedZero": -0.0,
+      "sci": 1e+21,
+      "tiny": 5e-324
+    }
+  ],
+  "digests": [
+    "e38093ba17397a3a2e4d3fe825f4c3313c86e781ab2bc5e8cd87d3a590e3585d",
+    "a5f92c9121601aba325123b2fe64f7d1e790b1e7cd04df0ea6585ffd6e7958c4",
+    "bdabd5348cb8ce3eb71b17e928431f3b1dbe03ccd5ebe92fd25ba6bbd3b76c79",
+    "00ebf76f7a634918426ceaedaa71af47bdc9e2d178ea53aec01438f68eb170a5",
+    "ab6e91a5c2c42eb77b6027e2de5e0eeb9776424fd12320e1a91d395d13473b37",
+    "4a34a3797e3d83472b644fe55313a7c80c04bf7e200faa3269fc578dd86617e5"
+  ],
+  "consensusRoot": "a88cbe610b15f5509ea6fbf2cfafc4b3bb6872ca91281dbed3caa06178e74428"
+}
