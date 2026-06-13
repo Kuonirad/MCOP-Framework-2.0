@@ -8,6 +8,25 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased] — Automated Evidence Retrieval & Guardian v0.2
 
 ### Changed
+- **Free-energy-governed graph-of-thought — physical halting, not administrative.**
+  `PGoT` no longer stops expanding only at `maxFanout`/`maxDepth`. A new
+  `freeEnergyGovernor` wires the existing `ThermoTruthKernel` into the expansion
+  decision: treat the thought set as a thermodynamic ensemble (`U` = per-node
+  budget, `S` = Shannon entropy over quantized configuration vectors, `T` =
+  equipartition temperature `(2/3)σ²`), and **admit a thought only when it lowers
+  the ensemble's Helmholtz free energy `F = U − T·S`; halt when ΔF plateaus** —
+  equilibrium with the evidence. The curiosity bonus becomes *literal
+  temperature* (an additive offset on `T`): hotter ⇒ more exploration.
+  `PGoT.governedExpand` applies it, with `maxFanout`/`maxDepth` kept as hard
+  safety caps. **Falsifier (standing test):** on a 4-cluster pool ΔF-governance
+  reaches full coverage at cost 3 while fixed fanout is stuck at 2/4 clusters by
+  cost 5 (`docs/benchmarks/free-energy-frontier.json`). **Honest dependency,
+  enforced in code:** under the hash backend the configuration variance is
+  near-constant (~13% temperature range vs ~42% for embeddings), so `T`
+  degenerates and `F` collapses to `U`; `assessFreeEnergySignal` measures this
+  and `governExpansion` falls back to administrative limits with a reason string
+  rather than pretending. Free-energy governance needs the embedding backend.
+  Derivation and trust boundary in `docs/FREE_ENERGY_GOVERNOR.md`.
 - **Verifiable reasoning receipts — provenance you fold, not trust.** A
   reasoning session can now be committed to an append-only **Merkle Mountain
   Range** instead of replayed as a linear hash chain: proving one claim belongs
