@@ -8,6 +8,28 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased] — Automated Evidence Retrieval & Guardian v0.2
 
 ### Changed
+- **Verifiable reasoning receipts — provenance you fold, not trust.** A
+  reasoning session can now be committed to an append-only **Merkle Mountain
+  Range** instead of replayed as a linear hash chain: proving one claim belongs
+  to the session drops from **O(n) replay** of the whole transcript to an
+  **O(log n)** inclusion proof a few kilobytes wide. Every claim carries a
+  self-contained `ReasoningReceipt` (`{ claim, leafEntry, proof, root, … }`)
+  that a reader's browser verifies **locally** — recomputing each leaf digest
+  and folding each proof to one published root with the same portable SHA-256
+  the encoder runs in-browser. Leaf = RFC 8785 canonical digest; tree = RFC 6962
+  (`0x00`/`0x01` domain separation), so a power-of-two session's root is
+  bit-for-bit identical to the existing parity-locked `merkleRoot`. New module
+  `reasoningReceipts` (`src/core` + `packages/core` mirror + Python
+  `mcop.reasoning_receipts`), an interactive reader-as-verifier page at
+  [`/verify`](src/app/verify), and a published bundle
+  `public/receipts/d1-calibration.json`. A self-describing `epoch` marker guards
+  future migrations (verifiers fail closed on an unknown epoch); the change is
+  additive, so the existing linear provenance chain is unaffected. **Trust
+  boundary, stated plainly:** a receipt proves a claim was committed to a given
+  root unaltered — not that the claim is true or the reasoning wise. Derivation
+  in `docs/VERIFIABLE_RECEIPTS.md`; cross-runtime byte-identity pinned by
+  `src/__tests__/reasoningReceiptsParity.test.ts` and
+  `mcop_package/tests/parity/test_reasoning_receipts_parity.py`.
 - **Calibrated resonance: the magic `0.65` threshold is gone.** When no
   explicit `resonanceThreshold` is configured, `StigmergyV5` now derives its
   base threshold in closed form from the encoder's unrelated-text null model:

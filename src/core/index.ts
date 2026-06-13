@@ -2,6 +2,7 @@ export * from './types';
 export * from './novaNeoEncoder';
 export * from './stigmergyV5';
 export * from './resonanceCalibration';
+export * from './reasoningReceipts';
 export * from './temporalStigmergy';
 export * from './holographicEtch';
 export * from './positiveResonanceAmplifier';

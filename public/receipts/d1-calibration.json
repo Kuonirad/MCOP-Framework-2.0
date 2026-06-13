@@ -1,0 +1,236 @@
+{
+  "title": "D1 — Calibrated resonance, reasoned in the open",
+  "claims": [
+    {
+      "id": 0,
+      "kind": "premise",
+      "text": "Hash-backend tensors are statistically independent across distinct inputs."
+    },
+    {
+      "id": 1,
+      "kind": "derivation",
+      "text": "Independent components make the cosine score asymptotically Normal(0, 1/M)."
+    },
+    {
+      "id": 2,
+      "kind": "observation",
+      "text": "SHA-256 tiling adds no information, so effective dimensionality M saturates at 32."
+    },
+    {
+      "id": 3,
+      "kind": "derivation",
+      "text": "Best-of-n over a full buffer gives P(false resonance) = 1 - Phi(tau*sqrt(M))^n."
+    },
+    {
+      "id": 4,
+      "kind": "result",
+      "text": "Inverting at alpha=0.01, n=2048 yields tau ~= 0.7816."
+    },
+    {
+      "id": 5,
+      "kind": "finding",
+      "text": "The legacy threshold 0.65 admits a 21.5% per-query false-resonance rate."
+    },
+    {
+      "id": 6,
+      "kind": "conclusion",
+      "text": "Therefore the default resonance floor is analytically calibrated, not a magic number."
+    }
+  ],
+  "root": "62492c3704c63ba63b7c98eabb3fd740ed90ef88fb326026c9d13396b2492e46",
+  "size": 7,
+  "receipts": [
+    {
+      "version": "mcop-reasoning-receipt/1.0",
+      "epoch": "mmr-rfc6962-sha256/1",
+      "claim": {
+        "id": 0,
+        "kind": "premise",
+        "text": "Hash-backend tensors are statistically independent across distinct inputs."
+      },
+      "leafEntry": "5548c0878c93459742ae2d8a6c78c25469af530eb936f1e458724477cb1737fe",
+      "leafIndex": 0,
+      "size": 7,
+      "proof": [
+        {
+          "sibling": "8e978393e0873d5a53d66c13e25adc40e0ab35d74c8febc004c294561557ed23",
+          "side": "right"
+        },
+        {
+          "sibling": "79389bb2666f7ba36962658010cabd20b55e938358d2648a8b72245b4b375bfe",
+          "side": "right"
+        },
+        {
+          "sibling": "b9b6ac0476bafc8355988915981a3e68c92adb082f5a8295d929a114ec71c681",
+          "side": "right"
+        }
+      ],
+      "root": "62492c3704c63ba63b7c98eabb3fd740ed90ef88fb326026c9d13396b2492e46",
+      "receiptId": "a0a6e5e16ab0c46e67ea6b989f80d243dbd6fd1f28ac9656a2e8f1b66ef21c8d"
+    },
+    {
+      "version": "mcop-reasoning-receipt/1.0",
+      "epoch": "mmr-rfc6962-sha256/1",
+      "claim": {
+        "id": 1,
+        "kind": "derivation",
+        "text": "Independent components make the cosine score asymptotically Normal(0, 1/M)."
+      },
+      "leafEntry": "baef7a65876bfbd206f16202072d98f5e1ace05eedc7866d9557a1b4a748d9f6",
+      "leafIndex": 1,
+      "size": 7,
+      "proof": [
+        {
+          "sibling": "ce4cdba0367cda44110db7e85c70aab5031cd57c5d6128db4051bba5f1f9defb",
+          "side": "left"
+        },
+        {
+          "sibling": "79389bb2666f7ba36962658010cabd20b55e938358d2648a8b72245b4b375bfe",
+          "side": "right"
+        },
+        {
+          "sibling": "b9b6ac0476bafc8355988915981a3e68c92adb082f5a8295d929a114ec71c681",
+          "side": "right"
+        }
+      ],
+      "root": "62492c3704c63ba63b7c98eabb3fd740ed90ef88fb326026c9d13396b2492e46",
+      "receiptId": "99d72c4181b065ad182eb4d110eed9c2f102aa315992d1a56d1465b4d9594d3b"
+    },
+    {
+      "version": "mcop-reasoning-receipt/1.0",
+      "epoch": "mmr-rfc6962-sha256/1",
+      "claim": {
+        "id": 2,
+        "kind": "observation",
+        "text": "SHA-256 tiling adds no information, so effective dimensionality M saturates at 32."
+      },
+      "leafEntry": "cc810ac7b975f214d83b092d1b1fd19f9a38c38123da2d323e5c9d564d4cca2a",
+      "leafIndex": 2,
+      "size": 7,
+      "proof": [
+        {
+          "sibling": "fcd7917c1633af1fafe664aec4f80ceb58d681ebdd6226bd576f60b784839413",
+          "side": "right"
+        },
+        {
+          "sibling": "096ea62eefdb5b13b835d8576e89e230832bd19318664a3d166857443514e848",
+          "side": "left"
+        },
+        {
+          "sibling": "b9b6ac0476bafc8355988915981a3e68c92adb082f5a8295d929a114ec71c681",
+          "side": "right"
+        }
+      ],
+      "root": "62492c3704c63ba63b7c98eabb3fd740ed90ef88fb326026c9d13396b2492e46",
+      "receiptId": "c5941afea1d1d52eac274136e4891b500ec8eb1b0aa3d6aa0f3699ba054d1372"
+    },
+    {
+      "version": "mcop-reasoning-receipt/1.0",
+      "epoch": "mmr-rfc6962-sha256/1",
+      "claim": {
+        "id": 3,
+        "kind": "derivation",
+        "text": "Best-of-n over a full buffer gives P(false resonance) = 1 - Phi(tau*sqrt(M))^n."
+      },
+      "leafEntry": "dfe01b9dab122386a85b8133cd7f823fc0e8fb3f8c34dde3876fd121a3615f22",
+      "leafIndex": 3,
+      "size": 7,
+      "proof": [
+        {
+          "sibling": "abbe2533ac208203ba0087355b1c114c998fd0156cbd5ca146fb447057f57871",
+          "side": "left"
+        },
+        {
+          "sibling": "096ea62eefdb5b13b835d8576e89e230832bd19318664a3d166857443514e848",
+          "side": "left"
+        },
+        {
+          "sibling": "b9b6ac0476bafc8355988915981a3e68c92adb082f5a8295d929a114ec71c681",
+          "side": "right"
+        }
+      ],
+      "root": "62492c3704c63ba63b7c98eabb3fd740ed90ef88fb326026c9d13396b2492e46",
+      "receiptId": "51354495c73e94e9b5351036ea37401b1f8b40f535f8f3c2b1da2055f539529f"
+    },
+    {
+      "version": "mcop-reasoning-receipt/1.0",
+      "epoch": "mmr-rfc6962-sha256/1",
+      "claim": {
+        "id": 4,
+        "kind": "result",
+        "text": "Inverting at alpha=0.01, n=2048 yields tau ~= 0.7816."
+      },
+      "leafEntry": "7ba5a6aaf1fe9aff04c75b081e83092d80a868f8db16e78405de417c235f8243",
+      "leafIndex": 4,
+      "size": 7,
+      "proof": [
+        {
+          "sibling": "3c63d2ca0fe420a20f56117f10ffb5ceeee10017da04e03885d7077dab199d5d",
+          "side": "right"
+        },
+        {
+          "sibling": "42af07147d5fe19776a930c96ff2923ac179026b99c5a8ea7725a42482ddd0d2",
+          "side": "right"
+        },
+        {
+          "sibling": "d5c2f3bd3099626252791f70076d73f020c8b5a8fcac4c5e82396cb3946ef4fe",
+          "side": "left"
+        }
+      ],
+      "root": "62492c3704c63ba63b7c98eabb3fd740ed90ef88fb326026c9d13396b2492e46",
+      "receiptId": "98a0f16c31774cabfa852709b3456b94b336be5abbf6177ed00943201c5e8230"
+    },
+    {
+      "version": "mcop-reasoning-receipt/1.0",
+      "epoch": "mmr-rfc6962-sha256/1",
+      "claim": {
+        "id": 5,
+        "kind": "finding",
+        "text": "The legacy threshold 0.65 admits a 21.5% per-query false-resonance rate."
+      },
+      "leafEntry": "63363fb89903ba9dd45f94ba361252263e241c3af2e5a57a25e489dd84d68da7",
+      "leafIndex": 5,
+      "size": 7,
+      "proof": [
+        {
+          "sibling": "06783af98fec6ff5a86ecfb10c8bc3d163fa0145d10b9b7937dd8f05ca677536",
+          "side": "left"
+        },
+        {
+          "sibling": "42af07147d5fe19776a930c96ff2923ac179026b99c5a8ea7725a42482ddd0d2",
+          "side": "right"
+        },
+        {
+          "sibling": "d5c2f3bd3099626252791f70076d73f020c8b5a8fcac4c5e82396cb3946ef4fe",
+          "side": "left"
+        }
+      ],
+      "root": "62492c3704c63ba63b7c98eabb3fd740ed90ef88fb326026c9d13396b2492e46",
+      "receiptId": "aff66858b2eaaecc2ed364c43e59e8f5320747c278360cd775d394ff1cbf2289"
+    },
+    {
+      "version": "mcop-reasoning-receipt/1.0",
+      "epoch": "mmr-rfc6962-sha256/1",
+      "claim": {
+        "id": 6,
+        "kind": "conclusion",
+        "text": "Therefore the default resonance floor is analytically calibrated, not a magic number."
+      },
+      "leafEntry": "b1ade0998dcb29fdddfe2d3c97f27450215251a2b1ccb43f52666c5f5346f992",
+      "leafIndex": 6,
+      "size": 7,
+      "proof": [
+        {
+          "sibling": "0783f471aa2f4db8f02e13d5922533d8c7d3eeb6c0ed15b5280e074d366d9ba7",
+          "side": "left"
+        },
+        {
+          "sibling": "d5c2f3bd3099626252791f70076d73f020c8b5a8fcac4c5e82396cb3946ef4fe",
+          "side": "left"
+        }
+      ],
+      "root": "62492c3704c63ba63b7c98eabb3fd740ed90ef88fb326026c9d13396b2492e46",
+      "receiptId": "24397701c295ed5fd50cc57cb05b3fbf57326ea9d1baf26e45234ca5bcee1337"
+    }
+  ]
+}
