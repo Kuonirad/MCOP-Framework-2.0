@@ -22,6 +22,7 @@ export * from './observability';
 export * from './novaEvolveTuner';
 export * from './driftSentinelKernel';
 export * from './thermoTruthKernel';
+export * from './freeEnergyGovernor';
 export * from './stigmergyBackend';
 export * from './etchBackend';
 export * from './snapshotTypes';

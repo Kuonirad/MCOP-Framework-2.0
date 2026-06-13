@@ -1,0 +1,100 @@
+{
+  "generatedBy": "src/__tests__/freeEnergyGovernor.frontier.test.ts",
+  "note": "Deterministic. Minimizing F = U − T·S optimizes coverage per unit budget.",
+  "backend": "embedding",
+  "curiosityTemperature": 4,
+  "totalClusters": 4,
+  "seedClusters": 1,
+  "governed": {
+    "haltReason": "no-improving-candidate",
+    "admittedClusters": [
+      "consensus",
+      "space",
+      "thermo",
+      "space",
+      "consensus"
+    ],
+    "frontier": [
+      {
+        "cost": 1,
+        "coverage": 2
+      },
+      {
+        "cost": 2,
+        "coverage": 3
+      },
+      {
+        "cost": 3,
+        "coverage": 4
+      },
+      {
+        "cost": 4,
+        "coverage": 4
+      },
+      {
+        "cost": 5,
+        "coverage": 4
+      }
+    ]
+  },
+  "fixedFanout": {
+    "frontier": [
+      {
+        "cost": 1,
+        "coverage": 1
+      },
+      {
+        "cost": 2,
+        "coverage": 1
+      },
+      {
+        "cost": 3,
+        "coverage": 2
+      },
+      {
+        "cost": 4,
+        "coverage": 2
+      },
+      {
+        "cost": 5,
+        "coverage": 2
+      },
+      {
+        "cost": 6,
+        "coverage": 2
+      },
+      {
+        "cost": 7,
+        "coverage": 3
+      },
+      {
+        "cost": 8,
+        "coverage": 3
+      },
+      {
+        "cost": 9,
+        "coverage": 3
+      },
+      {
+        "cost": 10,
+        "coverage": 3
+      },
+      {
+        "cost": 11,
+        "coverage": 4
+      },
+      {
+        "cost": 12,
+        "coverage": 4
+      },
+      {
+        "cost": 13,
+        "coverage": 4
+      },
+      {
+        "cost": 14,
+        "coverage": 4
+      }
+    ]
+  }
+}
