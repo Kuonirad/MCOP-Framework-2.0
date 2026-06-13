@@ -1,0 +1,6 @@
+# The arc_agi2 solver core depends only on the Python standard library, so it
+# runs unchanged inside an offline Kaggle kernel — there is nothing to install
+# for a submission.
+#
+# These are DEV-ONLY tools for running the local test suite:
+pytest>=7
