@@ -1,0 +1,4 @@
+# Ignore the real (large) competition data; keep the committed samples + docs.
+*.json
+!sample_challenges.json
+!sample_solutions.json
