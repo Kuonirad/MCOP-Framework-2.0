@@ -91,7 +91,7 @@
     "web-vitals": "^5.2.0"
   },
   "devDependencies": {
-    "@cyclonedx/cdxgen": "^12.5.0",
+    "@cyclonedx/cdxgen": "^12.5.1",
     "@cyclonedx/cyclonedx-library": "^10",
     "@eslint/eslintrc": "^3.3.5",
     "@tailwindcss/postcss": "^4",
@@ -137,7 +137,8 @@
       "tmp@<0.2.6": "^0.2.6",
       "ws@>=8.0.0 <8.20.1": "^8.20.1",
       "qs@>=6.11.1 <6.15.2": "^6.15.2",
-      "shell-quote@<1.8.4": "^1.8.4"
+      "shell-quote@<1.8.4": "^1.8.4",
+      "esbuild@>=0.17.0 <0.28.1": "^0.28.1"
     },
         "peerDependencyRules": {
                 "allowedVersions": {
@@ -155,7 +156,8 @@
     "tmp": "^0.2.6",
     "uuid": "^14.0.0",
     "qs": "^6.15.2",
-    "shell-quote": "^1.8.4"
+    "shell-quote": "^1.8.4",
+    "esbuild": "^0.28.1"
   },
   "keywords": [
     "arc-agi",
