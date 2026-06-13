@@ -18,6 +18,7 @@ export * from './canonicalEncoding';
 export * from './embeddingEngine';
 export * from './universalCrypto';
 export * from './longFormVideoOrchestrator';
+export * from './filmProvenance';
 export * from './observability';
 export * from './novaEvolveTuner';
 export * from './driftSentinelKernel';
