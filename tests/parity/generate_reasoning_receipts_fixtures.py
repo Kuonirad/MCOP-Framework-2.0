@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2026 Kevin John Kull (Kuonirad) and KullAILABS MCOP Framework contributors
 """Generate the cross-runtime reasoning-receipts parity golden + publishable bundle.
 
 Deterministic: running it twice produces byte-identical

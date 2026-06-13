@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2026 Kevin John Kull (Kuonirad) and KullAILABS MCOP Framework contributors
 """Cross-Runtime reasoning-receipts (MMR) Parity Guardian — Python side.
 
 Mirror of ``src/__tests__/reasoningReceipts.test.ts``. Both runtimes read
