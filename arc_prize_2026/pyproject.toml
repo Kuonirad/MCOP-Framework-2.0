@@ -16,7 +16,7 @@ keywords = ["arc-agi", "arc-prize", "reasoning", "kaggle"]
 dependencies = []
 
 [project.optional-dependencies]
-dev = ["pytest>=7"]
+dev = ["pytest>=9.0.3"]
 
 [project.scripts]
 arc-agi2 = "arc_agi2.cli:main"
