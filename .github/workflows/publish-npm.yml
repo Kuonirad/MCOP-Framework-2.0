@@ -30,7 +30,10 @@ name: Publish npm package
 #     publish.yml: releases here are shipped by pushing a version tag (not by
 #     hand-creating a GitHub Release), so the publish has to fire on the tag
 #     push itself — `release: published` alone never runs for that path.
-#   • Manual dispatch with `dry_run: true` (default) → validation only
+#   • Manual dispatch with `dry_run: true` (default) → validation only. If the
+#     current package version is already published, this uses `npm pack
+#     --dry-run` because npm 11 rejects `npm publish --dry-run` for duplicate
+#     versions.
 #
 # Tag pushes and GitHub Release publishes can both arrive for the same
 # `npm-v*` version. The registry probe below makes that path idempotent: the
@@ -148,7 +151,7 @@ jobs:
       # generic non-zero exit.
       - name: Pre-flight — verify package + scope are bootstrapped on npm
         id: npm_registry
-        if: github.event_name == 'release' || github.event_name == 'push'
+        if: github.event_name == 'release' || github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         run: |
           pkg_name=$(node -p "require('./package.json').name")
           pkg_version=$(node -p "require('./package.json').version")
@@ -193,8 +196,17 @@ jobs:
 
       - name: Publish (dry run)
         if: >-
-          github.event_name == 'workflow_dispatch' && inputs.dry_run == true
+          github.event_name == 'workflow_dispatch' &&
+          inputs.dry_run == true &&
+          steps.npm_registry.outputs.version_published != 'true'
         run: npm publish --access public --dry-run
+
+      - name: Pack validation (dry run for already-published version)
+        if: >-
+          github.event_name == 'workflow_dispatch' &&
+          inputs.dry_run == true &&
+          steps.npm_registry.outputs.version_published == 'true'
+        run: npm pack --dry-run
 
       # ------------------------------------------------------------------
       # CycloneDX SBOM generation (root-of-repo command). We deliberately
