@@ -3,6 +3,7 @@
 #   pip-compile --generate-hashes -o .github/requirements/arcagi3.txt .github/requirements/arcagi3.in
 arc-agi==0.9.8
 openai==2.37.0
+starlette==1.3.1
 # rfc8785 is a runtime dep of the in-repo mcop_package (declared in
 # mcop_package/pyproject.toml). It is pinned here so that --require-hashes
 # resolves the full transitive closure that arcagi3-run.yml needs, including
