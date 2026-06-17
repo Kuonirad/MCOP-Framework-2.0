@@ -25,11 +25,17 @@ name: Publish npm package
 #
 # Triggers:
 #   • GitHub Release tagged `npm-v*` (e.g. `npm-v0.1.0`) → real publish
+#     only when that exact package version is not already on npm.
 #   • Push of an `npm-v*` tag → real publish. Mirrors the container path in
 #     publish.yml: releases here are shipped by pushing a version tag (not by
 #     hand-creating a GitHub Release), so the publish has to fire on the tag
 #     push itself — `release: published` alone never runs for that path.
 #   • Manual dispatch with `dry_run: true` (default) → validation only
+#
+# Tag pushes and GitHub Release publishes can both arrive for the same
+# `npm-v*` version. The registry probe below makes that path idempotent: the
+# first event publishes, and any duplicate event skips the upload while still
+# completing the deployment and release-asset steps cleanly.
 #
 # Requirements enforced in-workflow:
 #   • npm CLI ≥ 11.5.1  (trusted publishing prerequisite)
@@ -141,12 +147,18 @@ jobs:
       # actionable error instead of dying inside `npm publish` with a
       # generic non-zero exit.
       - name: Pre-flight — verify package + scope are bootstrapped on npm
+        id: npm_registry
         if: github.event_name == 'release' || github.event_name == 'push'
         run: |
           pkg_name=$(node -p "require('./package.json').name")
+          pkg_version=$(node -p "require('./package.json').version")
+          encoded_pkg_name=$(node -p "encodeURIComponent(require('./package.json').name)")
           echo "Probing npm registry for ${pkg_name}…"
-          http_code=$(curl -fsS -o /dev/null -w "%{http_code}" \
-            "https://registry.npmjs.org/${pkg_name}" || echo "000")
+          metadata_file=$(mktemp)
+          if ! http_code=$(curl -sS -o "$metadata_file" -w "%{http_code}" \
+            "https://registry.npmjs.org/${encoded_pkg_name}"); then
+            http_code="000"
+          fi
           echo "Registry returned HTTP ${http_code}"
           if [ "$http_code" = "404" ]; then
             cat <<EOF >&2
@@ -165,6 +177,13 @@ jobs:
             exit 1
           fi
           echo "Package found on npm — proceeding to trusted-publish flow."
+          if PKG_VERSION="$pkg_version" node -e "const fs = require('node:fs'); const metadata = JSON.parse(fs.readFileSync(process.argv[1], 'utf8')); const versions = metadata.versions || {}; process.exit(Object.prototype.hasOwnProperty.call(versions, process.env.PKG_VERSION) ? 0 : 1);" "$metadata_file"; then
+            echo "version_published=true" >> "$GITHUB_OUTPUT"
+            echo "${pkg_name}@${pkg_version} already exists on npm; duplicate release/tag event will skip upload."
+          else
+            echo "version_published=false" >> "$GITHUB_OUTPUT"
+            echo "${pkg_name}@${pkg_version} is not published yet; this run must upload it."
+          fi
 
       - name: Typecheck
         run: npm run typecheck
@@ -231,9 +250,9 @@ jobs:
       # Refs: actions/setup-node#1445, npm/cli#9088
       - name: Publish to npm (trusted publishing + automatic provenance)
         if: >-
-          github.event_name == 'release' ||
-          github.event_name == 'push' ||
-          (github.event_name == 'workflow_dispatch' && inputs.dry_run == false)
+          (github.event_name == 'workflow_dispatch' && inputs.dry_run == false) ||
+          ((github.event_name == 'release' || github.event_name == 'push') &&
+            steps.npm_registry.outputs.version_published != 'true')
         run: |
           # IMPORTANT: We need npm to see *no* NODE_AUTH_TOKEN at all (not
           # empty, not undefined-but-still-injected) so it triggers its OIDC
@@ -292,6 +311,15 @@ jobs:
             echo "::endgroup::"
             exit "$publish_exit"
           fi
+
+      - name: Skip npm publish for already-published version
+        if: >-
+          (github.event_name == 'release' || github.event_name == 'push') &&
+          steps.npm_registry.outputs.version_published == 'true'
+        run: |
+          pkg_name=$(node -p "require('./package.json').name")
+          pkg_version=$(node -p "require('./package.json').version")
+          echo "${pkg_name}@${pkg_version} is already present on npm; treating this duplicate release path as successful."
 
       # ------------------------------------------------------------------
       # Attach the generated SBOM JSONs to the GitHub Release as
