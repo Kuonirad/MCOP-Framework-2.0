@@ -13,7 +13,7 @@
 # Node 22.22.3 matches `.nvmrc`, README quick-start, CI, and `engines.node`.
 # This closes the Phase I Node runtime drift recorded in
 # docs/audits/audit-execution-ledger-2026-05-v2.md.
-ARG NODE_IMAGE=node:22.22.3-bookworm-slim@sha256:7af03b14a13c8cdd38e45058fd957bf00a72bbe17feac43b1c15a689c029c732
+ARG NODE_IMAGE=node:22.22.3-bookworm-slim@sha256:e21fc383b50d5347dc7a9f1cae45b8f4e2f0d39f7ade28e4eef7d2934522b752
 
 # =============================================================================
 # Stage 0: Base — activates the pnpm version declared in package.json#packageManager

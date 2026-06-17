@@ -5,7 +5,7 @@ const repoRoot = path.resolve(__dirname, '../..');
 const canonicalNode = '22.22.3';
 const canonicalPnpm = '9.15.0';
 const canonicalNodeImage =
-  'node:22.22.3-bookworm-slim@sha256:7af03b14a13c8cdd38e45058fd957bf00a72bbe17feac43b1c15a689c029c732';
+  'node:22.22.3-bookworm-slim@sha256:e21fc383b50d5347dc7a9f1cae45b8f4e2f0d39f7ade28e4eef7d2934522b752';
 
 function read(relativePath: string): string {
   return fs.readFileSync(path.join(repoRoot, relativePath), 'utf8');
