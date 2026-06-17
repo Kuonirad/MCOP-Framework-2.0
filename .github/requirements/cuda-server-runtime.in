@@ -6,6 +6,7 @@
 #     -o .github/requirements/cuda-server-runtime.txt \
 #     .github/requirements/cuda-server-runtime.in
 fastapi>=0.110
+starlette==1.3.1
 uvicorn[standard]>=0.30
 rfc8785>=0.1.4
 httpx>=0.27
