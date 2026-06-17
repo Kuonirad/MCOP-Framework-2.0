@@ -46,7 +46,7 @@ SHA-256 encoder**, a **Stigmergy v5 pheromone memory with Merkle-chained provena
 
 It ships a **Universal Adapter Protocol** with native bridges for **OpenAI**, **Anthropic Claude**,
 **Google Gemini**, **xAI Grok** (text + image), **Ollama**, **Groq**, and **Together AI** —
-cryptographic lineage at every step, **90.63%** test coverage, **source-available under BUSL-1.1**
+cryptographic lineage at every step, **92.17%** test coverage, **source-available under BUSL-1.1**
 with scheduled MIT conversion on **2030-04-26**.
 
 > **Why this matters.** Unlike retrieval-augmented or chain-of-thought wrappers, MCOP makes every
@@ -120,7 +120,7 @@ feature comparison, May 2026 — public docs as of writing):
 | Self-healing dimension + bounded-curiosity recall guards | ✅ SelfHealingDimension + ResonantRecentQuery | ❌ | ❌ | ❌ |
 | Universal Adapter Protocol (OpenAI · Claude · Gemini · Grok · Ollama · Groq · Together) | ✅ | ✅ | ⚠️ partial | ⚠️ partial |
 | Native xAI Grok adapter (text + image generation) | ✅ | ⚠️ community | ❌ | ❌ |
-| Test coverage on documented API surface | **90.63%** | varies | varies | varies |
+| Test coverage on documented API surface | **92.17%** | varies | varies | varies |
 | Reference benchmark (full pipeline) | **4.4 ms / 22,700 ops/sec** ([source](./src/benchmarks/promptingModes.ts)) | n/a | n/a | n/a |
 | License posture | **BUSL-1.1 → MIT 2030-04-26** | MIT | CC-BY-4.0 / MIT | MIT |
 | CodeQL + SBOM (CycloneDX) + Trojan-Source guard in CI | ✅ | ⚠️ partial | ⚠️ partial | ⚠️ partial |
@@ -162,7 +162,7 @@ corepack prepare pnpm@9.15.0 --activate
 # 3. Install workspace dependencies (≈30 s on a warm cache)
 pnpm install
 
-# 4. Run the deterministic Jest suite — 90.63% covered (≈20 s)
+# 4. Run the deterministic Jest suite — 92.17% covered (≈20 s)
 pnpm test
 
 # 5. Generate the Positive Impact Report + Merkle-anchored audit badge (≈5 s)
@@ -375,7 +375,7 @@ The full upstream submission plan lives in
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6?style=for-the-badge&logo=typescript)](https://typescriptlang.org)
 [![Node.js](https://img.shields.io/badge/Node.js-22.22.2-339933?style=for-the-badge&logo=node.js)](https://nodejs.org)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ed?style=for-the-badge&logo=docker)](./Dockerfile)
-[![Jest](https://img.shields.io/badge/Jest-90.63%25-c21325?style=for-the-badge&logo=jest)](./jest.config.js)
+[![Jest](https://img.shields.io/badge/Jest-92.17%25-c21325?style=for-the-badge&logo=jest)](./jest.config.js)
 [![ESLint](https://img.shields.io/badge/ESLint-Strict-4b32c3?style=for-the-badge&logo=eslint)](./eslint.config.mjs)
 
 </div>
@@ -397,7 +397,7 @@ MCOP-Framework-2.0/
 │   └── orchestrator/
 │       └── MCOPOrchestrator.ts    # Recursive triad conductor
 ├── 📚 docs/                        # API reference + adapter specs
-├── 🧪 tests/                       # 90.63% coverage suite
+├── 🧪 tests/                       # 92.17% coverage suite
 ├── 🐳 Dockerfile                   # Production container
 ├── 🎨 index.html                   # Motion-glass homepage
 ├── 🎬 public/showcase/             # Three.js cinematic showcase
