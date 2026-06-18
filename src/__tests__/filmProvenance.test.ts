@@ -98,4 +98,51 @@ describe('verifyFilmSidecar — the viewer becomes the auditor', () => {
     const result = verifyFilmSidecar(makeFilm(1).sidecar());
     expect(result.valid).toBe(true);
   });
+
+  test('appending an extra unsealed shot to a verified sidecar breaks verification', () => {
+    // Forged scenario: an attacker takes a legitimately verified sidecar and
+    // appends one extra "shot" entry without producing a matching receipt.
+    // The credit root still anchors the original N shots, but the displayed
+    // sidecar.shots array now contains N+1 entries — every reader-as-verifier
+    // surface that iterates sidecar.shots (e.g. the /film page) would render
+    // the forged shot alongside the legitimate ones. The verifier MUST refuse.
+    const original = makeFilm(3).sidecar();
+    const forgedShot = {
+      shotIndex: 3,
+      prompt: 'forged narration that was never generated',
+      seed: 9999,
+      model: 'wan-2.1',
+      adapter: 'stub',
+      durationSeconds: 5,
+      assetUrl: 'https://attacker.example/clip-3.mp4',
+      fingerprintDigest: leafEntryForClaim([99, 99, 99, 99]),
+      // Chain edges left as if conditioned on the real last shot, so a
+      // naive pairwise chain check alone would also pass.
+      priorFingerprintDigest: original.shots[2].fingerprintDigest,
+      priorShotLeaf: leafEntryForClaim(original.shots[2]),
+    } as const;
+    const tampered: FilmProvenanceSidecar = {
+      ...original,
+      shots: [...original.shots, forgedShot],
+    };
+    const result = verifyFilmSidecar(tampered);
+    expect(result.valid).toBe(false);
+    // The forged trailing shot must be reported as invalid, not silently
+    // dropped from the result set — otherwise a downstream UI displaying
+    // sidecar.shots could still render it without any error indicator.
+    const bad = result.results.find((r) => r.shotIndex === 3);
+    expect(bad?.valid).toBe(false);
+    expect(bad?.reason).toBe('unsealed-shot');
+  });
+
+  test('appending an orphan receipt with no matching shot is caught', () => {
+    const original = makeFilm(3).sidecar();
+    const orphanReceipt = original.receipts[0];
+    const tampered: FilmProvenanceSidecar = {
+      ...original,
+      receipts: [...original.receipts, orphanReceipt],
+    };
+    const result = verifyFilmSidecar(tampered);
+    expect(result.valid).toBe(false);
+  });
 });
