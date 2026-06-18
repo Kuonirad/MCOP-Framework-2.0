@@ -29,6 +29,7 @@ overrides:
   ws@>=8.0.0 <8.21.0: 8.21.0
   qs@>=6.11.1 <6.15.2: ^6.15.2
   shell-quote@<1.8.4: ^1.8.4
+  undici@<7.28.0: 7.28.0
   esbuild@>=0.17.0 <0.28.1: ^0.28.1
 
 importers:
@@ -5341,8 +5342,8 @@ packages:
   undici-types@7.19.2:
     resolution: {integrity: sha512-qYVnV5OEm2AW8cJMCpdV20CDyaN3g0AjDlOGf1OW4iaDEx8MwdtChUp4zu4H0VP3nDRF/8RKWH+IPp9uW0YGZg==}
 
-  undici@7.27.2:
-    resolution: {integrity: sha512-uZsKNuzQxDMUY6M3pIMvy5tvlGmtq8XJ2oLAkfRKGNu+1VQAIvLy2xIVG5ATZl5wDXl/tddByAWCizRbOme+TA==}
+  undici@7.28.0:
+    resolution: {integrity: sha512-cRZYrTDwWznlnRiPjggAGxZXanty6M8RV1ff8Wm4LWXBp7/IG8v5DnOm74DtUBp9OONpK75YlPnIjQqX0dBDtA==}
     engines: {node: '>=20.18.1'}
 
   unique-string@2.0.0:
@@ -7722,7 +7723,7 @@ snapshots:
       parse5: 7.3.0
       parse5-htmlparser2-tree-adapter: 7.1.0
       parse5-parser-stream: 7.1.2
-      undici: 7.27.2
+      undici: 7.28.0
       whatwg-mimetype: 4.0.0
 
   chokidar@4.0.3:
@@ -11517,7 +11518,7 @@ snapshots:
 
   undici-types@7.19.2: {}
 
-  undici@7.27.2: {}
+  undici@7.28.0: {}
 
   unique-string@2.0.0:
     dependencies:
