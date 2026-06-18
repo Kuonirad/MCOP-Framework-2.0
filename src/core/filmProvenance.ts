@@ -110,7 +110,14 @@ export type ShotInvalidReason =
   | 'shot-receipt-desync'
   | 'direct-forcing-broken'
   | 'chain-broken'
-  | 'bad-genesis';
+  | 'bad-genesis'
+  /**
+   * The sidecar's displayed shot record has no matching receipt — the credit
+   * root never sealed it, so it MUST be treated as forged even if the sidecar
+   * is otherwise structurally valid. Catches sidecars where `shots` was
+   * extended (or `receipts` truncated) after the MMR root was published.
+   */
+  | 'unsealed-shot';
 
 export interface FilmVerification {
   readonly valid: boolean;
@@ -188,40 +195,55 @@ export class FilmProvenanceRecorder {
 export function verifyFilmSidecar(sidecar: FilmProvenanceSidecar): FilmVerification {
   const results: Array<{ shotIndex: number; valid: boolean; reason?: ShotInvalidReason }> = [];
 
-  for (let i = 0; i < sidecar.receipts.length; i += 1) {
+  // Iterate every shot AND every receipt so a sidecar with a length mismatch
+  // surfaces the unsealed-shot / orphan-receipt rows instead of silently
+  // ignoring the trailing entries. Without this, an attacker could append a
+  // forged shot to a verified sidecar and the credit-root proof would still
+  // come back "all valid" because the verification loop never visited the
+  // extra index.
+  const total = Math.max(sidecar.shots.length, sidecar.receipts.length);
+
+  for (let i = 0; i < total; i += 1) {
     const receipt = sidecar.receipts[i];
     const shot = sidecar.shots[i];
     let valid = true;
     let reason: ShotInvalidReason | undefined;
 
-    const verification = verifyReceipt(receipt);
-    if (!verification.valid) {
+    if (!receipt) {
+      // Shot is displayed in the sidecar but the credit root never sealed it.
       valid = false;
-      reason = 'receipt-invalid';
-    } else if (!receiptMatchesAnchor(receipt, sidecar.creditRoot)) {
-      valid = false;
-      reason = 'root-mismatch';
-    } else if (!shot || leafEntryForClaim(shot) !== receipt.leafEntry) {
-      // The human-readable shot record must be exactly what the receipt sealed.
-      valid = false;
-      reason = 'shot-receipt-desync';
-    } else if (i === 0) {
-      if (shot.priorFingerprintDigest !== null || shot.priorShotLeaf !== null) {
-        valid = false;
-        reason = 'bad-genesis';
-      }
+      reason = 'unsealed-shot';
     } else {
-      const prev = sidecar.shots[i - 1];
-      if (shot.priorFingerprintDigest !== prev.fingerprintDigest) {
+      const verification = verifyReceipt(receipt);
+      if (!verification.valid) {
         valid = false;
-        reason = 'direct-forcing-broken';
-      } else if (shot.priorShotLeaf !== leafEntryForClaim(prev)) {
+        reason = 'receipt-invalid';
+      } else if (!receiptMatchesAnchor(receipt, sidecar.creditRoot)) {
         valid = false;
-        reason = 'chain-broken';
+        reason = 'root-mismatch';
+      } else if (!shot || leafEntryForClaim(shot) !== receipt.leafEntry) {
+        // The human-readable shot record must be exactly what the receipt sealed.
+        valid = false;
+        reason = 'shot-receipt-desync';
+      } else if (i === 0) {
+        if (shot.priorFingerprintDigest !== null || shot.priorShotLeaf !== null) {
+          valid = false;
+          reason = 'bad-genesis';
+        }
+      } else {
+        const prev = sidecar.shots[i - 1];
+        if (!prev || shot.priorFingerprintDigest !== prev.fingerprintDigest) {
+          valid = false;
+          reason = 'direct-forcing-broken';
+        } else if (shot.priorShotLeaf !== leafEntryForClaim(prev)) {
+          valid = false;
+          reason = 'chain-broken';
+        }
       }
     }
 
-    results.push({ shotIndex: shot ? shot.shotIndex : i, valid, ...(reason ? { reason } : {}) });
+    const shotIndex = shot ? shot.shotIndex : i;
+    results.push({ shotIndex, valid, ...(reason ? { reason } : {}) });
   }
 
   return { valid: results.every((r) => r.valid), creditRoot: sidecar.creditRoot, results };
