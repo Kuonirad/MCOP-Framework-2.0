@@ -21,6 +21,26 @@ const SIDECAR_PATH = path.resolve(
 );
 const SIDECAR = JSON.parse(readFileSync(SIDECAR_PATH, "utf8"));
 
+function sidecarWithUnsealedShot(): typeof SIDECAR {
+  const lastShot = SIDECAR.shots[SIDECAR.shots.length - 1];
+  return {
+    ...SIDECAR,
+    shots: [
+      ...SIDECAR.shots,
+      {
+        ...lastShot,
+        shotIndex: SIDECAR.shots.length,
+        prompt: "forged trailer shot that the credit root never sealed",
+        seed: "forged",
+        assetUrl: "https://attacker.example/forged.mp4",
+        fingerprintDigest: "f".repeat(64),
+        priorFingerprintDigest: lastShot.fingerprintDigest,
+        priorShotLeaf: "e".repeat(64),
+      },
+    ],
+  };
+}
+
 function mockFetchOnce(body: unknown, ok = true): void {
   (globalThis as unknown as { fetch: jest.Mock }).fetch = jest.fn().mockResolvedValue({
     ok,
@@ -65,6 +85,20 @@ describe("FilmCredits", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /restore original/i }));
     await waitFor(() => expect(screen.getByText(/PROVENANCE VERIFIED/i)).toBeInTheDocument());
+  });
+
+  it("marks an appended unsealed shot as broken in the reader", async () => {
+    mockFetchOnce(sidecarWithUnsealedShot());
+    render(<FilmCredits sidecarUrl="/films/lunar-documentary.provenance.json" />);
+
+    await waitFor(() => expect(screen.getByText(/PROVENANCE BROKEN/i)).toBeInTheDocument());
+
+    expect(screen.getAllByRole("textbox")).toHaveLength(SIDECAR.shotCount + 1);
+    expect(
+      screen.getByDisplayValue(/forged trailer shot that the credit root never sealed/i),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/broken: unsealed-shot/i)).toBeInTheDocument();
+    expect(screen.queryByText(/PROVENANCE VERIFIED/i)).not.toBeInTheDocument();
   });
 
   it("surfaces a load error instead of crashing", async () => {
