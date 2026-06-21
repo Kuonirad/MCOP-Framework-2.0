@@ -19,14 +19,17 @@
 
 import { randomUuidV4 } from '../core/uuid';
 import { canonicalDigest } from '../core/canonicalEncoding';
+import type { ContextTensor } from '../core/types';
 import type {
   EtchReceipt,
   EtchRequest,
   ForestRoot,
+  LeafHash,
   LedgerExportBundle,
   LedgerLeaf,
   LedgerQueryFilters,
   LedgerQueryResult,
+  LedgerSignature,
   TenantId,
   VerifyResult,
 } from './types';
@@ -91,19 +94,17 @@ export class LedgerService {
     const id = this.uuid();
     const sealedAt = this.now().toISOString();
     const parentHash = parent?.leafHash;
-    const leafHashPayload = {
-      type: 'MCOP_LEDGER_LEAF',
+    const leafHash = computeLeafHash({
       tenantId: request.tenantId,
       id,
       context: request.context,
       score: request.score,
-      note: request.note ?? null,
-      metadata: request.metadata ?? null,
-      signature: request.signature ?? null,
-      parentHash: parentHash ?? null,
+      note: request.note,
+      metadata: request.metadata,
+      signature: request.signature,
+      parentHash,
       sealedAt,
-    };
-    const leafHash = canonicalDigest(leafHashPayload);
+    });
 
     const leaf: LedgerLeaf = Object.freeze({
       id,
@@ -174,6 +175,38 @@ export class LedgerService {
     if (bundle.version !== 'mcop-ledger-export/1.0') {
       return { valid: false, reason: `unsupported bundle version: ${bundle.version}` };
     }
+    // Recompute each leaf's hash from its content. Without this, the forest
+    // root and parent-chain checks below only re-verify the *list of leaf
+    // hashes* — an attacker could mutate any leaf's `context`, `score`,
+    // `note`, or `metadata` (the fields the ledger actually attests to) and
+    // leave the embedded `leafHash` untouched, and the bundle would still
+    // verify. This is the integrity property the hosted ledger exists to
+    // provide; the recompute is what makes verification trust-critical.
+    for (const leaf of bundle.leaves) {
+      if (leaf.tenantId !== bundle.tenantId) {
+        return {
+          valid: false,
+          reason: `leaf ${leaf.id} is sealed under tenant ${leaf.tenantId}, not ${bundle.tenantId}`,
+        };
+      }
+      const expected = computeLeafHash({
+        tenantId: leaf.tenantId,
+        id: leaf.id,
+        context: leaf.context,
+        score: leaf.score,
+        note: leaf.note,
+        metadata: leaf.metadata,
+        signature: leaf.signature,
+        parentHash: leaf.parentHash,
+        sealedAt: leaf.sealedAt,
+      });
+      if (expected !== leaf.leafHash) {
+        return {
+          valid: false,
+          reason: `leaf hash mismatch at leaf ${leaf.id} — content has been tampered with since sealing`,
+        };
+      }
+    }
     const recomputed = computeForestRoot(bundle.tenantId, bundle.leaves);
     if (recomputed !== bundle.forestRoot) {
       return { valid: false, reason: 'forest root does not match bundle leaves' };
@@ -211,6 +244,43 @@ export class LedgerService {
 // ----------------------------------------------------------------
 // Cryptographic helpers
 // ----------------------------------------------------------------
+
+/**
+ * RFC 8785 canonical digest over the value-bearing fields of a ledger leaf.
+ *
+ * Single source of truth for the leaf hash: `etch()` calls this to seal a new
+ * leaf and `verifyBundle()` calls it to re-derive the expected hash from the
+ * leaf's content during stateless verification. Keeping both call sites on the
+ * same helper guarantees a forged leaf — where the content is mutated but the
+ * embedded `leafHash` is left untouched — cannot pass verification.
+ *
+ * Fields with no value canonicalise to `null` (not absent) so two leaves that
+ * differ only in "no note" vs "note='something'" produce distinct hashes.
+ */
+function computeLeafHash(payload: {
+  tenantId: TenantId;
+  id: string;
+  context: ContextTensor;
+  score: number;
+  note?: string;
+  metadata?: Record<string, unknown>;
+  signature?: LedgerSignature;
+  parentHash?: LeafHash;
+  sealedAt: string;
+}): LeafHash {
+  return canonicalDigest({
+    type: 'MCOP_LEDGER_LEAF',
+    tenantId: payload.tenantId,
+    id: payload.id,
+    context: payload.context,
+    score: payload.score,
+    note: payload.note ?? null,
+    metadata: payload.metadata ?? null,
+    signature: payload.signature ?? null,
+    parentHash: payload.parentHash ?? null,
+    sealedAt: payload.sealedAt,
+  });
+}
 
 /**
  * RFC 8785 canonical digest of `{tenantId, leafHashes}`.

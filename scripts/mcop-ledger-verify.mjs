@@ -67,6 +67,41 @@ if (bundle.version !== 'mcop-ledger-export/1.0') {
 }
 if (!Array.isArray(bundle.leaves)) fail('bundle.leaves is not an array');
 
+function computeLeafHash(leaf) {
+  return canonicalDigest({
+    type: 'MCOP_LEDGER_LEAF',
+    tenantId: leaf.tenantId,
+    id: leaf.id,
+    context: leaf.context,
+    score: leaf.score,
+    note: leaf.note ?? null,
+    metadata: leaf.metadata ?? null,
+    signature: leaf.signature ?? null,
+    parentHash: leaf.parentHash ?? null,
+    sealedAt: leaf.sealedAt,
+  });
+}
+
+// Re-verify each leaf hash from its content. Without this, the forest root
+// and parent-chain checks below only re-verify the *list of leaf hashes* —
+// an attacker could mutate any leaf's `context`, `score`, `note`, or
+// `metadata` (the fields the ledger attests to) while leaving the embedded
+// `leafHash` untouched, and the bundle would still verify.
+for (const leaf of bundle.leaves) {
+  if (leaf.tenantId !== bundle.tenantId) {
+    fail(
+      `leaf ${leaf.id ?? '<unknown>'} is sealed under tenant ${leaf.tenantId}, not ${bundle.tenantId}`,
+    );
+  }
+  const expectedLeafHash = computeLeafHash(leaf);
+  if (expectedLeafHash !== leaf.leafHash) {
+    fail(
+      `leaf hash mismatch at leaf ${leaf.id ?? '<unknown>'} — content has been tampered with since sealing ` +
+        `(expected ${expectedLeafHash}, got ${leaf.leafHash})`,
+    );
+  }
+}
+
 // Re-verify forest root.
 const expectedRoot = canonicalDigest({
   type: 'MCOP_LEDGER_FOREST',
