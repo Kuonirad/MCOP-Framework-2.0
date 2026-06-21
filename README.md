@@ -9,7 +9,7 @@
 [![CodeQL](https://github.com/Kuonirad/MCOP-Framework-2.0/actions/workflows/codeql.yml/badge.svg)](https://github.com/Kuonirad/MCOP-Framework-2.0/actions/workflows/codeql.yml)
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/12884/badge)](https://www.bestpractices.dev/projects/12884)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/Kuonirad/MCOP-Framework-2.0/badge)](https://scorecard.dev/viewer/?uri=github.com/Kuonirad/MCOP-Framework-2.0)
-[![Coverage](./docs/badges/coverage.svg)](./docs/badges/coverage.svg)
+[![Coverage](https://raw.githubusercontent.com/Kuonirad/MCOP-Framework-2.0/badges/docs/badges/coverage.svg)](https://github.com/Kuonirad/MCOP-Framework-2.0/tree/badges/docs/badges)
 [![Release](https://img.shields.io/github/v/release/Kuonirad/MCOP-Framework-2.0?style=flat-square&color=7b2dff)](https://github.com/Kuonirad/MCOP-Framework-2.0/releases)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue?style=flat-square)](LICENSE)
 [![Maintained](https://img.shields.io/badge/maintained-yes-00ff88?style=flat-square)](./GOVERNANCE.md)
@@ -417,7 +417,7 @@ console.log({
 |:---|:---|:---|
 | Build and Test | Merge-blocking lint, typecheck, test, build, security, and package checks. | [`.github/workflows/ci.yml`](./.github/workflows/ci.yml) |
 | CodeQL | Static analysis for JavaScript/TypeScript and security query suites. | [`.github/workflows/codeql.yml`](./.github/workflows/codeql.yml) |
-| Coverage | Jest coverage snapshot for the documented API surface; refreshed by `pnpm coverage:badge`. | [`docs/badges/coverage.svg`](./docs/badges/coverage.svg) · [`scripts/coverage-badge.mjs`](./scripts/coverage-badge.mjs) |
+| Coverage | Live Jest line-coverage badge, regenerated from `coverage/coverage-summary.json` by `scripts/coverage-badge.mjs` and auto-published to the [`badges`](https://github.com/Kuonirad/MCOP-Framework-2.0/tree/badges/docs/badges) branch on every push to `main` (see the `publish-badge` job in [`.github/workflows/ci.yml`](./.github/workflows/ci.yml)). | [badge](https://raw.githubusercontent.com/Kuonirad/MCOP-Framework-2.0/badges/docs/badges/coverage.svg) · [`scripts/coverage-badge.mjs`](./scripts/coverage-badge.mjs) |
 | Release | Latest GitHub release tag. | [Releases](https://github.com/Kuonirad/MCOP-Framework-2.0/releases) |
 | License | Apache License 2.0 — see `LICENSE`. | [`LICENSE`](./LICENSE) |
 | Maintained | Governance and maintainer process are documented. | [`GOVERNANCE.md`](./GOVERNANCE.md) |

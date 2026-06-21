@@ -14,7 +14,7 @@
 [![CodeQL](https://github.com/Kuonirad/MCOP-Framework-2.0/actions/workflows/codeql.yml/badge.svg)](https://github.com/Kuonirad/MCOP-Framework-2.0/actions/workflows/codeql.yml)
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/12884/badge)](https://www.bestpractices.dev/projects/12884)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/Kuonirad/MCOP-Framework-2.0/badge)](https://scorecard.dev/viewer/?uri=github.com/Kuonirad/MCOP-Framework-2.0)
-[![Coverage](./docs/badges/coverage.svg)](./docs/badges/coverage.svg)
+[![Coverage](https://raw.githubusercontent.com/Kuonirad/MCOP-Framework-2.0/badges/docs/badges/coverage.svg)](https://github.com/Kuonirad/MCOP-Framework-2.0/tree/badges/docs/badges)
 [![Release](https://img.shields.io/github/v/release/Kuonirad/MCOP-Framework-2.0?style=flat-square&color=b39bff)](https://github.com/Kuonirad/MCOP-Framework-2.0/releases)
 [![License: BUSL 1.1](https://img.shields.io/badge/License-BUSL%201.1-e8c98a?style=flat-square)](LICENSE)
 [![Positive Impact](./docs/badges/positive-impact.svg)](./docs/POSITIVE_IMPACT_REPORT.md)

@@ -83,6 +83,62 @@ describe('LedgerService — core invariants', () => {
     expect(LedgerService.verifyBundle(reordered).valid).toBe(false);
   });
 
+  // Regression: previously, `verifyBundle` only re-verified the *list of leaf
+  // hashes* — the forest root was a digest of `leaves.map(l => l.leafHash)` and
+  // the parent-chain walk also used the embedded `leafHash`. An attacker could
+  // therefore mutate any leaf's `score`, `context`, `note`, or `metadata`
+  // (precisely the fields the ledger claims to attest to) while leaving the
+  // embedded `leafHash` value untouched, and the bundle would still verify.
+  // That defeats the whole audit purpose of the hosted ledger, so the fix
+  // recomputes each leaf hash from its content.
+  it('verifyBundle rejects a bundle whose leaf content has been forged while leafHash is preserved', async () => {
+    const svc = deterministic();
+    await svc.etch({ tenantId: 't1', context: [1, 0], score: 0.1, note: 'first' });
+    await svc.etch({ tenantId: 't1', context: [0, 1], score: 0.5, note: 'second' });
+    const bundle = await svc.exportFullLedger('t1');
+    expect(LedgerService.verifyBundle(bundle).valid).toBe(true);
+
+    // Forge: change the second leaf's score + note + context while keeping
+    // every hash field (`leafHash`, `parentHash`) byte-identical to the
+    // genuine export. Pre-fix, this passed verification; post-fix it must not.
+    const scoreForged: LedgerExportBundle = {
+      ...bundle,
+      leaves: Object.freeze([
+        bundle.leaves[0],
+        { ...bundle.leaves[1], score: 0.99, note: 'forged-second', context: [9, 9, 9, 9, 9] },
+      ]),
+    };
+    const result = LedgerService.verifyBundle(scoreForged);
+    expect(result.valid).toBe(false);
+    expect(result.reason).toMatch(/leaf hash mismatch|content has been tampered/);
+
+    // Also rejects a mutated metadata payload, even when score/context are
+    // left alone (covers the supply-chain-style forge: add a fake "audited
+    // by" tag to a real leaf).
+    const metadataForged: LedgerExportBundle = {
+      ...bundle,
+      leaves: Object.freeze([
+        bundle.leaves[0],
+        { ...bundle.leaves[1], metadata: { auditedBy: 'attacker' } },
+      ]),
+    };
+    expect(LedgerService.verifyBundle(metadataForged).valid).toBe(false);
+  });
+
+  it('verifyBundle rejects a leaf whose tenantId does not match the bundle tenant', async () => {
+    const svc = deterministic();
+    await svc.etch({ tenantId: 't1', context: [1, 0], score: 0.5 });
+    const bundle = await svc.exportFullLedger('t1');
+
+    const spliced: LedgerExportBundle = {
+      ...bundle,
+      leaves: Object.freeze([{ ...bundle.leaves[0], tenantId: 't2' }]),
+    };
+    const result = LedgerService.verifyBundle(spliced);
+    expect(result.valid).toBe(false);
+    expect(result.reason).toMatch(/tenant/);
+  });
+
   it('tenants are isolated — t1 leaves never appear in t2', async () => {
     const svc = deterministic();
     await svc.etch({ tenantId: 't1', context: [1, 0], score: 0.5 });

@@ -41,6 +41,13 @@ function sidecarWithUnsealedShot(): typeof SIDECAR {
   };
 }
 
+function sidecarWithOrphanReceipt(): typeof SIDECAR {
+  return {
+    ...SIDECAR,
+    receipts: [...SIDECAR.receipts, SIDECAR.receipts[0]],
+  };
+}
+
 function mockFetchOnce(body: unknown, ok = true): void {
   (globalThis as unknown as { fetch: jest.Mock }).fetch = jest.fn().mockResolvedValue({
     ok,
@@ -98,6 +105,16 @@ describe("FilmCredits", () => {
       screen.getByDisplayValue(/forged trailer shot that the credit root never sealed/i),
     ).toBeInTheDocument();
     expect(screen.getByText(/broken: unsealed-shot/i)).toBeInTheDocument();
+    expect(screen.queryByText(/PROVENANCE VERIFIED/i)).not.toBeInTheDocument();
+  });
+
+  it("marks a sidecar with an orphan receipt as broken in the reader", async () => {
+    mockFetchOnce(sidecarWithOrphanReceipt());
+    render(<FilmCredits sidecarUrl="/films/lunar-documentary.provenance.json" />);
+
+    await waitFor(() => expect(screen.getByText(/PROVENANCE BROKEN/i)).toBeInTheDocument());
+
+    expect(screen.getAllByRole("textbox")).toHaveLength(SIDECAR.shotCount);
     expect(screen.queryByText(/PROVENANCE VERIFIED/i)).not.toBeInTheDocument();
   });
 
