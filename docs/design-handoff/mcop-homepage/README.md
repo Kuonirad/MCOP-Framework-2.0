@@ -45,7 +45,7 @@ The page is one continuously scrolling document. Sections are numbered `§ 01 �
 - **Hero row** (4 glass cards in a `1.6fr 1fr 1fr 1fr` grid, collapses to 1fr on mobile):
   1. CTA cell: two buttons (primary iridescent "Open on GitHub →", outline "Quick start →") + a `live` SHA-256 hash line that drifts.
   2. Pipeline metric: `4.4 ms`, sub: "22,700 ops/sec · full triad".
-  3. Coverage metric: `92.17%`, sub: "jest · documented surface".
+  3. Coverage metric: `92.18%`, sub: "jest · documented surface".
   4. License metric: `BUSL 1.1`, sub: "→ MIT · 2030-04-26".
 
 ### 2. Ticker
@@ -95,7 +95,7 @@ Single glass card. 5-column grid: feature / MCOP 2.0 / LangChain / AutoGen / Cre
 
 Two-column glass grid (1.15fr 1fr):
 - **Left — code card**: 4 tabs (bash, typescript, python, docker). Each pane is a `<pre>` with syntax highlight classes (`c-com`, `c-prompt`, `c-key`, `c-str`, `c-name`). Each pane has a top-right "copy" button that clipboards the snippet.
-- **Right — install-prose**: serif h3, two paragraphs about cross-runtime parity, and a chips list (Next.js 15.5, TypeScript 5, Node 22.22.2, pnpm 9.15.0, Python 3.12, Docker, Jest 92.17%, ESLint strict, CodeQL, SBOM, OIDC publish).
+- **Right — install-prose**: serif h3, two paragraphs about cross-runtime parity, and a chips list (Next.js 15.5, TypeScript 5, Node 22.22.2, pnpm 9.15.0, Python 3.12, Docker, Jest 92.18%, ESLint strict, CodeQL, SBOM, OIDC publish).
 
 ### 9. Outro
 
@@ -273,7 +273,7 @@ If you want a richer hero, you could optionally overlay the existing Three.js sc
 - `index.html` — full single-file prototype (~1800 lines including style + script). Open directly in any modern browser; no build step.
 - `PROJECT_README.md` — the revised repository README that links to the new homepage and the existing Three.js showcase.
 - `screenshots/` — reference renders of each section, in scroll order:
-  - `01-hero.png` — hero h1 tail, lede, CTA card + 3 metric cards (4.4 ms / 92.17% / BUSL 1.1)
+  - `01-hero.png` — hero h1 tail, lede, CTA card + 3 metric cards (4.4 ms / 92.18% / BUSL 1.1)
   - `02-triad.png` — close-up of the HolographicEtch card with its append-only strata canvas
   - `03-chain-of-custody.png` — provenance stream canvas with three flowing particle spines (violet / cyan / amber)
   - `04-benchmarks.png` — 4 metric cards with live sparklines
