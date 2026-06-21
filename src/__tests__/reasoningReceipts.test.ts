@@ -232,4 +232,70 @@ describe('verifyBundle — the reader-as-verifier path', () => {
     const bad = result.results.find((r) => !r.valid);
     expect(bad?.leafIndex).toBe(3);
   });
+
+  // Regression coverage for the bundle-level analog of the unsealed-shot fix
+  // (#823): a forger appending unsealed entries to `bundle.claims` (and/or
+  // inflating `bundle.size`) without touching the root or the legitimate
+  // receipts must not pass `verifyBundle`. Iterating only `bundle.receipts`
+  // would silently accept these.
+  test('appended unsealed claims (and an inflated size) fail with unsealed-claim', () => {
+    const s = new ReasoningSession('demo');
+    for (let i = 0; i < 5; i++) s.addClaim({ i, note: `claim ${i}` });
+    const bundle = s.export();
+    const forged = {
+      ...bundle,
+      size: 100, // the displayed-but-unverified count
+      claims: [
+        ...bundle.claims,
+        { i: 100, note: 'forged unsealed claim — never went into the MMR' },
+        { i: 101, note: 'another forged claim' },
+      ],
+    };
+    const result = verifyBundle(forged);
+    expect(result.allValid).toBe(false);
+    expect(result.sizeMismatch).toEqual({ declared: 100, actual: 5 });
+    const unsealed = result.results.filter((r) => r.reason === 'unsealed-claim');
+    expect(unsealed).toHaveLength(2);
+    expect(unsealed.map((r) => r.leafIndex).sort()).toEqual([5, 6]);
+  });
+
+  test('an orphan receipt with no matching claim is flagged', () => {
+    const s = new ReasoningSession('demo');
+    for (let i = 0; i < 4; i++) s.addClaim({ i });
+    const bundle = s.export();
+    // Truncate the displayed claim list. A consumer iterating bundle.claims
+    // would render a 3-claim session anchored to a 4-claim root — silently
+    // dropping a credit-bearing entry.
+    const forged = { ...bundle, claims: bundle.claims.slice(0, 3) };
+    const result = verifyBundle(forged);
+    expect(result.allValid).toBe(false);
+    const orphan = result.results.find((r) => r.reason === 'orphan-receipt');
+    expect(orphan).toBeDefined();
+    expect(orphan?.leafIndex).toBe(3);
+  });
+
+  test('an inflated size alone (counts otherwise consistent) is rejected', () => {
+    const s = new ReasoningSession('demo');
+    for (let i = 0; i < 3; i++) s.addClaim({ i });
+    const bundle = s.export();
+    const forged = { ...bundle, size: 99 };
+    const result = verifyBundle(forged);
+    expect(result.allValid).toBe(false);
+    expect(result.sizeMismatch).toEqual({ declared: 99, actual: 3 });
+    // Per-position results are still all valid: the lie is only in `size`.
+    expect(result.results.every((r) => r.valid)).toBe(true);
+  });
+
+  test('bundle.claims and receipt.claim disagreement at the same index is caught', () => {
+    const s = new ReasoningSession('demo');
+    for (let i = 0; i < 3; i++) s.addClaim({ i, note: `claim ${i}` });
+    const bundle = s.export();
+    const claims = bundle.claims.slice();
+    claims[1] = { i: 1, note: 'displayed-only forgery (receipt unchanged)' };
+    const result = verifyBundle({ ...bundle, claims });
+    expect(result.allValid).toBe(false);
+    const bad = result.results.find((r) => !r.valid);
+    expect(bad?.leafIndex).toBe(1);
+    expect(bad?.reason).toBe('claim-bundle-mismatch');
+  });
 });
