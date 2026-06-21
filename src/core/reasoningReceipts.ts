@@ -123,6 +123,25 @@ export interface ReceiptVerification {
     | 'malformed';
 }
 
+/**
+ * Reason a single bundle slot failed. Extends the per-receipt reasons with
+ * bundle-level desyncs that would otherwise be silently ignored:
+ *
+ *   - `unsealed-claim` — the bundle displays a claim at this position but the
+ *     published root never sealed it (a forger appended to `bundle.claims`).
+ *   - `orphan-receipt` — the bundle ships a receipt but no matching claim, so
+ *     the receipt's claim cannot be cross-checked against the bundle's claim
+ *     list.
+ *   - `claim-bundle-mismatch` — `bundle.claims[i]` and the receipt's sealed
+ *     claim disagree, so the bundle would render a different claim than the
+ *     one the root commits to.
+ */
+export type BundleResultReason =
+  | NonNullable<ReceiptVerification['reason']>
+  | 'unsealed-claim'
+  | 'orphan-receipt'
+  | 'claim-bundle-mismatch';
+
 /* ----------------------------------------------------------------------- *
  * Portable hashing primitives (browser + node + edge)
  * ----------------------------------------------------------------------- */
@@ -472,20 +491,78 @@ export class ReasoningSession {
 }
 
 /**
- * Verify an entire exported bundle: every receipt is internally valid and every
- * receipt's root equals the bundle root. Returns per-claim results plus an
- * `allValid` summary. This is what the reader-as-verifier page runs.
+ * Verify an entire exported bundle: every receipt is internally valid, every
+ * receipt's root equals the bundle root, every displayed claim matches the
+ * receipt that seals it, and the per-position counts (`size`, `claims`,
+ * `receipts`) are mutually consistent.
+ *
+ * Iterating `max(claims.length, receipts.length)` is what makes this honest.
+ * Iterating only `bundle.receipts.length` (the previous behaviour) silently
+ * accepted a forger appending unsealed entries to `bundle.claims` and
+ * inflating `bundle.size` while keeping `bundle.root` and the legitimate
+ * receipts untouched — `allValid: true` would still come back even though
+ * the credit-bearing claim list had been tampered with. The same class of
+ * bug was fixed for film sidecars in #823 and is fixed here for the parallel
+ * `ReasoningSessionBundle` artifact.
+ *
+ * Returns per-position results plus a top-level `allValid` summary and, when
+ * the published `size` disagrees with the actual receipt count, a
+ * `sizeMismatch` flag describing the discrepancy.
  */
 export function verifyBundle(bundle: ReasoningSessionBundle): {
   allValid: boolean;
-  results: Array<{ leafIndex: number; valid: boolean; reason?: ReceiptVerification['reason'] }>;
+  results: Array<{ leafIndex: number; valid: boolean; reason?: BundleResultReason }>;
+  sizeMismatch?: { declared: number; actual: number };
 } {
-  const results = bundle.receipts.map((receipt) => {
-    const v = verifyReceipt(receipt);
-    if (v.valid && !receiptMatchesAnchor(receipt, bundle.root)) {
-      return { leafIndex: receipt.leafIndex, valid: false, reason: 'proof-invalid' as const };
+  const claims = bundle.claims ?? [];
+  const receipts = bundle.receipts ?? [];
+  const total = Math.max(claims.length, receipts.length);
+  const results: Array<{ leafIndex: number; valid: boolean; reason?: BundleResultReason }> = [];
+
+  for (let i = 0; i < total; i += 1) {
+    const receipt = receipts[i];
+    if (!receipt) {
+      // Claim is displayed in `bundle.claims` but the published root never
+      // sealed a receipt for this position — must be treated as forged.
+      results.push({ leafIndex: i, valid: false, reason: 'unsealed-claim' });
+      continue;
     }
-    return { leafIndex: receipt.leafIndex, valid: v.valid, reason: v.reason };
-  });
-  return { allValid: results.every((r) => r.valid), results };
+    if (i >= claims.length) {
+      // Mirror case: a receipt with no displayed claim. The receipt itself
+      // may be cryptographically intact, but the bundle's claim list is
+      // truncated, so a downstream consumer that reads `bundle.claims`
+      // would render a session inconsistent with the sealed root.
+      results.push({ leafIndex: receipt.leafIndex, valid: false, reason: 'orphan-receipt' });
+      continue;
+    }
+    const v = verifyReceipt(receipt);
+    if (!v.valid) {
+      results.push({ leafIndex: receipt.leafIndex, valid: false, reason: v.reason });
+      continue;
+    }
+    if (!receiptMatchesAnchor(receipt, bundle.root)) {
+      results.push({ leafIndex: receipt.leafIndex, valid: false, reason: 'proof-invalid' });
+      continue;
+    }
+    if (leafEntryForClaim(claims[i]) !== receipt.leafEntry) {
+      // The receipt's own sealed claim is intact (verifyReceipt passed), but
+      // the bundle's claim list disagrees with it — so a renderer iterating
+      // `bundle.claims` would show different text than the root commits to.
+      results.push({ leafIndex: receipt.leafIndex, valid: false, reason: 'claim-bundle-mismatch' });
+      continue;
+    }
+    results.push({ leafIndex: receipt.leafIndex, valid: true });
+  }
+
+  // Cross-check the published `size`. Forging this number alone — without
+  // touching the root or receipts — is a one-line attack against any
+  // consumer that surfaces the count (the reader page does), and is exactly
+  // the silent acceptance the previous loop allowed.
+  const sizeOk = bundle.size === receipts.length;
+  const allValid = sizeOk && results.every((r) => r.valid);
+  return {
+    allValid,
+    results,
+    ...(sizeOk ? {} : { sizeMismatch: { declared: bundle.size, actual: receipts.length } }),
+  };
 }
