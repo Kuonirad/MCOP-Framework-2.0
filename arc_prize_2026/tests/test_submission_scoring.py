@@ -94,3 +94,25 @@ def test_parse_challenges_with_solutions():
     tasks = parse_challenges(challenges, solutions)
     assert tasks["a"].test_outputs == [[[4]]]
     assert tasks["a"].num_test == 1
+
+
+def test_parse_challenges_rejects_malformed_test_grid():
+    challenges = {
+        "bad": {
+            "train": [{"input": [[1]], "output": [[2]]}],
+            "test": [{"input": [[3, 4], [5]]}],
+        }
+    }
+    with pytest.raises(ValueError, match=r"bad\.test\[0\]\.input"):
+        parse_challenges(challenges)
+
+
+def test_parse_challenges_rejects_solution_count_mismatch():
+    challenges = {
+        "a": {
+            "train": [{"input": [[1]], "output": [[2]]}],
+            "test": [{"input": [[3]]}, {"input": [[4]]}],
+        }
+    }
+    with pytest.raises(ValueError, match="1 solutions for 2 test inputs"):
+        parse_challenges(challenges, {"a": [[[5]]]})
