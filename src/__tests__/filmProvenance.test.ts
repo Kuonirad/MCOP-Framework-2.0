@@ -144,5 +144,11 @@ describe('verifyFilmSidecar — the viewer becomes the auditor', () => {
     };
     const result = verifyFilmSidecar(tampered);
     expect(result.valid).toBe(false);
+    expect(result.results).toHaveLength(4);
+    expect(result.results[3]).toEqual({
+      shotIndex: 3,
+      valid: false,
+      reason: 'shot-receipt-desync',
+    });
   });
 });
