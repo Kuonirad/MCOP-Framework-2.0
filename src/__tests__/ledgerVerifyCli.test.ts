@@ -64,6 +64,23 @@ describe('scripts/mcop-ledger-verify.mjs', () => {
     expect(result.status).toBe(1);
   });
 
+  // Regression: previously the CLI only re-verified the *list of leaf hashes*,
+  // so an attacker could mutate any leaf's content (score, context, note,
+  // metadata) while leaving the embedded `leafHash` byte-identical and the
+  // CLI would still print "OK". This defeats the whole point of using the
+  // CLI for air-gapped audits.
+  it('rejects a bundle whose leaf content has been forged while leafHash is preserved', async () => {
+    const file = path.join(dir, 'forged.json');
+    const json = JSON.parse(await exportBundle());
+    json.leaves[1].score = 0.99;
+    json.leaves[1].note = 'forged-second';
+    json.leaves[1].context = [9, 9, 9, 9, 9];
+    writeFileSync(file, JSON.stringify(json));
+    const result = spawnSync('node', [CLI, '--bundle', file], { encoding: 'utf-8' });
+    expect(result.status).toBe(1);
+    expect(result.stderr).toMatch(/leaf hash mismatch|content has been tampered/);
+  });
+
   it('exits 2 on usage error', () => {
     const result = spawnSync('node', [CLI], { encoding: 'utf-8' });
     expect(result.status).toBe(2);
