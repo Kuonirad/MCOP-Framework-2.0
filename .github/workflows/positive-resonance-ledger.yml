@@ -35,7 +35,7 @@ jobs:
       - name: Setup project environment
         uses: ./.github/actions/setup-project
         with:
-          node-version: 22.22.3
+          node-version: 22.23.0
 
       - name: Capture measured commit
         shell: bash
