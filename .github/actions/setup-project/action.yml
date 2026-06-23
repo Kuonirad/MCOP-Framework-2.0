@@ -4,7 +4,7 @@ inputs:
   node-version:
     description: 'Node.js version to use'
     required: false
-    default: '22.22.3'
+    default: '22.23.0'
   enable-cache:
     description: 'Enable pnpm dependency caching'
     required: false

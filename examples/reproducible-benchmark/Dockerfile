@@ -15,8 +15,8 @@
 # the committed snapshot.
 # ---------------------------------------------------------------------------
 
-# Pinned Node 22.22.3 to match .nvmrc + the org blueprint.
-FROM node:22.22.3-bookworm-slim@sha256:e21fc383b50d5347dc7a9f1cae45b8f4e2f0d39f7ade28e4eef7d2934522b752 AS toolchain
+# Pinned Node 22.23.0 to match .nvmrc + the org blueprint.
+FROM node:22.23.0-bookworm-slim@sha256:d9f850096136edbc402debdd8729579a288aac64574ada0ff4db26b6ae58b0b2 AS toolchain
 
 ENV PNPM_VERSION=9.15.0 \
     COREPACK_ENABLE_DOWNLOAD_PROMPT=0 \
