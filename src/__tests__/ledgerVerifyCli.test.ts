@@ -81,6 +81,17 @@ describe('scripts/mcop-ledger-verify.mjs', () => {
     expect(result.stderr).toMatch(/leaf hash mismatch|content has been tampered/);
   });
 
+  it('rejects forged audit fields while leafHash is preserved', async () => {
+    const file = path.join(dir, 'forged-audit-fields.json');
+    const json = JSON.parse(await exportBundle());
+    json.leaves[1].sealedAt = '2030-01-01T00:00:00.000Z';
+    json.leaves[1].signature = 'attacker-signature';
+    writeFileSync(file, JSON.stringify(json));
+    const result = spawnSync('node', [CLI, '--bundle', file], { encoding: 'utf-8' });
+    expect(result.status).toBe(1);
+    expect(result.stderr).toMatch(/leaf hash mismatch|content has been tampered/);
+  });
+
   it('exits 2 on usage error', () => {
     const result = spawnSync('node', [CLI], { encoding: 'utf-8' });
     expect(result.status).toBe(2);
