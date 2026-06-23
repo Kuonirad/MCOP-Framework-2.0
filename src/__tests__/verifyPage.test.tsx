@@ -71,4 +71,52 @@ describe("ReceiptVerifier", () => {
       expect(screen.getByText(/Could not load the session bundle/i)).toBeInTheDocument(),
     );
   });
+
+  // Regression for the bundle-level analog of #828: a forger publishing the
+  // real receipts but inflating `bundle.size` would have shown
+  // "ALL RECEIPTS VERIFIED" + "Claims: 999" because the page only iterated
+  // bundle.receipts and never validated the displayed count. The page must
+  // now run verifyBundle and fail the badge on size-lie / unsealed-claim
+  // / orphan-receipt / claim-bundle-mismatch — the same contract the SDK
+  // verifier exposes.
+  it("rejects an inflated bundle.size even when every receipt is internally valid", async () => {
+    const forged = { ...BUNDLE, size: BUNDLE.receipts.length + 999 };
+    mockFetchOnce(forged);
+    render(<ReceiptVerifier bundleUrl="/receipts/d1-calibration.json" />);
+    await waitFor(() =>
+      expect(screen.getByText(/VERIFICATION FAILED/i)).toBeInTheDocument(),
+    );
+    expect(
+      screen.getByText(/declared size .* disagrees with the .* sealed receipts/i),
+    ).toBeInTheDocument();
+  });
+
+  it("rejects unsealed claims appended to bundle.claims past the receipt list", async () => {
+    const forged = {
+      ...BUNDLE,
+      claims: [
+        ...BUNDLE.claims,
+        { id: 999, kind: "forged", text: "unsealed claim — never went into the MMR" },
+      ],
+    };
+    mockFetchOnce(forged);
+    render(<ReceiptVerifier bundleUrl="/receipts/d1-calibration.json" />);
+    await waitFor(() =>
+      expect(screen.getByText(/VERIFICATION FAILED/i)).toBeInTheDocument(),
+    );
+    expect(screen.getByText(/unsealed-claim/i)).toBeInTheDocument();
+  });
+
+  it("rejects an orphan-receipt forgery that truncates bundle.claims", async () => {
+    const forged = {
+      ...BUNDLE,
+      claims: BUNDLE.claims.slice(0, BUNDLE.claims.length - 1),
+    };
+    mockFetchOnce(forged);
+    render(<ReceiptVerifier bundleUrl="/receipts/d1-calibration.json" />);
+    await waitFor(() =>
+      expect(screen.getByText(/VERIFICATION FAILED/i)).toBeInTheDocument(),
+    );
+    expect(screen.getByText(/orphan-receipt/i)).toBeInTheDocument();
+  });
 });
