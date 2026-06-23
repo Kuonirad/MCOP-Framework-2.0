@@ -127,6 +127,17 @@ export interface FilmVerification {
     readonly valid: boolean;
     readonly reason?: ShotInvalidReason;
   }>;
+  /**
+   * Present iff the sidecar's published `shotCount` disagrees with the number
+   * of receipts the credit root actually seals. Forging this number alone —
+   * without touching the root, shots, or receipts — is a one-line attack
+   * against any consumer that surfaces the count (the {@link FilmCredits}
+   * reader does). Without this cross-check, such a sidecar would still pass
+   * verification while displaying an inflated shot count beside a
+   * "PROVENANCE VERIFIED" badge. Same class of bug as the reasoning-bundle
+   * `sizeMismatch` fix landed in #828.
+   */
+  readonly shotCountMismatch?: { readonly declared: number; readonly actual: number };
 }
 
 /**
@@ -246,5 +257,22 @@ export function verifyFilmSidecar(sidecar: FilmProvenanceSidecar): FilmVerificat
     results.push({ shotIndex, valid, ...(reason ? { reason } : {}) });
   }
 
-  return { valid: results.every((r) => r.valid), creditRoot: sidecar.creditRoot, results };
+  // Cross-check the published `shotCount`. Receipts are what the credit root
+  // actually binds, so they are the cryptographic ground truth for "how many
+  // shots are in this film". A forger who only edits `shotCount` — leaving
+  // the root, shots, and receipts byte-identical to a verified sidecar — must
+  // be caught here, otherwise the FilmCredits reader (which renders
+  // `sidecar.shotCount` directly under a "PROVENANCE VERIFIED" badge) would
+  // happily show 99 shots when the root only seals 3. This is the parallel
+  // of the reasoning-bundle `sizeMismatch` fix landed in #828.
+  const shotCountOk = sidecar.shotCount === sidecar.receipts.length;
+  const allValid = shotCountOk && results.every((r) => r.valid);
+  return {
+    valid: allValid,
+    creditRoot: sidecar.creditRoot,
+    results,
+    ...(shotCountOk
+      ? {}
+      : { shotCountMismatch: { declared: sidecar.shotCount, actual: sidecar.receipts.length } }),
+  };
 }
