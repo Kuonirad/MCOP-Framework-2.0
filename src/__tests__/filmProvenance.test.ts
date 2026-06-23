@@ -135,6 +135,44 @@ describe('verifyFilmSidecar — the viewer becomes the auditor', () => {
     expect(bad?.reason).toBe('unsealed-shot');
   });
 
+  // Regression for the bundle-level `shotCount` forge: previously
+  // `verifyFilmSidecar` only walked the (shots, receipts) pair lists, so a
+  // forger could leave the credit root, the shot records, AND every receipt
+  // byte-identical to a legitimately verified sidecar — and just bump the
+  // top-level `shotCount` number that the credits page renders. The verifier
+  // would still come back valid, the badge stayed green, and the page
+  // displayed an inflated count of "shots the credit root attests to".
+  // This is the film analog of the reasoning-bundle `sizeMismatch` fix
+  // landed in #828; the receipt list is the cryptographic ground truth for
+  // "how many shots the root binds", so `shotCount` MUST equal it.
+  test('inflating shotCount past the receipt list is caught (one-line forge)', () => {
+    const sidecar = makeFilm(3).sidecar();
+    const forged: FilmProvenanceSidecar = { ...sidecar, shotCount: 99 };
+    const result = verifyFilmSidecar(forged);
+    expect(result.valid).toBe(false);
+    expect(result.shotCountMismatch).toEqual({ declared: 99, actual: 3 });
+    // Per-shot checks still pass — the forge is purely at the bundle level,
+    // so the badge MUST flip on the `shotCount` cross-check, not on a shot
+    // result. Locking this in protects against a future regression that
+    // accidentally restores the size discrepancy via a per-shot path.
+    expect(result.results).toHaveLength(3);
+    expect(result.results.every((r) => r.valid)).toBe(true);
+  });
+
+  test('truncating shotCount below the receipt list is also caught', () => {
+    const sidecar = makeFilm(4).sidecar();
+    const forged: FilmProvenanceSidecar = { ...sidecar, shotCount: 1 };
+    const result = verifyFilmSidecar(forged);
+    expect(result.valid).toBe(false);
+    expect(result.shotCountMismatch).toEqual({ declared: 1, actual: 4 });
+  });
+
+  test('a clean sidecar reports no shotCountMismatch', () => {
+    const result = verifyFilmSidecar(makeFilm(4).sidecar());
+    expect(result.valid).toBe(true);
+    expect(result.shotCountMismatch).toBeUndefined();
+  });
+
   test('appending an orphan receipt with no matching shot is caught', () => {
     const original = makeFilm(3).sidecar();
     const orphanReceipt = original.receipts[0];
