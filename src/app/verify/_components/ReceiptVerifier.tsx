@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import {
   receiptMatchesAnchor,
+  verifyBundle,
   verifyReceipt,
   type ReasoningReceipt,
   type ReasoningSessionBundle,
@@ -87,6 +88,18 @@ export function ReceiptVerifier({ bundleUrl }: { bundleUrl: string }) {
     });
   }, [state, edits]);
 
+  // Bundle-level integrity (size-lie + unsealed-claim + orphan-receipt). The
+  // per-receipt loop above only iterates `bundle.receipts`, so it can't see a
+  // forger appending unsealed entries to `bundle.claims` or inflating
+  // `bundle.size` — exactly the "one-line attack against any consumer that
+  // displays it" called out by the #828 fix to verifyBundle. Run the same
+  // check the SDK exposes so the reader page is protected by the same
+  // contract the SDK now enforces.
+  const bundleStatus = useMemo(() => {
+    if (state.status !== "ready") return null;
+    return verifyBundle(state.bundle);
+  }, [state]);
+
   if (state.status === "loading") {
     return <p className="text-sm text-slate-400">Loading reasoning session…</p>;
   }
@@ -99,8 +112,14 @@ export function ReceiptVerifier({ bundleUrl }: { bundleUrl: string }) {
   }
 
   const { bundle } = state;
-  const allValid = verified?.every((v) => v.valid) ?? false;
+  // The badge is honest only when the per-receipt edit-aware checks AND the
+  // bundle-level integrity check (size, unsealed claims, orphan receipts) both
+  // come back clean. Either alone is forgeable in isolation.
+  const allValid =
+    (verified?.every((v) => v.valid) ?? false) && (bundleStatus?.allValid ?? false);
   const anyTampered = Object.keys(edits).length > 0;
+  const sizeMismatch = bundleStatus?.sizeMismatch;
+  const verifiedClaimCount = bundle.receipts.length;
 
   return (
     <section className="flex flex-col gap-6">
@@ -130,7 +149,14 @@ export function ReceiptVerifier({ bundleUrl }: { bundleUrl: string }) {
           </div>
           <div className="flex gap-2">
             <dt className="text-slate-400">Claims</dt>
-            <dd className="font-mono">{bundle.size}</dd>
+            <dd className="font-mono">
+              {verifiedClaimCount}
+              {sizeMismatch ? (
+                <span className="ml-2 text-rose-300">
+                  (bundle declared {sizeMismatch.declared})
+                </span>
+              ) : null}
+            </dd>
           </div>
           <div className="flex gap-2">
             <dt className="text-slate-400">Epoch</dt>
@@ -146,6 +172,23 @@ export function ReceiptVerifier({ bundleUrl }: { bundleUrl: string }) {
             You have edited {Object.keys(edits).length} claim(s). The proofs
             below are being re-folded live — edited claims no longer hash to
             their committed leaf, so their receipts break.
+          </p>
+        )}
+        {bundleStatus && !bundleStatus.allValid && (
+          <p className="text-xs text-rose-300">
+            Bundle-level integrity broken:
+            {sizeMismatch
+              ? ` declared size ${sizeMismatch.declared} disagrees with the ${sizeMismatch.actual} sealed receipts.`
+              : ""}
+            {bundleStatus.results.some((r) => r.reason === "unsealed-claim")
+              ? " Some displayed claims have no matching receipt (unsealed-claim) — they were never sealed by the published root."
+              : ""}
+            {bundleStatus.results.some((r) => r.reason === "orphan-receipt")
+              ? " Some receipts have no matching displayed claim (orphan-receipt) — the bundle's claim list is truncated."
+              : ""}
+            {bundleStatus.results.some((r) => r.reason === "claim-bundle-mismatch")
+              ? " A displayed claim disagrees with the receipt that seals it (claim-bundle-mismatch)."
+              : ""}
           </p>
         )}
       </div>
