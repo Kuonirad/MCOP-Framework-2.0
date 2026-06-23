@@ -123,6 +123,32 @@ describe('LedgerService — core invariants', () => {
       ]),
     };
     expect(LedgerService.verifyBundle(metadataForged).valid).toBe(false);
+
+    // Audit fields are sealed too: a forged timestamp or injected signature
+    // must not be accepted just because all embedded hash fields were preserved.
+    const sealedAtForged: LedgerExportBundle = {
+      ...bundle,
+      leaves: Object.freeze([
+        bundle.leaves[0],
+        { ...bundle.leaves[1], sealedAt: '2030-01-01T00:00:00.000Z' },
+      ]),
+    };
+    expect(LedgerService.verifyBundle(sealedAtForged)).toMatchObject({
+      valid: false,
+      reason: expect.stringMatching(/leaf hash mismatch|content has been tampered/),
+    });
+
+    const signatureForged: LedgerExportBundle = {
+      ...bundle,
+      leaves: Object.freeze([
+        bundle.leaves[0],
+        { ...bundle.leaves[1], signature: 'attacker-signature' },
+      ]),
+    };
+    expect(LedgerService.verifyBundle(signatureForged)).toMatchObject({
+      valid: false,
+      reason: expect.stringMatching(/leaf hash mismatch|content has been tampered/),
+    });
   });
 
   it('verifyBundle rejects a leaf whose tenantId does not match the bundle tenant', async () => {
