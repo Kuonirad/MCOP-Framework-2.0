@@ -20,7 +20,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node-version: [22.22.3]
+        node-version: [22.23.0]
 
     steps:
       - name: Checkout repository
@@ -79,7 +79,7 @@ jobs:
       - name: Setup project environment
         uses: ./.github/actions/setup-project
         with:
-          node-version: 22.22.3
+          node-version: 22.23.0
 
       - name: Build project
         run: pnpm build
@@ -104,7 +104,7 @@ jobs:
       - name: Setup project environment
         uses: ./.github/actions/setup-project
         with:
-          node-version: 22.22.3
+          node-version: 22.23.0
 
       # Pins the deterministic contracts (canonical-digest determinism, hot-path
       # TS<->Python parity + provenance, and the approved-changeset gate) that
@@ -124,7 +124,7 @@ jobs:
       - name: Setup project environment
         uses: ./.github/actions/setup-project
         with:
-          node-version: 22.22.3
+          node-version: 22.23.0
 
       - name: Run security audit
         run: pnpm audit --audit-level=high
@@ -187,10 +187,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
 
-      - name: Setup Node.js 22.22.3
+      - name: Setup Node.js 22.23.0
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
-          node-version: '22.22.3'
+          node-version: '22.23.0'
 
       - name: Install core package dependencies
         # npm ci pins every entry to the SRI-hashed lockfile — satisfies
@@ -236,7 +236,7 @@ jobs:
       - name: Report legacy compat status
         run: |
           echo "Legacy runtime context (${{ matrix.legacy-runtime }})."
-          echo "Project enforces runtime 22.22.3 (see scripts/verify-workflow-hygiene.mjs)."
+          echo "Project enforces runtime 22.23.0 (see scripts/verify-workflow-hygiene.mjs)."
           echo "This job satisfies historical required-status-check contexts during the migration."
 
   publish-badge:
@@ -258,13 +258,13 @@ jobs:
       - name: Setup project environment
         uses: ./.github/actions/setup-project
         with:
-          node-version: 22.22.3
+          node-version: 22.23.0
           install-deps: 'false'
 
       - name: Download coverage summary
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          name: coverage-22.22.3
+          name: coverage-22.23.0
           path: coverage
 
       - name: Regenerate badge from coverage
