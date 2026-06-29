@@ -91,7 +91,7 @@
     "web-vitals": "^5.2.0"
   },
   "devDependencies": {
-    "@cyclonedx/cdxgen": "^12.6.0",
+    "@cyclonedx/cdxgen": "^12.7.0",
     "@cyclonedx/cyclonedx-library": "^10",
     "@eslint/eslintrc": "^3.3.5",
     "@tailwindcss/postcss": "^4",
@@ -105,7 +105,7 @@
     "ajv-formats": "^3",
     "ajv-formats-draft2019": "^1",
     "concurrently": "^9.2.1",
-    "cypress": "^15.17.0",
+    "cypress": "^15.18.0",
     "eslint": "^9",
     "eslint-config-next": "15.5.18",
     "@lhci/cli": "0.15.1",
