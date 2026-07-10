@@ -2,8 +2,9 @@
 /**
  * Shared-docs guardian.
  *
- * Verifies that legal / governance files which MUST stay byte-identical
- * across the monorepo actually do. Currently policed:
+ * Verifies that legal / governance files which MUST stay content-identical
+ * across the monorepo actually do. Line endings are normalized so Git's
+ * platform-specific checkout policy cannot create false drift. Currently policed:
  *
  *   - LICENSE              (BUSL 1.1 root text — identical in all sibling
  *                           publishables)
@@ -58,8 +59,12 @@ const ADVISORY = [
 
 function sha256OfFile(absPath) {
   if (!existsSync(absPath)) return null;
-  const buf = readFileSync(absPath);
-  return createHash('sha256').update(buf).digest('hex');
+  return sha256OfText(readFileSync(absPath, 'utf8'));
+}
+
+function sha256OfText(content) {
+  const normalized = content.replace(/\r\n?/g, '\n');
+  return createHash('sha256').update(normalized, 'utf8').digest('hex');
 }
 
 function checkGroup(group, { strict }) {
@@ -78,7 +83,10 @@ function checkGroup(group, { strict }) {
 
   const distinct = new Set(hashes.map((h) => h.hash));
   if (distinct.size === 1) {
-    return { ok: true, msg: `[${group.name}] OK — ${hashes.length} copies identical` };
+    return {
+      ok: true,
+      msg: `[${group.name}] OK — ${hashes.length} copies content-identical`,
+    };
   }
 
   const detail = hashes.map((h) => `  ${h.rel}: ${h.hash.slice(0, 12)}…`).join('\n');
@@ -90,25 +98,33 @@ function checkGroup(group, { strict }) {
   };
 }
 
-let hardFail = false;
+function runGuard() {
+  let hardFail = false;
 
-console.log('--- Shared-docs guardian ---');
-for (const group of STRICT) {
-  const r = checkGroup(group, { strict: true });
-  console.log((r.ok ? 'PASS ' : 'FAIL ') + r.msg);
-  if (!r.ok) hardFail = true;
-}
-for (const group of ADVISORY) {
-  const r = checkGroup(group, { strict: false });
-  console.log((r.ok ? 'PASS ' : 'INFO ') + r.msg);
-}
-console.log('---');
+  console.log('--- Shared-docs guardian ---');
+  for (const group of STRICT) {
+    const r = checkGroup(group, { strict: true });
+    console.log((r.ok ? 'PASS ' : 'FAIL ') + r.msg);
+    if (!r.ok) hardFail = true;
+  }
+  for (const group of ADVISORY) {
+    const r = checkGroup(group, { strict: false });
+    console.log((r.ok ? 'PASS ' : 'INFO ') + r.msg);
+  }
+  console.log('---');
 
-if (hardFail) {
-  console.error(
-    'shared-docs-guard: at least one strict-identical doc has drifted. ' +
-      'Re-sync from the canonical root copy.'
-  );
-  process.exit(1);
+  if (hardFail) {
+    console.error(
+      'shared-docs-guard: at least one strict-identical doc has drifted. ' +
+        'Re-sync from the canonical root copy.'
+    );
+    return 1;
+  }
+  return 0;
 }
-process.exit(0);
+
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  process.exitCode = runGuard();
+}
+
+export { runGuard, sha256OfText };

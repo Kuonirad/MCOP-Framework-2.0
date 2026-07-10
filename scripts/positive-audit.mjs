@@ -327,17 +327,33 @@ function round(value) {
   return Math.round(value * 1000) / 1000;
 }
 
-export { renderReport, renderBadge, renderShareMarkdown };
+export { buildCheckInvocation, renderReport, renderBadge, renderShareMarkdown };
 
 function runCheckCommand(command, args) {
-  const childCommand = process.platform === 'win32' ? 'cmd' : command;
-  const childArgs = process.platform === 'win32' ? ['/c', command, ...args] : args;
+  const [childCommand, childArgs] = buildCheckInvocation(command, args);
   return spawnSync(childCommand, childArgs, {
     cwd: root,
     env: { ...process.env, POSITIVE_AUDIT_CHILD: '1' },
     encoding: 'utf8',
     stdio: 'pipe',
   });
+}
+
+function buildCheckInvocation(
+  command,
+  args,
+  { platform = process.platform, env = process.env } = {},
+) {
+  // Windows cannot execute pnpm's .cmd shim directly via spawnSync. Use the
+  // configured command processor, disable AutoRun hooks, and keep POSIX hosts
+  // on direct argv execution so no shell parsing is introduced there.
+  const childCommand = platform === 'win32'
+    ? (env.ComSpec || 'cmd.exe')
+    : command;
+  const childArgs = platform === 'win32'
+    ? ['/d', '/s', '/c', command, ...args]
+    : args;
+  return [childCommand, childArgs];
 }
 
 function readOptionalFile(pathname) {
