@@ -30,10 +30,14 @@ import type {
   ClusterCapability,
   ClusterMerkleRoot,
   ClusterProvenance,
-  ClusterTrace,
+  ClusterReplayBoundary,
+  ClusterReplayBundle,
+  ClusterReplayTrace,
+  ClusterTraceAdmissionReceipt,
   GossipMessage,
   GossipTransport,
   NodeId,
+  RemoteTraceWriteResult,
 } from './types';
 
 export interface ClusterStigmergyConfig extends StigmergyConfig {
@@ -50,7 +54,10 @@ export class ClusterStigmergy {
   private readonly local: StigmergyV5;
   private readonly transport: GossipTransport;
   private readonly capability: ClusterCapability;
-  private readonly remoteTraces = new Map<string, ClusterTrace>();
+  private readonly remoteTraces = new Map<string, ClusterReplayTrace>();
+  private readonly verifiedReplayTraces = new Map<string, ClusterReplayTrace>();
+  private readonly localReplayTraces = new Map<string, ClusterReplayTrace>();
+  private readonly replayCapacity: number;
   private readonly remoteRoots = new Map<NodeId, string>();
   private readonly nodeCapabilities = new Map<NodeId, ClusterCapability>();
   private readonly seenSequences = new Map<NodeId, number>();
@@ -63,6 +70,7 @@ export class ClusterStigmergy {
     this.local = new StigmergyV5(config);
     this.transport = config.transport;
     this.capability = config.capability ?? { cuda: false };
+    this.replayCapacity = config.maxTraces ?? 2048;
     this.nodeCapabilities.set(this.nodeId, this.capability);
     this.unsubscribe = this.transport.subscribe((msg) => this.handleInbound(msg));
   }
@@ -89,13 +97,29 @@ export class ClusterStigmergy {
   ): { trace: PheromoneTrace; provenance: ClusterProvenance } {
     const trace = this.local.recordTrace(context, synthesisVector, metadata);
     const localRoot = this.local.getMerkleRoot() ?? trace.hash;
-    const clusterHash = computeClusterHash(this.nodeId, trace, localRoot);
+    const lineage = this.lineageSnapshot();
+    const flourishingScore = pickFlourishing(metadata);
+    const sealedAt = new Date().toISOString();
+    const clusterHash = computeClusterHash(this.nodeId, trace, localRoot, {
+      lineage,
+      flourishingScore,
+      humanVeto: false,
+      sealedAt,
+    });
     const provenance = sealClusterProvenance({
       nodeId: this.nodeId,
       localRoot,
       clusterHash,
-      lineage: this.lineageSnapshot(),
-      flourishingScore: pickFlourishing(metadata),
+      lineage,
+      flourishingScore,
+      sealedAt,
+    });
+    this.rememberLocalReplayTrace({
+      nodeId: this.nodeId,
+      trace,
+      localRoot,
+      clusterHash,
+      provenance,
     });
 
     this.localSeq += 1;
@@ -150,36 +174,91 @@ export class ClusterStigmergy {
 
   /**
    * Snapshot of every observed node's most recent local Merkle root,
-   * including this node's own root.
+   * including this node's own root once it has written in the window.
    */
   getKnownRoots(): ReadonlyMap<NodeId, string> {
     const roots = new Map(this.remoteRoots);
-    roots.set(this.nodeId, this.getLocalRoot());
+    const localRoot = this.local.getMerkleRoot();
+    if (localRoot !== undefined) roots.set(this.nodeId, localRoot);
     return roots;
   }
 
   /**
-   * Fold every known per-node root into a single cluster Merkle root.
+   * Fold a root snapshot into a single cluster Merkle root.
    *
    * The fold is intentionally simple and deterministic:
    *
    *   1. Sort `(nodeId, root)` pairs by `nodeId` (lexicographic).
    *   2. Take the canonical digest of the sorted list.
    *
-   * Two nodes that have observed the same set of roots produce
-   * byte-identical cluster roots — the convergence invariant.
+   * When `roots` is supplied it is authoritative; receiver-local state is not
+   * mixed in. Two nodes given the same snapshot therefore produce a
+   * byte-identical root regardless of Map insertion order.
    */
-  mergeRemoteRoots(extraRoots: ReadonlyMap<NodeId, string> = new Map()): ClusterMerkleRoot {
-    const merged = new Map<NodeId, string>(this.getKnownRoots());
-    for (const [node, root] of extraRoots) merged.set(node, root);
-    const contributors = [...merged.entries()]
-      .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
-      .map(([nodeId, root]) => Object.freeze({ nodeId, root }));
-    const root = canonicalDigest({ type: 'MCOP_CLUSTER_ROOT', contributors });
+  mergeRemoteRoots(roots: ReadonlyMap<NodeId, string> = this.getKnownRoots()): ClusterMerkleRoot {
+    return mergeClusterRoots(roots);
+  }
+
+  /**
+   * Verify and admit one remote trace. All cryptographic bindings are checked
+   * before `remoteTraces` or `remoteRoots` can change.
+   */
+  writeTraceRemote(nodeId: NodeId, entry: ClusterReplayTrace): RemoteTraceWriteResult {
+    const verified = verifyReplayTrace(nodeId, entry);
+    if ('reason' in verified) return Object.freeze({ imported: false, reason: verified.reason });
+
+    const replayKey = replayTraceKey(entry);
+    const recorded = this.verifiedReplayTraces.get(replayKey);
+    if (recorded?.clusterHash === entry.clusterHash) {
+      return Object.freeze({ imported: false, reason: 'duplicate', receipt: verified.receipt });
+    }
+
+    const frozenEntry = freezeReplayTrace(entry);
+    this.verifiedReplayTraces.set(replayKey, frozenEntry);
+    const preferredWriterEntry = [...this.verifiedReplayTraces.values()]
+      .filter((candidate) =>
+        candidate.nodeId === nodeId && candidate.trace.id === entry.trace.id,
+      )
+      .reduce(selectPreferredTrace);
+    this.remoteRoots.set(nodeId, preferredWriterEntry.localRoot);
+
+    const existing = this.remoteTraces.get(entry.trace.id);
+    const active = existing === undefined || selectPreferredTrace(existing, frozenEntry) === frozenEntry;
+    if (active) this.remoteTraces.set(entry.trace.id, frozenEntry);
+    return Object.freeze({ imported: true, active, receipt: verified.receipt });
+  }
+
+  /** Export a canonical, JSON-serializable replay window and its boundary anchors. */
+  exportReplayBundle(): ClusterReplayBundle {
+    const byTrace = new Map<string, ClusterReplayTrace>();
+    for (const entry of this.localReplayTraces.values()) {
+      byTrace.set(replayTraceKey(entry), entry);
+    }
+    for (const entry of this.verifiedReplayTraces.values()) {
+      byTrace.set(replayTraceKey(entry), entry);
+    }
+    const traces = [...byTrace.values()]
+      .sort((a, b) => compareNodeIds(a.nodeId, b.nodeId) || compareText(a.trace.id, b.trace.id))
+      .map(freezeReplayTrace);
+    const hashesByNode = new Map<NodeId, Set<string>>();
+    for (const entry of traces) {
+      const hashes = hashesByNode.get(entry.nodeId) ?? new Set<string>();
+      hashes.add(entry.trace.hash);
+      hashesByNode.set(entry.nodeId, hashes);
+    }
+    const boundaries = traces
+      .filter((entry) =>
+        entry.trace.parentHash !== undefined &&
+        !hashesByNode.get(entry.nodeId)?.has(entry.trace.parentHash),
+      )
+      .map((entry) => Object.freeze({
+        nodeId: entry.nodeId,
+        firstTraceHash: entry.trace.hash,
+        parentHash: entry.trace.parentHash as string,
+      }));
     return Object.freeze({
-      root,
-      contributors: Object.freeze(contributors),
-      sealedAt: new Date().toISOString(),
+      traces: Object.freeze(traces),
+      boundaries: Object.freeze(boundaries),
     });
   }
 
@@ -214,25 +293,87 @@ export class ClusterStigmergy {
   }
 
   /**
-   * Replay a window of cluster history into a fresh `ClusterStigmergy`
-   * instance. Given a set of `ClusterTrace`s and the observed roots,
-   * the replayed cluster root *must* match the original — the
-   * deterministic-replay invariant.
+   * Replay a window of cluster history from accepted traces and an observed
+   * root snapshot. Every non-empty contributor must have a verified terminal
+   * trace in the bundle.
    */
   static replay(
-    bundle: ReadonlyArray<ClusterTrace>,
+    bundle: ReadonlyArray<ClusterReplayTrace> | ClusterReplayBundle,
     rootsByNode: ReadonlyMap<NodeId, string>,
   ): ClusterMerkleRoot {
-    const contributors = [...rootsByNode.entries()]
-      .filter(([nodeId]) => bundle.some((t) => t.nodeId === nodeId))
-      .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
-      .map(([nodeId, root]) => Object.freeze({ nodeId, root }));
-    const root = canonicalDigest({ type: 'MCOP_CLUSTER_ROOT', contributors });
-    return Object.freeze({
-      root,
-      contributors: Object.freeze(contributors),
-      sealedAt: new Date().toISOString(),
-    });
+    const replayBundle = Array.isArray(bundle) ? undefined : bundle as ClusterReplayBundle;
+    const traces = replayBundle?.traces ?? bundle as ReadonlyArray<ClusterReplayTrace>;
+    const boundaries = replayBundle?.boundaries ?? [];
+    const tracesByNode = new Map<NodeId, Map<string, ClusterReplayTrace>>();
+    const activeByIdentity = new Map<string, ClusterReplayTrace>();
+
+    for (const entry of traces) {
+      if (!rootsByNode.has(entry.nodeId)) {
+        throw new Error(`cluster replay contains uncommitted trace from ${entry.nodeId}`);
+      }
+      const verified = verifyReplayTrace(entry.nodeId, entry);
+      if ('reason' in verified) {
+        throw new Error(`cluster replay rejected ${entry.nodeId}/${entry.trace.id}: ${verified.reason}`);
+      }
+      const key = traceIdentityKey(entry);
+      const previous = activeByIdentity.get(key);
+      activeByIdentity.set(key, previous ? selectPreferredTrace(previous, entry) : entry);
+    }
+
+    for (const entry of activeByIdentity.values()) {
+      const traces = tracesByNode.get(entry.nodeId) ?? new Map<string, ClusterReplayTrace>();
+      traces.set(entry.trace.hash, entry);
+      tracesByNode.set(entry.nodeId, traces);
+    }
+
+    const boundaryByNode = new Map<NodeId, ClusterReplayBoundary>();
+    for (const boundary of boundaries) {
+      if (boundaryByNode.has(boundary.nodeId) ||
+          !isSha256(boundary.firstTraceHash) ||
+          !isSha256(boundary.parentHash)) {
+        throw new Error(`cluster replay rejected invalid boundary for ${boundary.nodeId}`);
+      }
+      const first = tracesByNode.get(boundary.nodeId)?.get(boundary.firstTraceHash);
+      if (!first ||
+          first.trace.parentHash !== boundary.parentHash ||
+          tracesByNode.get(boundary.nodeId)?.has(boundary.parentHash)) {
+        throw new Error(`cluster replay boundary does not match ${boundary.nodeId}`);
+      }
+      boundaryByNode.set(boundary.nodeId, boundary);
+    }
+
+    for (const [nodeId, root] of rootsByNode) {
+      const traces = tracesByNode.get(nodeId);
+      if (!traces || traces.size === 0) {
+        throw new Error(`cluster replay missing terminal trace for ${nodeId}/${root}`);
+      }
+      const referencedParents = new Set<string>();
+      for (const entry of traces.values()) {
+        const parentHash = entry.trace.parentHash;
+        if (parentHash === undefined) continue;
+        if (!traces.has(parentHash)) {
+          const boundary = boundaryByNode.get(nodeId);
+          if (!boundary ||
+              boundary.firstTraceHash !== entry.trace.hash ||
+              boundary.parentHash !== parentHash) {
+            throw new Error(`cluster replay missing ancestor ${nodeId}/${parentHash}`);
+          }
+          continue;
+        }
+        referencedParents.add(parentHash);
+      }
+      const heads = [...traces.values()].filter(
+        (entry) => !referencedParents.has(entry.trace.hash),
+      );
+      if (heads.length !== 1) {
+        throw new Error(`cluster replay found ${heads.length} heads for ${nodeId}`);
+      }
+      if (heads[0].trace.hash !== root) {
+        throw new Error(`cluster replay root is not the verified head for ${nodeId}`);
+      }
+    }
+
+    return mergeClusterRoots(rootsByNode);
   }
 
   // ----------------------------------------------------------------
@@ -244,7 +385,7 @@ export class ClusterStigmergy {
     for (const [nodeId, root] of this.getKnownRoots()) {
       items.push({ nodeId, root });
     }
-    items.sort((a, b) => (a.nodeId < b.nodeId ? -1 : a.nodeId > b.nodeId ? 1 : 0));
+    items.sort((a, b) => compareNodeIds(a.nodeId, b.nodeId));
     return Object.freeze(items);
   }
 
@@ -252,7 +393,6 @@ export class ClusterStigmergy {
     if (message.from === this.nodeId) return;
     const lastSeq = this.seenSequences.get(message.from) ?? 0;
     if (message.seq <= lastSeq) return; // dedup; at-least-once → exactly-once locally
-    this.seenSequences.set(message.from, message.seq);
 
     if (message.type === 'trace') {
       const incoming = message.payload as {
@@ -261,22 +401,23 @@ export class ClusterStigmergy {
         clusterHash: string;
         provenance: ClusterProvenance;
       };
-      if (this.vetoed.has(incoming.trace.id)) return;
-      const existing = this.remoteTraces.get(incoming.trace.id);
-      if (existing && !this.shouldReplace(existing, incoming)) return;
-      this.remoteTraces.set(incoming.trace.id, {
+      const result = this.writeTraceRemote(message.from, {
         nodeId: message.from,
         trace: incoming.trace,
         localRoot: incoming.localRoot,
         clusterHash: incoming.clusterHash,
+        provenance: incoming.provenance,
       });
-      this.remoteRoots.set(message.from, incoming.localRoot);
+      if (!result.imported && result.receipt === undefined) return;
+      this.seenSequences.set(message.from, message.seq);
+      if (this.vetoed.has(incoming.trace.id)) this.remoteTraces.delete(incoming.trace.id);
       return;
     }
 
     if (message.type === 'root') {
-      const root = String((message.payload as { root?: unknown })?.root ?? '');
-      if (root) this.remoteRoots.set(message.from, root);
+      // A bare root carries no terminal trace/provenance commitment. Keep the
+      // wire variant reserved, but do not admit it until authenticated root
+      // announcements have a proof-bearing envelope.
       return;
     }
 
@@ -285,6 +426,7 @@ export class ClusterStigmergy {
       if (traceId) {
         this.vetoed.add(traceId);
         this.remoteTraces.delete(traceId);
+        this.seenSequences.set(message.from, message.seq);
       }
       return;
     }
@@ -293,23 +435,19 @@ export class ClusterStigmergy {
       const cap = message.payload as ClusterCapability;
       if (cap && typeof cap.cuda === 'boolean') {
         this.nodeCapabilities.set(message.from, cap);
+        this.seenSequences.set(message.from, message.seq);
       }
       return;
     }
   }
 
-  private shouldReplace(
-    current: ClusterTrace,
-    incoming: { trace: PheromoneTrace; provenance: ClusterProvenance },
-  ): boolean {
-    // Human veto always wins.
-    if (incoming.provenance.humanVeto) return true;
-    // Higher flourishing score wins; ties broken by lexicographic clusterHash for determinism.
-    const currentScore = pickFlourishingFromMeta(current.trace);
-    const incomingScore = incoming.provenance.flourishingScore ?? pickFlourishingFromMeta(incoming.trace);
-    if (incomingScore > currentScore) return true;
-    if (incomingScore < currentScore) return false;
-    return current.clusterHash > computeClusterHash(this.nodeId, incoming.trace, current.localRoot);
+  private rememberLocalReplayTrace(entry: ClusterReplayTrace): void {
+    this.localReplayTraces.set(entry.trace.id, freezeReplayTrace(entry));
+    while (this.localReplayTraces.size > this.replayCapacity) {
+      const oldest = this.localReplayTraces.keys().next().value as string | undefined;
+      if (oldest === undefined) break;
+      this.localReplayTraces.delete(oldest);
+    }
   }
 }
 
@@ -317,8 +455,179 @@ export class ClusterStigmergy {
 // Helpers
 // ----------------------------------------------------------------
 
-function computeClusterHash(nodeId: NodeId, trace: PheromoneTrace, localRoot: string): string {
-  return canonicalDigest({ type: 'MCOP_CLUSTER_TRACE', nodeId, trace, localRoot });
+type RemoteTraceRejectReason = Extract<
+  RemoteTraceWriteResult,
+  { imported: false }
+>['reason'];
+
+/** Canonical root fold shared by live merge and offline replay. */
+export function mergeClusterRoots(roots: ReadonlyMap<NodeId, string>): ClusterMerkleRoot {
+  const contributors = [...roots.entries()]
+    .map(([nodeId, root]) => {
+      if (nodeId.length === 0) throw new Error('cluster root contributor has an empty nodeId');
+      if (!isSha256(root)) throw new Error(`cluster root for ${nodeId} is not lowercase SHA-256`);
+      return Object.freeze({ nodeId, root });
+    })
+    .sort((a, b) => compareNodeIds(a.nodeId, b.nodeId));
+  const root = canonicalDigest({ type: 'MCOP_CLUSTER_ROOT', contributors });
+  return Object.freeze({
+    root,
+    contributors: Object.freeze(contributors),
+    sealedAt: new Date().toISOString(),
+  });
+}
+
+function verifyReplayTrace(
+  expectedNodeId: NodeId,
+  entry: ClusterReplayTrace,
+): { receipt: ClusterTraceAdmissionReceipt } | { reason: RemoteTraceRejectReason } {
+  if (entry.nodeId !== expectedNodeId) return { reason: 'origin-mismatch' };
+  if (!isSha256(entry.trace?.hash) || computeTraceHash(entry.trace) !== entry.trace.hash) {
+    return { reason: 'trace-hash-mismatch' };
+  }
+  if (entry.localRoot !== entry.trace.hash) return { reason: 'local-root-mismatch' };
+
+  const provenance = entry.provenance;
+  const flourishingScore = pickFlourishingFromMeta(entry.trace);
+  const recordedScore = provenance?.flourishingScore ?? 0;
+  if (!provenance ||
+      provenance.nodeId !== expectedNodeId ||
+      provenance.localRoot !== entry.localRoot ||
+      provenance.clusterHash !== entry.clusterHash ||
+      provenance.humanVeto === true ||
+      recordedScore !== flourishingScore ||
+      !isCanonicalLineage(provenance.lineage, expectedNodeId, entry.localRoot) ||
+      !isIsoTimestamp(provenance.sealedAt)) {
+    return { reason: 'provenance-mismatch' };
+  }
+  if (!isSha256(entry.clusterHash) ||
+      computeClusterHash(expectedNodeId, entry.trace, entry.localRoot, {
+        lineage: provenance.lineage,
+        flourishingScore: provenance.flourishingScore,
+        humanVeto: provenance.humanVeto ?? false,
+        sealedAt: provenance.sealedAt,
+      }) !== entry.clusterHash) {
+    return { reason: 'cluster-hash-mismatch' };
+  }
+
+  return {
+    receipt: Object.freeze({
+      scheme: 'MCOP_TRACE_ROOT_V1',
+      nodeId: expectedNodeId,
+      traceHash: entry.trace.hash,
+      localRoot: entry.localRoot,
+      clusterHash: entry.clusterHash,
+    }),
+  };
+}
+
+function computeTraceHash(trace: PheromoneTrace): string {
+  const payload = trace.semanticContext !== undefined
+    ? {
+        id: trace.id,
+        context: trace.context,
+        synthesisVector: trace.synthesisVector,
+        metadata: trace.metadata,
+        weight: trace.weight,
+        semanticContext: trace.semanticContext,
+      }
+    : {
+        id: trace.id,
+        context: trace.context,
+        synthesisVector: trace.synthesisVector,
+        metadata: trace.metadata,
+        weight: trace.weight,
+      };
+  return canonicalDigest({ payload, parentHash: trace.parentHash ?? null });
+}
+
+function freezeReplayTrace(entry: ClusterReplayTrace): ClusterReplayTrace {
+  return deepFreeze(JSON.parse(JSON.stringify(entry)) as ClusterReplayTrace);
+}
+
+function deepFreeze<T>(value: T): T {
+  if (value && typeof value === 'object' && !Object.isFrozen(value)) {
+    for (const nested of Object.values(value as Record<string, unknown>)) deepFreeze(nested);
+    Object.freeze(value);
+  }
+  return value;
+}
+
+function isSha256(value: unknown): value is string {
+  return typeof value === 'string' && /^[0-9a-f]{64}$/.test(value);
+}
+
+function compareNodeIds(a: NodeId, b: NodeId): number {
+  return Buffer.compare(Buffer.from(a, 'utf8'), Buffer.from(b, 'utf8'));
+}
+
+function compareText(a: string, b: string): number {
+  return a < b ? -1 : a > b ? 1 : 0;
+}
+
+function replayTraceKey(entry: ClusterReplayTrace): string {
+  return `${entry.nodeId}\u0000${entry.trace.id}\u0000${entry.clusterHash}`;
+}
+
+function traceIdentityKey(entry: ClusterReplayTrace): string {
+  return `${entry.nodeId}\u0000${entry.trace.id}`;
+}
+
+function selectPreferredTrace(
+  current: ClusterReplayTrace,
+  incoming: ClusterReplayTrace,
+): ClusterReplayTrace {
+  const currentScore = current.provenance.flourishingScore ?? pickFlourishingFromMeta(current.trace);
+  const incomingScore = incoming.provenance.flourishingScore ?? pickFlourishingFromMeta(incoming.trace);
+  if (incomingScore > currentScore) return incoming;
+  if (incomingScore < currentScore) return current;
+  return incoming.clusterHash < current.clusterHash ? incoming : current;
+}
+
+function isCanonicalLineage(
+  lineage: ClusterProvenance['lineage'],
+  nodeId: NodeId,
+  localRoot: string,
+): boolean {
+  if (!Array.isArray(lineage) || lineage.length === 0) return false;
+  const seen = new Set<string>();
+  for (let index = 0; index < lineage.length; index += 1) {
+    const item = lineage[index];
+    if (!item || item.nodeId.length === 0 || !isSha256(item.root) || seen.has(item.nodeId)) {
+      return false;
+    }
+    if (index > 0 && compareNodeIds(lineage[index - 1].nodeId, item.nodeId) >= 0) return false;
+    seen.add(item.nodeId);
+  }
+  return lineage.some((item) => item.nodeId === nodeId && item.root === localRoot);
+}
+
+function isIsoTimestamp(value: unknown): value is string {
+  if (typeof value !== 'string') return false;
+  const timestamp = Date.parse(value);
+  return Number.isFinite(timestamp) && new Date(timestamp).toISOString() === value;
+}
+
+interface ProvenanceCommitment {
+  lineage: ClusterProvenance['lineage'];
+  flourishingScore?: number;
+  humanVeto: boolean;
+  sealedAt: string;
+}
+
+function computeClusterHash(
+  nodeId: NodeId,
+  trace: PheromoneTrace,
+  localRoot: string,
+  provenance: ProvenanceCommitment,
+): string {
+  return canonicalDigest({
+    type: 'MCOP_CLUSTER_TRACE',
+    nodeId,
+    trace,
+    localRoot,
+    provenance,
+  });
 }
 
 function sealClusterProvenance(input: {
@@ -328,6 +637,7 @@ function sealClusterProvenance(input: {
   lineage: ReadonlyArray<{ nodeId: NodeId; root: string }>;
   flourishingScore?: number;
   humanVeto?: boolean;
+  sealedAt: string;
 }): ClusterProvenance {
   return Object.freeze({
     nodeId: input.nodeId,
@@ -336,7 +646,7 @@ function sealClusterProvenance(input: {
     lineage: Object.freeze(input.lineage.map((e) => Object.freeze({ ...e }))),
     flourishingScore: input.flourishingScore,
     humanVeto: input.humanVeto ?? false,
-    sealedAt: new Date().toISOString(),
+    sealedAt: input.sealedAt,
   });
 }
 

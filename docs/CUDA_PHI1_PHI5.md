@@ -16,7 +16,7 @@
 
 | Provider | File | Flag | Default | Bridge style |
 | -------- | ---- | ---- | ------- | ------------ |
-| `CUDAProvider` (microservice / HTTP) | `src/hardware/Accelerator.ts` (#632, #633) | `MCOP_USE_CUDA=1` / `useCUDA: true` | off | Out-of-process Python bridge (`pnpm cuda:serve` → `cuda_server/` package, module `mcop_cuda_server`). |
+| `CUDAProvider` (microservice / HTTP) | `src/hardware/Accelerator.ts` (#632, #633) | `MCOP_USE_CUDA=1` / `useCUDA: true` | off | Out-of-process Python bridge (`pnpm cuda:serve` → `mcop_cuda_server/` package and module). |
 | `CUDAHardwareLayer` (in-process op-sharded ONNX) | `src/hardware/CUDAHardwareLayer.ts` (this PR) | `MCOP_ENABLE_CUDA=1` / `enableCUDA: true` | off | One `onnxruntime-node` `InferenceSession` per kernel (`encode`, `graphAggregate`, `holographicUpdate`, `cosineRecall`, `evolveScore`, `homeostasis`). Per-op CUDA streams + verifiedDevice gate. |
 
 The flags are **independent**. Either, neither, or both providers may be on
@@ -341,13 +341,15 @@ host attached.
 ## Productionization follow-up
 
 The Phi ladder above records what has shipped and what remains gated by real GPU
-hardware, ONNX artifacts, and the missing Python sidecar. The consolidated
+hardware and production ONNX validation. The Python `mcop_cuda_server` sidecar
+and reference ONNX artifacts are shipped; real-GPU parity and benchmark evidence
+remain outstanding. The consolidated
 production roadmap lives in
 [`docs/STIGMERGIC_TRUST_SUBSTRATE_ROADMAP.md`](./STIGMERGIC_TRUST_SUBSTRATE_ROADMAP.md#track-a-cuda-and-hardware-substrate).
 It is the canonical follow-up contract for:
 
-- versioned `mcop_<op>.onnx` kernel manifests and model digests;
+- real-GPU validation of the versioned `mcop_<op>.onnx` manifest and model digests;
 - unifying `CUDAHardwareLayer` and `CUDAProvider` behind one hardware policy;
-- implementing `mcop_cuda_server` for `pnpm cuda:serve`;
+- validating the shipped `mcop_cuda_server` / `pnpm cuda:serve` path on GPU hardware;
 - GPU-runner CI, GhostGPU canaries, and production benchmark artifacts;
 - `docs/CUDA_PRODUCTION.md` examples once real GPU measurements exist.

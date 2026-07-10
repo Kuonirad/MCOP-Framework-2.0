@@ -18,8 +18,13 @@ import {
   ClusterStigmergy,
   InMemoryGossipBus,
   ClusterOrchestrator,
+  mergeClusterRoots,
+  type ClusterReplayBundle,
+  type ClusterReplayTrace,
   type ClusterMerkleRoot,
 } from '../cluster';
+import { canonicalDigest } from '../core/canonicalEncoding';
+import type { PheromoneTrace } from '../core/types';
 
 async function drain(): Promise<void> {
   // Schedule a microtask, then a macrotask, to let queueMicrotask
@@ -40,19 +45,65 @@ function spawnCluster(nodes: ReadonlyArray<string>) {
   return { bus, stigmergies };
 }
 
+function replayEntry(
+  nodeId: string,
+  traceId: string,
+  flourishingScore = 0.8,
+): ClusterReplayTrace {
+  const sealedAt = '2026-07-10T12:00:00.000Z';
+  const payload = {
+    id: traceId,
+    context: [1, 0],
+    synthesisVector: [1, 0],
+    weight: 1,
+    metadata: { flourishingScore },
+  };
+  const trace: PheromoneTrace = {
+    ...payload,
+    timestamp: sealedAt,
+    hash: canonicalDigest({ payload, parentHash: null }),
+  };
+  const localRoot = trace.hash;
+  const lineage = [{ nodeId, root: localRoot }];
+  const provenanceCommitment = {
+    lineage,
+    flourishingScore,
+    humanVeto: false,
+    sealedAt,
+  };
+  const clusterHash = canonicalDigest({
+    type: 'MCOP_CLUSTER_TRACE',
+    nodeId,
+    trace,
+    localRoot,
+    provenance: provenanceCommitment,
+  });
+  return {
+    nodeId,
+    trace,
+    localRoot,
+    clusterHash,
+    provenance: {
+      nodeId,
+      localRoot,
+      clusterHash,
+      ...provenanceCommitment,
+    },
+  };
+}
+
 describe('ClusterStigmergy — three-node integration', () => {
-  it('a single node produces a Merkle root byte-identical to plain StigmergyV5', () => {
+  it('a single node exposes its recorded StigmergyV5 trace hash as the local root', () => {
     const bus = new InMemoryGossipBus();
     bus.register('node-a');
     const s = new ClusterStigmergy({ nodeId: 'node-a', transport: bus });
-    s.recordTrace([1, 0, 0], [0, 1, 0], { domain: 'lone-wolf' });
-    s.recordTrace([0, 1, 0], [1, 0, 0], { domain: 'lone-wolf' });
-    const root = s.getLocalRoot();
-    expect(typeof root).toBe('string');
-    expect(root).toHaveLength(64);
+    const first = s.recordTrace([1, 0, 0], [0, 1, 0], { domain: 'lone-wolf' });
+    const second = s.recordTrace([0, 1, 0], [1, 0, 0], { domain: 'lone-wolf' });
+    expect(first.trace.hash).not.toBe(second.trace.hash);
+    expect(s.getLocalRoot()).toBe(second.trace.hash);
   });
 
-  it("a trace written on node A is gossiped to nodes B and C with matching cluster roots", async () => {
+  it('replays a real node A trace on node C with the byte-identical global root', async () => {
     const { stigmergies } = spawnCluster(['node-a', 'node-b', 'node-c']);
     const a = stigmergies.get('node-a')!;
     const b = stigmergies.get('node-b')!;
@@ -70,28 +121,263 @@ describe('ClusterStigmergy — three-node integration', () => {
     expect(cResonance.bestNodeId).toBe('node-a');
     expect(bResonance.trace?.id).toBe(trace.id);
     expect(cResonance.trace?.id).toBe(trace.id);
-    expect(bResonance.score).toBeGreaterThan(0.95);
-  });
-
-  it("after convergence every node's mergeRemoteRoots produces the same cluster root", async () => {
-    const { stigmergies } = spawnCluster(['node-a', 'node-b', 'node-c']);
-    const a = stigmergies.get('node-a')!;
-    const b = stigmergies.get('node-b')!;
-    const c = stigmergies.get('node-c')!;
-
-    a.recordTrace([1, 0, 0], [0, 1, 0], { domain: 'shared' });
-    await drain();
-    b.recordTrace([0, 1, 0], [0, 0, 1], { domain: 'shared' });
-    await drain();
-    c.recordTrace([0, 0, 1], [1, 0, 0], { domain: 'shared' });
-    await drain();
+    expect(cResonance.trace?.hash).toBe(trace.hash);
+    expect(cResonance.score).toBeGreaterThan(0.95);
 
     const aRoot: ClusterMerkleRoot = a.mergeRemoteRoots();
     const bRoot: ClusterMerkleRoot = b.mergeRemoteRoots();
     const cRoot: ClusterMerkleRoot = c.mergeRemoteRoots();
     expect(aRoot.root).toBe(bRoot.root);
     expect(bRoot.root).toBe(cRoot.root);
-    expect(aRoot.contributors.map((x) => x.nodeId)).toEqual(['node-a', 'node-b', 'node-c']);
+    expect(aRoot.contributors).toEqual([{ nodeId: 'node-a', root: trace.hash }]);
+
+    // Cross a real wire boundary: the verifier receives only JSON, not the
+    // in-memory objects shared by InMemoryGossipBus.
+    const wireBundle = JSON.parse(JSON.stringify(c.exportReplayBundle())) as ClusterReplayBundle;
+    const wireRoots = new Map(JSON.parse(JSON.stringify([...c.getKnownRoots()]))) as Map<string, string>;
+    expect(wireBundle.traces).toHaveLength(1);
+    expect(wireBundle.boundaries).toHaveLength(0);
+    expect(wireBundle.traces[0].provenance.clusterHash).toBe(provenance.clusterHash);
+
+    const replayed = ClusterStigmergy.replay(wireBundle, wireRoots);
+    expect(replayed.root).toBe(cRoot.root);
+    expect(replayed.contributors).toEqual(cRoot.contributors);
+    expect(() => ClusterStigmergy.replay(
+      wireBundle,
+      new Map([...wireRoots, ['node-z', 'aa'.repeat(32)]]),
+    )).toThrow('missing terminal trace');
+
+    const verifierBus = new InMemoryGossipBus();
+    const verifier = new ClusterStigmergy({ nodeId: 'offline-c', transport: verifierBus });
+    const admitted = verifier.writeTraceRemote('node-a', wireBundle.traces[0]);
+    expect(admitted).toEqual({
+      imported: true,
+      active: true,
+      receipt: {
+        scheme: 'MCOP_TRACE_ROOT_V1',
+        nodeId: 'node-a',
+        traceHash: trace.hash,
+        localRoot: trace.hash,
+        clusterHash: provenance.clusterHash,
+      },
+    });
+    expect(verifier.getResonance([0.9, 0.1, 0]).trace?.hash).toBe(trace.hash);
+  });
+
+  it('canonically merges an authoritative root snapshot in every insertion order', () => {
+    const roots = [
+      ['node-a', '00'.repeat(32)],
+      ['node-b', '11'.repeat(32)],
+      ['node-c', 'ff'.repeat(32)],
+    ] as const;
+    const forward = mergeClusterRoots(new Map(roots));
+    const reverse = mergeClusterRoots(new Map([...roots].reverse()));
+    const bus = new InMemoryGossipBus();
+    const nodeWithUnrelatedLocalState = new ClusterStigmergy({ nodeId: 'local', transport: bus });
+    nodeWithUnrelatedLocalState.recordTrace([1], [1], { domain: 'must-not-leak' });
+    const authoritative = nodeWithUnrelatedLocalState.mergeRemoteRoots(
+      new Map([...roots].reverse()),
+    );
+
+    expect(forward.root).toBe('57602e8ff11a76d17de14e843339127a779d97ba94f8c46bba50ac5667208b73');
+    expect(reverse.root).toBe(forward.root);
+    expect(authoritative.root).toBe(forward.root);
+    expect(authoritative.contributors).toEqual(forward.contributors);
+    expect(reverse.contributors).toEqual(forward.contributors);
+    expect(forward.contributors.map(({ nodeId }) => nodeId)).toEqual([
+      'node-a',
+      'node-b',
+      'node-c',
+    ]);
+  });
+
+  it('rejects tampered remote traces before mutating node C state', async () => {
+    const { stigmergies } = spawnCluster(['node-a', 'node-c']);
+    const a = stigmergies.get('node-a')!;
+    const c = stigmergies.get('node-c')!;
+    const { trace } = a.recordTrace([1, 0], [1, 0], { domain: 'tamper-proof' });
+    await drain();
+
+    const beforeRoot = c.mergeRemoteRoots().root;
+    const beforeTrace = c.getResonance([1, 0]).trace?.hash;
+    const acceptedEntry = c.exportReplayBundle().traces[0];
+    const tampered = JSON.parse(JSON.stringify(acceptedEntry)) as ClusterReplayTrace;
+    tampered.trace.synthesisVector[0] = 0;
+    const validForClusterHash = JSON.parse(
+      JSON.stringify(acceptedEntry),
+    ) as ClusterReplayTrace;
+    const forgedClusterHash = '00'.repeat(32);
+    const badClusterHash = {
+      ...validForClusterHash,
+      clusterHash: forgedClusterHash,
+      provenance: {
+        ...validForClusterHash.provenance,
+        clusterHash: forgedClusterHash,
+      },
+    };
+    const validForProvenance = JSON.parse(
+      JSON.stringify(acceptedEntry),
+    ) as ClusterReplayTrace;
+    const badProvenance = {
+      ...validForProvenance,
+      provenance: { ...validForProvenance.provenance, flourishingScore: 0.99 },
+    };
+
+    expect(c.writeTraceRemote('node-a', tampered)).toEqual({
+      imported: false,
+      reason: 'trace-hash-mismatch',
+    });
+    expect(() => ClusterStigmergy.replay([tampered], c.getKnownRoots())).toThrow(
+      'trace-hash-mismatch',
+    );
+    expect(c.writeTraceRemote('node-a', badClusterHash)).toEqual({
+      imported: false,
+      reason: 'cluster-hash-mismatch',
+    });
+    expect(c.writeTraceRemote('node-a', badProvenance)).toEqual({
+      imported: false,
+      reason: 'provenance-mismatch',
+    });
+    expect(c.mergeRemoteRoots().root).toBe(beforeRoot);
+    expect(c.getResonance([1, 0]).trace?.hash).toBe(beforeTrace);
+    expect(beforeTrace).toBe(trace.hash);
+  });
+
+  it('rejects malformed root snapshots instead of hashing untrusted strings', () => {
+    expect(() => mergeClusterRoots(new Map([['node-a', 'not-a-root']]))).toThrow(
+      'not lowercase SHA-256',
+    );
+  });
+
+  it('rejects stale heads, missing ancestors, and synthetic idle contributors', async () => {
+    const { stigmergies } = spawnCluster(['node-a', 'node-c']);
+    const a = stigmergies.get('node-a')!;
+    const c = stigmergies.get('node-c')!;
+    const first = a.recordTrace([1, 0], [1, 0], { domain: 'chain' }).trace;
+    const second = a.recordTrace([0, 1], [0, 1], { domain: 'chain' }).trace;
+    await drain();
+
+    const bundle = c.exportReplayBundle();
+    expect(bundle.traces).toHaveLength(2);
+    expect(() => ClusterStigmergy.replay(
+      bundle,
+      new Map([['node-a', first.hash]]),
+    )).toThrow('root is not the verified head');
+    expect(() => ClusterStigmergy.replay(
+      bundle.traces.filter((entry) => entry.trace.hash === second.hash),
+      new Map([['node-a', second.hash]]),
+    )).toThrow('missing ancestor');
+    expect(() => ClusterStigmergy.replay(
+      bundle,
+      new Map([
+        ['node-a', second.hash],
+        ['idle-attacker', canonicalDigest({ empty: 'idle-attacker' })],
+      ]),
+    )).toThrow('missing terminal trace');
+  });
+
+  it('replays a bounded window after normal trace-buffer eviction', () => {
+    const node = new ClusterStigmergy({
+      nodeId: 'node-a',
+      transport: new InMemoryGossipBus(),
+      maxTraces: 2,
+    });
+    const first = node.recordTrace([1, 0], [1, 0], { step: 1 }).trace;
+    const second = node.recordTrace([0, 1], [0, 1], { step: 2 }).trace;
+    const third = node.recordTrace([1, 1], [1, 1], { step: 3 }).trace;
+
+    const bundle = node.exportReplayBundle();
+    expect(bundle.traces.map(({ trace }) => trace.hash).sort()).toEqual(
+      [second.hash, third.hash].sort(),
+    );
+    expect(bundle.boundaries).toEqual([{
+      nodeId: 'node-a',
+      firstTraceHash: second.hash,
+      parentHash: first.hash,
+    }]);
+    expect(ClusterStigmergy.replay(bundle, node.getKnownRoots()).root).toBe(
+      node.mergeRemoteRoots().root,
+    );
+  });
+
+  it('keeps verified siblings and selects the same active branch in either arrival order', () => {
+    const aEntry = replayEntry('node-a', 'shared-trace-id');
+    const bEntry = replayEntry('node-b', 'shared-trace-id');
+    const first = new ClusterStigmergy({
+      nodeId: 'receiver-1',
+      transport: new InMemoryGossipBus(),
+    });
+    const second = new ClusterStigmergy({
+      nodeId: 'receiver-2',
+      transport: new InMemoryGossipBus(),
+    });
+
+    expect(first.writeTraceRemote('node-a', aEntry).imported).toBe(true);
+    expect(first.writeTraceRemote('node-b', bEntry).imported).toBe(true);
+    expect(second.writeTraceRemote('node-b', bEntry).imported).toBe(true);
+    expect(second.writeTraceRemote('node-a', aEntry).imported).toBe(true);
+
+    expect(first.mergeRemoteRoots().root).toBe(second.mergeRemoteRoots().root);
+    expect(first.exportReplayBundle().traces).toHaveLength(2);
+    expect(second.exportReplayBundle().traces).toHaveLength(2);
+    expect(first.getResonance([1, 0]).bestNodeId).toBe(
+      second.getResonance([1, 0]).bestNodeId,
+    );
+  });
+
+  it('preserves same-writer equivocation while selecting the higher flourishing branch', () => {
+    const low = replayEntry('node-a', 'equivocated-id', 0.2);
+    const high = replayEntry('node-a', 'equivocated-id', 0.9);
+    const first = new ClusterStigmergy({
+      nodeId: 'receiver-1',
+      transport: new InMemoryGossipBus(),
+    });
+    const second = new ClusterStigmergy({
+      nodeId: 'receiver-2',
+      transport: new InMemoryGossipBus(),
+    });
+
+    first.writeTraceRemote('node-a', low);
+    first.writeTraceRemote('node-a', high);
+    second.writeTraceRemote('node-a', high);
+    second.writeTraceRemote('node-a', low);
+
+    expect(first.exportReplayBundle().traces).toHaveLength(2);
+    expect(second.exportReplayBundle().traces).toHaveLength(2);
+    expect(first.getResonance([1, 0]).trace?.hash).toBe(high.trace.hash);
+    expect(second.getResonance([1, 0]).trace?.hash).toBe(high.trace.hash);
+    expect(first.mergeRemoteRoots().root).toBe(second.mergeRemoteRoots().root);
+    expect(first.getKnownRoots().get('node-a')).toBe(high.localRoot);
+    expect(ClusterStigmergy.replay(
+      first.exportReplayBundle(),
+      first.getKnownRoots(),
+    ).root).toBe(first.mergeRemoteRoots().root);
+  });
+
+  it('does not let an invalid high sequence or bare root poison later valid gossip', async () => {
+    const { bus, stigmergies } = spawnCluster(['node-a', 'node-c']);
+    const a = stigmergies.get('node-a')!;
+    const c = stigmergies.get('node-c')!;
+    bus.publish({
+      type: 'trace',
+      from: 'node-a',
+      seq: 99,
+      timestamp: '2026-07-10T12:00:00.000Z',
+      payload: { trace: { id: 'forged' } },
+    });
+    bus.publish({
+      type: 'root',
+      from: 'root-attacker',
+      seq: 1,
+      timestamp: '2026-07-10T12:00:00.000Z',
+      payload: { root: 'aa'.repeat(32) },
+    });
+    await drain();
+
+    const { trace } = a.recordTrace([1, 0], [1, 0], { domain: 'valid-after-forgery' });
+    await drain();
+    expect(c.getResonance([1, 0]).trace?.hash).toBe(trace.hash);
+    expect(c.getKnownRoots().has('root-attacker')).toBe(false);
   });
 
   it("human veto on node A removes the trace from B and C's resonance surface", async () => {
@@ -111,16 +397,15 @@ describe('ClusterStigmergy — three-node integration', () => {
     expect(c.getResonance([1, 0, 0]).trace).toBeUndefined();
   });
 
-  it('conflict resolution picks the trace with the higher flourishing score', async () => {
+  it('repeated resonance queries return the same winning trace', async () => {
     const { stigmergies } = spawnCluster(['node-a', 'node-b']);
     const a = stigmergies.get('node-a')!;
     const b = stigmergies.get('node-b')!;
 
     const { trace: lo } = a.recordTrace([1, 0], [0, 1], { domain: 'd', flourishingScore: 0.3 });
     await drain();
-    // node B mints a different trace ID with the same vector but a much
-    // higher flourishing score; cluster B should prefer its own when
-    // querying.
+    // A second node contributes an equally resonant trace. Repeated reads must
+    // retain the same deterministic winner.
     b.recordTrace([1, 0], [0, 1], { domain: 'd', flourishingScore: 0.95 });
     await drain();
 
@@ -134,51 +419,6 @@ describe('ClusterStigmergy — three-node integration', () => {
     expect(resonance2.bestNodeId).toBe(resonance.bestNodeId);
   });
 
-  it('replay() reconstructs the cluster root from a sealed bundle', async () => {
-    const { stigmergies } = spawnCluster(['node-a', 'node-b']);
-    const a = stigmergies.get('node-a')!;
-    const b = stigmergies.get('node-b')!;
-    a.recordTrace([1, 0], [0, 1], { domain: 'replay' });
-    await drain();
-    b.recordTrace([0, 1], [1, 0], { domain: 'replay' });
-    await drain();
-
-    const live = a.mergeRemoteRoots().root;
-    const replayed = ClusterStigmergy.replay(
-      [],
-      new Map([
-        ['node-a', a.getLocalRoot()],
-        ['node-b', b.getLocalRoot()],
-      ]),
-    );
-    // The replay form filters by trace presence; with no trace bundle
-    // the contributors list is empty so the replay root is the
-    // canonical empty root and must NOT equal the live cluster root.
-    expect(replayed.root).not.toBe(live);
-
-    const replayedFull = ClusterStigmergy.replay(
-      [
-        // Provide one trace per node so both make it into the contributor set.
-        {
-          nodeId: 'node-a',
-          trace: { id: 'x', hash: 'x', context: [], synthesisVector: [], weight: 0, timestamp: '' },
-          localRoot: a.getLocalRoot(),
-          clusterHash: 'x',
-        },
-        {
-          nodeId: 'node-b',
-          trace: { id: 'y', hash: 'y', context: [], synthesisVector: [], weight: 0, timestamp: '' },
-          localRoot: b.getLocalRoot(),
-          clusterHash: 'y',
-        },
-      ],
-      new Map([
-        ['node-a', a.getLocalRoot()],
-        ['node-b', b.getLocalRoot()],
-      ]),
-    );
-    expect(replayedFull.root).toBe(live);
-  });
 });
 
 describe('ClusterOrchestrator — membership + sharding', () => {

@@ -405,6 +405,7 @@ console.log({
 | Runnable organelle host experiment | [`examples/grok_mcop_organelle_experiment.ts`](./examples/grok_mcop_organelle_experiment.ts) |
 | Decentralized agent coordination | [`docs/DECENTRALIZED_AGENT_COORDINATION.md`](./docs/DECENTRALIZED_AGENT_COORDINATION.md) |
 | Redis Streams cluster transport | [`docs/DISTRIBUTED_CLUSTER_MODE.md`](./docs/DISTRIBUTED_CLUSTER_MODE.md) |
+| Cross-node stigmergic replay proof | [`examples/cluster_stigmergy_replay.ts`](./examples/cluster_stigmergy_replay.ts) — run with `pnpm cluster:replay` |
 | Telemetry hardening source | [`src/telemetry/`](./src/telemetry/) |
 | Architecture overview | [`ARCHITECTURE.md`](./ARCHITECTURE.md) |
 | Supply-chain controls | [`docs/SUPPLY_CHAIN_TRUST.md`](./docs/SUPPLY_CHAIN_TRUST.md) |
@@ -630,7 +631,7 @@ MCOP-Framework-2.0/
 
 ## 🚀 v2.3 Hardware Acceleration (CUDA Layer)
 
-The v2.3 release scaffolds the optional **CUDA Hardware Layer** around two provider surfaces: the in-process ONNX layer and the HTTP accelerator bridge. The triad still byte-identically reproduces on CPU; CUDA remains provenance-attested and disabled or probe-driven unless explicitly enabled. Kernel model artifacts, the deterministic export script, the Python CUDA server, GPU CI, and full hot-path unification are productionization work tracked in [`docs/CUDA_PRODUCTION.md`](./docs/CUDA_PRODUCTION.md).
+The v2.3 release scaffolds the optional **CUDA Hardware Layer** around two provider surfaces: the in-process ONNX layer and the HTTP accelerator bridge. The triad still byte-identically reproduces on CPU; CUDA remains provenance-attested and disabled or probe-driven unless explicitly enabled. Reference kernel artifacts, their deterministic export pipeline, and the Python CUDA server are shipped. Real-GPU validation, GPU CI, and full hot-path unification remain productionization work tracked in [`docs/CUDA_PRODUCTION.md`](./docs/CUDA_PRODUCTION.md).
 
 ### Shipped surfaces
 
@@ -641,14 +642,15 @@ The v2.3 release scaffolds the optional **CUDA Hardware Layer** around two provi
 | Config surface | [`src/config/mcop.config.ts`](src/config/mcop.config.ts) | `hardware.useCUDA`, `hardware.provider`, `hardware.enableCUDA`, and `hardware.kernelDir` defaults |
 | Benchmarks | [`scripts/benchmark-cuda-graph.mjs`](scripts/benchmark-cuda-graph.mjs) | CPU-stable smoke and full-mode harness across all six logical ops |
 | Verified-device soak | [`scripts/cuda-verified-device-soak.mjs`](scripts/cuda-verified-device-soak.mjs) | Structural soak plus GhostGPU canary |
+| Reference kernels + manifest | [`models/`](models/) | Six committed ONNX reference artifacts with SHA-256/Merkle manifest |
+| Deterministic export pipeline | [`scripts/export_cuda_kernels/`](scripts/export_cuda_kernels/) | Reference and PyTorch export backends |
+| Python sidecar | [`mcop_cuda_server/`](mcop_cuda_server/) | `GET /health`, `GET /capabilities`, and `POST /cuda/{op}` |
 
 ### Productionization gaps
 
 | Gap | Required artifact |
 |:---|:---|
-| Kernel supply chain | `models/mcop_*.onnx` plus a Merkle-rooted model manifest |
-| Export pipeline | `scripts/export_cuda_kernels.py` or `scripts/export_cuda_kernels/` |
-| Python sidecar | `mcop_cuda_server` implementing `GET /health`, `GET /capabilities`, and `POST /cuda/{op}` |
+| Real-GPU evidence | Hardware-backed parity and benchmark artifacts for the committed kernels and sidecar |
 | GPU CI | Optional GPU runner jobs for full benchmarks and verified-device soak |
 | Hot-path unification | Encode, recall, etch, evolve, and homeostasis calls routed through one provenance-attached accelerator boundary |
 
