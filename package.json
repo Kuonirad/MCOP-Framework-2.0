@@ -38,6 +38,7 @@
     "sbom": "node scripts/generate-sbom.mjs",
     "sbom:validate": "node scripts/validate-sbom.mjs",
     "positive:audit": "node scripts/positive-audit.mjs",
+    "positive:share": "node -e \"process.stdout.write(require('node:fs').readFileSync('docs/positive-impact-share.md','utf8'))\"",
     "audit:auditor-kernel": "node scripts/auditor-kernel-etch.mjs",
     "audit:velocity": "node scripts/velocity-auditor-etch.mjs",
     "positive:attest": "POSITIVE_IMPACT_ATTEST=1 jest --runInBand --testPathPatterns=positiveImpactVerifier",

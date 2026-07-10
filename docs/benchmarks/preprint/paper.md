@@ -15,7 +15,7 @@
 * **Snapshot.** `docs/benchmarks/results.json` (schema `mcop-benchmark/2.0`, `capturedAt = 2026-04-27T22:30:00.000Z`).
 * **Verified at.** `<verified-at>` (filled in by the verifier).
 * **Bundle SHA-256.** `<sha256-bundle>` (filled in from `manifest.json`).
-* **License.** BUSL-1.1 with scheduled MIT conversion on `2030-04-26`.
+* **License.** Apache-2.0.
 
 ---
 
