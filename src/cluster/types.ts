@@ -33,12 +33,57 @@ export interface ClusterTrace {
   readonly trace: PheromoneTrace;
   /** Merkle root of the issuing node's local stigmergy at the moment the trace was minted. */
   readonly localRoot: MerkleRoot;
-  /** RFC 8785 canonical digest of `{nodeId, trace, localRoot}` — the per-trace cluster fingerprint. */
+  /** RFC 8785 digest of the trace, root, and provenance commitment. */
   readonly clusterHash: string;
 }
 
+/** A trace plus the provenance envelope required for offline cluster replay. */
+export interface ClusterReplayTrace extends ClusterTrace {
+  readonly provenance: ClusterProvenance;
+}
+
+/** Explicit anchor for a retained window whose predecessor is outside the bundle. */
+export interface ClusterReplayBoundary {
+  readonly nodeId: NodeId;
+  readonly firstTraceHash: string;
+  readonly parentHash: string;
+}
+
+export interface ClusterReplayBundle {
+  readonly traces: ReadonlyArray<ClusterReplayTrace>;
+  readonly boundaries: ReadonlyArray<ClusterReplayBoundary>;
+}
+
+/** Receipt describing the integrity checks applied before remote admission. */
+export interface ClusterTraceAdmissionReceipt {
+  readonly scheme: 'MCOP_TRACE_ROOT_V1';
+  readonly nodeId: NodeId;
+  readonly traceHash: string;
+  readonly localRoot: MerkleRoot;
+  readonly clusterHash: string;
+}
+
+export type RemoteTraceWriteResult =
+  | {
+      readonly imported: true;
+      /** Whether this verified sibling is active on the resonance surface. */
+      readonly active: boolean;
+      readonly receipt: ClusterTraceAdmissionReceipt;
+    }
+  | {
+      readonly imported: false;
+      readonly receipt?: ClusterTraceAdmissionReceipt;
+      readonly reason:
+    | 'duplicate'
+    | 'origin-mismatch'
+    | 'trace-hash-mismatch'
+    | 'local-root-mismatch'
+    | 'cluster-hash-mismatch'
+    | 'provenance-mismatch';
+    };
+
 export interface ClusterMerkleRoot {
-  /** Deterministic fold across all participating node roots. Byte-stable across reruns. */
+  /** Deterministic fold across the supplied root snapshot. Byte-stable across reruns. */
   readonly root: MerkleRoot;
   /** Sorted node roots that produced {@link root}, in the order they were folded. */
   readonly contributors: ReadonlyArray<{ readonly nodeId: NodeId; readonly root: MerkleRoot }>;

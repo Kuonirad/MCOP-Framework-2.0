@@ -64,10 +64,10 @@ not background infrastructure. They are part of the evolving record.
 | --- | --- | --- |
 | Six kernel operation names | Shipped for `encode`, `graphAggregate`, `holographicUpdate`, `cosineRecall`, `evolveScore`, `homeostasis`. | `src/hardware/CUDAHardwareLayer.ts`, `docs/CUDA_PHI1_PHI5.md` |
 | In-process CUDA layer | Shipped as optional `CUDAHardwareLayer` with tri-state `enableCUDA`. | `src/hardware/CUDAHardwareLayer.ts` |
-| HTTP CUDA bridge | TypeScript client shipped as `CUDAProvider`; Python sidecar remains unimplemented. | `src/hardware/Accelerator.ts`, `package.json` `cuda:serve` |
+| HTTP CUDA bridge | TypeScript `CUDAProvider` and the stateless Python `mcop_cuda_server` are shipped; real-GPU parity remains a production gate. | `src/hardware/Accelerator.ts`, `mcop_cuda_server/`, `package.json` `cuda:serve` |
 | Provenance fields | `requestedDevice`, `verifiedDevice`, `substrateLineage`, `durationMs`, and `resolvedFrom` are available. | `src/hardware/Accelerator.ts` |
 | Benchmarks and soak harness | Smoke baselines and structural soak exist; real GPU artifacts remain a production gate. | `scripts/benchmark-cuda-graph.mjs`, `scripts/cuda-verified-device-soak.mjs` |
-| Kernel artifacts | `models/mcop_*.onnx` exports are not committed and remain supply-chain inputs. | `docs/CUDA_PHI1_PHI5.md` |
+| Kernel artifacts | Six reference `models/mcop_*.onnx` exports and their Merkle manifest are committed; real-GPU validation remains gated. | `models/manifest.json`, `docs/CUDA_PRODUCTION.md` |
 
 ### Delivery phases
 
@@ -232,8 +232,9 @@ model, and replay model.
 
 **Required contracts:**
 
-- `ClusterStigmergy.writeTraceRemote(nodeId, trace)` returns a Merkle inclusion
-  proof and does not mutate local state until verification passes;
+- `ClusterStigmergy.writeTraceRemote(nodeId, trace)` verifies a terminal trace
+  before mutation and returns an admission receipt; arbitrary non-head writes
+  still require a formal Merkle inclusion-path contract;
 - `ClusterStigmergy.mergeRemoteRoots(roots)` sorts roots canonically and emits a
   combined root;
 - `ClusterProvenance` records node ID, local root, peer root, signature,
@@ -243,6 +244,17 @@ model, and replay model.
 
 **Exit gate:** deterministic tests can merge the same remote roots in different
 orders and produce the same global root.
+
+**Integrity implementation (2026-07-10):** `mergeRemoteRoots(roots)` now treats
+the supplied snapshot as authoritative, sorts contributors by UTF-8 node ID,
+and shares one canonical fold with offline replay. Remote trace admission
+recomputes the Stigmergy trace hash, local root, cluster hash, and provenance
+bindings before mutation. The runnable
+[`examples/cluster_stigmergy_replay.ts`](../examples/cluster_stigmergy_replay.ts)
+proof writes on node A, recalls on node C, crosses a JSON wire boundary, and
+replays the byte-identical global root. Node authentication, signatures, trust
+scope, and signed veto policy remain production security gates rather than
+claims of this integrity proof.
 
 #### B2. Membership and orchestration
 
@@ -264,7 +276,7 @@ why the reassignment occurred.
 
 **Required work:**
 
-- add `cluster:replay` CLI or API;
+- promote the local `cluster:replay` integrity proof into a peer-fetching CLI or API;
 - fetch trace bundles plus Merkle proofs from peer nodes;
 - verify local root, peer root, combined root, signatures, trust scope, and veto
   propagation;
@@ -408,11 +420,12 @@ not production-complete.
 
 ## Immediate implementation order
 
-1. Finish kernel artifact supply-chain verification.
-2. Implement the Python CUDA microservice or remove `pnpm cuda:serve` until the
-   service exists.
-3. Add production CUDA documentation backed by real GPU benchmark artifacts.
-4. Write the cluster ADR and deterministic root-merge tests.
+1. Validate the committed kernel manifest and shipped Python CUDA sidecar on a
+   real GPU host, then publish parity and benchmark artifacts.
+2. Add production CUDA documentation backed by those real GPU artifacts.
+3. Extend the deterministic cluster integrity proof with authenticated root
+   announcements, trust scopes, and signed-veto policy.
+4. Write the cluster ADR threat, failure, and replay model.
 5. Implement the self-hosted ledger before the managed service.
 6. Add hosted-ledger configuration only after export-and-verify semantics are
    proven locally.
