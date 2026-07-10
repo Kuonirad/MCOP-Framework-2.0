@@ -122,7 +122,7 @@ feature comparison, May 2026 — public docs as of writing):
 | Native xAI Grok adapter (text + image generation) | ✅ | ⚠️ community | ❌ | ❌ |
 | Test coverage on documented API surface | **92.18%** | varies | varies | varies |
 | Reference benchmark (full pipeline) | **4.4 ms / 22,700 ops/sec** ([source](./src/benchmarks/promptingModes.ts)) | n/a | n/a | n/a |
-| License posture | **BUSL-1.1 → MIT 2030-04-26** | MIT | CC-BY-4.0 / MIT | MIT |
+| License posture | **Apache-2.0** | MIT | CC-BY-4.0 / MIT | MIT |
 | CodeQL + SBOM (CycloneDX) + Trojan-Source guard in CI | ✅ | ⚠️ partial | ⚠️ partial | ⚠️ partial |
 | Trusted publishing (OIDC, secretless) to npm + PyPI | ✅ | ❌ | ❌ | ❌ |
 

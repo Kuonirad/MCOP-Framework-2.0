@@ -29,6 +29,8 @@ const checks = [
 const checksPath = join(root, 'audit', 'positive-audit-checks.json');
 const signalsPath = join(root, 'audit', 'positive-impact-signals.json');
 const reportPath = join(root, 'docs', 'POSITIVE_IMPACT_REPORT.md');
+const consolidatedReportPath = join(root, 'docs', 'positive-impact-report.json');
+const shareReportPath = join(root, 'docs', 'positive-impact-share.md');
 const badgePath = join(root, 'docs', 'badges', 'positive-impact.svg');
 const ledgerPath = join(root, 'audit', 'positive-resonance-ledger.md');
 const metricsDir = join(root, '.github', 'metrics');
@@ -73,6 +75,7 @@ function writePositiveImpactReport(checkResults, capturedAt) {
   // execute it through Jest — the same vehicle `benchmark:refresh` uses to run
   // typed code at script time without a separate build pipeline.
   const audit = generateImpactSignals(checkResults, capturedAt);
+  const commitHash = resolveCommitHash();
 
   mkdirSync(dirname(reportPath), { recursive: true });
   mkdirSync(dirname(badgePath), { recursive: true });
@@ -86,7 +89,7 @@ function writePositiveImpactReport(checkResults, capturedAt) {
     : '';
   const snapshot = buildPositiveLoopSnapshot({
     capturedAt,
-    commitHash: resolveCommitHash(),
+    commitHash,
     score,
     audit,
   });
@@ -106,6 +109,36 @@ function writePositiveImpactReport(checkResults, capturedAt) {
   for (const [filename, endpoint] of Object.entries(renderShieldsEndpoints(snapshot))) {
     writeFileSync(join(metricsDir, filename), `${JSON.stringify(endpoint, null, 2)}\n`);
   }
+  writeFileSync(
+    consolidatedReportPath,
+    `${JSON.stringify(
+      {
+        capturedAt,
+        commitHash,
+        score,
+        metrics: audit?.metrics ?? null,
+        substrate: audit?.substrate ?? null,
+        checks: checkResults.map(({ label, passed, durationMs }) => ({
+          label,
+          passed,
+          durationMs,
+        })),
+        merkleRoot: audit?.metrics?.merkleRoot ?? null,
+      },
+      null,
+      2,
+    )}\n`,
+  );
+  writeFileSync(
+    shareReportPath,
+    renderShareMarkdown({
+      capturedAt,
+      score,
+      checkResults,
+      audit,
+      commitHash,
+    }),
+  );
 }
 
 /**
@@ -216,6 +249,40 @@ function renderFallbackMetrics(score) {
   );
 }
 
+function renderShareMarkdown({ capturedAt, score, checkResults, audit, commitHash }) {
+  const passed = checkResults.filter((result) => result.passed).length;
+  const total = checkResults.length;
+  const checksLine = `Verification: ${passed}/${total} checks passed.`;
+  const commitLine = `Commit: \`${shortCommitHash(commitHash)}\`.`;
+  const repoLink = '[MCOP Framework 2.0](https://github.com/Kuonirad/MCOP-Framework-2.0)';
+
+  if (!audit) {
+    return (
+      `# Positive Impact Verification\n\n` +
+      `The Impact Auditor was unavailable for this run; no impact metrics are fabricated.\n\n` +
+      `- Verification score: **${score}%**\n` +
+      `- ${checksLine}\n` +
+      `- ${commitLine}\n` +
+      `- ${repoLink}\n\n` +
+      `Captured: ${capturedAt}\n`
+    );
+  }
+
+  const metrics = audit.metrics;
+  return (
+    `# Positive Impact Snapshot\n\n` +
+    `**${score}%** positive audit score for ${repoLink}.\n\n` +
+    `- Contributor joy: **${round(metrics.contributorJoy)}**\n` +
+    `- Adoption velocity: **${round(metrics.adoptionVelocity)}**\n` +
+    `- Beneficial outcome amplification: **${round(metrics.beneficialOutcomeAmplification)}**\n` +
+    `- Growth events: **${metrics.growthEvents}**\n` +
+    `- Merkle root: \`${shortHash(metrics.merkleRoot)}\`\n` +
+    `- ${checksLine}\n` +
+    `- ${commitLine}\n\n` +
+    `Captured: ${capturedAt}\n`
+  );
+}
+
 function renderCitations(audit) {
   if (!Array.isArray(audit.citations) || audit.citations.length === 0) return '';
   const rows = audit.citations
@@ -232,6 +299,10 @@ function renderCitations(audit) {
 function shortHash(hash) {
   if (typeof hash !== 'string') return 'n/a';
   return hash.length > 20 ? `${hash.slice(0, 16)}…${hash.slice(-4)}` : hash;
+}
+
+function shortCommitHash(hash) {
+  return typeof hash === 'string' ? hash.slice(0, 7) : 'n/a';
 }
 
 function renderBadge(score) {
@@ -256,7 +327,7 @@ function round(value) {
   return Math.round(value * 1000) / 1000;
 }
 
-export { renderReport, renderBadge };
+export { renderReport, renderBadge, renderShareMarkdown };
 
 function runCheckCommand(command, args) {
   const childCommand = process.platform === 'win32' ? 'cmd' : command;
