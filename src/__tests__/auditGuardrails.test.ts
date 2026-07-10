@@ -87,6 +87,37 @@ describe('audit remediation guardrail scripts', () => {
     expect(source).toContain('function readOptionalFile');
   });
 
+  it('treats LF and CRLF shared documents as the same content', () => {
+    const result = execFileSync(
+      'node',
+      [
+        '--input-type=module',
+        '--eval',
+        "import { sha256OfText } from './scripts/shared-docs-guard.mjs'; process.stdout.write(String(sha256OfText('one\\ntwo\\n') === sha256OfText('one\\r\\ntwo\\r\\n')));",
+      ],
+      { cwd: process.cwd(), encoding: 'utf8' },
+    );
+
+    expect(result).toBe('true');
+  });
+
+  it('routes positive-audit checks through the configured Windows shell', () => {
+    const result = execFileSync(
+      'node',
+      [
+        '--input-type=module',
+        '--eval',
+        "import { buildCheckInvocation } from './scripts/positive-audit.mjs'; const invocation = buildCheckInvocation('pnpm', ['lint'], { platform: 'win32', env: { ComSpec: 'cmd.exe' } }); process.stdout.write(JSON.stringify(invocation));",
+      ],
+      { cwd: process.cwd(), encoding: 'utf8' },
+    );
+
+    expect(JSON.parse(result)).toEqual([
+      'cmd.exe',
+      ['/d', '/s', '/c', 'pnpm', 'lint'],
+    ]);
+  });
+
   it('keeps README shields.io metric endpoints cache-busted and encoded', () => {
     const source = readFileSync('README.md', 'utf8');
     const endpointBadges = source.match(/https:\/\/img\.shields\.io\/endpoint\?cacheSeconds=300&style=flat-square&url=https%3A%2F%2Fraw\.githubusercontent\.com%2FKuonirad%2FMCOP-Framework-2\.0%2Fmain%2F\.github%2Fmetrics%2Fpositive-[^)]+\.json/g) ?? [];
