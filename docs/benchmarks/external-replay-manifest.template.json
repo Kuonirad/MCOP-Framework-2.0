@@ -12,7 +12,7 @@
   },
   "environment": {
     "os": "ubuntu-latest",
-    "node": "22.23.0",
+    "node": "22.23.1",
     "pnpm": "9.15.0",
     "cpu": "runner-cpu",
     "gpu": "none"

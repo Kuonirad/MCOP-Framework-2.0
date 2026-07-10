@@ -8,7 +8,7 @@ MCOP Framework 2.0 is a Next.js 15.5 + React 19 monorepo with a TypeScript core 
 
 ### Node.js / pnpm
 
-- Node.js version is pinned to **22.23.0** via `.nvmrc` and `engines` in `package.json`.
+- Node.js version is pinned to **22.23.1** via `.nvmrc` and `engines` in `package.json`.
 - pnpm **9.15.0** is pinned via `packageManager` in `package.json`. Enable it with `corepack enable && corepack prepare pnpm@9.15.0 --activate`.
 - `.npmrc` has `engine-strict=true` — mismatched engines will hard-fail.
 - Use `COREPACK_ENABLE_DOWNLOAD_PROMPT=0 pnpm install` (not `--frozen-lockfile`) in agent environments; the lockfile variant may silently skip newly-added deps.
@@ -61,7 +61,7 @@ pnpm config set manage-package-manager-versions false --global
 After this, the global pnpm 10.x will be used directly, which is compatible with the lockfile. If corepack has removed the `pnpm` bin shim (after `corepack disable`), re-link it:
 
 ```bash
-ln -sf ../lib/node_modules/pnpm/bin/pnpm.cjs /home/ubuntu/.nvm/versions/node/v22.23.0/bin/pnpm
+ln -sf ../lib/node_modules/pnpm/bin/pnpm.cjs /home/ubuntu/.nvm/versions/node/v22.23.1/bin/pnpm
 ```
 
 ### TLS network restrictions in Cloud Agent VMs
