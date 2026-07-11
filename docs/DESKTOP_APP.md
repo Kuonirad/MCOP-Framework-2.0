@@ -25,13 +25,22 @@ mcop://showcase
 
 ## Runtime ownership
 
-The desktop build performs four deterministic steps:
+The desktop build performs five deterministic steps:
 
 1. Build Next with `output: "standalone"`.
-2. Stage `.next/standalone`, `public`, and `.next/static` into one server tree.
-3. Download the official Node 22.23.1 archive for the Rust target and verify it
-   against Node's published `SHASUMS256.txt` digest list.
-4. Bundle that Node executable as Tauri's `binaries/node` sidecar, alongside
+2. Stage `.next/standalone`, `public`, and `.next/static` into one server tree
+   via [`scripts/desktop/stage-standalone.mjs`](../scripts/desktop/stage-standalone.mjs).
+   The pnpm virtual store is flattened for NSIS path limits, then **foreign
+   optional native packages** (other OS/arch/ABI triples, including
+   `@img/sharp-linuxmusl-*`) are pruned so Linux AppImage `linuxdeploy` never
+   walks musl `.node` binaries on a glibc host.
+3. Download the official Node **22.23.1** archive for the Rust target with
+   `curl` from `https://nodejs.org/dist/` only
+   ([`scripts/desktop/prepare-node-runtime.mjs`](../scripts/desktop/prepare-node-runtime.mjs)).
+4. Verify the archive **SHA-256 against compile-time pins** in
+   `NODE_SIDECAR_PINS` (digests taken from Node's upstream `SHASUMS256.txt` for
+   that release and embedded in source — not re-fetched at build time).
+5. Bundle that Node executable as Tauri's `binaries/node` sidecar, alongside
    the staged Next server and upstream license material.
 
 At launch, Rust reserves an ephemeral loopback port, starts the private Node
@@ -76,7 +85,16 @@ pnpm desktop:test
 pnpm desktop:build
 ```
 
-`desktop:build` automatically stages Next and prepares the verified sidecar.
+`desktop:build` automatically stages Next and prepares the pin-verified sidecar.
+
+Packaging unit tests (no full Tauri toolchain required):
+
+```bash
+pnpm desktop:test
+```
+
+These cover Node archive selection, pin tables, foreign-native pruning (musl
+sharp must not ship on glibc Linux), and the Tauri shell capability contract.
 
 ## Installer pipeline
 
