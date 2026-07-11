@@ -73,7 +73,9 @@ jobs:
         run: pnpm desktop:test
 
       - name: Build native installers
-        run: pnpm --dir apps/desktop tauri build --bundles "${{ matrix.bundles }}"
+        # Keep native bundler output visible: linuxdeploy otherwise suppresses the
+        # platform-specific failure that is needed to diagnose AppImage builds.
+        run: pnpm --dir apps/desktop tauri build --verbose --bundles "${{ matrix.bundles }}"
 
       - name: Write installer checksums
         run: node scripts/desktop/write-checksums.mjs
