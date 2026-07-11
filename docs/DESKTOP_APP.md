@@ -25,23 +25,26 @@ mcop://showcase
 
 ## Runtime ownership
 
-The desktop build performs five deterministic steps:
+`pnpm desktop:prepare` (and Tauri `beforeBuildCommand`) runs **four** deterministic
+steps that match the scripts in-tree:
 
-1. Build Next with `output: "standalone"`.
-2. Stage `.next/standalone`, `public`, and `.next/static` into one server tree
-   via [`scripts/desktop/stage-standalone.mjs`](../scripts/desktop/stage-standalone.mjs).
-   The pnpm virtual store is flattened for NSIS path limits, then **foreign
-   optional native packages** (other OS/arch/ABI triples, including
-   `@img/sharp-linuxmusl-*`) are pruned so Linux AppImage `linuxdeploy` never
-   walks musl `.node` binaries on a glibc host.
-3. Download the official Node **22.23.1** archive for the Rust target with
-   `curl` from `https://nodejs.org/dist/` only
-   ([`scripts/desktop/prepare-node-runtime.mjs`](../scripts/desktop/prepare-node-runtime.mjs)).
-4. Verify the archive **SHA-256 against compile-time pins** in
-   `NODE_SIDECAR_PINS` (digests taken from Node's upstream `SHASUMS256.txt` for
-   that release and embedded in source — not re-fetched at build time).
-5. Bundle that Node executable as Tauri's `binaries/node` sidecar, alongside
-   the staged Next server and upstream license material.
+1. **Build Next** with `output: "standalone"` (`pnpm build`).
+2. **Stage the server tree** with
+   [`scripts/desktop/stage-standalone.mjs`](../scripts/desktop/stage-standalone.mjs):
+   copy `.next/standalone` + `public` + `.next/static`, flatten the pnpm virtual
+   store for NSIS path limits, then **prune foreign optional native packages**
+   (other OS/arch/ABI triples, including `@img/sharp-linuxmusl-*`) so Linux
+   AppImage `linuxdeploy` never walks musl `.node` binaries on a glibc host.
+3. **Prepare the Node sidecar** with
+   [`scripts/desktop/prepare-node-runtime.mjs`](../scripts/desktop/prepare-node-runtime.mjs):
+   download the official Node **22.23.1** archive for the Rust target via `curl`
+   from `https://nodejs.org/dist/` only, then verify **SHA-256 against
+   compile-time pins** in `NODE_SIDECAR_PINS` (digests sourced once from Node's
+   published `SHASUMS256.txt` and embedded in source — **not** re-fetched at
+   build time). Install the binary as Tauri `binaries/node` plus legal notices.
+4. **Bundle installers** via Tauri (`pnpm desktop:build` / CI matrix): NSIS + MSI
+   on Windows, AppImage + deb on Linux, with the staged Next tree as
+   `resources` and the pin-verified Node binary as `externalBin`.
 
 At launch, Rust reserves an ephemeral loopback port, starts the private Node
 sidecar with no terminal window, waits for the server socket, and navigates the
@@ -60,10 +63,21 @@ to 22.23.1.
 
 ## Local verification
 
-Build and run the same staged server on Windows or Linux:
+### 1. Packaging contracts (no Tauri toolchain)
 
 ```bash
 pnpm install
+pnpm desktop:test
+```
+
+`desktop:test` runs Node's built-in test runner over
+`scripts/desktop/*.node-tests.mjs`. It covers Node archive selection, pin
+tables, foreign-native pruning (musl sharp must not ship on glibc Linux), and
+the Tauri shell capability contract.
+
+### 2. Staged standalone server (web parity)
+
+```bash
 pnpm standalone:build
 pnpm standalone:start
 ```
@@ -78,23 +92,15 @@ Convenience launchers expose equivalent modes:
 ./scripts/dev.sh standalone
 ```
 
-Build the native application on a host with the [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/):
+### 3. Native installers (Tauri prerequisites required)
+
+On a host with the [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/):
 
 ```bash
-pnpm desktop:test
 pnpm desktop:build
 ```
 
-`desktop:build` automatically stages Next and prepares the pin-verified sidecar.
-
-Packaging unit tests (no full Tauri toolchain required):
-
-```bash
-pnpm desktop:test
-```
-
-These cover Node archive selection, pin tables, foreign-native pruning (musl
-sharp must not ship on glibc Linux), and the Tauri shell capability contract.
+`desktop:build` runs `desktop:prepare` (steps 1–3 above) then the Tauri bundler.
 
 ## Installer pipeline
 
