@@ -47,9 +47,10 @@ steps that match the scripts in-tree:
    `resources` and the pin-verified Node binary as `externalBin`.
 
 At launch, Rust reserves an ephemeral loopback port, starts the private Node
-sidecar with no terminal window, waits for the server socket, and navigates the
-frameless WebView to `/desktop`. Closing the native window terminates the
-sidecar.
+sidecar with no terminal window (relative `server.js` under the staged server
+root — absolute paths break when the Windows install directory contains
+spaces), waits for the server socket, and navigates the frameless WebView to
+`/desktop`. Closing the native window terminates the sidecar.
 
 The loopback UI receives a deliberately narrow Tauri capability: minimize,
 maximize, drag, and close the native window. It receives no shell, filesystem,
@@ -72,8 +73,9 @@ pnpm desktop:test
 
 `desktop:test` runs Node's built-in test runner over
 `scripts/desktop/*.node-tests.mjs`. It covers Node archive selection, pin
-tables, foreign-native pruning (musl sharp must not ship on glibc Linux), and
-the Tauri shell capability contract.
+tables, foreign-native pruning (musl sharp must not ship on glibc Linux), the
+Tauri shell capability contract, and the relative Node sidecar entrypoint
+(space-safe Windows install paths).
 
 ### 2. Staged standalone server (web parity)
 

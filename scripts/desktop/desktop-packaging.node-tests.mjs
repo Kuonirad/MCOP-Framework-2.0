@@ -188,3 +188,24 @@ test('desktop shell config owns a bundled Node sidecar and installer targets', (
   const nextConfig = fs.readFileSync(path.join(repoRoot, 'next.config.ts'), 'utf8');
   assert.match(nextConfig, /connect-src 'self' ipc: http:\/\/ipc\.localhost/);
 });
+
+test('desktop Node sidecar entry is relative (space-safe Windows install paths)', () => {
+  // Regression: absolute `server.js` paths under `%LOCALAPPDATA%\MCOP Desktop`
+  // were split on the space so Node saw `C:` and exited with EISDIR.
+  const lib = fs.readFileSync(
+    path.join(repoRoot, 'apps/desktop/src-tauri/src/lib.rs'),
+    'utf8',
+  );
+  assert.match(
+    lib,
+    /const NODE_SERVER_ENTRY:\s*&str\s*=\s*"server\.js"/,
+    'expected NODE_SERVER_ENTRY = "server.js"',
+  );
+  assert.match(lib, /\.arg\(NODE_SERVER_ENTRY\)/, 'sidecar must pass NODE_SERVER_ENTRY');
+  assert.match(lib, /\.current_dir\(&root\)/, 'sidecar must set current_dir to server root');
+  assert.equal(
+    /\.arg\(server\.to_string_lossy\(\)/.test(lib),
+    false,
+    'must not pass absolute server path via to_string_lossy (breaks on spaces)',
+  );
+});
