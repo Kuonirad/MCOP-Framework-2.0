@@ -82,6 +82,41 @@ The script is **idempotent** — running it again on an already-dismissed alert 
 
 ---
 
+## OSSF Scorecard — `VulnerabilitiesID` (Tauri / wry GTK3 stack)
+
+| Alert | Rule | Finding |
+|---|---|---|
+| [#30](https://github.com/Kuonirad/MCOP-Framework-2.0/security/code-scanning/30) | `VulnerabilitiesID` | OSV lists RUSTSEC INFO unmaintained gtk-rs **0.18** crates + glib **0.18.5** (RUSTSEC-2024-0429) + `proc-macro-error` pulled by the Tauri 2 Linux WebView (`webkit2gtk` / wry). |
+
+### Why these cannot be version-bumped away
+
+| Advisory class | IDs | Blocker |
+|---|---|---|
+| gtk-rs GTK3 unmaintained | RUSTSEC-2024-0411 … 0420 | **No patched crates** on crates.io; gtk3-rs is archived. Upstream recommends gtk4-rs, which wry/tauri do not use yet ([wry#1435](https://github.com/tauri-apps/wry/issues/1435), [tauri#11928](https://github.com/tauri-apps/tauri/issues/11928)). |
+| glib unsoundness | RUSTSEC-2024-0429 / GHSA-wrw7-89jp-8q8g | Fixed only in **glib ≥ 0.20** (gtk4-rs). Cannot mix glib 0.20 with gtk 0.18. |
+| proc-macro-error unmaintained | RUSTSEC-2024-0370 | Transitive of `glib-macros` 0.18 only. |
+
+### What we *did* fix
+
+| Class | Action |
+|---|---|
+| unic-* unmaintained (RUSTSEC-2025-0075/0080/0081/0098/0100) | Removed from the lockfile via `tauri-utils` → `urlpattern 0.6` patch (`apps/desktop/src-tauri/Cargo.toml`). |
+| Regression gate | Desktop CI runs `cargo audit --deny warnings` with the allowlist in [`apps/desktop/src-tauri/.cargo/audit.toml`](../apps/desktop/src-tauri/.cargo/audit.toml). |
+| Code Scanning noise | Scorecard SARIF is filtered by [`scripts/scorecard-filter-accepted-rust-vulns.mjs`](../scripts/scorecard-filter-accepted-rust-vulns.mjs) so **only non-allowlisted** OSV/RUSTSEC IDs open Code Scanning alerts. Raw Scorecard still publishes to scorecard.dev. |
+
+### Dismissal (after filter lands on `main`)
+
+```bash
+gh api -X PATCH /repos/Kuonirad/MCOP-Framework-2.0/code-scanning/alerts/30 \
+  -f state=dismissed \
+  -f dismissed_reason="won't fix" \
+  -f dismissed_comment="Accepted Tauri/wry GTK3 Linux WebView stack; no crates.io patch until gtk4. See docs/SECURITY-POSTURE-NOTES.md and apps/desktop/src-tauri/.cargo/audit.toml. Unic advisories fixed. SARIF filter prevents re-open for allowlisted IDs only."
+```
+
+Or re-run Scorecard after the filter merge; a clean SARIF upload auto-closes the finding when no non-allowlisted RUSTSECs remain.
+
+---
+
 ## OSSF Scorecard — owner-only repository settings (cannot fix via code)
 
 Two open alerts cannot be addressed by code changes because they depend on repository-level settings only the repository owner can modify:

@@ -42,7 +42,17 @@ jobs:
         with:
           results_file: scorecard-results.sarif
           results_format: sarif
+          # Raw results still go to the public scorecard.dev dashboard.
           publish_results: true
+
+      - name: Filter accepted Tauri GTK3/glib RUSTSECs from Code Scanning SARIF
+        # Scorecard OSV still lists INFO unmaintained gtk-rs 0.18 crates required
+        # by wry/webkit2gtk (no patched crates). cargo-audit already ignores the
+        # same IDs in apps/desktop/src-tauri/.cargo/audit.toml and fails on any
+        # *new* advisory. Strip only those allowlisted IDs from the SARIF that
+        # feeds GitHub Code Scanning so alert #30 does not re-open; any other
+        # RUSTSEC remains a Code Scanning finding.
+        run: node scripts/scorecard-filter-accepted-rust-vulns.mjs scorecard-results.sarif
 
       - name: Upload Scorecard SARIF to GitHub Code Scanning
         uses: github/codeql-action/upload-sarif@54f647b7e1bb85c95cddabcd46b0c578ec92bc1a # v4.36.3
