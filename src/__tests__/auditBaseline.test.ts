@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const repoRoot = path.resolve(__dirname, '../..');
+const canonicalPackageVersion = '2.4.0';
 const canonicalNode = '22.23.1';
 const canonicalPnpm = '9.15.0';
 const canonicalNodeImage =
@@ -12,6 +13,26 @@ function read(relativePath: string): string {
 }
 
 describe('audit remediation baseline', () => {
+  it('keeps root and core package metadata on the same release line', () => {
+    const rootPackage = JSON.parse(read('package.json')) as { version?: string };
+    const corePackage = JSON.parse(read('packages/core/package.json')) as { version?: string };
+    const rootLock = JSON.parse(read('package-lock.json')) as {
+      version?: string;
+      packages?: Record<string, { version?: string }>;
+    };
+    const coreLock = JSON.parse(read('packages/core/package-lock.json')) as {
+      version?: string;
+      packages?: Record<string, { version?: string }>;
+    };
+
+    expect(rootPackage.version).toBe(canonicalPackageVersion);
+    expect(corePackage.version).toBe(canonicalPackageVersion);
+    expect(rootLock.version).toBe(canonicalPackageVersion);
+    expect(rootLock.packages?.['']?.version).toBe(canonicalPackageVersion);
+    expect(coreLock.version).toBe(canonicalPackageVersion);
+    expect(coreLock.packages?.['']?.version).toBe(canonicalPackageVersion);
+  });
+
   it('pins the canonical Node and pnpm runtime across repo entry points', () => {
     const rootPackage = JSON.parse(read('package.json')) as {
       engines?: Record<string, string>;

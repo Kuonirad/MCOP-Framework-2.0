@@ -12,7 +12,7 @@ IFS=$'\n\t'
 #   STRICT=1                         # fail when optional-but-important gates are missing
 #   SKIP_INSTALL=1                   # skip pnpm install
 #   SKIP_HEAVY=1                     # skip build/test/e2e/bench work
-#   EXPECTED_VERSION=2.3.1           # override root package.json version
+#   EXPECTED_VERSION=2.4.0           # override root package.json version
 #   CANONICAL_IMPORT=@kullailabs/mcop-core
 #   CORE_PACKAGE=@kullailabs/mcop-core
 #   REPORT_DIR=audit-artifacts
@@ -494,8 +494,8 @@ audit_claim_drift() {
   # holographicEtch.ts / stigmergyV5.ts files carry inline audit
   # annotations of the form `// YYYY-MM-DD audit -> vX.Y.Z` that
   # cite the audit sprint a behaviour was introduced in. The current
-  # version is enforced by the package-metadata audit (validates
-  # package.json -> 2.3.1) and the Next.js documentation drift check.
+  # version is enforced by the package-metadata audit against EXPECTED_VERSION
+  # (default: root package.json) and the Next.js documentation drift check.
   search_claims \
     "Version drift suspects" \
     'v2\.2\.1|v2\.2\.2|v2\.3\.0' \

@@ -1,7 +1,7 @@
 # Roadmap
 
 **Status:** operative — the canonical 12-month outlook for MCOP Framework 2.0.
-**Last updated:** 2026-05-26
+**Last updated:** 2026-07-11
 **Owner:** [@Kuonirad](https://github.com/Kuonirad)
 **Review cadence:** revisited at the start of each quarter; superseded entries summarized in [`CHANGELOG.md`](./CHANGELOG.md).
 
@@ -12,11 +12,11 @@ This file is the **high-level outlook**. Two complementary documents carry the d
 
 ---
 
-## Current snapshot (2026-05-26)
+## Current snapshot (2026-07-11)
 
 | Dimension | State | Source of truth |
 |:---|:---|:---|
-| Release line | v2.3.x in production; v2.4 milestone in flight on `efficacy-escalation/v2.4` | [`CHANGELOG.md`](./CHANGELOG.md), [`ROADMAP_TO_100.md`](./ROADMAP_TO_100.md) |
+| Release line | Source/package line staged at v2.4.0; the latest tagged and published npm release remains v2.3.1 until the v2.4 release gates close | [`package.json`](./package.json), [`CHANGELOG.md`](./CHANGELOG.md), [`docs/releases/v2.4.0.md`](./docs/releases/v2.4.0.md) |
 | License | Apache 2.0 (transitioned from BUSL 1.1, 2026-04) | [`LICENSE`](./LICENSE) |
 | OpenSSF Best Practices | Passing achieved; Silver in progress (project 12884) | https://www.bestpractices.dev/projects/12884 |
 | OpenSSF Scorecard | Workflow shipped, rating published | [`.github/workflows/scorecard.yml`](./.github/workflows/scorecard.yml), https://scorecard.dev/viewer/?uri=github.com/Kuonirad/MCOP-Framework-2.0 |
