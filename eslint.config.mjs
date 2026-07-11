@@ -33,6 +33,9 @@ const eslintConfig = [
       ".next/**",
       "out/**",
       "build/**",
+      "apps/desktop/src-tauri/resources/**",
+      "apps/desktop/src-tauri/target/**",
+      "apps/desktop/src-tauri/gen/**",
       // tsup build artefacts under workspace packages (e.g.
       // `packages/core/dist/index.cjs`) are generated CommonJS files
       // that intentionally use `require()` and would otherwise trip

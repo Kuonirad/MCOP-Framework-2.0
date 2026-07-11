@@ -317,6 +317,25 @@ Use the public repository surfaces when the work is bigger than a single patch:
 
 ---
 
+## ◈ MCOP Desktop — no terminal required
+
+The Tauri 2 product shell packages the existing motion-glass field,
+Dialectical Studio, and cinematic showcase into native Windows and Linux
+installers. The app owns a checksum-verified Node 22.23.1 sidecar and its Next
+standalone server, so installed users do **not** need Node, pnpm, Python, Docker,
+or a terminal.
+
+| Platform | Installer |
+|:---|:---|
+| Windows | NSIS `.exe` + WiX `.msi` |
+| Linux | AppImage + Debian `.deb` |
+
+Desktop build and release details live in
+[`docs/DESKTOP_APP.md`](./docs/DESKTOP_APP.md). The web, Docker, npm, and Python
+surfaces remain available for developers and reproducible research.
+
+---
+
 ## ⚡ Get Started in 90 Seconds
 
 <a id="quick-start"></a>

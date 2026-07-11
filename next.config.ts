@@ -95,6 +95,25 @@ const nextConfig: NextConfig = {
         : h,
     );
 
+    // The desktop shell is served by the private loopback Next sidecar but
+    // uses Tauri's narrowly scoped IPC bridge for native window controls.
+    // Keep the bridge origins isolated to /desktop; every other route retains
+    // the site-wide `connect-src 'self'` policy.
+    const desktopSecurityHeaders = securityHeaders.map((h) =>
+      h.key === 'Content-Security-Policy'
+        ? {
+            key: 'Content-Security-Policy',
+            value:
+              "default-src 'self'; " +
+              "script-src 'self' 'unsafe-inline'; " +
+              "style-src 'self' 'unsafe-inline'; " +
+              "img-src 'self' blob: data:; font-src 'self'; " +
+              "connect-src 'self' ipc: http://ipc.localhost; " +
+              "object-src 'none'; base-uri 'self'; frame-src 'self';",
+          }
+        : h,
+    );
+
     // Note: Next already sets immutable Cache-Control for `/_next/static/*`,
     // so we avoid re-declaring it here (it triggers a dev-mode warning).
     // Order matters — when multiple rules set the same header key, the
@@ -109,6 +128,7 @@ const nextConfig: NextConfig = {
       },
       { source: '/showcase/:path*', headers: showcaseSecurityHeaders },
       { source: '/homepage/:path*', headers: homepageSecurityHeaders },
+      { source: '/desktop', headers: desktopSecurityHeaders },
     ];
   },
 };

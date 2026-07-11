@@ -4,6 +4,7 @@ import path from 'node:path';
 const repoRoot = path.resolve(__dirname, '../..');
 const canonicalPackageVersion = '2.4.0';
 const canonicalNode = '22.23.1';
+const desktopPackagerNodeRange = '>=22.22.3 <25';
 const canonicalPnpm = '9.15.0';
 const canonicalNodeImage =
   'node:22.23.1-bookworm-slim@sha256:813a7480f28fdadac1f7f5c824bcdad435b5bc1322a5968bbbdef8d058f9dff4';
@@ -39,7 +40,7 @@ describe('audit remediation baseline', () => {
       packageManager?: string;
     };
 
-    expect(rootPackage.engines?.node).toBe(canonicalNode);
+    expect(rootPackage.engines?.node).toBe(desktopPackagerNodeRange);
     expect(rootPackage.packageManager).toBe(`pnpm@${canonicalPnpm}`);
     expect(read('.nvmrc').trim()).toBe(canonicalNode);
 

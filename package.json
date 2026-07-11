@@ -75,10 +75,16 @@
     "audit:parp-baseline": "node scripts/parp-baseline.mjs",
     "docs:check": "node scripts/check-readme-code-blocks.mjs",
     "determinism:test": "node scripts/test-determinism.mjs",
-    "bench:smoke": "node scripts/bench-smoke.mjs"
+    "bench:smoke": "node scripts/bench-smoke.mjs",
+    "standalone:build": "pnpm build && node scripts/desktop/stage-standalone.mjs --output dist/standalone",
+    "standalone:start": "node scripts/desktop/start-standalone.mjs --root dist/standalone",
+    "desktop:test": "node --test scripts/desktop/*.node-tests.mjs",
+    "desktop:prepare": "pnpm build && node scripts/desktop/stage-standalone.mjs --output apps/desktop/src-tauri/resources/server && node scripts/desktop/prepare-node-runtime.mjs",
+    "desktop:dev": "pnpm --dir apps/desktop tauri dev",
+    "desktop:build": "pnpm --dir apps/desktop tauri build"
   },
   "engines": {
-    "node": "22.23.1",
+    "node": ">=22.22.3 <25",
     "pnpm": ">=9.0.0"
   },
   "packageManager": "pnpm@9.15.0",
