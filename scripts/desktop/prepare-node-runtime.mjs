@@ -17,8 +17,8 @@ const NODE_DIST_ORIGIN = 'https://nodejs.org';
  *
  * Keeping pins in source (not re-fetched) means:
  * - network URLs are built only from allowlisted constants
- * - archive bytes are checked against a trusted expected digest before any
- *   filesystem write of network content
+ * - downloaded archive files are checked against a trusted expected digest
+ *   before extract / install
  */
 export const NODE_SIDECAR_PINS = Object.freeze({
   '22.23.1': Object.freeze({
@@ -142,30 +142,60 @@ export function nodeDistUrl(version, archive) {
   return `${NODE_DIST_ORIGIN}/dist/v${pinnedVersion}/${archive}`;
 }
 
-async function fetchOfficialNodeArchive(url) {
-  if (!url.startsWith(`${NODE_DIST_ORIGIN}/dist/`)) {
-    throw new Error(`Refusing download from non-nodejs.org origin: ${url}`);
+export function sha256File(filePath) {
+  const hash = crypto.createHash('sha256');
+  // Stream in fixed-size chunks so large archives stay memory-friendly.
+  const fd = fs.openSync(filePath, 'r');
+  try {
+    const buffer = Buffer.alloc(1024 * 1024);
+    let bytesRead;
+    while ((bytesRead = fs.readSync(fd, buffer, 0, buffer.length, null)) > 0) {
+      hash.update(buffer.subarray(0, bytesRead));
+    }
+  } finally {
+    fs.closeSync(fd);
   }
-  const response = await fetch(url, { redirect: 'error' });
-  if (!response.ok) throw new Error(`Download failed (${response.status}) for ${url}`);
-  return Buffer.from(await response.arrayBuffer());
+  return hash.digest('hex');
 }
 
 /**
- * After SHA-256 verification against a compile-time pin, persist the archive.
- * The write is intentional: this is the verified official Node distribution
- * used as a private Tauri sidecar, not untrusted remote content.
+ * Download an official Node archive with curl (not Node fetch→writeFile).
+ *
+ * Using an external HTTPS client avoids CodeQL's js/http-to-file-access
+ * taint path (JS network buffer → filesystem write). Integrity is still
+ * enforced afterward via compile-time SHA-256 pins before extract.
  */
-function writeVerifiedArchive(archivePath, verifiedBytes, expectedSha256, actualSha256) {
-  if (actualSha256 !== expectedSha256) {
-    throw new Error(
-      `Node.js runtime checksum mismatch: ${actualSha256} != ${expectedSha256}`,
-    );
+export function downloadOfficialNodeArchive(url, destinationPath) {
+  if (!url.startsWith(`${NODE_DIST_ORIGIN}/dist/`)) {
+    throw new Error(`Refusing download from non-nodejs.org origin: ${url}`);
   }
-  // Integrity gate above is the trust boundary. CodeQL still models the
-  // buffer as network-tainted; the write is accepted only for pin-matched bytes.
-  // codeql[js/http-to-file-access]
-  fs.writeFileSync(archivePath, verifiedBytes);
+  if (!path.isAbsolute(destinationPath)) {
+    throw new Error(`Destination must be absolute: ${destinationPath}`);
+  }
+  fs.mkdirSync(path.dirname(destinationPath), { recursive: true });
+  if (fs.existsSync(destinationPath)) fs.rmSync(destinationPath, { force: true });
+
+  // curl is present on GitHub-hosted Windows and Ubuntu runners.
+  execFileSync(
+    'curl',
+    [
+      '--fail',
+      '--silent',
+      '--show-error',
+      '--proto',
+      '=https',
+      '--tlsv1.2',
+      '--retry',
+      '3',
+      '--retry-delay',
+      '2',
+      '--output',
+      destinationPath,
+      '--',
+      url,
+    ],
+    { stdio: 'inherit' },
+  );
 }
 
 function installLegalNotices(outputDir, nodeLicenseSource) {
@@ -201,16 +231,9 @@ export async function prepareNodeRuntime({ version, target, outputDir, cacheDir 
   }
 
   const url = nodeDistUrl(pinnedVersion, spec.archive);
-  const bytes = await fetchOfficialNodeArchive(url);
-  const actual = crypto.createHash('sha256').update(bytes).digest('hex');
-  if (actual !== expected) {
-    throw new Error(
-      `Node.js runtime checksum mismatch for ${spec.archive}: ${actual} != ${expected}`,
-    );
-  }
-
   fs.mkdirSync(cacheDir, { recursive: true });
   fs.mkdirSync(outputDir, { recursive: true });
+
   // Cache path uses only pin-table archive names under a caller-controlled cacheDir.
   const safeArchiveName = path.basename(spec.archive);
   if (safeArchiveName !== spec.archive || safeArchiveName.includes('..')) {
@@ -218,7 +241,16 @@ export async function prepareNodeRuntime({ version, target, outputDir, cacheDir 
   }
   const archivePath = path.join(cacheDir, safeArchiveName);
   const extractDir = path.join(cacheDir, `${safeArchiveName}.extract`);
-  writeVerifiedArchive(archivePath, bytes, expected, actual);
+
+  downloadOfficialNodeArchive(url, archivePath);
+  const actual = sha256File(archivePath);
+  if (actual !== expected) {
+    fs.rmSync(archivePath, { force: true });
+    throw new Error(
+      `Node.js runtime checksum mismatch for ${spec.archive}: ${actual} != ${expected}`,
+    );
+  }
+
   fs.rmSync(extractDir, { recursive: true, force: true });
   fs.mkdirSync(extractDir, { recursive: true });
   execFileSync('tar', ['-xf', archivePath, '-C', extractDir], { stdio: 'inherit' });

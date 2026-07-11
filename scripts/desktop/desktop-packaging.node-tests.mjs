@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -7,10 +8,12 @@ import { fileURLToPath } from 'node:url';
 
 import {
   archiveSpec,
+  downloadOfficialNodeArchive,
   expectedChecksum,
   nodeDistUrl,
   pinnedArchiveSha256,
   resolvePinnedNodeVersion,
+  sha256File,
   NODE_SIDECAR_PINS,
 } from './prepare-node-runtime.mjs';
 import {
@@ -54,6 +57,19 @@ test('pins Node sidecar downloads to compile-time SHA-256 digests', () => {
     () => nodeDistUrl('22.23.1', 'node-v22.23.1-evil.tar.xz'),
     /No desktop Node pin/,
   );
+  assert.throws(
+    () => downloadOfficialNodeArchive('https://evil.example/node.tar.xz', path.join(os.tmpdir(), 'x')),
+    /non-nodejs\.org origin/,
+  );
+
+  const pinProbe = fs.mkdtempSync(path.join(os.tmpdir(), 'mcop-pin-'));
+  const probeFile = path.join(pinProbe, 'probe.bin');
+  fs.writeFileSync(probeFile, 'mcop-desktop-pin-probe\n');
+  assert.equal(
+    sha256File(probeFile),
+    crypto.createHash('sha256').update('mcop-desktop-pin-probe\n').digest('hex'),
+  );
+  fs.rmSync(pinProbe, { recursive: true, force: true });
 });
 
 test('classifies optional native packages for glibc Linux packaging hosts', () => {
