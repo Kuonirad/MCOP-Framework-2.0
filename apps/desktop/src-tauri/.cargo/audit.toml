@@ -1,0 +1,33 @@
+# cargo-audit configuration for the MCOP Desktop (Tauri) crate.
+# Loaded from apps/desktop/src-tauri/.cargo/audit.toml when auditing this lockfile.
+#
+# Policy:
+#   1. Fix every advisory that has a patched crate we can pull without breaking
+#      the Tauri 2 stack (see Cargo.toml [patch.crates-io] for urlpattern/unic).
+#   2. Explicitly ignore only INFO unmaintained / unsound advisories forced by
+#      the Linux WebView stack (webkit2gtk + gtk-rs 0.18). No crates.io path to
+#      gtk4 exists for wry/tauri today (upstream: tauri-apps/wry#1435,
+#      tauri-apps/tauri#11928 — closed pending gtk4 migration).
+
+[advisories]
+# --- GTK3 / glib stack (Linux webview + muda/tao) ---------------------------
+# All gtk-rs 0.18 crates are unmaintained; no patched versions exist.
+# glib 0.18.5 carries RUSTSEC-2024-0429 (VariantStrIter unsoundness); fixed
+# only in glib >= 0.20, which requires gtk4-rs — not yet wired by wry/tauri.
+ignore = [
+  # gtk-rs GTK3 bindings — unmaintained (no patched crates)
+  "RUSTSEC-2024-0411", # gdkwayland-sys
+  "RUSTSEC-2024-0412", # gdk
+  "RUSTSEC-2024-0413", # atk
+  "RUSTSEC-2024-0414", # gdkx11-sys
+  "RUSTSEC-2024-0415", # gtk
+  "RUSTSEC-2024-0416", # atk-sys
+  "RUSTSEC-2024-0417", # gdkx11
+  "RUSTSEC-2024-0418", # gdk-sys
+  "RUSTSEC-2024-0419", # gtk3-macros
+  "RUSTSEC-2024-0420", # gtk-sys
+  # glib VariantStrIter unsoundness — needs glib >= 0.20 / gtk4
+  "RUSTSEC-2024-0429",
+  # proc-macro-error — pulled only by glib-macros 0.18 (same GTK3 stack)
+  "RUSTSEC-2024-0370",
+]

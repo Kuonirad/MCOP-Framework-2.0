@@ -69,6 +69,16 @@ jobs:
           rustup default stable
           rustc --version
 
+      - name: Cargo audit (desktop lockfile)
+        # Enforces apps/desktop/src-tauri/.cargo/audit.toml: fixable advisories
+        # fail the job; GTK3/glib INFO advisories are explicitly ignored until
+        # upstream wry/tauri migrate to gtk4 (no patched crates on crates.io).
+        shell: bash
+        working-directory: apps/desktop/src-tauri
+        run: |
+          cargo install cargo-audit --locked --version 0.22.2
+          cargo audit --deny warnings
+
       - name: Verify desktop packaging contracts
         run: pnpm desktop:test
 
