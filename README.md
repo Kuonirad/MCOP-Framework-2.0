@@ -667,7 +667,7 @@ The v2.3 release scaffolds the optional **CUDA Hardware Layer** around two provi
 
 ## 🧬 v2.4 Proteome Layer + LS20 ARC scaffold
 
-The v2.4 release lands the **Proteome substrate** — a 150-node sparse interaction
+The v2.4 source line includes the **Proteome substrate** — a 150-node sparse interaction
 graph that sits between NOVA-EVOLVE and the MCOP triad. Each step is a CSR
 mean-aggregation routed through the existing
 [`CUDAHardwareLayer.graphAggregate`](./docs/CUDA_PHI1_PHI5.md#kernel-name-mapping)

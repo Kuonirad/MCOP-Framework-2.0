@@ -35,7 +35,7 @@ STRICT=1 pnpm audit:claims
 STRICT=1 SKIP_INSTALL=1 SKIP_HEAVY=1 pnpm audit:claims
 
 # Override the version and core package the harness asserts on.
-EXPECTED_VERSION=2.3.1 \
+EXPECTED_VERSION=2.4.0 \
 CORE_PACKAGE=@kullailabs/mcop-core \
 CANONICAL_IMPORT=@kullailabs/mcop-core \
 STRICT=1 pnpm audit:claims
@@ -47,11 +47,10 @@ the artifact — never to weaken the gate.
 
 ## CI wiring
 
-`.github/workflows/claim-audit.yml` runs the harness on every pull
-request, every push to `main`, and on `workflow_dispatch`. It pins
-`STRICT=1`, `EXPECTED_VERSION=2.3.1`, and the canonical import alias,
-then uploads `audit-artifacts/` regardless of pass/fail so reviewers can
-inspect drift evidence directly from the failed run.
+CI callers should pin `STRICT=1`, `EXPECTED_VERSION=2.4.0`, and the
+canonical import alias, then upload `audit-artifacts/` regardless of pass/fail
+so reviewers can inspect drift evidence directly from a failed run. When
+`EXPECTED_VERSION` is omitted, the harness derives it from the root manifest.
 
 ## Strict-mode gates added in this PR
 
