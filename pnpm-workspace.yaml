@@ -8,4 +8,5 @@
 # Adding more TypeScript packages? Drop them under `packages/*` and they
 # will be picked up automatically.
 packages:
+  - "apps/*"
   - "packages/*"

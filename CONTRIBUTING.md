@@ -93,9 +93,11 @@ replay the failure.
 ## 🛠️ Development setup
 
 The repository uses **pnpm@9.15.0** (pinned via `packageManager` in
-`package.json`) and **Node.js 22.23.1** (pinned via `.nvmrc`). CI exercises the
-same Node runtime to keep local, container, and workflow behavior aligned. The
-Python surface targets **3.11+**.
+`package.json`) and recommends **Node.js 22.23.1** via `.nvmrc`. CI and release
+builds exercise that exact runtime for determinism. Desktop packager hosts may
+use any Node version in `>=22.22.3 <25`; the installed desktop application
+ships its own verified Node 22.23.1 sidecar and does not use the host runtime.
+The Python surface targets **3.11+**.
 
 ```bash
 # Clone your fork

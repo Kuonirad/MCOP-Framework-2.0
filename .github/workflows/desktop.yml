@@ -1,0 +1,137 @@
+name: Desktop Installers
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/desktop.yml'
+      - 'apps/desktop/**'
+      - 'scripts/desktop/**'
+      - 'src/app/desktop/**'
+      - 'next.config.ts'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+  push:
+    tags:
+      - 'desktop-v*'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  build-installers:
+    name: ${{ matrix.name }} installers
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Windows
+            os: windows-latest
+            bundles: nsis,msi
+            artifact: mcop-desktop-windows-x64
+          - name: Linux
+            os: ubuntu-22.04
+            bundles: appimage,deb
+            artifact: mcop-desktop-linux-x64
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Install Linux desktop prerequisites
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf xdg-utils
+
+      - name: Setup project environment
+        uses: ./.github/actions/setup-project
+        with:
+          node-version: 22.23.1
+
+      - name: Install Rust stable
+        shell: bash
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+          rustc --version
+
+      - name: Verify desktop packaging contracts
+        run: pnpm desktop:test
+
+      - name: Build native installers
+        # Keep native bundler output visible: linuxdeploy otherwise suppresses the
+        # platform-specific failure that is needed to diagnose AppImage builds.
+        run: pnpm --dir apps/desktop tauri build --verbose --bundles "${{ matrix.bundles }}"
+
+      - name: Write installer checksums
+        run: node scripts/desktop/write-checksums.mjs
+
+      - name: Upload desktop installers
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ${{ matrix.artifact }}
+          path: |
+            apps/desktop/src-tauri/target/release/bundle/**/*.msi
+            apps/desktop/src-tauri/target/release/bundle/**/*.exe
+            apps/desktop/src-tauri/target/release/bundle/**/*.AppImage
+            apps/desktop/src-tauri/target/release/bundle/**/*.deb
+            apps/desktop/src-tauri/target/release/bundle/SHA256SUMS-*.txt
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Attest tagged installers with Sigstore
+        if: startsWith(github.ref, 'refs/tags/desktop-v')
+        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
+        with:
+          subject-path: |
+            apps/desktop/src-tauri/target/release/bundle/**/*.msi
+            apps/desktop/src-tauri/target/release/bundle/**/*.exe
+            apps/desktop/src-tauri/target/release/bundle/**/*.AppImage
+            apps/desktop/src-tauri/target/release/bundle/**/*.deb
+
+  publish-release:
+    name: Publish desktop release assets
+    if: startsWith(github.ref, 'refs/tags/desktop-v')
+    needs: build-installers
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download installer artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: mcop-desktop-*
+          path: artifacts
+          merge-multiple: true
+
+      - name: Create draft release and upload installers
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --draft --verify-tag \
+              --title "MCOP Desktop ${TAG#desktop-v}" \
+              --notes "Native Windows and Linux installers. No system Node or Python runtime is required. Verify downloads with SHA256SUMS and GitHub artifact attestations."
+          fi
+          mapfile -d '' files < <(find artifacts -type f -print0)
+          test "${#files[@]}" -gt 0
+          gh release upload "$TAG" --repo "$GITHUB_REPOSITORY" --clobber "${files[@]}"

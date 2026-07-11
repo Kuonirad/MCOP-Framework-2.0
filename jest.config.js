@@ -11,8 +11,19 @@ const config = {
     // builds (Next.js, packages/core) continue to import the real package.
     '^canonicalize$': '<rootDir>/tests/shims/canonicalize.cjs',
   },
-  testPathIgnorePatterns: ['<rootDir>/node_modules/', '<rootDir>/.next/'],
-  modulePathIgnorePatterns: ['<rootDir>/.next/'],
+  testPathIgnorePatterns: [
+    '<rootDir>/node_modules/',
+    '<rootDir>/.next/',
+    '<rootDir>/dist/',
+    '<rootDir>/apps/desktop/src-tauri/resources/',
+    '<rootDir>/apps/desktop/src-tauri/target/',
+  ],
+  modulePathIgnorePatterns: [
+    '<rootDir>/.next/',
+    '<rootDir>/dist/',
+    '<rootDir>/apps/desktop/src-tauri/resources/',
+    '<rootDir>/apps/desktop/src-tauri/target/',
+  ],
   transform: {
     '^.+\\.(ts|tsx)$': ['ts-jest', {
       tsconfig: 'tsconfig.jest.json',
