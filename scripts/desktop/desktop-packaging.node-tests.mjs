@@ -5,7 +5,14 @@ import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
-import { archiveSpec, expectedChecksum } from './prepare-node-runtime.mjs';
+import {
+  archiveSpec,
+  expectedChecksum,
+  nodeDistUrl,
+  pinnedArchiveSha256,
+  resolvePinnedNodeVersion,
+  NODE_SIDECAR_PINS,
+} from './prepare-node-runtime.mjs';
 import {
   isForeignNativePackage,
   stageStandalone,
@@ -25,6 +32,27 @@ test('selects deterministic official Node archives for Windows and Linux', () =>
   assert.equal(
     expectedChecksum(`${'a'.repeat(64)}  node-v22.23.1-win-x64.zip\n`, 'node-v22.23.1-win-x64.zip'),
     'a'.repeat(64),
+  );
+});
+
+test('pins Node sidecar downloads to compile-time SHA-256 digests', () => {
+  assert.equal(resolvePinnedNodeVersion('22.23.1'), '22.23.1');
+  assert.throws(() => resolvePinnedNodeVersion('99.0.0'), /Unpinned desktop Node version/);
+  assert.equal(
+    pinnedArchiveSha256('22.23.1', 'node-v22.23.1-linux-x64.tar.xz'),
+    NODE_SIDECAR_PINS['22.23.1']['node-v22.23.1-linux-x64.tar.xz'],
+  );
+  assert.equal(
+    pinnedArchiveSha256('22.23.1', 'node-v22.23.1-win-x64.zip'),
+    '7df0bc9375723f4a86b3aa1b7cc73342423d9677a8df4538aca31a049e309c29',
+  );
+  assert.equal(
+    nodeDistUrl('22.23.1', 'node-v22.23.1-linux-x64.tar.xz'),
+    'https://nodejs.org/dist/v22.23.1/node-v22.23.1-linux-x64.tar.xz',
+  );
+  assert.throws(
+    () => nodeDistUrl('22.23.1', 'node-v22.23.1-evil.tar.xz'),
+    /No desktop Node pin/,
   );
 });
 
