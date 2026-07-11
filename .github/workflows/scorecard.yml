@@ -5,6 +5,11 @@ name: OpenSSF Scorecard
 # as "ship it now". Publishes results to the public Scorecard dashboard and
 # uploads SARIF to GitHub Code Scanning so checks become a required-status
 # signal in branch protection.
+#
+# publish_results: true requires the job that runs ossf/scorecard-action to
+# contain only approved `uses` steps (no `run:`). See:
+# https://github.com/ossf/scorecard-action#workflow-restrictions
+# Filtering for Code Scanning therefore lives in a separate job.
 
 on:
   push:
@@ -27,8 +32,6 @@ jobs:
     timeout-minutes: 15
     permissions:
       contents: read
-      # Needed to upload SARIF to code-scanning.
-      security-events: write
       # Needed for keyless publishing of Scorecard results.
       id-token: write
     steps:
@@ -42,8 +45,40 @@ jobs:
         with:
           results_file: scorecard-results.sarif
           results_format: sarif
-          # Raw results still go to the public scorecard.dev dashboard.
+          # Raw results go to the public scorecard.dev dashboard.
           publish_results: true
+
+      # Artifact must be the raw SARIF (pre-filter). Filter runs only for
+      # Code Scanning in the follow-up job so this job stays uses-only.
+      - name: Upload Scorecard SARIF as workflow artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: scorecard-sarif
+          path: scorecard-results.sarif
+          if-no-files-found: error
+          retention-days: 30
+
+  # Separate job: may use `run:` freely. Filters allowlisted Tauri GTK3/glib
+  # RUSTSECs before uploading to GitHub Code Scanning (alert #30).
+  code-scanning:
+    name: Upload filtered Scorecard SARIF
+    needs: scorecard
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Download Scorecard SARIF artifact
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: scorecard-sarif
+          path: .
 
       - name: Filter accepted Tauri GTK3/glib RUSTSECs from Code Scanning SARIF
         # Scorecard OSV still lists INFO unmaintained gtk-rs 0.18 crates required
@@ -58,11 +93,3 @@ jobs:
         uses: github/codeql-action/upload-sarif@54f647b7e1bb85c95cddabcd46b0c578ec92bc1a # v4.36.3
         with:
           sarif_file: scorecard-results.sarif
-
-      - name: Upload Scorecard SARIF as workflow artifact
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: scorecard-sarif
-          path: scorecard-results.sarif
-          if-no-files-found: error
-          retention-days: 30
