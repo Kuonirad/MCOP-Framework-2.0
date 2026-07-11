@@ -22,3 +22,10 @@ tauri-plugin-deep-link = "=2.4.9"
 tauri-plugin-shell = "=2.3.5"
 tauri-plugin-single-instance = { version = "=2.4.2", features = ["deep-link"] }
 url = "=2.5.8"
+
+# Force the post-2.11.5 tauri-utils source that switched urlpattern 0.3 → 0.6.
+# crates.io 2.11.5 still pins urlpattern 0.3 (pulls unmaintained unic-*), while
+# tauri main (e9e6a5e, 2026-07-08) uses urlpattern 0.6 (icu_properties).
+# Drop this patch once a crates.io tauri-utils release includes urlpattern 0.6.
+[patch.crates-io]
+tauri-utils = { git = "https://github.com/tauri-apps/tauri", rev = "e9e6a5eefa8c09d5abed1f691cbc924d6f617947" }

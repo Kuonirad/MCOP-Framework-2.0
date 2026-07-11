@@ -119,3 +119,17 @@ attestation and can be checked with `gh attestation verify`.
 Windows Authenticode, the Tauri updater signing key, macOS bundles, and the
 Python sidecar remain explicit follow-ups; the MVP does not pretend they are
 already active.
+
+## Rust dependency security
+
+`apps/desktop/src-tauri` is audited with `cargo audit --deny warnings` (CI
+Desktop Installers job).
+
+| Class | Status |
+| --- | --- |
+| **urlpattern / unic-*** | **Fixed** — `Cargo.toml` patches `tauri-utils` to the post-`urlpattern 0.6` source so unmaintained `unic-*` crates leave the lockfile (icu_properties instead). Drop the git patch when crates.io ships that bump. |
+| **gtk-rs 0.18 / glib 0.18 / proc-macro-error** | **Tracked, not removable today** — required by wry/tauri Linux WebView (`webkit2gtk`). No patched gtk3 crates exist; glib ≥ 0.20 needs gtk4. Explicit ignores live in [`.cargo/audit.toml`](../apps/desktop/src-tauri/.cargo/audit.toml) with upstream links (wry#1435, tauri#11928). |
+
+```bash
+cd apps/desktop/src-tauri && cargo audit --deny warnings
+```
