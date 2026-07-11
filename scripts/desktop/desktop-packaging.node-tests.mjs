@@ -6,7 +6,10 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 import { archiveSpec, expectedChecksum } from './prepare-node-runtime.mjs';
-import { stageStandalone } from './stage-standalone.mjs';
+import {
+  isForeignNativePackage,
+  stageStandalone,
+} from './stage-standalone.mjs';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 
@@ -23,6 +26,21 @@ test('selects deterministic official Node archives for Windows and Linux', () =>
     expectedChecksum(`${'a'.repeat(64)}  node-v22.23.1-win-x64.zip\n`, 'node-v22.23.1-win-x64.zip'),
     'a'.repeat(64),
   );
+});
+
+test('classifies optional native packages for glibc Linux packaging hosts', () => {
+  assert.equal(isForeignNativePackage('@img/sharp-linuxmusl-x64', 'linux', 'x64'), true);
+  assert.equal(isForeignNativePackage('@img/sharp-libvips-linuxmusl-x64', 'linux', 'x64'), true);
+  assert.equal(isForeignNativePackage('@next/swc-linux-x64-musl', 'linux', 'x64'), true);
+  assert.equal(isForeignNativePackage('@img/sharp-darwin-arm64', 'linux', 'x64'), true);
+  assert.equal(isForeignNativePackage('@img/sharp-win32-x64', 'linux', 'x64'), true);
+  assert.equal(isForeignNativePackage('@img/sharp-linux-arm64', 'linux', 'x64'), true);
+  assert.equal(isForeignNativePackage('@img/sharp-linux-x64', 'linux', 'x64'), false);
+  assert.equal(isForeignNativePackage('@img/sharp-libvips-linux-x64', 'linux', 'x64'), false);
+  assert.equal(isForeignNativePackage('@next/swc-linux-x64-gnu', 'linux', 'x64'), false);
+  assert.equal(isForeignNativePackage('sharp', 'linux', 'x64'), false);
+  assert.equal(isForeignNativePackage('@img/sharp-win32-x64', 'win32', 'x64'), false);
+  assert.equal(isForeignNativePackage('@img/sharp-linux-x64', 'win32', 'x64'), true);
 });
 
 test('stages a self-contained Next standalone tree', () => {
@@ -42,13 +60,43 @@ test('stages a self-contained Next standalone tree', () => {
     'node_modules',
     'styled-jsx',
   );
+  const sharpMusl = path.join(
+    standaloneDir,
+    'node_modules',
+    '.pnpm',
+    '@img+sharp-linuxmusl-x64@0.34.5',
+    'node_modules',
+    '@img',
+    'sharp-linuxmusl-x64',
+  );
+  const sharpLinux = path.join(
+    standaloneDir,
+    'node_modules',
+    '.pnpm',
+    '@img+sharp-linux-x64@0.34.5',
+    'node_modules',
+    '@img',
+    'sharp-linux-x64',
+  );
   fs.mkdirSync(tracedPackage, { recursive: true });
+  fs.mkdirSync(sharpMusl, { recursive: true });
+  fs.mkdirSync(sharpLinux, { recursive: true });
   fs.writeFileSync(path.join(standaloneDir, 'server.js'), 'console.log("ok")\n');
   fs.writeFileSync(
     path.join(tracedPackage, 'package.json'),
     '{"name":"styled-jsx","version":"5.1.7"}\n',
   );
   fs.writeFileSync(path.join(tracedPackage, 'index.js'), 'module.exports = {}\n');
+  fs.writeFileSync(
+    path.join(sharpMusl, 'package.json'),
+    '{"name":"@img/sharp-linuxmusl-x64","version":"0.34.5"}\n',
+  );
+  fs.writeFileSync(path.join(sharpMusl, 'sharp-linuxmusl-x64.node'), 'musl\n');
+  fs.writeFileSync(
+    path.join(sharpLinux, 'package.json'),
+    '{"name":"@img/sharp-linux-x64","version":"0.34.5"}\n',
+  );
+  fs.writeFileSync(path.join(sharpLinux, 'sharp-linux-x64.node'), 'glibc\n');
   fs.writeFileSync(path.join(staticDir, 'chunk.js'), 'export {}\n');
   fs.writeFileSync(path.join(publicDir, 'asset.txt'), 'asset\n');
 
@@ -58,6 +106,9 @@ test('stages a self-contained Next standalone tree', () => {
     publicDir,
     outputDir,
     packageJsonPath: path.join(repoRoot, 'package.json'),
+    // Exercise the Linux AppImage path that failed in CI: musl sharp must not ship.
+    platform: 'linux',
+    arch: 'x64',
   });
   assert.equal(manifest.appVersion, '2.4.0');
   assert.ok(fs.existsSync(path.join(outputDir, 'server.js')));
@@ -65,6 +116,12 @@ test('stages a self-contained Next standalone tree', () => {
   assert.ok(fs.existsSync(path.join(outputDir, 'public', 'asset.txt')));
   assert.equal(fs.existsSync(path.join(outputDir, 'node_modules', '.pnpm')), false);
   assert.ok(fs.existsSync(path.join(outputDir, 'node_modules', 'styled-jsx', 'index.js')));
+  assert.ok(fs.existsSync(path.join(outputDir, 'node_modules', '@img', 'sharp-linux-x64', 'sharp-linux-x64.node')));
+  assert.equal(
+    fs.existsSync(path.join(outputDir, 'node_modules', '@img', 'sharp-linuxmusl-x64')),
+    false,
+  );
+  assert.deepEqual(manifest.prunedNativePackages, ['@img/sharp-linuxmusl-x64']);
   fs.rmSync(temp, { recursive: true, force: true });
 });
 
