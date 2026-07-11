@@ -146,7 +146,11 @@ describe('audit remediation guardrail scripts', () => {
     const hero = source.slice(0, source.indexOf('## ◆ What is MCOP?'));
 
     expect(hero).toContain('## ◆ Live Positive Impact Proof ◆');
-    expect(hero).toContain('This repo measures its own positive impact via MCOP primitives — [100% current score, machine-verifiable](./docs/POSITIVE_IMPACT_REPORT.md).');
+    // Bold emphasis is allowed in the hero copy; the measurement loop and
+    // machine-verifiable proof path must remain above the fold.
+    expect(hero).toMatch(
+      /This repo \*\*measures its own positive impact with MCOP primitives\*\* —\s*\[\*\*100% current score, machine-verifiable\*\*\]\(\.\/docs\/POSITIVE_IMPACT_REPORT\.md\)\./,
+    );
     expect(hero).toContain('[`pnpm positive:audit`](./docs/POSITIVE_IMPACT_REPORT.md)');
     expect(hero).toContain('[holographic-etch ledger](./audit/positive-resonance-ledger.md)');
   });
