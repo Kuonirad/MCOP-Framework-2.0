@@ -30,10 +30,16 @@ const auditTomlPath = path.join(
 
 /** @returns {Set<string>} */
 function loadAcceptedRustsecIds() {
-  if (!fs.existsSync(auditTomlPath)) {
-    throw new Error(`Missing ${auditTomlPath}`);
+  let text;
+  try {
+    text = fs.readFileSync(auditTomlPath, 'utf8');
+  } catch (err) {
+    const code = /** @type {NodeJS.ErrnoException} */ (err).code;
+    if (code === 'ENOENT') {
+      throw new Error(`Missing ${auditTomlPath}`);
+    }
+    throw err;
   }
-  const text = fs.readFileSync(auditTomlPath, 'utf8');
   const ids = new Set();
   for (const match of text.matchAll(/"(RUSTSEC-\d{4}-\d{4})"/g)) {
     ids.add(match[1]);
@@ -53,14 +59,34 @@ function extractRustsecIds(message) {
   return ids;
 }
 
+/**
+ * Atomically replace `targetPath` with `content` via temp file + rename.
+ * Avoids TOCTOU between existence checks and writes (CodeQL js/file-system-race).
+ */
+function writeFileAtomic(targetPath, content) {
+  const dir = path.dirname(targetPath);
+  const base = path.basename(targetPath);
+  const tmpPath = path.join(dir, `.${base}.${process.pid}.${Date.now()}.tmp`);
+  fs.writeFileSync(tmpPath, content, 'utf8');
+  fs.renameSync(tmpPath, targetPath);
+}
+
 function main() {
   const sarifPath = path.resolve(process.argv[2] || 'scorecard-results.sarif');
-  if (!fs.existsSync(sarifPath)) {
-    throw new Error(`SARIF file not found: ${sarifPath}`);
+
+  let raw;
+  try {
+    raw = fs.readFileSync(sarifPath, 'utf8');
+  } catch (err) {
+    const code = /** @type {NodeJS.ErrnoException} */ (err).code;
+    if (code === 'ENOENT') {
+      throw new Error(`SARIF file not found: ${sarifPath}`);
+    }
+    throw err;
   }
 
   const accepted = loadAcceptedRustsecIds();
-  const sarif = JSON.parse(fs.readFileSync(sarifPath, 'utf8'));
+  const sarif = JSON.parse(raw);
   let rewritten = 0;
   let removed = 0;
 
@@ -114,7 +140,7 @@ function main() {
     run.results = next;
   }
 
-  fs.writeFileSync(sarifPath, `${JSON.stringify(sarif, null, 2)}\n`, 'utf8');
+  writeFileAtomic(sarifPath, `${JSON.stringify(sarif, null, 2)}\n`);
   console.log(
     `scorecard-filter: wrote ${sarifPath} (removed=${removed}, rewritten=${rewritten})`,
   );
