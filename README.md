@@ -1,7 +1,10 @@
 <div align="center">
 
 # MCOP Framework 2.0
-### Meta-cognitive orchestration kernels with reproducible benchmarks
+
+### The trust substrate for agent systems that must prove what they did
+
+**Deterministic orchestration · Merkle-chained provenance · Positive-impact audits · Native desktop**
 
 ---
 
@@ -25,29 +28,40 @@
 
 ## ◆ Live Positive Impact Proof ◆
 
-This repo measures its own positive impact via MCOP primitives — [100% current score, machine-verifiable](./docs/POSITIVE_IMPACT_REPORT.md).
+This repo **measures its own positive impact with MCOP primitives** —
+[**100% current score, machine-verifiable**](./docs/POSITIVE_IMPACT_REPORT.md).
 
-[`pnpm positive:audit`](./docs/POSITIVE_IMPACT_REPORT.md) regenerates the badge, report, shields.io endpoint metrics, and [holographic-etch ledger](./audit/positive-resonance-ledger.md) from commit-cited MCOP kernel evidence.
+[`pnpm positive:audit`](./docs/POSITIVE_IMPACT_REPORT.md) regenerates the badge, report, shields.io endpoint metrics, and [holographic-etch ledger](./audit/positive-resonance-ledger.md) from commit-cited kernel evidence — not marketing copy.
 
 ---
 
-**Falsify first:** rerun the deterministic benchmark harness before trusting the concept layer.
-The headline baseline is **4.4 ms / 22,700 ops/sec** for the deterministic core, backed by
+### The pitch in one breath
+
+Ship agents that **replay**. Ship decisions that **prove**. Ship products users can **double-click**.
+
+| Why teams pick MCOP | What you get |
+|:---|:---|
+| **Trust you can audit** | Every accepted step is Merkle-chained — encode → recall → etch → hash |
+| **Speed you can budget** | **4.4 ms / 22,700 ops/sec** deterministic full pipeline ([source](./docs/benchmarks/results.json)) |
+| **Providers without lock-in** | OpenAI-compatible · Claude · DeepSeek · Kimi · Qwen · Grok/xAI · REST/MCP |
+| **Impact that is not a slide** | Kernel-derived positive impact, ROI, and AI-velocity — CI-gated and replayable |
+| **Zero-terminal product path** | **MCOP Desktop** (Tauri 2) — Windows + Linux installers, no Node/pnpm on the host |
+| **Open source that stays open** | **Apache-2.0** · **92.18%** coverage · CodeQL · SBOM · OpenSSF Scorecard |
+
+**Falsify first.** Rerun the harness before you trust the concept layer.
+Headline baseline: **4.4 ms / 22,700 ops/sec** — backed by
 [`docs/benchmarks/results.json`](./docs/benchmarks/results.json) and the
-[`examples/reproducible-benchmark/`](./examples/reproducible-benchmark/README.md) Docker +
-Jupyter bundle. External replay recruitment and the manifest template live in
-[`docs/benchmarks/EXTERNAL_REPLAY.md`](./docs/benchmarks/EXTERNAL_REPLAY.md).
+[`examples/reproducible-benchmark/`](./examples/reproducible-benchmark/README.md) Docker + Jupyter bundle.
+External replay: [`docs/benchmarks/EXTERNAL_REPLAY.md`](./docs/benchmarks/EXTERNAL_REPLAY.md).
 
-**Value proposition:** MCOP gives agent builders a reproducible trust substrate:
-deterministic orchestration, Merkle-chained provenance, adapter-ready integration
-surfaces, and positive-impact audits that make reasoning claims easier to adopt,
-challenge, and improve.
-
-[`Run the benchmark`](./examples/reproducible-benchmark/README.md) ·
-[`Open the notebook`](./examples/reproducible-benchmark/notebooks/reproduce-22700-ops.ipynb) ·
-[`Compare honestly`](./COMPARISONS.md) ·
-[`Contribute a resonance report`](./CONTRIBUTING.md#stigmergic-contribution-intake) ·
-[`Discuss adoption or audit questions`](https://github.com/Kuonirad/MCOP-Framework-2.0/discussions)
+<p>
+  <a href="./examples/reproducible-benchmark/README.md"><strong>Run the benchmark</strong></a> ·
+  <a href="./examples/reproducible-benchmark/notebooks/reproduce-22700-ops.ipynb"><strong>Open the notebook</strong></a> ·
+  <a href="./docs/DESKTOP_APP.md"><strong>Install the desktop app</strong></a> ·
+  <a href="./COMPARISONS.md"><strong>Compare honestly</strong></a> ·
+  <a href="./CONTRIBUTING.md#stigmergic-contribution-intake"><strong>Contribute a resonance report</strong></a> ·
+  <a href="https://github.com/Kuonirad/MCOP-Framework-2.0/discussions"><strong>Discuss adoption</strong></a>
+</p>
 
 </div>
 
@@ -55,59 +69,66 @@ challenge, and improve.
 
 ## ◆ What is MCOP?
 
-**MCOP Framework 2.0** is a **recursive meta-cognitive optimization protocol** for AI agents: a
-**deterministic 4.4 ms reasoning pipeline** (22,700 ops/sec) that pairs a **NOVA-NEO
-SHA-256 encoder**, **Stigmergy v5 pheromone memory with Merkle-chained provenance**, and a
-**Holographic Etch** append-only ledger with **eudaimonic scoring**. The current v2.4 surface adds
-a **150-node Proteome substrate** for chaotic + game-theoretic abstraction discovery, an opt-in
-**ThermoTruth free-energy layer** (`F = U − T·S`, gated by `MCOP_ENABLE_THERMO`, Merkle-neutral), a
-**Drift Sentinel Kernel** for Δ(T_d, B_e) divergence telemetry, and a **Guardian-signed telemetry
-hardening layer** that commits JCS-canonical policy, matrix-evolution, and L1 reset blocks through
-dependency-injected substrate bridges. The adapter mesh now includes async OpenAI-compatible
-embeddings, an OpenAI-compatible chat client, Anthropic Claude, DeepSeek, Kimi, Qwen, xAI/Grok
-text + image generation (with a **bidirectional Grok-MCOP organelle host** mode that lets capable
-Grok models execute the triad in-model and merge their traces back into the host ledger),
-Magnific, Utopai, and generic REST/MCP/HTTP production adapters. Ledger-aware Holographic Etch
-factories ship with **in-memory + file storage backends**, **async + Redis ledger forwarders**
-(retry, DLQ, and `unref()`-clean shutdown), and **snapshot ↔ ledger reconciliation** utilities.
-A deterministic **audit-kernels family** turns that provenance into accounting: the **Impact
-Auditor** scores positive impact, the **Auditor Kernel** estimates the verified value (ROI) of a
-merged cycle, and the **Velocity Auditor** proves the AI-velocity multiplier (`humanBaseline ÷
-observed`, hours saved, eudaimonic delta) — each figure kernel-derived, ThermoTruth-gated, and
-Merkle-sealed, never hand-written.
-Cryptographic lineage at every step. **92.18%** test coverage.
-**Open source under the Apache License 2.0.**
+**MCOP Framework 2.0** is a **recursive meta-cognitive optimization protocol** for AI agents —
+a **deterministic trust substrate** any model stack can sit on, not another chatbot wrapper.
 
-> **Why this matters:** unlike retrieval-augmented or chain-of-thought wrappers,
-> MCOP makes **every reasoning step replayable**, **byte-identically reproducible** across
-> Node, browser, and edge runtimes, and **auditable through a Merkle-chained provenance trail**.
-> Memory, ledger, and adapter calls all etch a positive-resonance score, so the framework
-> rewards **flourishing trajectories** (high alignment + high utility) instead of optimizing
-> for raw throughput alone.
+At the core: a **4.4 ms reasoning pipeline** (22,700 ops/sec) pairing
+
+- **NOVA-NEO** — deterministic SHA-256 context encoding  
+- **Stigmergy v5** — pheromone memory with Merkle-chained provenance  
+- **Holographic Etch** — append-only confidence ledger with eudaimonic scoring  
+
+**v2.4** ships the production expansion:
+
+| Surface | Why it sells |
+|:---|:---|
+| **Proteome substrate** (150 nodes) | Edge-of-chaos + game-theoretic abstraction discovery under one seed |
+| **ThermoTruth** (`F = U − T·S`) | Opt-in free-energy physics — Merkle-neutral, gated by `MCOP_ENABLE_THERMO` |
+| **Drift Sentinel** | Δ(T_d, B_e) divergence telemetry for indirect-injection drift |
+| **Guardian telemetry** | JCS-canonical policy, matrix-evolution, and L1 reset blocks |
+| **Grok organelle host** | Bidirectional in-model triad execution with host-side Merkle merge |
+| **Audit kernels** | Impact · verified-value (ROI) · AI-velocity — kernel-derived, never hand-written |
+| **MCOP Desktop** | Tauri 2 product shell: Field · Dialectical Studio · Showcase, no terminal |
+
+Adapter mesh: async OpenAI-compatible embeddings + chat, Anthropic Claude, DeepSeek, Kimi, Qwen, xAI/Grok (text + image), Magnific, Utopai, and generic REST/MCP/HTTP. Ledger-aware Holographic Etch factories ship **in-memory + file** backends, **async + Redis** forwarders (retry, DLQ, clean shutdown), and **snapshot ↔ ledger reconciliation**.
+
+Cryptographic lineage at every step. **92.18%** test coverage. **Apache License 2.0.**
+
+> **Why this matters:** unlike retrieval-augmented or chain-of-thought wrappers, MCOP makes **every reasoning step replayable**, **byte-identically reproducible** across Node, browser, and edge runtimes, and **auditable through a Merkle-chained provenance trail**. Memory, ledger, and adapter calls etch a positive-resonance score — the framework rewards **flourishing trajectories** (high alignment + high utility), not raw throughput alone.
 
 ## ◆ What MCOP is NOT
 
-- Not a chatbot wrapper: MCOP is a deterministic substrate that can sit under many model stacks.
-- Not a benchmark claim without replay: public numbers must point to the reproducible harness.
-- Not a replacement for LangChain, AutoGen, CrewAI, or similar orchestration frameworks in every use case.
-  See the living comparison doc before treating the table below as a final market map.
+- **Not a chatbot wrapper** — it is a deterministic substrate under many model stacks.
+- **Not a benchmark claim without replay** — public numbers must point to the reproducible harness.
+- **Not a total replacement** for LangChain, AutoGen, or CrewAI in every workflow — see the comparison table and [`COMPARISONS.md`](./COMPARISONS.md).
+
+## ◆ Why builders choose MCOP (the 100% pitch)
+
+| If you need… | MCOP delivers… |
+|:---|:---|
+| **Regulated / high-stakes agents** | Replayable traces, sealed etches, and CI that fails when provenance lies |
+| **Multi-provider flexibility** | One Universal Adapter Protocol — swap models without rewriting your trust layer |
+| **Honest product metrics** | Impact, ROI, and AI-velocity derived from kernels and Merkle-sealed — not slideware |
+| **Research → product** | Same triad in Docker, npm, Python, Next SSR, and **native desktop installers** |
+| **Supply-chain hygiene** | CodeQL, SBOM (CycloneDX), Trojan-Source guard, pinned Node **22.23.1**, OIDC publish paths |
+
+**Bottom line:** if your agent cannot show *what* it did, *why* it did it, and *that* a third party can rerun it — you do not have a product. You have a demo. MCOP is built so demos graduate into **auditable systems**.
 
 ## ◆ Current Production Surface
 
 | Layer | Shipped surface |
 |:---|:---|
-| Deterministic core | `@kullailabs/mcop-core` exports NOVA-NEO, Stigmergy v5, Holographic Etch, positive-resonance scoring, canonical encoding, tensor guards, and async embedding backends. |
-| Telemetry hardening | [`src/telemetry/`](./src/telemetry/) commits Guardian-signed reset blocks, hazard policy blocks, Peircean matrix evolution, burn-in traces, and defensive substrate adapter writes. |
-| Orchestration hook | [`src/orchestrator/MCOPOrchestrator.ts`](./src/orchestrator/MCOPOrchestrator.ts) keeps hardening optional via dependency injection and exposes `commitPipelineStageExecution()`. |
-| Provider mesh | [`src/adapters/`](./src/adapters/) routes OpenAI-compatible, Claude, DeepSeek, Kimi, Qwen, Grok/xAI, image, regulated-provenance, and generic production calls without hardcoding secrets. |
-| Organelle host & ledger I/O | [`src/adapters/grokAdapter.ts`](./src/adapters/grokAdapter.ts) exposes `organelleMode` for bidirectional in-model triad execution; [`src/ledger/`](./src/ledger/) ships ledger-aware Holographic Etch factories with background + Redis async forwarders (retry, DLQ, clean shutdown); [`src/core/etchBackend.ts`](./src/core/etchBackend.ts) and [`src/core/stigmergyBackend.ts`](./src/core/stigmergyBackend.ts) provide in-memory + file storage backends; [`src/utils/organelleMerge.ts`](./src/utils/organelleMerge.ts) and [`src/utils/ledgerReconciliation.ts`](./src/utils/ledgerReconciliation.ts) cover trace reconstruction, merge, and snapshot ↔ ledger reconciliation. |
-| Distributed runtime | [`src/cluster/redisStreamsGossipTransport.ts`](./src/cluster/redisStreamsGossipTransport.ts) adds Redis Streams gossip transport alongside the in-memory bus. |
-| Audit kernels | [`src/audit/`](./src/audit/) ships the deterministic, primitive-backed Impact Auditor, Auditor Kernel (verified-value/ROI), and Velocity Auditor (AI-velocity multiplier + hours saved + eudaimonic delta) — kernel-derived, ThermoTruth-gated, Merkle-sealed, and replayable. Run via `pnpm positive:audit`, `pnpm audit:auditor-kernel`, and `pnpm audit:velocity`. |
-| Security posture | CodeQL, Dependabot, Trojan-Source guard, SBOM generation, workflow hygiene verification, and pinned CI runtimes are merge-blocking surfaces. |
+| Deterministic core | `@kullailabs/mcop-core` — NOVA-NEO, Stigmergy v5, Holographic Etch, positive-resonance, canonical encoding, tensor guards, async embeddings |
+| Telemetry hardening | [`src/telemetry/`](./src/telemetry/) — Guardian-signed resets, hazard policy, Peircean matrix evolution, burn-in traces |
+| Orchestration hook | [`src/orchestrator/MCOPOrchestrator.ts`](./src/orchestrator/MCOPOrchestrator.ts) — optional hardening via DI + `commitPipelineStageExecution()` |
+| Provider mesh | [`src/adapters/`](./src/adapters/) — OpenAI-compatible, Claude, DeepSeek, Kimi, Qwen, Grok/xAI, image, production REST/MCP |
+| Organelle host & ledger I/O | Grok `organelleMode`, ledger-aware Etch factories, async/Redis forwarders, file + memory backends, snapshot reconciliation |
+| Distributed runtime | Redis Streams gossip + in-memory bus ([`src/cluster/`](./src/cluster/)) |
+| Audit kernels | Impact Auditor · Auditor Kernel (ROI) · Velocity Auditor — `pnpm positive:audit`, `pnpm audit:auditor-kernel`, `pnpm audit:velocity` |
+| **Native product shell** | [`apps/desktop`](./apps/desktop) + [`docs/DESKTOP_APP.md`](./docs/DESKTOP_APP.md) — Tauri 2, checksum-pinned Node sidecar, Windows NSIS/MSI + Linux AppImage/deb |
+| Security posture | CodeQL, Dependabot, Trojan-Source guard, SBOM, workflow hygiene, pinned CI runtimes |
 
-The whitepaper's seven cognitive layers are mapped to live modules in
-[`docs/SEVEN_LAYER_MAPPING.md`](./docs/SEVEN_LAYER_MAPPING.md) and exported as
-`SEVEN_LAYER_ROUTING` from `src/core`.
+Seven cognitive layers → live modules: [`docs/SEVEN_LAYER_MAPPING.md`](./docs/SEVEN_LAYER_MAPPING.md) · `SEVEN_LAYER_ROUTING` from `src/core`.
 
 <div align="center">
 
@@ -121,7 +142,8 @@ The whitepaper's seven cognitive layers are mapped to live modules in
 
 <sub><em>The Three.js cinematic showcase — obsidian matcap crystals, live SHA-256 ticker, resonance meter,
 adapter orbit, and a Tweaks panel for atmosphere · form · tempo. Best viewed at
-<a href="./public/showcase/index.html"><code>/showcase/index.html</code></a> on a desktop browser.</em></sub>
+<a href="./public/showcase/index.html"><code>/showcase/index.html</code></a> on a desktop browser —
+or inside <strong>MCOP Desktop</strong> with zero terminal setup.</em></sub>
 
 </div>
 
@@ -146,8 +168,8 @@ adapter orbit, and a Tweaks panel for atmosphere · form · tempo. Best viewed a
 
 MCOP is **not** a chain-of-thought wrapper or a retrieval shim. It is a **deterministic,
 cryptographically-verifiable substrate** that any LLM stack can sit on top of. The table below
-contrasts the core invariants against three popular open-source agent frameworks (qualitative
-feature comparison, May 2026 — public docs as of writing):
+contrasts core invariants against popular open-source agent frameworks (qualitative
+feature comparison — public docs as of writing):
 
 | Capability | **MCOP 2.0** | LangChain | AutoGen | CrewAI |
 |:---|:---:|:---:|:---:|:---:|
@@ -159,13 +181,14 @@ feature comparison, May 2026 — public docs as of writing):
 | Kernel-derived value & AI-velocity proofs (ROI + ×-velocity, Merkle-sealed) | ✅ Impact Auditor + Auditor Kernel + Velocity Auditor | ❌ | ❌ | ❌ |
 | Universal Adapter Protocol (OpenAI-compatible · Claude · DeepSeek · Kimi · Qwen · Grok/xAI · production REST/MCP) | ✅ | ✅ | ⚠️ partial | ⚠️ partial |
 | Native xAI Grok adapter (text + image generation) | ✅ | ⚠️ community | ❌ | ❌ |
+| Zero-terminal native desktop (Windows + Linux) | ✅ Tauri 2 product shell | ❌ | ❌ | ❌ |
 | Test coverage on documented API surface | **92.18%** | varies | varies | varies |
 | Reference benchmark (full pipeline) | **4.4 ms / 22,700 ops/sec** ([source](./src/benchmarks/promptingModes.ts)) | n/a | n/a | n/a |
 | License posture | **Apache-2.0** | MIT | CC-BY-4.0 / MIT | MIT |
 | CodeQL + SBOM (CycloneDX) + Trojan-Source guard in CI | ✅ | ⚠️ partial | ⚠️ partial | ⚠️ partial |
 | Trusted publishing (OIDC, secretless) to npm + PyPI | ✅ | ❌ | ❌ | ❌ |
 
-> Numbers are **regression baselines** generated by [`src/benchmarks/promptingModes.ts`](./src/benchmarks/promptingModes.ts)
+> Numbers are **regression baselines** from [`src/benchmarks/promptingModes.ts`](./src/benchmarks/promptingModes.ts)
 > (re-run with `pnpm benchmark:refresh`, baseline at [`docs/benchmarks/results.json`](./docs/benchmarks/results.json)).
 > They are budgeting targets for the deterministic core — **not** a head-to-head LLM-quality claim.
 
@@ -173,112 +196,62 @@ feature comparison, May 2026 — public docs as of writing):
 
 ## 🌱 Positive Impact & Flourishing
 
-MCOP-Framework-2.0 is designed so positive impact becomes a first-class,
-self-improving observable inside the system itself, not a claim attached after
-the reasoning pipeline runs.
+MCOP is designed so **positive impact is a first-class, self-improving observable** —
+not a paragraph bolted on after the pipeline runs.
 
-Rather than treating alignment, provenance, or beneficial outcomes as external
-concerns, the framework encodes them directly into its substrate. Accepted
-memory, ledger, and adapter etches carry eudaimonic scoring through the same
-deterministic, Merkle-chained mechanisms that power core cognition: NOVA-NEO
-encoding, Stigmergy v5 provenance, Holographic Etch,
-`PositiveResonanceAmplifier`, and `EudaimonicScoringLedger`.
+Alignment, provenance, and beneficial outcomes are encoded into the substrate.
+Accepted memory, ledger, and adapter etches carry eudaimonic scoring through the same
+deterministic, Merkle-chained mechanisms that power core cognition: NOVA-NEO,
+Stigmergy v5, Holographic Etch, `PositiveResonanceAmplifier`, and `EudaimonicScoringLedger`.
 
-This creates a recursive loop: the same primitives that let agents reason with
-verifiable provenance and rewarded flourishing trajectories are used to observe,
-record, and refine the project's own positive impact surface.
-
-Running:
+That creates a recursive loop: the primitives that let agents reason with verifiable
+provenance also **observe, score, and refine the project's own impact surface**.
 
 ```bash
 pnpm positive:audit
 ```
 
-invokes this loop. It now **executes parts of its own impact measurement via
-MCOP primitives** rather than declaring them. The `ImpactAuditor`
-([`src/audit/impactAuditor.ts`](./src/audit/impactAuditor.ts)) routes the live
-verification results through the framework's own kernels — NOVA-NEO encodes each
-check, Holographic Etch scores it as a eudaimonic etch, the
-`PositiveResonanceAmplifier` records it as a Merkle-chained growth event and
-derives the contributor-joy / adoption-velocity / beneficial-outcome metrics,
-and a Proteome substrate (its edge-of-chaos knobs conditioned by the audit's
-pass ratio) contributes an equilibrium-stability signal. It then regenerates the
-living [`docs/POSITIVE_IMPACT_REPORT.md`](./docs/POSITIVE_IMPACT_REPORT.md),
-appends [`audit/positive-resonance-ledger.md`](./audit/positive-resonance-ledger.md),
-and refreshes shields.io endpoint JSON in [`.github/metrics`](./.github/metrics).
-The report keeps a delta log while the ledger records each holographic-etch
-measurement with the commit hash that produced it. The report also keeps a
-**MCOP kernel citations** table listing the exact scoring-event hashes and
-Merkle roots each metric was generated from.
+invokes this loop. The `ImpactAuditor` ([`src/audit/impactAuditor.ts`](./src/audit/impactAuditor.ts))
+routes live verification through the framework's own kernels — NOVA-NEO encodes each
+check, Holographic Etch scores it as a eudaimonic etch, the `PositiveResonanceAmplifier`
+records a Merkle-chained growth event and derives contributor-joy / adoption-velocity /
+beneficial-outcome metrics, and a Proteome substrate (edge-of-chaos knobs conditioned by
+the audit pass ratio) contributes equilibrium stability. It regenerates
+[`docs/POSITIVE_IMPACT_REPORT.md`](./docs/POSITIVE_IMPACT_REPORT.md), appends
+[`audit/positive-resonance-ledger.md`](./audit/positive-resonance-ledger.md), and refreshes
+shields.io endpoint JSON in [`.github/metrics`](./.github/metrics).
 
-Those citations are **falsifiable**. A committed attestation
-([`audit/positive-impact-attestation.json`](./audit/positive-impact-attestation.json))
-snapshots the recorded inputs and the cited outputs, and `pnpm positive:verify`
-(a CI gate) replays it through the same primitives — asserting every etch hash,
-growth Merkle root, substrate root, and metric reproduces byte-for-byte. If a
-kernel's scoring math drifts or the cited evidence is edited without
-regenerating, the gate fails. Regenerate the attestation with `pnpm
-positive:attest`.
+Those citations are **falsifiable**. [`audit/positive-impact-attestation.json`](./audit/positive-impact-attestation.json)
+snapshots recorded inputs and cited outputs; `pnpm positive:verify` (CI gate) replays them
+byte-for-byte. Regenerate with `pnpm positive:attest`. Phase 3 quality assessment uses a
+`ProteomeOrchestrator`-seeded adversarial suite; `pnpm positive:quality` asserts the verifier
+catches every forgery.
 
-Latest published validation snapshot:
-- [`ad642420`](https://github.com/Kuonirad/MCOP-Framework-2.0/commit/ad6424208207ae95dd10451034bc8b9d49660ecd) completed 19/19 GitHub check runs successfully on 2026-05-29.
-- The green matrix covered Node.js tests (20.x, 22.x, 22.23.0), Python package tests (3.10, 3.12), npm package packaging, build, security, CodeQL, Cypress against the standalone production server, Lighthouse, Scorecard, Trojan-source scan, malicious-load testing, release-draft generation, Docker build-and-push, and CUDA/proteome CPU-fallback smoke.
-- The same export captured the Grok Build TUI + MCOP-2.0 fusion audits: conductor on-ramp Guardian resonance 0.9529, fusion-status Guardian resonance 0.9343, constitutional approval rule resonance 0.9207, and export approval resonance 0.9592, with provenance recorded in `audit/ledger.jsonl`.
+Sibling **audit kernels** turn provenance into accounting:
 
-Current state: the contributor-joy, adoption-velocity, and beneficial-outcome
-metrics are no longer formulas — they are computed by the
-`PositiveResonanceAmplifier` over real growth events, cited by hash, and
-machine-verifiable. As adoption and contribution grow, the data flowing through
-this loop becomes richer, turning positive impact from a static claim into a
-dynamic, improvable property of the project.
+| Kernel | Command | Proves |
+|:---|:---|:---|
+| Impact Auditor | `pnpm positive:audit` | Positive impact score + growth metrics |
+| Auditor Kernel | `pnpm audit:auditor-kernel` | Verified value / ROI of a merged cycle |
+| Velocity Auditor | `pnpm audit:velocity` | AI-velocity multiplier, hours saved, eudaimonic delta |
 
-This is not ethics-washing layered on top of an agent framework. It is the
-framework practicing its own thesis: advanced cognitive systems become more
-trustworthy and more valuable when they can see, score, and steer toward their
-own flourishing trajectories.
-
-As of the Phase 1 `ImpactAuditor` the report cites the specific kernels, scoring
-events, and Holographic Etches that strengthened its own generation; as of the
-Phase 2 verifier those citations are replayable and CI-gated; and as of the
-Phase 3 quality assessor the verifier *itself* is evaluated — a
-`ProteomeOrchestrator` seeded from the attestation schedules adversarial
-forgeries (corrupt hash, flipped metric, forged citation, perturbed input) and
-`pnpm positive:quality` asserts the verifier catches every one. The substrate
-thus drives the evaluation of the verification's own discriminating power: a
-stacked recursion (measured → verifiable → verifier-validated), all operational
-evidence rather than architecture prose.
-
-The same primitives now power two sibling **audit kernels** that turn provenance
-into accounting. The **Auditor Kernel**
-([`src/audit/auditorKernel.ts`](./src/audit/auditorKernel.ts)) estimates the
-verified value (ROI) of a merged cycle — a conservative human-path estimate
-lifted by a kernel-derived resonance multiplier — and the **Velocity Auditor**
-([`src/audit/velocityAuditor.ts`](./src/audit/velocityAuditor.ts)) proves the
-**AI-velocity multiplier** (`humanBaseline ÷ observed`), the hours saved, and the
-eudaimonic delta, gated by a Drift Sentinel free-energy check and sealed with a
-deterministic, replayable Merkle root (and a Merkle-derived `runId`). Run them
-with `pnpm audit:auditor-kernel` and `pnpm audit:velocity`; the **Audit Kernels**
-section below documents the full surface.
+This is not ethics-washing. It is the framework practicing its thesis:
+**advanced systems become more valuable when they can see, score, and steer toward flourishing trajectories.**
 
 - **Canonical home:** `https://github.com/Kuonirad/MCOP-Framework-2.0`
-- **Canonical local path:** `MCOP-Framework-2.0`
-- **Unique capability:** native positive-resonance scoring on every accepted
-  etch, enabling MCOP to treat its own positive impact as a measurable,
-  self-referential signal rather than an external aspiration.
+- **Unique capability:** native positive-resonance scoring on every accepted etch — positive impact as a measurable, self-referential signal
 
 ---
 
 ## ◆ Native GitHub Surfaces
 
-Use the public repository surfaces when the work is bigger than a single patch:
-
 | Surface | Use it for |
 |:---|:---|
-| [Adoption wins and impact stories](https://github.com/Kuonirad/MCOP-Framework-2.0/discussions/categories/show-and-tell) | Public outcomes, downstream demos, and evidence that MCOP improved a real workflow. |
-| [Reproducibility and audit questions](https://github.com/Kuonirad/MCOP-Framework-2.0/discussions/categories/q-a) | Open-ended benchmark, replay, provenance, and claim-audit questions. |
-| [Good first contributions](https://github.com/Kuonirad/MCOP-Framework-2.0/issues?q=is%3Aissue%20is%3Aopen%20label%3A%22good%20first%20issue%22) | Scoped first issues with a clear verification path. |
-| [Integration requests](https://github.com/Kuonirad/MCOP-Framework-2.0/issues/new?template=integration_request.yml) | Adapter, framework bridge, example, or downstream integration proposals. |
-| [Trust substrate roadmap](./docs/TRUST_SUBSTRATE_ROADMAP.md) | CUDA, cluster, and hosted-ledger gates that should be tracked on the public project board. |
+| [Adoption wins and impact stories](https://github.com/Kuonirad/MCOP-Framework-2.0/discussions/categories/show-and-tell) | Public outcomes, downstream demos, evidence MCOP improved a real workflow |
+| [Reproducibility and audit questions](https://github.com/Kuonirad/MCOP-Framework-2.0/discussions/categories/q-a) | Benchmark, replay, provenance, and claim-audit questions |
+| [Good first contributions](https://github.com/Kuonirad/MCOP-Framework-2.0/issues?q=is%3Aissue%20is%3Aopen%20label%3A%22good%20first%20issue%22) | Scoped first issues with a clear verification path |
+| [Integration requests](https://github.com/Kuonirad/MCOP-Framework-2.0/issues/new?template=integration_request.yml) | Adapter, bridge, example, or downstream integration proposals |
+| [Trust substrate roadmap](./docs/TRUST_SUBSTRATE_ROADMAP.md) | CUDA, cluster, and hosted-ledger gates on the public board |
 
 ---
 
@@ -296,8 +269,8 @@ Use the public repository surfaces when the work is bigger than a single patch:
 │            (v2.4) PROTEOME  ◀── graphAggregate ──┘              │
 │                                                                 │
 │   ◆ Entropy-Normalized   ◆ Merkle-Chained   ◆ Rank-1 Tensor    │
-│   ◆ Cosine Recall        ◆ SHA-256 Signed   ◆ UUID-v4 Traced   │
-│   ◆ Edge-of-Chaos        ◆ Game-Theoretic Equilibria (v2.4)    │
+│   ◆ Cosine Recall        ◆ SHA-256 Signed   ◆ UUID-v4 Traced    │
+│   ◆ Edge-of-Chaos        ◆ Game-Theoretic Equilibria (v2.4)     │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -317,22 +290,33 @@ Use the public repository surfaces when the work is bigger than a single patch:
 
 ---
 
-## ◈ MCOP Desktop — no terminal required
+## ◈ MCOP Desktop — double-click the product
 
-The Tauri 2 product shell packages the existing motion-glass field,
-Dialectical Studio, and cinematic showcase into native Windows and Linux
-installers. The app owns a checksum-verified Node 22.23.1 sidecar and its Next
-standalone server, so installed users do **not** need Node, pnpm, Python, Docker,
-or a terminal.
+<div align="center">
 
-| Platform | Installer |
+**No Node. No pnpm. No Python. No Docker. No terminal.**
+
+The [Tauri 2](./docs/DESKTOP_APP.md) product shell wraps the motion-glass field,
+Dialectical Studio, and cinematic showcase into **native Windows and Linux installers**.
+A checksum-**pinned** Node **22.23.1** sidecar and Next standalone runtime ship inside
+the app — the host `PATH` is never consulted.
+
+| Platform | What you ship |
 |:---|:---|
-| Windows | NSIS `.exe` + WiX `.msi` |
-| Linux | AppImage + Debian `.deb` |
+| **Windows** | NSIS `.exe` + WiX `.msi` |
+| **Linux** | AppImage + Debian `.deb` |
 
-Desktop build and release details live in
-[`docs/DESKTOP_APP.md`](./docs/DESKTOP_APP.md). The web, Docker, npm, and Python
-surfaces remain available for developers and reproducible research.
+Deep links: `mcop://dialectical` · `mcop://showcase`
+
+[**Read the desktop operator guide →**](./docs/DESKTOP_APP.md) ·
+[`apps/desktop`](./apps/desktop) · CI matrix [`.github/workflows/desktop.yml`](./.github/workflows/desktop.yml)
+
+</div>
+
+The loopback UI gets a **deliberately narrow** capability surface (window controls only) —
+no shell, filesystem, process, or secret-storage bridge — so cinematic CDN scripts never
+inherit privileged native APIs. Web, Docker, npm, and Python surfaces remain first-class
+for developers and reproducible research.
 
 ---
 
@@ -367,9 +351,11 @@ pnpm build && pnpm start
 open http://localhost:3000/showcase/index.html
 ```
 
-> Prefer a **zero-clone** start? The framework is also published on npm as
-> [`@kullailabs/mcop-core`](https://www.npmjs.com/package/@kullailabs/mcop-core) — install
-> with `pnpm add @kullailabs/mcop-core` (or `npm i @kullailabs/mcop-core`).
+> Prefer a **zero-clone** start? Published on npm as
+> [`@kullailabs/mcop-core`](https://www.npmjs.com/package/@kullailabs/mcop-core) —
+> `pnpm add @kullailabs/mcop-core` (or `npm i @kullailabs/mcop-core`).
+>
+> Prefer a **zero-terminal** start? Build or install **MCOP Desktop** — see [`docs/DESKTOP_APP.md`](./docs/DESKTOP_APP.md).
 
 ```typescript
 import {
@@ -405,26 +391,27 @@ console.log({
 
 | Need | Start here |
 |:---|:---|
+| **Desktop product (zero-terminal)** | [`docs/DESKTOP_APP.md`](./docs/DESKTOP_APP.md) |
 | 12-month roadmap | [`ROADMAP.md`](./ROADMAP.md) |
 | Public API and coverage surface | [`docs/api/README.md`](./docs/api/README.md) |
 | SBOM generation and validation | [`docs/sbom/README.md`](./docs/sbom/README.md) |
 | Workspace layout (monorepo) | [`docs/MONOREPO.md`](./docs/MONOREPO.md) |
 | Branch cleanup strategy | [`docs/audits/branch-cleanup-strategy.md`](./docs/audits/branch-cleanup-strategy.md) |
-| Audit & remediation protocol (PARP v1.0) | [`docs/audits/PARP-v1.0.md`](./docs/audits/PARP-v1.0.md) — layered L0–L7 SOP for issue discovery, baseline capture, and remediation. Run the baseline locally with `pnpm audit:parp-baseline`. |
-| Security posture notes | [`docs/SECURITY-POSTURE-NOTES.md`](./docs/SECURITY-POSTURE-NOTES.md) — maintainer rationale for every still-open Scorecard / Code-Scanning alert and the `gh`-based dismissal procedure. |
+| Audit & remediation protocol (PARP v1.0) | [`docs/audits/PARP-v1.0.md`](./docs/audits/PARP-v1.0.md) — run baseline with `pnpm audit:parp-baseline` |
+| Security posture notes | [`docs/SECURITY-POSTURE-NOTES.md`](./docs/SECURITY-POSTURE-NOTES.md) |
 | Due-diligence register | [`docs/DUE_DILIGENCE_REGISTER.md`](./docs/DUE_DILIGENCE_REGISTER.md) |
 | Trust-substrate roadmap | [`docs/TRUST_SUBSTRATE_ROADMAP.md`](./docs/TRUST_SUBSTRATE_ROADMAP.md) |
 | CUDA productionization | [`docs/CUDA_PRODUCTION.md`](./docs/CUDA_PRODUCTION.md) |
 | Proteome layer and ARC LS20 scaffold | [`docs/PROTEOME_LAYER.md`](./docs/PROTEOME_LAYER.md) |
-| ThermoTruth free-energy layer (opt-in) | [`src/core/thermoTruthKernel.ts`](./src/core/thermoTruthKernel.ts) · gated by `MCOP_ENABLE_THERMO` |
+| ThermoTruth free-energy layer (opt-in) | [`src/core/thermoTruthKernel.ts`](./src/core/thermoTruthKernel.ts) · `MCOP_ENABLE_THERMO` |
 | Drift Sentinel Kernel | [`docs/features/drift-sentinel-kernel.md`](./docs/features/drift-sentinel-kernel.md) |
-| Audit kernels (Impact · Verified-Value · AI-Velocity) | [`src/audit/`](./src/audit/) — run with `pnpm positive:audit`, `pnpm audit:auditor-kernel`, `pnpm audit:velocity` |
+| Audit kernels (Impact · Verified-Value · AI-Velocity) | [`src/audit/`](./src/audit/) |
 | Velocity Auditor deep dive | [`docs/features/velocity-auditor.md`](./docs/features/velocity-auditor.md) |
 | Bidirectional Grok-MCOP organelle host | [`docs/adapters/GROK_AS_MCOP_ORGANELLE_HOST.md`](./docs/adapters/GROK_AS_MCOP_ORGANELLE_HOST.md) |
 | Runnable organelle host experiment | [`examples/grok_mcop_organelle_experiment.ts`](./examples/grok_mcop_organelle_experiment.ts) |
 | Decentralized agent coordination | [`docs/DECENTRALIZED_AGENT_COORDINATION.md`](./docs/DECENTRALIZED_AGENT_COORDINATION.md) |
 | Redis Streams cluster transport | [`docs/DISTRIBUTED_CLUSTER_MODE.md`](./docs/DISTRIBUTED_CLUSTER_MODE.md) |
-| Cross-node stigmergic replay proof | [`examples/cluster_stigmergy_replay.ts`](./examples/cluster_stigmergy_replay.ts) — run with `pnpm cluster:replay` |
+| Cross-node stigmergic replay proof | [`examples/cluster_stigmergy_replay.ts`](./examples/cluster_stigmergy_replay.ts) — `pnpm cluster:replay` |
 | Telemetry hardening source | [`src/telemetry/`](./src/telemetry/) |
 | Architecture overview | [`ARCHITECTURE.md`](./ARCHITECTURE.md) |
 | Supply-chain controls | [`docs/SUPPLY_CHAIN_TRUST.md`](./docs/SUPPLY_CHAIN_TRUST.md) |
@@ -641,6 +628,7 @@ MCOP-Framework-2.0/
 | 🟢 Redis Streams gossip transport | ![Done](https://img.shields.io/badge/COMPLETE-00ff88?style=flat-square) | v2.4 |
 | 🟢 Bidirectional Grok-MCOP organelle host (`organelleMode` + ledger forwarders + reconciliation) | ![Done](https://img.shields.io/badge/COMPLETE-00ff88?style=flat-square) | v2.4 |
 | 🟢 Audit kernels (Impact · Auditor Kernel · Velocity Auditor) | ![Done](https://img.shields.io/badge/COMPLETE-00ff88?style=flat-square) | v2.4 |
+| 🟢 Tauri 2 Desktop product shell (Windows + Linux installers) | ![Done](https://img.shields.io/badge/COMPLETE-00ff88?style=flat-square) | v2.4 |
 | 🟡 CUDA Productionization | ![Roadmap](https://img.shields.io/badge/ROADMAP-ffd700?style=flat-square) | v2.4+ |
 | 🟡 LS20 ARC real-task ingestion | ![Roadmap](https://img.shields.io/badge/ROADMAP-ffd700?style=flat-square) | v2.5 |
 | 🔵 Hosted Provenance Ledger | ![Planned](https://img.shields.io/badge/PLANNED-7b2dff?style=flat-square) | v3.x |
@@ -1176,6 +1164,6 @@ See [LICENSE](./LICENSE) for full terms · [NOTICE.md](./NOTICE.md) for licensin
 [![Forks](https://img.shields.io/github/forks/Kuonirad/MCOP-Framework-2.0?style=social)](https://github.com/Kuonirad/MCOP-Framework-2.0/network/members)
 [![Watchers](https://img.shields.io/github/watchers/Kuonirad/MCOP-Framework-2.0?style=social)](https://github.com/Kuonirad/MCOP-Framework-2.0/watchers)
 
-*Recursive triad orchestration · Deterministic · Cryptographically-linked provenance at every step*
+*Recursive triad orchestration · Deterministic provenance · Positive-impact audits · Desktop product path*
 
 </div>
