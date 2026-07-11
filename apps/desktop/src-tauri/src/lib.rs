@@ -71,6 +71,14 @@ fn wait_for_server(port: u16, timeout: Duration) -> Result<(), String> {
     ))
 }
 
+/// Next standalone entrypoint relative to the staged server resource root.
+///
+/// Must stay relative (no drive letters or path separators). Absolute Windows
+/// paths under install dirs with spaces (NSIS current-user: `MCOP Desktop`)
+/// were split by the shell sidecar layer so Node resolved `C:` and exited
+/// with `EISDIR` before the loopback server bound.
+const NODE_SERVER_ENTRY: &str = "server.js";
+
 fn server_root(app: &tauri::AppHandle) -> Result<PathBuf, String> {
     app.path()
         .resolve("resources/server", BaseDirectory::Resource)
@@ -79,7 +87,7 @@ fn server_root(app: &tauri::AppHandle) -> Result<PathBuf, String> {
 
 fn spawn_server(app: &tauri::AppHandle, port: u16) -> Result<CommandChild, String> {
     let root = server_root(app)?;
-    let server = root.join("server.js");
+    let server = root.join(NODE_SERVER_ENTRY);
     if !server.is_file() {
         return Err(format!(
             "Bundled Next entrypoint is missing: {}",
@@ -91,7 +99,7 @@ fn spawn_server(app: &tauri::AppHandle, port: u16) -> Result<CommandChild, Strin
         .shell()
         .sidecar("node")
         .map_err(|error| error.to_string())?
-        .arg(server.to_string_lossy().into_owned())
+        .arg(NODE_SERVER_ENTRY)
         .current_dir(&root)
         .env("HOSTNAME", "127.0.0.1")
         .env("NODE_ENV", "production")
@@ -175,7 +183,7 @@ pub fn run() {
 
 #[cfg(test)]
 mod tests {
-    use super::view_from_args;
+    use super::{view_from_args, NODE_SERVER_ENTRY};
 
     #[test]
     fn deep_links_select_only_product_routes() {
@@ -185,5 +193,14 @@ mod tests {
         );
         assert_eq!(view_from_args(&["mcop://showcase".into()]), "showcase");
         assert_eq!(view_from_args(&["mcop://unknown".into()]), "home");
+    }
+
+    #[test]
+    fn node_server_entry_is_space_safe_relative() {
+        assert_eq!(NODE_SERVER_ENTRY, "server.js");
+        assert!(
+            !NODE_SERVER_ENTRY.contains(['/', '\\', ':', ' ']),
+            "sidecar entry must be a single relative basename (got {NODE_SERVER_ENTRY:?})"
+        );
     }
 }
