@@ -23,6 +23,7 @@
 [![Beneficial Amplification](https://img.shields.io/endpoint?cacheSeconds=300&style=flat-square&url=https%3A%2F%2Fraw.githubusercontent.com%2FKuonirad%2FMCOP-Framework-2.0%2Fmain%2F.github%2Fmetrics%2Fpositive-beneficial-outcome-amplification.json)](./audit/positive-resonance-ledger.md)
 [![Reproducible Benchmark](./docs/badges/reproducible-benchmark.svg)](./examples/reproducible-benchmark/README.md)
 [![Open Notebook](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Kuonirad/MCOP-Framework-2.0/blob/main/examples/reproducible-benchmark/notebooks/reproduce-22700-ops.ipynb)
+<a href="https://tools.launchllama.co?utm_source=badge&utm_medium=referral" target="_blank" rel="noopener noreferrer"><img src="https://speaktechenglish.com/wp-content/uploads/2026/04/Screenshot_2026-04-09_at_17.40.44-removebg-preview.png" alt="Featured on Launch Llama" width="200" height="50" /></a>
 
 ---
 
