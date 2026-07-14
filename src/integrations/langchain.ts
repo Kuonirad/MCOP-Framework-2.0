@@ -11,7 +11,8 @@
  * returned object straight into a chain, e.g.:
  *
  * ```ts
- * import { createMCOPLangChainMemory } from '@kullailabs/mcop-core/integrations/langchain';
+ * // Source checkout only; this integration is not a public npm subpath.
+ * import { createMCOPLangChainMemory } from './src/integrations/langchain';
  * const memory = createMCOPLangChainMemory({ sessionId: 'agent-007' });
  * // …
  * await runnable.invoke({ input }, { configurable: { history: memory } });

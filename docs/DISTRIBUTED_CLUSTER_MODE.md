@@ -185,7 +185,8 @@ const owner = orchestrator.leaderForKey(trace.id);
 
 ```ts
 import { connect } from 'nats';
-import { GossipTransport, GossipMessage } from '@kuonirad/mcop-framework';
+// Source checkout only; cluster transports are not public npm exports.
+import { GossipTransport, GossipMessage } from './src/cluster';
 
 class NatsTransport implements GossipTransport {
   constructor(private nc: Awaited<ReturnType<typeof connect>>, private subject: string) {}

@@ -103,7 +103,7 @@ export class StigmergyV5 {
   ): PheromoneTrace {
     const semanticContext = options?.semanticContext;
     const parentHash = this.traces.last()?.hash;
-    const id = randomUUID();
+    const id = options?.traceId ?? randomUUID();
 
     const contextMag = magnitude(context);
     const synthesisMag = magnitude(synthesisVector);

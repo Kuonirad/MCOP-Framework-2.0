@@ -1,11 +1,11 @@
 # Monorepo layout
 
-This repository hosts three sibling artefacts that ship to three different
-registries, plus the live Next.js app:
+This repository hosts two public package artefacts that ship to separate
+registries, plus the private workspace application:
 
 | Path                | Artefact                                   | Registry          |
 | ------------------- | ------------------------------------------ | ----------------- |
-| `/` (root)          | `@kuonirad/mcop-framework` Next.js + app   | GitHub Packages   |
+| `/` (root)          | `@kuonirad/mcop-framework` Next.js + app   | Not published (private workspace) |
 | `packages/core/`    | `@kullailabs/mcop-core` library            | npm (public)      |
 | `mcop_package/`     | `mcop` Python SDK                          | PyPI              |
 
@@ -18,7 +18,7 @@ is implemented in two non-disruptive layers:
 `pnpm install`, `packages/core/` is hoisted into a single shared
 `node_modules` and resolves like a normal workspace package. No runtime
 behavior changes — the published `@kullailabs/mcop-core` is still built
-from `packages/core/src/` by `tsup` with its own zero-dependency surface.
+from `packages/core/src/` by `tsup` with its own narrow dependency surface.
 
 The Python sibling `mcop_package/` is intentionally **not** a pnpm
 workspace member; it has its own `pyproject.toml` / `setup.py` and is
@@ -41,8 +41,9 @@ Run them locally before opening a PR that touches `packages/core/`,
 
 `src/core/*.ts` (root, used by the Next.js app) and
 `packages/core/src/*.ts` (the published library) are **not** byte-identical
-by design. The published library is zero-dependency: it does not import
-`pino` or any of the root app's utilities. For example, `novaNeoEncoder.ts`
+by design. The published library does not import `pino` or any of the root
+app's utilities; `canonicalize` is its deliberate runtime dependency. For
+example, `novaNeoEncoder.ts`
 in the published library replaces the root's pino-based `logger.debug({…})`
 with an opt-in `setNovaNeoDebugHook(hook)` callback so consumers wire their
 own logger.

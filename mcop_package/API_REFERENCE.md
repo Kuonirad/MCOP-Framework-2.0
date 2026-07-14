@@ -1,6 +1,23 @@
-# M-COP v3.1 API Reference
+# MCOP Python 4.0 API Reference
 
-## Core Module (`mcop`)
+## Deterministic Triad (`mcop` / `mcop.triad`)
+
+- `NovaNeoEncoder(dimensions=32, normalize=False, backend="hash")` encodes
+  text into deterministic SHA-256 tensors. `encode(text)` returns `list[float]`.
+- `StigmergyV5(...)` exposes `record_trace`, `get_resonance`,
+  `get_merkle_root`, `get_recent`, `get_resonant_recent`, and
+  `get_buffer_stats`.
+- `HolographicEtch(...)` exposes `apply_etch`, `score_confidence`,
+  `score_eudaimonic_etch`, `recent`, `recent_audit`, and `get_memory_stats`.
+- `TRIAD_PROTOCOL_VERSION` is the explicit Python/TypeScript hash-contract
+  version (`2.4.0`).
+
+Result dataclasses include `PheromoneTrace`, `ResonanceResult`, `EtchRecord`,
+`AdaptiveConfidenceBreakdown`, and `EudaimonicEtchSummary`. Optional
+`metadata` and `note` fields are omitted from canonical hash payloads when
+their Python value is `None`.
+
+## Reasoning Engine (`mcop`)
 
 ### Quick Access Functions
 

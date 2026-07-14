@@ -91,12 +91,13 @@ poison the triad with simulation noise.
 ## Usage
 
 ```ts
+// Source checkout only; the private workspace is not an installable package.
 import {
   HolographicEtch,
   MCOPMCTSPlanner,
   NovaNeoEncoder,
   StigmergyV5,
-} from '@kuonirad/mcop-framework';
+} from './src/core';
 
 const encoder = new NovaNeoEncoder({ dimensions: 64, normalize: true });
 const stigmergy = new StigmergyV5({ resonanceThreshold: 0.3 });

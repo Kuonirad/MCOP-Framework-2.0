@@ -46,7 +46,7 @@ Ship agents that **replay**. Ship decisions that **prove**. Ship products users 
 | **Speed you can budget** | **4.4 ms / 22,700 ops/sec** deterministic full pipeline ([source](./docs/benchmarks/results.json)) |
 | **Providers without lock-in** | OpenAI-compatible · Claude · DeepSeek · Kimi · Qwen · Grok/xAI · REST/MCP |
 | **Impact that is not a slide** | Kernel-derived positive impact, ROI, and AI-velocity — CI-gated and replayable |
-| **Zero-terminal product path** | **MCOP Desktop** (Tauri 2) — Windows + Linux installers, no Node/pnpm on the host |
+| **Zero-terminal product path** | **MCOP Desktop** (Tauri 2) — release-gated Windows + Linux installer pipeline; no system Node/pnpm in built packages |
 | **Open source that stays open** | **Apache-2.0** · **92.18%** coverage · CodeQL · SBOM · OpenSSF Scorecard |
 
 **Falsify first.** Rerun the harness before you trust the concept layer.
@@ -110,7 +110,7 @@ Cryptographic lineage at every step. **92.18%** test coverage. **Apache License 
 | **Regulated / high-stakes agents** | Replayable traces, sealed etches, and CI that fails when provenance lies |
 | **Multi-provider flexibility** | One Universal Adapter Protocol — swap models without rewriting your trust layer |
 | **Honest product metrics** | Impact, ROI, and AI-velocity derived from kernels and Merkle-sealed — not slideware |
-| **Research → product** | Same triad in Docker, npm, Python, Next SSR, and **native desktop installers** |
+| **Research → product** | Same triad in Docker, npm, Python, Next SSR, and **release-gated native desktop builds** |
 | **Supply-chain hygiene** | CodeQL, SBOM (CycloneDX), Trojan-Source guard, pinned Node **22.23.1**, OIDC publish paths |
 
 **Bottom line:** if your agent cannot show *what* it did, *why* it did it, and *that* a third party can rerun it — you do not have a product. You have a demo. MCOP is built so demos graduate into **auditable systems**.
@@ -126,7 +126,7 @@ Cryptographic lineage at every step. **92.18%** test coverage. **Apache License 
 | Organelle host & ledger I/O | Grok `organelleMode`, ledger-aware Etch factories, async/Redis forwarders, file + memory backends, snapshot reconciliation |
 | Distributed runtime | Redis Streams gossip + in-memory bus ([`src/cluster/`](./src/cluster/)) |
 | Audit kernels | Impact Auditor · Auditor Kernel (ROI) · Velocity Auditor — `pnpm positive:audit`, `pnpm audit:auditor-kernel`, `pnpm audit:velocity` |
-| **Native product shell** | [`apps/desktop`](./apps/desktop) + [`docs/DESKTOP_APP.md`](./docs/DESKTOP_APP.md) — Tauri 2, checksum-pinned Node sidecar, Windows NSIS/MSI + Linux AppImage/deb |
+| **Native product shell** | [`apps/desktop`](./apps/desktop) + [`docs/DESKTOP_APP.md`](./docs/DESKTOP_APP.md) — Tauri 2 release pipeline, checksum-pinned Node sidecar, Windows NSIS/MSI + Linux AppImage/deb |
 | Security posture | CodeQL, Dependabot, Trojan-Source guard, SBOM, workflow hygiene, pinned CI runtimes |
 
 Seven cognitive layers → live modules: [`docs/SEVEN_LAYER_MAPPING.md`](./docs/SEVEN_LAYER_MAPPING.md) · `SEVEN_LAYER_ROUTING` from `src/core`.
@@ -295,9 +295,9 @@ This is not ethics-washing. It is the framework practicing its thesis:
 
 <div align="center">
 
-**No Node. No pnpm. No Python. No Docker. No terminal.**
+**No system Node. No pnpm. No Python. No Docker. No terminal.**
 
-The [Tauri 2](./docs/DESKTOP_APP.md) product shell wraps the motion-glass field,
+The [Tauri 2](./docs/DESKTOP_APP.md) product shell builds the motion-glass field,
 Dialectical Studio, and cinematic showcase into **native Windows and Linux installers**.
 A checksum-**pinned** Node **22.23.1** sidecar and Next standalone runtime ship inside
 the app — the host `PATH` is never consulted.
@@ -306,6 +306,12 @@ the app — the host `PATH` is never consulted.
 |:---|:---|
 | **Windows** | NSIS `.exe` + WiX `.msi` |
 | **Linux** | AppImage + Debian `.deb` |
+
+The repository ships the build and release pipeline, not a promise that a
+public installer already exists. Downloads are published only by a successful
+`desktop-v<version>` tagged CI run; check the
+[GitHub Releases page](https://github.com/Kuonirad/MCOP-Framework-2.0/releases)
+for current availability.
 
 Deep links: `mcop://dialectical` · `mcop://showcase`
 
@@ -352,11 +358,27 @@ pnpm build && pnpm start
 open http://localhost:3000/showcase/index.html
 ```
 
-> Prefer a **zero-clone** start? Published on npm as
-> [`@kullailabs/mcop-core`](https://www.npmjs.com/package/@kullailabs/mcop-core) —
-> `pnpm add @kullailabs/mcop-core` (or `npm i @kullailabs/mcop-core`).
+> Need the **public TypeScript core** without cloning? Install
+> [`@kullailabs/mcop-core`](https://www.npmjs.com/package/@kullailabs/mcop-core).
+> Its supported code entry point is the package root, including
+> `NovaNeoEncoder`, `StigmergyV5`, and `HolographicEtch`; adapter, integration,
+> ledger, Proteome, Drift Sentinel, CUDA, and app modules remain source-only.
+> The monorepo root package, `@kuonirad/mcop-framework`, is a private workspace
+> application and is not installable from npm.
 >
 > Prefer a **zero-terminal** start? Build or install **MCOP Desktop** — see [`docs/DESKTOP_APP.md`](./docs/DESKTOP_APP.md).
+
+| TypeScript / npm | Python / PyPI |
+|:---|:---|
+| `npm install @kullailabs/mcop-core` | `python -m pip install mcop` |
+| Public root import: `@kullailabs/mcop-core` | Public top-level import: `mcop` |
+
+The Python example below targets MCOP protocol 2.4 in the Python 4.0
+distribution line. Protocol and distribution versions are independent, and
+this repository documentation does not imply that an unreleased version is
+already available from either registry.
+
+### TypeScript
 
 ```typescript
 import {
@@ -384,6 +406,29 @@ console.log({
   etchHash: etch.hash,
   confidence: etch.deltaWeight,
 });
+```
+
+### Python
+
+```python
+from mcop import HolographicEtch, NovaNeoEncoder, StigmergyV5
+
+encoder = NovaNeoEncoder(dimensions=64, normalize=True)
+memory = StigmergyV5(resonance_threshold=0.55)
+ledger = HolographicEtch(confidence_floor=0.0)
+
+context = encoder.encode("stabilize recursive planning with audited provenance")
+synthesis = encoder.encode("stabilize recursive planning with audited provenance")
+
+trace = memory.record_trace(context, synthesis, {"stage": "quick-start"})
+etch = ledger.apply_etch(context, synthesis, "quick-start")
+
+print({
+    "trace_hash": trace.hash,
+    "merkle_root": memory.get_merkle_root(),
+    "etch_hash": etch.hash,
+    "confidence": etch.delta_weight,
+})
 ```
 
 ---
@@ -510,6 +555,9 @@ See [POSITIVE_EVOLUTION.md](./POSITIVE_EVOLUTION.md) for the v2.3 Eudaimonic Blo
 ## 🔗 Ecosystem Integrations
 
 > **Phase 4 of v2.4 — shipped.** MCOP plugs into LangChain, LlamaIndex, and Haystack as a Merkle-rooted memory layer, and exposes itself as a stdio MCP server for Claude Desktop / Cursor / Continue. Every shim lands in the host pipeline **without** a runtime dependency on the upstream library, so the same shim file is the basis for an upstream PR.
+>
+> These integration shims ship as repository source. They are not deep-import
+> subpaths of the public `@kullailabs/mcop-core` package.
 
 | Target | TS shim | Python shim | Status |
 |---|---|---|:---:|
@@ -522,7 +570,8 @@ The full upstream submission plan lives in [`docs/integrations/UPSTREAM_SUBMISSI
 
 ```ts
 // LangChain — drop-in BaseChatMessageHistory backed by MCOP triad
-import { createMCOPLangChainMemory } from '@kullailabs/mcop-core/integrations/langchain';
+// Source checkout only; run this example from the repository root.
+import { createMCOPLangChainMemory } from './src/integrations/langchain';
 
 const memory = createMCOPLangChainMemory({ sessionId: 'agent-007' });
 await memory.addMessages([{ type: 'human', content: 'who is paul atreides' }]);
@@ -629,7 +678,7 @@ MCOP-Framework-2.0/
 | 🟢 Redis Streams gossip transport | ![Done](https://img.shields.io/badge/COMPLETE-00ff88?style=flat-square) | v2.4 |
 | 🟢 Bidirectional Grok-MCOP organelle host (`organelleMode` + ledger forwarders + reconciliation) | ![Done](https://img.shields.io/badge/COMPLETE-00ff88?style=flat-square) | v2.4 |
 | 🟢 Audit kernels (Impact · Auditor Kernel · Velocity Auditor) | ![Done](https://img.shields.io/badge/COMPLETE-00ff88?style=flat-square) | v2.4 |
-| 🟢 Tauri 2 Desktop product shell (Windows + Linux installers) | ![Done](https://img.shields.io/badge/COMPLETE-00ff88?style=flat-square) | v2.4 |
+| 🟢 Tauri 2 Desktop product shell + gated Windows/Linux installer pipeline | ![Done](https://img.shields.io/badge/COMPLETE-00ff88?style=flat-square) | v2.4 |
 | 🟡 CUDA Productionization | ![Roadmap](https://img.shields.io/badge/ROADMAP-ffd700?style=flat-square) | v2.4+ |
 | 🟡 LS20 ARC real-task ingestion | ![Roadmap](https://img.shields.io/badge/ROADMAP-ffd700?style=flat-square) | v2.5 |
 | 🔵 Hosted Provenance Ledger | ![Planned](https://img.shields.io/badge/PLANNED-7b2dff?style=flat-square) | v3.x |
@@ -772,7 +821,8 @@ MCOP_ENABLE_THERMO=1 pnpm <your-command>
 ```
 
 ```ts
-import { ProteomeOrchestrator } from '@kuonirad/mcop-framework';
+// Source checkout only; Proteome is not part of the public npm package.
+import { ProteomeOrchestrator } from './src/proteome/ProteomeOrchestrator';
 
 // Per-instance opt-in (overrides the env var)
 const proteome = new ProteomeOrchestrator({ seed: 0xc0ffee }, { enableThermo: true });
@@ -829,7 +879,8 @@ keep Δ below threshold.
 ### Minimal usage
 
 ```ts
-import { DriftSentinelKernel } from '@kuonirad/mcop-framework';
+// Source checkout only; Drift Sentinel is not part of the public npm package.
+import { DriftSentinelKernel } from './src/core/driftSentinelKernel';
 
 const sentinel = new DriftSentinelKernel({
   baseSensitivity: 0.15,
@@ -922,8 +973,9 @@ sequenceDiagram
 ### Minimal usage
 
 ```ts
-import { GrokMCOPAdapter } from '@kullailabs/mcop-core/adapters/grokAdapter';
-import { createLedgerClient } from '@kullailabs/mcop-core/ledger';
+// Source checkout only; adapters and ledger services are not npm subpaths.
+import { GrokMCOPAdapter } from './src/adapters/grokAdapter';
+import { createLedgerClient } from './src/ledger';
 
 // `createLedgerAware` wires the adapter against a HolographicEtch that uses
 // the best available forwarder — RedisAsyncLedgerForwarder when a `redis`
@@ -973,15 +1025,16 @@ closes the loop with `replayMissingEtchesToLedger`.
 
 ```ts
 import Redis from 'ioredis';
-import { GrokMCOPAdapter } from '@kullailabs/mcop-core/adapters/grokAdapter';
+// Source checkout only; these modules are not public npm subpaths.
+import { GrokMCOPAdapter } from './src/adapters/grokAdapter';
 import {
   createLedgerClient,
   type RedisQueuedEtch,
-} from '@kullailabs/mcop-core/ledger';
+} from './src/ledger';
 import {
   reconcileEtchSnapshotWithLedger,
   replayMissingEtchesToLedger,
-} from '@kullailabs/mcop-core/utils/ledgerReconciliation';
+} from './src/utils/ledgerReconciliation';
 
 const tenantId = 'my-org';
 const ledgerClient = createLedgerClient({ source: 'embedded' });

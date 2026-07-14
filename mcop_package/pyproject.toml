@@ -4,10 +4,10 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mcop"
-version = "3.3.0"
-description = "Meta-Cognitive Optimization Protocol - A universal reasoning framework for multi-modal hypothesis generation, recursive refinement, and evidence-grounded synthesis."
+version = "4.0.0"
+description = "MCOP Deterministic Triad for NOVA-NEO encoding, Stigmergy v5 memory, Holographic Etch, and evidence-grounded reasoning."
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 authors = [
   { name = "Kevin John Kull", email = "kevin@kullailabs.com" },
   { name = "M-COP Development Team" },
@@ -15,9 +15,13 @@ authors = [
 maintainers = [
   { name = "Kevin John Kull (Kuonirad)", email = "kevinkull.kk@gmail.com" },
 ]
-license = { text = "Apache-2.0" }
+license = "Apache-2.0"
 keywords = [
   "mcop",
+  "nova-neo",
+  "stigmergy",
+  "holographic-etch",
+  "deterministic-ai",
   "meta-cognitive",
   "reasoning",
   "hypothesis-generation",
@@ -28,17 +32,16 @@ keywords = [
 ]
 classifiers = [
   "Development Status :: 4 - Beta",
-  "License :: OSI Approved :: Apache Software License",
   "Intended Audience :: Developers",
   "Intended Audience :: Education",
   "Intended Audience :: Science/Research",
   "Operating System :: OS Independent",
   "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.8",
-  "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
   "Programming Language :: Python :: 3 :: Only",
   "Topic :: Scientific/Engineering :: Artificial Intelligence",
   "Topic :: Text Processing :: General",
@@ -75,3 +78,6 @@ exclude = ["tests*", "mcop.egg-info*"]
 testpaths = ["test_*.py", "tests"]
 python_files = ["test_*.py"]
 python_functions = ["test_*"]
+
+[tool.mcop]
+protocol-version = "2.4.0"

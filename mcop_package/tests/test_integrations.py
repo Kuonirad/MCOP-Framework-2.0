@@ -52,6 +52,36 @@ def test_record_into_triad_emits_full_provenance() -> None:
     assert result.provenance.merkle_root
     assert result.provenance.auditable is True
     assert result.provenance.timestamp.endswith("Z")
+    assert result.provenance.trace_id == result.trace.id
+
+
+def test_record_into_triad_preserves_an_explicit_empty_note() -> None:
+    result = record_into_triad(ensure_triad(), "empty note", note="")
+    assert result.etch.note == ""
+
+
+def test_legacy_wrappers_preserve_fixed_threshold_and_seed_construction() -> None:
+    source = MCOPStigmergy()
+    trace = source.record_trace([1.0], [1.0], trace_id="seed")
+    seeded = MCOPStigmergy(max_traces=1, traces=[trace])
+    assert seeded.adaptive_threshold is False
+    assert seeded.get_merkle_root() == trace.hash
+
+    source_etch = MCOPHolographicEtch()
+    record = source_etch.apply_etch([1.0], [1.0], note="seed")
+    seeded_etch = MCOPHolographicEtch(max_etches=1, etches=[record])
+    assert seeded_etch.recent(1) == [record]
+    assert seeded_etch.recent_audit(1) == [record]
+
+
+def test_legacy_wrapper_does_not_adapt_away_from_its_fixed_threshold() -> None:
+    memory = MCOPStigmergy(resonance_threshold=0.55)
+    for index, context in enumerate(([1.0, 0, 0], [0, 1.0, 0], [0, 0, 1.0])):
+        memory.record_trace(context, context, trace_id=str(index))
+    result = memory.get_resonance([0.8, 0.6, 0])
+    assert result.trace is not None
+    assert result.score == pytest.approx(0.8)
+    assert result.threshold_used == 0.55
 
 
 def test_recall_from_triad_returns_zero_score_when_empty() -> None:

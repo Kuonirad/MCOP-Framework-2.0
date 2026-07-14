@@ -26,7 +26,7 @@
     "deps:audit": "pnpm audit --audit-level=high",
     "deps:update-check": "pnpm outdated",
     "eco:audit": "node scripts/eco-audit.mjs",
-    "parity:check": "node scripts/parity-guardian.mjs",
+    "parity:check": "pnpm --filter @kullailabs/mcop-core build && node scripts/parity-guardian.mjs",
     "triad:fingerprint": "node scripts/triad-fingerprint.mjs",
     "audit:placement": "node scripts/placement-linter.mjs",
     "baseline:stigmergy": "node scripts/baselines/stigmergyResonanceBaseline.mjs",

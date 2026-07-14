@@ -19,7 +19,6 @@
  * benchmark badge.
  */
 
-import { randomUUID } from 'node:crypto';
 import {
   ContextTensor,
   EtchRecord,
@@ -94,7 +93,7 @@ export function recordIntoTriad(
   const trace = triad.stigmergy.recordTrace(context, synthesis, metadata);
   const etch = triad.etch.applyEtch(context, synthesis, note ?? 'mcop-integration-shim');
   const provenance: MCOPProvenance = {
-    traceId: randomUUID(),
+    traceId: trace.id,
     etchHash: etch.hash,
     merkleRoot: triad.stigmergy.getMerkleRoot(),
     timestamp: new Date().toISOString(),

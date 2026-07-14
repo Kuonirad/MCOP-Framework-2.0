@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-M-COP v3.1 command line interface.
+M-COP command line interface.
 
 Usage examples:
     python -m mcop.cli solve "Your problem description"
@@ -51,7 +51,7 @@ def format_solution_output(solution: Solution, format_type: str = "text") -> str
     lines = [
         "",
         "=" * 70,
-        "M-COP v3.1 SOLUTION",
+        f"M-COP v{__version__} SOLUTION",
         "=" * 70,
         "",
         "SOLUTION:",
@@ -252,7 +252,7 @@ Usage Examples:
 def build_parser() -> argparse.ArgumentParser:
     """Construct the CLI argument parser."""
     parser = argparse.ArgumentParser(
-        description="M-COP v3.1 - Meta-Cognitive Optimization Protocol",
+        description=f"M-COP v{__version__} - Meta-Cognitive Optimization Protocol",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:

@@ -31,6 +31,13 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
 
+      - name: Setup Python parity runtime
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+          cache-dependency-path: .github/requirements/parity-runtime.txt
+
       - name: Verify workflow hygiene
         run: pnpm ci:workflow-hygiene
 
@@ -39,6 +46,12 @@ jobs:
 
       - name: Type check
         run: pnpm typecheck
+
+      - name: Install hash-pinned Python parity runtime
+        run: python -m pip install --require-hashes --no-deps -r .github/requirements/parity-runtime.txt
+
+      - name: Verify exported npm and Python flagship-triad parity
+        run: pnpm parity:check
 
       - name: Run tests
         run: pnpm exec jest --coverage --coverageReporters=json-summary --coverageReporters=lcov
@@ -139,7 +152,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.10', '3.12']
+        python-version: ['3.10', '3.12', '3.14']
 
     steps:
       - name: Checkout repository
@@ -167,7 +180,7 @@ jobs:
       - name: Verify import and console script
         working-directory: mcop_package
         run: |
-          python -c "import mcop; print('mcop package import ok')"
+          python -c "from mcop import HolographicEtch, NovaNeoEncoder, StigmergyV5; assert all(callable(x) for x in (HolographicEtch, NovaNeoEncoder, StigmergyV5)); print('mcop flagship triad import ok')"
           mcop --help >/dev/null || echo 'mcop CLI exit non-zero (acceptable if help exits 0/1/2)'
 
       - name: Run pytest
@@ -176,7 +189,16 @@ jobs:
 
       - name: Build wheel and sdist
         working-directory: mcop_package
-        run: python -m build
+        run: python -m build --no-isolation
+
+      - name: Smoke-test the built wheel outside the source tree
+        working-directory: mcop_package
+        shell: bash
+        run: |
+          target="$RUNNER_TEMP/mcop-wheel-smoke"
+          python -m pip install --no-deps --target "$target" dist/*.whl
+          cd "$RUNNER_TEMP"
+          PYTHONPATH="$target" python -c "from mcop import HolographicEtch, NovaNeoEncoder, StigmergyV5; tensor=NovaNeoEncoder(dimensions=64, normalize=True).encode('wheel smoke'); trace=StigmergyV5(resonance_threshold=0).record_trace(tensor, tensor); etch=HolographicEtch(confidence_floor=0).apply_etch(tensor, tensor, 'wheel-smoke'); assert trace.hash and etch.hash"
 
   core-package:
     name: npm package (@kullailabs/mcop-core)
@@ -217,27 +239,63 @@ jobs:
       - name: Smoke test ESM + CJS entries
         working-directory: packages/core
         run: |
-          node --input-type=module -e "import('./dist/index.js').then(m => { if (typeof m.NovaNeoEncoder !== 'function') process.exit(1); console.log('ESM ok'); });"
-          node -e "const m = require('./dist/index.cjs'); if (typeof m.NovaNeoEncoder !== 'function') process.exit(1); console.log('CJS ok');"
+          node --input-type=module -e "import('./dist/index.js').then(m => { for (const name of ['NovaNeoEncoder','StigmergyV5','HolographicEtch']) if (typeof m[name] !== 'function') throw new Error('missing ESM export '+name); console.log('ESM triad ok'); });"
+          node -e "const m = require('./dist/index.cjs'); for (const name of ['NovaNeoEncoder','StigmergyV5','HolographicEtch']) if (typeof m[name] !== 'function') throw new Error('missing CJS export '+name); console.log('CJS triad ok');"
 
       - name: Pack tarball (dry-run publish)
         working-directory: packages/core
         run: npm publish --dry-run --access public
 
   test-legacy-compat:
-    name: test
+    name: test (${{ matrix.check-context }})
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
-        legacy-runtime: ['22.x', '20.x']
+        include:
+          - check-context: '18.x'
+            runtime: '18.x'
+          - check-context: '20.x'
+            runtime: '20.x'
+          # Branch protection requires the historical `test (22.x)` context,
+          # while the package contract pins the actual Node 22 runtime.
+          - check-context: '22.x'
+            runtime: '22.23.1'
+          - check-context: '24.x'
+            runtime: '24.x'
     steps:
-      - name: Report legacy compat status
+      - name: Checkout repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Setup advertised core runtime
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: ${{ matrix.runtime }}
+
+      - name: Build and pack the public core package
+        working-directory: packages/core
+        shell: bash
         run: |
-          echo "Legacy runtime context (${{ matrix.legacy-runtime }})."
-          echo "Project enforces runtime 22.23.1 (see scripts/verify-workflow-hygiene.mjs)."
-          echo "This job satisfies historical required-status-check contexts during the migration."
+          npm ci --ignore-scripts
+          npm run typecheck
+          npm run build
+          npm pack --silent
+
+      - name: Resolve the packed triad through ESM and CJS export maps
+        working-directory: packages/core
+        shell: bash
+        run: |
+          tarball=$(find . -maxdepth 1 -name 'kullailabs-mcop-core-*.tgz' -print -quit)
+          test -n "$tarball"
+          consumer=$(mktemp -d)
+          mkdir -p "$consumer/node_modules/@kullailabs"
+          tar -xzf "$tarball" -C "$consumer/node_modules/@kullailabs"
+          mv "$consumer/node_modules/@kullailabs/package" "$consumer/node_modules/@kullailabs/mcop-core"
+          ln -s "$GITHUB_WORKSPACE/packages/core/node_modules/canonicalize" "$consumer/node_modules/canonicalize"
+          cd "$consumer"
+          node --input-type=module -e "import('@kullailabs/mcop-core').then(m => { for (const name of ['NovaNeoEncoder','StigmergyV5','HolographicEtch']) if (typeof m[name] !== 'function') throw new Error('missing packed ESM export '+name); });"
+          node -e "const m=require('@kullailabs/mcop-core'); for (const name of ['NovaNeoEncoder','StigmergyV5','HolographicEtch']) if (typeof m[name] !== 'function') throw new Error('missing packed CJS export '+name);"
 
   publish-badge:
     name: Publish coverage badge

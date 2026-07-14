@@ -1,11 +1,12 @@
-"""
-M-COP v3.3 - Meta-Cognitive Optimization Protocol
+"""MCOP for Python: the Deterministic Triad plus the legacy reasoning engine.
 
-A universal reasoning framework that implements multi-modal reasoning,
-mycelial chaining, and evidence grounding for domain-agnostic problem solving.
+The flagship API mirrors ``@kullailabs/mcop-core``: NOVA-NEO encoding,
+Stigmergy v5 bounded memory, and Holographic Etch.  The established
+``MCOPEngine`` reasoning, grounding, mycelial, and domain APIs remain additive
+and source-compatible.
 """
 
-__version__ = "3.3.0"
+__version__ = "4.0.0"
 
 # Core types
 from .mcop_types import (
@@ -115,13 +116,46 @@ except ImportError:
     GovernanceDomainAdapter = None
     GOVERNANCE_HIERARCHY = None
 
-# Triad / Encoder parity (for organelle reconstruction)
-try:
-    from .triad import NovaNeoEncoder, nova_neo_encode, estimate_entropy
-except ImportError:
-    NovaNeoEncoder = None
-    nova_neo_encode = None
-    estimate_entropy = None
+# Flagship Deterministic Triad.  Resolve these required exports lazily so
+# ``python -m mcop.triad`` can execute without runpy finding the target module
+# pre-imported by its parent package.  Import failures are intentionally not
+# swallowed: rfc8785 is a required dependency declared in pyproject.toml.
+_TRIAD_EXPORTS = {
+    'TRIAD_PROTOCOL_VERSION',
+    'AdaptiveConfidenceBreakdown',
+    'BufferStats',
+    'EtchRecord',
+    'EudaimonicEtchSummary',
+    'HolographicEtch',
+    'HashingTrickBackend',
+    'MemoryStats',
+    'NovaNeoEncoder',
+    'NovaNeoWeb',
+    'PheromoneTrace',
+    'PositiveGrowthEvent',
+    'PositiveImpactMetrics',
+    'ResonanceResult',
+    'ResonantRecentTrace',
+    'StigmergyV5',
+    'UniversalEncoder',
+    'estimate_entropy',
+    'nova_neo_encode',
+    'triad_fingerprint',
+}
+
+
+def __getattr__(name):
+    if name not in _TRIAD_EXPORTS:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    from . import triad
+
+    value = getattr(triad, name)
+    globals()[name] = value
+    return value
+
+
+def __dir__():
+    return sorted(set(globals()) | _TRIAD_EXPORTS)
 
 
 def solve(description: str, domain: str = "general", **kwargs) -> Solution:
@@ -223,10 +257,27 @@ __all__ = [
     'GovernanceDomainAdapter',
     'GOVERNANCE_HIERARCHY',
 
-    # Triad / Encoder (organelle parity)
+    # Flagship Deterministic Triad
+    'TRIAD_PROTOCOL_VERSION',
     'NovaNeoEncoder',
+    'UniversalEncoder',
+    'NovaNeoWeb',
+    'StigmergyV5',
+    'HolographicEtch',
+    'HashingTrickBackend',
+    'PheromoneTrace',
+    'ResonanceResult',
+    'ResonantRecentTrace',
+    'BufferStats',
+    'EtchRecord',
+    'AdaptiveConfidenceBreakdown',
+    'EudaimonicEtchSummary',
+    'MemoryStats',
+    'PositiveGrowthEvent',
+    'PositiveImpactMetrics',
     'nova_neo_encode',
     'estimate_entropy',
+    'triad_fingerprint',
 
     # Convenience function
     'solve',

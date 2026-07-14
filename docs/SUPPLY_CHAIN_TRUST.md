@@ -86,7 +86,9 @@ Watch these Scorecard checks especially closely:
   write permissions only where required.
 - **Branch-Protection:** require CI, CodeQL, Scorecard, and release checks on
   protected branches.
-- **Packaging:** keep npm/PyPI provenance and signed release artifacts intact.
+- **Packaging:** keep npm/PyPI provenance and build-provenance-attested release
+  artifacts intact; do not describe unsigned Windows installers as
+  Authenticode-signed.
 
 ## SLSA direction
 

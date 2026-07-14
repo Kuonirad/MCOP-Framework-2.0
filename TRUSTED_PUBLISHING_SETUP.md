@@ -17,9 +17,11 @@ The repository already contains the publishing workflow:
 
 The workflow is configured for:
 
-- Manual dispatch to `testpypi` or `pypi`
-- Release-triggered production publishes for tags that start with `py-v`
-- OIDC-based publishing through `pypa/gh-action-pypi-publish`
+- Manual dispatch to `testpypi`.
+- Production publishing on a pushed `py-v*` tag.
+- Manual production retries from `main` only when `release_tag` names an
+  existing `py-v*` tag at the exact dispatched commit.
+- OIDC-based publishing through `pypa/gh-action-pypi-publish`.
 
 No PyPI API tokens should be added to GitHub secrets for this workflow.
 
@@ -89,8 +91,8 @@ Run the setup in two phases:
 3. Confirm the package appears at:
    - <https://test.pypi.org/project/mcop/>
 4. Install from TestPyPI and run a smoke test.
-5. Trigger the workflow again with `target=pypi`, or rerun the existing
-   production release after TestPyPI succeeds.
+5. Push the version-matched `py-v*` tag for production, or dispatch from
+   `main` with `target=pypi` and that exact existing tag in `release_tag`.
 6. Confirm the package appears at:
    - <https://pypi.org/project/mcop/>
 
@@ -101,14 +103,14 @@ Production release publishes are tied to tags that start with `py-v`.
 Examples:
 
 ```bash
-git tag py-v3.1.0
-git push origin py-v3.1.0
+git tag py-v4.0.0
+git push origin py-v4.0.0
 ```
 
 The workflow checks that the tag suffix matches `mcop_package/pyproject.toml`:
 
-- Tag: `py-v3.1.0`
-- Package version: `3.1.0`
+- Tag: `py-v4.0.0`
+- Package version: `4.0.0`
 
 ## Local Validation Before Publishing
 
@@ -117,7 +119,7 @@ From `mcop_package`:
 ```bash
 python -m build
 twine check dist/*
-pip install --force-reinstall dist/mcop-3.1.0-py3-none-any.whl
+pip install --force-reinstall dist/mcop-4.0.0-py3-none-any.whl
 mcop info
 ```
 

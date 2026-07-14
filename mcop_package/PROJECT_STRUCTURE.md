@@ -1,7 +1,8 @@
-# M-COP v3.1 Project Structure
+# MCOP Python 4.0 Project Structure
 
 ## Overview
-This document describes the complete structure and organization of the M-COP (Meta-Cognitive Optimization Protocol) v3.1 reasoning system.
+This document describes the Python Deterministic Triad and the additive
+Meta-Cognitive Optimization Protocol reasoning system.
 
 ## Directory Structure
 
@@ -18,6 +19,9 @@ mcop_package/
 └── mcop/                     # Main package
     ├── __init__.py           # Package initialization and exports
     ├── __main__.py           # CLI entry point
+    ├── triad.py              # NOVA-NEO, Stigmergy v5, Holographic Etch
+    ├── canonical_encoding.py # RFC 8785 cross-runtime hash substrate
+    ├── integrations/         # LangChain/LlamaIndex/Haystack triad shims
     │
     ├── mcop_types.py         # Core type definitions
     ├── engine.py             # Main M-COP engine
@@ -256,19 +260,23 @@ Add validation logic in reasoning chains.
 ## Dependencies
 
 ### Required
-- Python 3.8+
-- Standard library only (dataclasses, enum, abc, logging, uuid)
+- Python 3.10+
+- rfc8785 (cross-runtime canonical hashing)
+- httpx (evidence retrieval)
 
 ### Optional
 - pytest (for development)
 - openai (for LLM integration)
 
-### No External Runtime Dependencies
-M-COP runs with zero external dependencies for maximum portability.
-
 ## Version History
 
-### v3.1.0 (Current)
+### v4.0.0 (Current)
+- Flagship NOVA-NEO / Stigmergy v5 / Holographic Etch public APIs
+- Triad protocol `2.4.0` with exact TypeScript/Python hash fixtures
+- Bounded trace, etch, and audit memory
+- Existing reasoning engine retained without import breaks
+
+### v3.1.0
 - Complete reasoning system
 - Four reasoning modes
 - Mycelial chaining
@@ -326,6 +334,6 @@ For questions, issues, or contributions, please open an issue on the repository.
 
 ---
 
-**M-COP v3.1** - Meta-Cognitive Optimization Protocol
+**MCOP Python v4.0** - Deterministic Triad and reasoning framework
 **Status**: Production Ready
-**Last Updated**: 2025-12-19
+**Last Updated**: 2026-07-14

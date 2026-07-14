@@ -15,7 +15,7 @@ export const SEVEN_LAYER_ROUTING: readonly SevenLayerRoutingEntry[] = [
     whitepaperLayer: 'Context encoding',
     liveComposition: 'NovaNeoEncoder',
     implementationModule: 'src/core/novaNeoEncoder.ts',
-    packageSurface: '@kullailabs/mcop-core/NovaNeoEncoder',
+    packageSurface: '@kullailabs/mcop-core (NovaNeoEncoder export)',
     operatorSignal: 'tensor fingerprint, entropy estimate',
   },
   {
@@ -23,7 +23,7 @@ export const SEVEN_LAYER_ROUTING: readonly SevenLayerRoutingEntry[] = [
     whitepaperLayer: 'Resonance memory',
     liveComposition: 'StigmergyV5',
     implementationModule: 'src/core/stigmergyV5.ts',
-    packageSurface: '@kullailabs/mcop-core/StigmergyV5',
+    packageSurface: '@kullailabs/mcop-core (StigmergyV5 export)',
     operatorSignal: 'resonance score, Merkle root',
   },
   {
@@ -31,7 +31,7 @@ export const SEVEN_LAYER_ROUTING: readonly SevenLayerRoutingEntry[] = [
     whitepaperLayer: 'Holographic ledger',
     liveComposition: 'HolographicEtch',
     implementationModule: 'src/core/holographicEtch.ts',
-    packageSurface: '@kullailabs/mcop-core/HolographicEtch',
+    packageSurface: '@kullailabs/mcop-core (HolographicEtch export)',
     operatorSignal: 'confidence delta, etch hash',
   },
   {
