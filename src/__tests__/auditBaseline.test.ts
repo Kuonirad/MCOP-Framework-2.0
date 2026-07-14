@@ -7,7 +7,7 @@ const canonicalNode = '22.23.1';
 const desktopPackagerNodeRange = '>=22.22.3 <25';
 const canonicalPnpm = '9.15.0';
 const canonicalNodeImage =
-  'node:22.23.1-bookworm-slim@sha256:813a7480f28fdadac1f7f5c824bcdad435b5bc1322a5968bbbdef8d058f9dff4';
+  'node:22.23.1-bookworm-slim@sha256:53ada149d435c38b14476cb57e4a7da73c15595aba79bd6971b547ceb6d018bf';
 
 function read(relativePath: string): string {
   return fs.readFileSync(path.join(repoRoot, relativePath), 'utf8');

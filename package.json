@@ -99,9 +99,9 @@
     "web-vitals": "^5.2.0"
   },
   "devDependencies": {
-    "@cyclonedx/cdxgen": "^12.7.0",
+    "@cyclonedx/cdxgen": "^12.7.1",
     "@cyclonedx/cyclonedx-library": "^10",
-    "@eslint/eslintrc": "^3.3.5",
+    "@eslint/eslintrc": "^3.3.6",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
@@ -113,7 +113,7 @@
     "ajv-formats": "^3",
     "ajv-formats-draft2019": "^1",
     "concurrently": "^9.2.1",
-    "cypress": "^15.18.0",
+    "cypress": "^15.18.1",
     "eslint": "^9",
     "eslint-config-next": "15.5.18",
     "@lhci/cli": "0.15.1",
