@@ -134,6 +134,14 @@ describe('package distribution contract', () => {
     }
   });
 
+  it('preserves the protected Node 22 check context while using the pinned runtime', () => {
+    expect(ciWorkflow).toContain('name: test (${{ matrix.check-context }})');
+    expect(ciWorkflow).toMatch(
+      /- check-context: '22\.x'\s+runtime: '22\.23\.1'/,
+    );
+    expect(ciWorkflow).toContain('node-version: ${{ matrix.runtime }}');
+  });
+
   it('documents the boundary without impossible package imports', () => {
     expect(rootReadme).toContain('`@kuonirad/mcop-framework`, is a private workspace');
     expect(rootReadme).toContain('is not installable from npm');
