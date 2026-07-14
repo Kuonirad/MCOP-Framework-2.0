@@ -14,7 +14,7 @@
 # deterministic runtime selected from the broader desktop packager host range.
 # This closes the Phase I Node runtime drift recorded in
 # docs/audits/audit-execution-ledger-2026-05-v2.md.
-ARG NODE_IMAGE=node:22.23.1-bookworm-slim@sha256:813a7480f28fdadac1f7f5c824bcdad435b5bc1322a5968bbbdef8d058f9dff4
+ARG NODE_IMAGE=node:22.23.1-bookworm-slim@sha256:53ada149d435c38b14476cb57e4a7da73c15595aba79bd6971b547ceb6d018bf
 
 # =============================================================================
 # Stage 0: Base — activates the pnpm version declared in package.json#packageManager
