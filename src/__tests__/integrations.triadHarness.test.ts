@@ -40,6 +40,12 @@ describe('triadHarness', () => {
     expect(result.provenance.merkleRoot).toBeDefined();
     expect(result.provenance.auditable).toBe(true);
     expect(result.provenance.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+    expect(result.provenance.traceId).toBe(result.trace.id);
+  });
+
+  it('preserves an explicitly empty note instead of replacing it with the default', () => {
+    const result = recordIntoTriad(ensureTriad(), 'empty note', undefined, '');
+    expect(result.etch.note).toBe('');
   });
 
   it('recallFromTriad returns score=0 with no traces recorded', () => {

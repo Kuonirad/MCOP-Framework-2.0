@@ -95,7 +95,7 @@ Single glass card. 5-column grid: feature / MCOP 2.0 / LangChain / AutoGen / Cre
 
 Two-column glass grid (1.15fr 1fr):
 - **Left — code card**: 4 tabs (bash, typescript, python, docker). Each pane is a `<pre>` with syntax highlight classes (`c-com`, `c-prompt`, `c-key`, `c-str`, `c-name`). Each pane has a top-right "copy" button that clipboards the snippet.
-- **Right — install-prose**: serif h3, two paragraphs about cross-runtime parity, and a chips list (Next.js 15.5, TypeScript 5, Node 22.22.2, pnpm 9.15.0, Python 3.12, Docker, Jest 92.18%, ESLint strict, CodeQL, SBOM, OIDC publish).
+- **Right — install-prose**: serif h3, two paragraphs about cross-runtime parity, and a chips list (Next.js 15.5, TypeScript 5, Node 22.23.1, pnpm 9.15.0, Python 3.12, Docker, Jest 92.18%, ESLint strict, CodeQL, SBOM, OIDC publish).
 
 ### 9. Outro
 

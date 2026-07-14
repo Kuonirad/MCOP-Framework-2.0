@@ -46,8 +46,8 @@ SHA-256 encoder**, a **Stigmergy v5 pheromone memory with Merkle-chained provena
 
 It ships a **Universal Adapter Protocol** with native bridges for **OpenAI**, **Anthropic Claude**,
 **Google Gemini**, **xAI Grok** (text + image), **Ollama**, **Groq**, and **Together AI** —
-cryptographic lineage at every step, **92.18%** test coverage, **source-available under BUSL-1.1**
-with scheduled MIT conversion on **2030-04-26**.
+cryptographic lineage at every step, **92.18%** test coverage, and an
+**Apache-2.0** license.
 
 > **Why this matters.** Unlike retrieval-augmented or chain-of-thought wrappers, MCOP makes every
 > reasoning step **replayable**, **byte-identically reproducible** across Node, browser, and edge
@@ -183,27 +183,22 @@ open ./index.html
 > ```bash
 > pip install mcop
 > ```
+> The flagship Python triad begins with `mcop` 4.0; package and protocol
+> versions are independent, so check the registry before relying on an
+> unreleased source version.
 
 ```typescript
-import { MCOPOrchestrator } from '@kullailabs/mcop-core';
+import { HolographicEtch, NovaNeoEncoder, StigmergyV5 } from '@kullailabs/mcop-core';
 
-// Initialize the recursive triad
-const mcop = new MCOPOrchestrator({
-  encoder:    'nova-neo-v2',
-  memory:     'stigmergy-v5',
-  ledger:     'holographic-etch',
-  provenance: { algorithm: 'SHA-256', standard: 'ISO8601' },
-});
+const encoder = new NovaNeoEncoder({ dimensions: 64, normalize: true });
+const memory = new StigmergyV5({ resonanceThreshold: 0.55 });
+const ledger = new HolographicEtch({ confidenceFloor: 0 });
+const context = encoder.encode('replayable provenance');
 
-// Execute with cryptographic provenance at every step
-const result = await mcop.optimize(context, {
-  deterministic:     true,
-  entropyNormalized: true,
-  merkleChained:     true,
-});
+const trace = memory.recordTrace(context, context, { stage: 'quick-start' });
+const etch = ledger.applyEtch(context, context, 'quick-start');
 
-console.log(result.provenance.merkleRoot);
-// → "f3c1e7…"  byte-identical with the Python shim
+console.log({ traceHash: trace.hash, merkleRoot: memory.getMerkleRoot(), etchHash: etch.hash });
 ```
 
 ---
@@ -264,7 +259,7 @@ The headline budget above is **byte-identity-reproducible** by any third party i
 the [`examples/reproducible-benchmark/`](./examples/reproducible-benchmark/README.md) Docker
 bundle. The bundle:
 
-1. Pins **Node 22.22.2 + pnpm 9.15.0 + Python 3.12** to match the org blueprint.
+1. Pins **Node 22.23.1 + pnpm 9.15.0 + Python 3.12** to match the org blueprint.
 2. Re-runs `pnpm benchmark:refresh` inside a clean container.
 3. Asserts the regenerated `docs/benchmarks/results.json` is **byte-for-byte identical** to the committed snapshot — any drift exits the verifier non-zero.
 4. Computes a **SHA-256 over the regenerated artefact** and emits a [`manifest.json`](./examples/reproducible-benchmark/README.md#what-this-bundle-proves) carrying verdict, both SHAs, and the headline-budget numbers.
@@ -324,7 +319,8 @@ the upstream library, so the same shim file is the basis for an upstream PR.
 
 ```ts
 // LangChain — drop-in BaseChatMessageHistory backed by MCOP triad
-import { createMCOPLangChainMemory } from '@kullailabs/mcop-core/integrations/langchain';
+// Source checkout only; this shim is not a public npm subpath.
+import { createMCOPLangChainMemory } from './src/integrations/langchain';
 
 const memory = createMCOPLangChainMemory({ sessionId: 'agent-007' });
 await memory.addMessages([{ type: 'human', content: 'who is paul atreides' }]);

@@ -27,7 +27,8 @@ audit everything end-to-end.
 ## One-line MCOP integration
 
 ```ts
-import { createLedgerClient } from '@kuonirad/mcop-framework';
+// Source checkout only; the hosted-ledger client is not a public npm export.
+import { createLedgerClient } from './src/ledger';
 
 const ledger = createLedgerClient({
   type: 'hosted',              // 'hosted' | 'self-host' | 'embedded'

@@ -79,3 +79,14 @@ def test_cli_reference_non_normalized():
         result.tensor_sha256
         == "13a79080e74dc24c83abbbd68a3749d1a455d47db0436e8eb309b9ddb20aadc7"
     )
+
+
+def test_normalized_tensor_above_one_sha_cycle_matches_typescript_order():
+    """Regression for cycle aggregation vs. summing the expanded tensor."""
+    result = triad_fingerprint(
+        "crystalline entropy", dimensions=64, normalize=True
+    )
+    assert (
+        result.tensor_sha256
+        == "7da1b986757f0b617250ac0421daef95417f985c47e590e3ea331132accb9211"
+    )

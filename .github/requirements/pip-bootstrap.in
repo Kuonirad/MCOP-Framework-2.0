@@ -3,5 +3,6 @@
 #   pip-compile --allow-unsafe --generate-hashes -o .github/requirements/pip-bootstrap.txt .github/requirements/pip-bootstrap.in
 pip==26.1.2
 build==1.2.2.post1
-setuptools==78.1.1
+colorama==0.4.6; sys_platform == 'win32'
+setuptools==83.0.0
 wheel==0.46.2

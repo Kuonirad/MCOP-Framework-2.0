@@ -48,7 +48,7 @@ the JS port as well, and re-submitting against changes wastes cycles.
 | **Vendor destination** | `libs/community/langchain_community/chat_message_histories/mcop.py` |
 | **Test source** | `mcop_package/tests/test_integrations.py` (LangChain section) |
 | **Test destination** | `libs/community/tests/unit_tests/chat_message_histories/test_mcop.py` |
-| **Optional dep** | `mcop>=3.3.0` (added under `[tool.poetry.extras]` as `mcop`) |
+| **Optional dep** | `mcop>=4.0.0` (added under `[tool.poetry.extras]` as `mcop`) |
 | **License** | MIT (carved-out) → compatible with LangChain MIT |
 
 ### PR title
@@ -92,7 +92,7 @@ Closes <issue-id-once-filed>.
 
 ## Dependencies
 
-- `mcop>=3.3.0` (optional; added under `[tool.poetry.extras] mcop`).
+- `mcop>=4.0.0` (optional; added under `[tool.poetry.extras] mcop`).
   Install as `pip install langchain-community[mcop]`.
 
 ## Testing
@@ -148,7 +148,7 @@ point them at `examples/reproducible-benchmark/`.
 | **Vendor source** | `src/integrations/langchain.ts` |
 | **Vendor destination** | `libs/langchain-community/src/chat_message_histories/mcop.ts` |
 | **Test destination** | `libs/langchain-community/src/chat_message_histories/tests/mcop.test.ts` |
-| **Optional dep** | `@kullailabs/mcop-core@^0.2.1` |
+| **Optional dep** | `@kullailabs/mcop-core@^2.4.0` |
 | **License** | MIT (carved-out) → compatible |
 
 ### PR title
@@ -180,7 +180,7 @@ The fixture file is the same JSON; the test loads it identically.
 | **Vendor source** | `mcop_package/mcop/integrations/llamaindex.py` |
 | **Vendor destination** | `llama-index-integrations/vector_stores/llama-index-vector-stores-mcop/llama_index/vector_stores/mcop/base.py` |
 | **Test destination** | `llama-index-integrations/vector_stores/llama-index-vector-stores-mcop/tests/test_base.py` |
-| **Optional dep** | `mcop>=3.3.0` |
+| **Optional dep** | `mcop>=4.0.0` |
 | **License** | MIT (carved-out) → compatible |
 
 ### PR title
@@ -240,7 +240,7 @@ poetry run pytest tests/
 | **Vendor source** | `src/integrations/llamaIndex.ts` |
 | **Vendor destination** | `packages/llamaindex/src/vector-store/MCOPVectorStore.ts` |
 | **Test destination** | `packages/llamaindex/tests/vector-store/MCOPVectorStore.test.ts` |
-| **Optional dep** | `@kullailabs/mcop-core@^0.2.1` |
+| **Optional dep** | `@kullailabs/mcop-core@^2.4.0` |
 
 ### PR title
 
@@ -263,7 +263,7 @@ Mirror PR 3 body, swapping Python→TS, `pip install`→`pnpm add`, and the
 | **Vendor source** | `mcop_package/mcop/integrations/haystack.py` |
 | **Vendor destination** | `integrations/mcop/src/haystack_integrations/document_stores/mcop/document_store.py` |
 | **Test destination** | `integrations/mcop/tests/test_document_store.py` |
-| **Optional dep** | `mcop>=3.3.0` |
+| **Optional dep** | `mcop>=4.0.0` |
 | **License** | MIT shim into Apache-2.0 project → compatible (MIT is more permissive) |
 
 ### PR title

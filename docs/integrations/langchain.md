@@ -25,7 +25,8 @@ Behind the protocol shape, every `addMessages` call:
 ## TypeScript usage
 
 ```ts
-import { createMCOPLangChainMemory } from '@kullailabs/mcop-core/integrations/langchain';
+// Source checkout only; this shim is not a public npm subpath.
+import { createMCOPLangChainMemory } from './src/integrations/langchain';
 
 const memory = createMCOPLangChainMemory({ sessionId: 'agent-007' });
 await memory.addMessages([

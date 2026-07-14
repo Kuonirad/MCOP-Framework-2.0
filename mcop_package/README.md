@@ -1,15 +1,17 @@
-# mcop
+# MCOP for Python
 
-`mcop` is the Python distribution for the Meta-Cognitive Optimization Protocol, a
-reasoning framework for multi-modal hypothesis generation, recursive refinement,
-and evidence-grounded synthesis.
+`mcop` 4.0 is the Python distribution of the MCOP Deterministic Triad:
 
-The package exposes:
+- `NovaNeoEncoder` — deterministic SHA-256 context tensors.
+- `StigmergyV5` — bounded, adaptive resonance memory with an RFC 8785
+  Merkle chain.
+- `HolographicEtch` — bounded confidence/audit memory with eudaimonic
+  flourishing signals.
 
-- A general-purpose reasoning engine.
-- Domain adapters for general, medical, and scientific workflows.
-- A command-line interface for interactive use and scripted runs.
-- Structured outputs with confidence, grounding, evidence, and alternatives.
+The hash protocol is `2.4.0`, matching `@kullailabs/mcop-core`. The package
+also retains the established `MCOPEngine`, mycelial chaining, grounding,
+reasoning modes, and domain adapters. Those APIs are additive; existing Python
+reasoning-engine imports remain valid.
 
 ## Install
 
@@ -24,46 +26,66 @@ pip install mcop[llm]
 pip install mcop[dev]
 ```
 
-## Quick Start
+Python requires `rfc8785` for cross-runtime canonical hashes and `httpx` for
+the evidence-retrieval surface. These are installed automatically.
 
-### Solve a problem directly
+## Deterministic Triad
 
 ```python
-from mcop import solve
+from mcop import HolographicEtch, NovaNeoEncoder, StigmergyV5
+
+encoder = NovaNeoEncoder(dimensions=64, normalize=True)
+context = encoder.encode("a replayable memory")
+
+memory = StigmergyV5(resonance_threshold=0.55, max_traces=2048)
+trace = memory.record_trace(
+    context,
+    list(context),
+    {"source": "python"},
+)
+resonance = memory.get_resonance(context)
+
+etcher = HolographicEtch(confidence_floor=0.0)
+etch = etcher.apply_etch(context, list(context), note="accepted")
+
+print(trace.hash, memory.get_merkle_root())
+print(resonance.score, etch.hash, etch.flourishing_score)
+```
+
+Python methods use snake case. Camel-case aliases such as `recordTrace`,
+`getMerkleRoot`, and `applyEtch` are retained for direct TypeScript-to-Python
+ports.
+
+### Cross-language parity fixture
+
+```bash
+python -m mcop.triad "crystalline entropy" --dimensions 64 --normalize
+```
+
+The JSON includes the encoder fingerprint, protocol version, a deterministic
+Stigmergy trace/resonance result, a Holographic Etch result, and hashes proving
+that absent optional `metadata`/`note` fields are omitted rather than encoded
+as `null`. `tests/test_flagship_triad.py` locks those values to the same
+fixtures used by the TypeScript parity guardian.
+
+## Reasoning Engine (legacy, still supported)
+
+```python
+from mcop import MCOPEngine, Problem, solve
 
 solution = solve("What causes climate change?")
 print(solution.content)
 print(f"Confidence: {solution.confidence * 100:.1f}%")
-print(f"Grounding index: {solution.grounding_index:.2f}")
-```
-
-### Work with the engine explicitly
-
-```python
-from mcop import MCOPEngine, Problem
 
 engine = MCOPEngine()
-problem = Problem(description="Your problem here")
-solution = engine.solve(problem)
-print(solution.content)
+explicit = engine.solve(Problem(description="Your problem here"))
 ```
 
-### Use a domain adapter
+General, medical, scientific, and governance adapters remain available. The
+medical and scientific adapters are decision-support examples and do not
+replace professional judgment.
 
-```python
-from mcop.domains import MedicalDomainAdapter, PatientPresentation
-
-adapter = MedicalDomainAdapter()
-presentation = PatientPresentation(
-    chief_complaint="Chest pain",
-    symptoms=["chest pain", "shortness of breath"],
-)
-problem = adapter.create_patient_problem(presentation)
-solution = adapter.solve(problem)
-print(adapter.format_differential_diagnosis(solution))
-```
-
-## Command Line Interface
+## Command-line reasoning interface
 
 ```bash
 mcop solve "What are the causes of inflation?"
@@ -72,32 +94,34 @@ mcop interactive
 mcop info
 ```
 
-## What the Package Returns
+## Release identity
 
-Each solution includes the primary response plus supporting metadata such as:
+- PyPI distribution: `mcop` 4.0.x.
+- Python runtime version: `mcop.__version__`.
+- Cross-language hash contract: `mcop.TRIAD_PROTOCOL_VERSION == "2.4.0"` and
+  `[tool.mcop].protocol-version` in `pyproject.toml`.
+- npm core distribution: `@kullailabs/mcop-core` (framework release line
+  2.4.x).
 
-- Confidence score.
-- Grounding index.
-- Evidence chain.
-- Alternative solutions.
-- Key uncertainties.
+Package versions may advance independently; protocol parity is the explicit
+compatibility contract.
 
-## Project Resources
+## Development
 
-- Repository: [Kuonirad/MCOP-Framework-2.0](https://github.com/Kuonirad/MCOP-Framework-2.0)
-- Usage guide: [mcop_package/USAGE_GUIDE.md](https://github.com/Kuonirad/MCOP-Framework-2.0/blob/main/mcop_package/USAGE_GUIDE.md)
-- API reference: [mcop_package/API_REFERENCE.md](https://github.com/Kuonirad/MCOP-Framework-2.0/blob/main/mcop_package/API_REFERENCE.md)
-- Project structure: [mcop_package/PROJECT_STRUCTURE.md](https://github.com/Kuonirad/MCOP-Framework-2.0/blob/main/mcop_package/PROJECT_STRUCTURE.md)
-- Changelog: [CHANGELOG.md](https://github.com/Kuonirad/MCOP-Framework-2.0/blob/main/CHANGELOG.md)
+```bash
+python -m pytest tests -q
+```
 
-## Notes
-
-- The Python package has no required runtime dependencies.
-- Medical and scientific adapters are decision-support examples and do not
-  replace professional judgment.
-- Trusted publishing setup for PyPI is documented in
-  [TRUSTED_PUBLISHING_SETUP.md](https://github.com/Kuonirad/MCOP-Framework-2.0/blob/main/TRUSTED_PUBLISHING_SETUP.md).
+See the repository's
+[usage guide](https://github.com/Kuonirad/MCOP-Framework-2.0/blob/main/mcop_package/USAGE_GUIDE.md),
+[API reference](https://github.com/Kuonirad/MCOP-Framework-2.0/blob/main/mcop_package/API_REFERENCE.md),
+and [deployment summary](https://github.com/Kuonirad/MCOP-Framework-2.0/blob/main/mcop_package/DEPLOYMENT_SUMMARY.md)
+for the extended Python surface and release checks.
 
 ## License
 
-Apache License 2.0 (Apache-2.0) — see [LICENSE](./LICENSE) and [NOTICE.md](./NOTICE.md) for terms. Versions originally released under MIT remain available under MIT (see [LICENSE-MIT-LEGACY](./LICENSE-MIT-LEGACY)).
+Apache License 2.0 (Apache-2.0) — see the repository
+[LICENSE](https://github.com/Kuonirad/MCOP-Framework-2.0/blob/main/mcop_package/LICENSE)
+and [NOTICE](https://github.com/Kuonirad/MCOP-Framework-2.0/blob/main/mcop_package/NOTICE.md).
+Versions originally released under MIT remain available under the
+[legacy license](https://github.com/Kuonirad/MCOP-Framework-2.0/blob/main/mcop_package/LICENSE-MIT-LEGACY).

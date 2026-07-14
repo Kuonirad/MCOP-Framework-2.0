@@ -14,10 +14,9 @@
  * downstream consumer of `@kullailabs/mcop-core` cannot reproduce or
  * audit a hash recorded by an instance of the running app.
  *
- * `scripts/parity-guardian.mjs` covers cross-language parity (TS↔Python)
- * by exercising the canonical algorithm via inline crypto. It does NOT
- * touch the actual `NovaNeoEncoder` classes exported from the two TS
- * trees. This test fills that gap.
+ * `scripts/parity-guardian.mjs` covers cross-language parity (npm↔Python)
+ * through the built package entry point. This suite independently keeps the
+ * in-app source tree aligned with the publishable package source.
  *
  * The fixture matrix is intentionally aligned with the matrix in
  * `scripts/parity-guardian.mjs` so the same inputs are exercised at
@@ -108,12 +107,25 @@ describe('TS↔TS triad parity (src/core vs packages/core/src)', () => {
       const app = new AppStigmergy(config);
       const pkg = new PkgStigmergy(config);
 
-      for (const fixture of TRACE_FIXTURES) {
-        const appTrace = app.recordTrace(fixture.context, fixture.synthesis, { label: fixture.label });
-        const pkgTrace = pkg.recordTrace(fixture.context, fixture.synthesis, { label: fixture.label });
+      for (let index = 0; index < TRACE_FIXTURES.length; index++) {
+        const fixture = TRACE_FIXTURES[index];
+        const traceId = `123e4567-e89b-42d3-a456-42661417400${index}`;
+        const appTrace = app.recordTrace(
+          fixture.context,
+          fixture.synthesis,
+          { label: fixture.label },
+          { traceId },
+        );
+        const pkgTrace = pkg.recordTrace(
+          fixture.context,
+          fixture.synthesis,
+          { label: fixture.label },
+          { traceId },
+        );
         expect(appTrace.weight).toBeCloseTo(pkgTrace.weight, 15);
         expect(appTrace.magnitude).toBeCloseTo(pkgTrace.magnitude ?? 0, 15);
         expect(appTrace.metadata).toEqual(pkgTrace.metadata);
+        expect(appTrace.hash).toBe(pkgTrace.hash);
       }
 
       return { app, pkg };

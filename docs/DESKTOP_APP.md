@@ -38,10 +38,12 @@ steps that match the scripts in-tree:
 3. **Prepare the Node sidecar** with
    [`scripts/desktop/prepare-node-runtime.mjs`](../scripts/desktop/prepare-node-runtime.mjs):
    download the official Node **22.23.1** archive for the Rust target via `curl`
-   from `https://nodejs.org/dist/` only, then verify **SHA-256 against
-   compile-time pins** in `NODE_SIDECAR_PINS` (digests sourced once from Node's
-   published `SHASUMS256.txt` and embedded in source — **not** re-fetched at
-   build time). Install the binary as Tauri `binaries/node` plus legal notices.
+   from `https://nodejs.org/dist/` only, verify the archive SHA-256 against a
+   compile-time pin sourced from Node's published `SHASUMS256.txt`, and verify
+   the extracted executable against its separate compile-time binary pin.
+   Cached sidecars are re-hashed on every preparation; old archive-only (`v1`)
+   manifests and modified executables are rejected. Install the binary as
+   Tauri `binaries/node` plus legal notices.
 4. **Bundle installers** via Tauri (`pnpm desktop:build` / CI matrix): NSIS + MSI
    on Windows, AppImage + deb on Linux, with the staged Next tree as
    `resources` and the pin-verified Node binary as `externalBin`.
@@ -62,6 +64,11 @@ The installed runtime never reads the host `PATH` for Node or pnpm. Build hosts
 may use Node `>=22.22.3 <25`; CI, containers, and the bundled runtime stay pinned
 to 22.23.1.
 
+The application identity is `ai.kullailabs.mcop`. The Windows bundle publisher
+metadata is `KullAI Labs`, and the WiX upgrade code is fixed in the release
+contract so an ordinary version upgrade keeps one MSI product lineage. This
+metadata is not an Authenticode signature.
+
 ## Local verification
 
 ### 1. Packaging contracts (no Tauri toolchain)
@@ -72,10 +79,12 @@ pnpm desktop:test
 ```
 
 `desktop:test` runs Node's built-in test runner over
-`scripts/desktop/*.node-tests.mjs`. It covers Node archive selection, pin
-tables, foreign-native pruning (musl sharp must not ship on glibc Linux), the
-Tauri shell capability contract, and the relative Node sidecar entrypoint
-(space-safe Windows install paths).
+`scripts/desktop/*.node-tests.mjs`. It covers Node archive and executable pins,
+cached-sidecar tamper detection, foreign-native pruning (musl sharp must not
+ship on glibc Linux), the Tauri identity/capability contract, release tag and
+version alignment, flat release assets and checksum verification, basename
+collision rejection, and the relative Node sidecar entrypoint (space-safe
+Windows install paths).
 
 ### 2. Staged standalone server (web parity)
 
@@ -113,19 +122,32 @@ pnpm desktop:build
 | `windows-latest` | NSIS `.exe`, WiX `.msi` |
 | `ubuntu-22.04` | AppImage, Debian `.deb` |
 
-Every run uploads workflow artifacts and SHA-256 checksum files. A
-`desktop-v*` tag creates a draft GitHub Release and attaches both platform
-sets. Tagged installers receive GitHub's Sigstore-backed build-provenance
-attestation and can be checked with `gh attestation verify`.
+Pull requests and manual runs produce temporary Actions artifacts; those are
+not public installer releases. A `desktop-v<version>` tag publishes a GitHub
+Release only when the tag matches all four version declarations, the tagged
+commit is contained in `main`, the pinned Rust 1.97.0 formatting/tests/clippy
+and cargo-audit gates pass, and CI produces exactly one NSIS `.exe`, WiX
+`.msi`, AppImage, and `.deb`.
 
-Windows Authenticode, the Tauri updater signing key, macOS bundles, and the
-Python sidecar remain explicit follow-ups; the MVP does not pretend they are
-already active.
+Before publishing, CI flattens the four installers plus the Linux and Windows
+SHA-256 manifests into one release-asset directory, rejects filename
+collisions, verifies every checksum against that flat layout, and verifies
+each installer's GitHub Sigstore build-provenance attestation. It stages those
+six assets in a draft, confirms the draft contains exactly that set, then
+publishes it. A rerun never clobbers assets or modifies an already-published
+release.
+
+GitHub Sigstore provenance authenticates the CI build; it is not Windows
+Authenticode signing. The Windows installers are currently unsigned, and no
+Tauri updater feed or updater signing key is published. macOS bundles and a
+Python sidecar also remain out of scope.
 
 ## Rust dependency security
 
-`apps/desktop/src-tauri` is audited with `cargo audit --deny warnings` (CI
-Desktop Installers job).
+`apps/desktop/src-tauri` is built with Rust 1.97.0 and gated by
+`cargo fmt --check`, `cargo test --locked`,
+`cargo clippy --locked --all-targets -- -D warnings`, and
+`cargo audit --deny warnings` in the Desktop Installers job.
 
 | Class | Status |
 | --- | --- |

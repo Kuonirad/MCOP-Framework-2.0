@@ -12,8 +12,10 @@ const NODE_DIST_ORIGIN = 'https://nodejs.org';
 
 /**
  * Compile-time integrity pins for official Node.js archives used as the
- * desktop sidecar. Digests are taken from the upstream SHASUMS256.txt for
+ * desktop sidecar. Archive digests are taken from upstream SHASUMS256.txt for
  * the matching release (https://nodejs.org/dist/v22.23.1/SHASUMS256.txt).
+ * Binary digests were computed once from the executable extracted from each
+ * archive after its upstream archive digest had been verified.
  *
  * Keeping pins in source (not re-fetched) means:
  * - network URLs are built only from allowlisted constants
@@ -22,14 +24,22 @@ const NODE_DIST_ORIGIN = 'https://nodejs.org';
  */
 export const NODE_SIDECAR_PINS = Object.freeze({
   '22.23.1': Object.freeze({
-    'node-v22.23.1-win-x64.zip':
-      '7df0bc9375723f4a86b3aa1b7cc73342423d9677a8df4538aca31a049e309c29',
-    'node-v22.23.1-win-arm64.zip':
-      'b470fdfe3502c05151656e06d495e3f47544f2ee8b1d9c8705090f2dd5996bd0',
-    'node-v22.23.1-linux-x64.tar.xz':
-      '9749e988f437343b7fa832c69ded82a312e41a03116d766797ac14f6f9eee578',
-    'node-v22.23.1-linux-arm64.tar.xz':
-      '0294e8b915ab75f92c7513d2fcb830ae06e10684e6c603e99a87dbf8835389c1',
+    'node-v22.23.1-win-x64.zip': Object.freeze({
+      archiveSha256: '7df0bc9375723f4a86b3aa1b7cc73342423d9677a8df4538aca31a049e309c29',
+      binarySha256: 'f8d162c0641dcee512132f3bcf8a68169c7ecb852efd8e1a46c9fec5a0f469ed',
+    }),
+    'node-v22.23.1-win-arm64.zip': Object.freeze({
+      archiveSha256: 'b470fdfe3502c05151656e06d495e3f47544f2ee8b1d9c8705090f2dd5996bd0',
+      binarySha256: 'f55db97c9924b0b37b05e8cf1be4e04c72aec01dc1c22420b5c31ab9cd118b89',
+    }),
+    'node-v22.23.1-linux-x64.tar.xz': Object.freeze({
+      archiveSha256: '9749e988f437343b7fa832c69ded82a312e41a03116d766797ac14f6f9eee578',
+      binarySha256: '93956de2e59480474a7b46571da1651180b1a050cdf32641ebec4ce6e478e068',
+    }),
+    'node-v22.23.1-linux-arm64.tar.xz': Object.freeze({
+      archiveSha256: '0294e8b915ab75f92c7513d2fcb830ae06e10684e6c603e99a87dbf8835389c1',
+      binarySha256: 'd8fa08f79c8198c5a5ccc9faa5a69803052703fc9513f99e7200e0ab42e1d799',
+    }),
   }),
 });
 
@@ -116,17 +126,27 @@ export function expectedChecksum(shasums, archive) {
   return line.slice(0, 64);
 }
 
-export function pinnedArchiveSha256(version, archive) {
+export function pinnedSidecarDigests(version, archive) {
   const pinnedVersion = resolvePinnedNodeVersion(version);
-  const digests = NODE_SIDECAR_PINS[pinnedVersion];
-  if (!Object.prototype.hasOwnProperty.call(digests, archive)) {
+  const archives = NODE_SIDECAR_PINS[pinnedVersion];
+  if (!Object.prototype.hasOwnProperty.call(archives, archive)) {
     throw new Error(`No desktop Node pin for ${pinnedVersion}/${archive}`);
   }
-  const digest = digests[archive];
-  if (!/^[a-f0-9]{64}$/.test(digest)) {
-    throw new Error(`Invalid pin digest for ${pinnedVersion}/${archive}`);
+  const digests = archives[archive];
+  for (const [kind, digest] of Object.entries(digests)) {
+    if (!/^[a-f0-9]{64}$/.test(digest)) {
+      throw new Error(`Invalid ${kind} pin for ${pinnedVersion}/${archive}`);
+    }
   }
-  return digest;
+  return digests;
+}
+
+export function pinnedArchiveSha256(version, archive) {
+  return pinnedSidecarDigests(version, archive).archiveSha256;
+}
+
+export function pinnedBinarySha256(version, archive) {
+  return pinnedSidecarDigests(version, archive).binarySha256;
 }
 
 /**
@@ -156,6 +176,43 @@ export function sha256File(filePath) {
     fs.closeSync(fd);
   }
   return hash.digest('hex');
+}
+
+/**
+ * Trust a prepared sidecar only when both its v2 manifest and the executable
+ * itself match the compile-time pins. V1 manifests only recorded the archive
+ * digest and therefore can never satisfy this contract.
+ */
+export function verifyCachedSidecar({
+  outputBinary,
+  runtimeManifest,
+  nodeVersion,
+  target,
+  archive,
+  archiveSha256,
+  binarySha256,
+}) {
+  if (!fs.existsSync(outputBinary) || !fs.existsSync(runtimeManifest)) return null;
+
+  let current;
+  try {
+    current = JSON.parse(fs.readFileSync(runtimeManifest, 'utf8'));
+  } catch {
+    return null;
+  }
+
+  if (
+    current.schema !== 'mcop.desktop.node-sidecar/v2'
+    || current.nodeVersion !== nodeVersion
+    || current.target !== target
+    || current.archive !== archive
+    || current.archiveSha256 !== archiveSha256
+    || current.binarySha256 !== binarySha256
+  ) {
+    return null;
+  }
+
+  return sha256File(outputBinary) === binarySha256 ? current : null;
 }
 
 /**
@@ -214,20 +271,25 @@ export async function prepareNodeRuntime({ version, target, outputDir, cacheDir 
   const pinnedVersion = resolvePinnedNodeVersion(version);
   const pinnedTarget = resolveDesktopTarget(target);
   const spec = archiveSpec(pinnedVersion, pinnedTarget);
-  const expected = pinnedArchiveSha256(pinnedVersion, spec.archive);
+  const { archiveSha256, binarySha256 } = pinnedSidecarDigests(
+    pinnedVersion,
+    spec.archive,
+  );
   const outputBinary = path.join(outputDir, `node-${pinnedTarget}${spec.extension}`);
   const runtimeManifest = path.join(outputDir, `node-${pinnedTarget}.json`);
 
-  if (fs.existsSync(outputBinary) && fs.existsSync(runtimeManifest)) {
-    const current = JSON.parse(fs.readFileSync(runtimeManifest, 'utf8'));
-    if (
-      current.nodeVersion === pinnedVersion
-      && current.target === pinnedTarget
-      && current.sha256 === expected
-    ) {
-      installLegalNotices(outputDir, null);
-      return current;
-    }
+  const cached = verifyCachedSidecar({
+    outputBinary,
+    runtimeManifest,
+    nodeVersion: pinnedVersion,
+    target: pinnedTarget,
+    archive: spec.archive,
+    archiveSha256,
+    binarySha256,
+  });
+  if (cached) {
+    installLegalNotices(outputDir, null);
+    return cached;
   }
 
   const url = nodeDistUrl(pinnedVersion, spec.archive);
@@ -244,10 +306,10 @@ export async function prepareNodeRuntime({ version, target, outputDir, cacheDir 
 
   downloadOfficialNodeArchive(url, archivePath);
   const actual = sha256File(archivePath);
-  if (actual !== expected) {
+  if (actual !== archiveSha256) {
     fs.rmSync(archivePath, { force: true });
     throw new Error(
-      `Node.js runtime checksum mismatch for ${spec.archive}: ${actual} != ${expected}`,
+      `Node.js archive checksum mismatch for ${spec.archive}: ${actual} != ${archiveSha256}`,
     );
   }
 
@@ -257,15 +319,23 @@ export async function prepareNodeRuntime({ version, target, outputDir, cacheDir 
 
   fs.copyFileSync(path.join(extractDir, spec.binary), outputBinary);
   if (process.platform !== 'win32') fs.chmodSync(outputBinary, 0o755);
+  const actualBinarySha256 = sha256File(outputBinary);
+  if (actualBinarySha256 !== binarySha256) {
+    fs.rmSync(outputBinary, { force: true });
+    throw new Error(
+      `Node.js binary checksum mismatch for ${spec.binary}: ${actualBinarySha256} != ${binarySha256}`,
+    );
+  }
 
   installLegalNotices(outputDir, path.join(extractDir, spec.license));
 
   const manifest = {
-    schema: 'mcop.desktop.node-sidecar/v1',
+    schema: 'mcop.desktop.node-sidecar/v2',
     nodeVersion: pinnedVersion,
     target: pinnedTarget,
     archive: spec.archive,
-    sha256: actual,
+    archiveSha256: actual,
+    binarySha256: actualBinarySha256,
     pinSource: 'scripts/desktop/prepare-node-runtime.mjs#NODE_SIDECAR_PINS',
   };
   fs.writeFileSync(runtimeManifest, `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');

@@ -12,10 +12,19 @@ import {
   expectedChecksum,
   nodeDistUrl,
   pinnedArchiveSha256,
+  pinnedBinarySha256,
   resolvePinnedNodeVersion,
   sha256File,
+  verifyCachedSidecar,
   NODE_SIDECAR_PINS,
 } from './prepare-node-runtime.mjs';
+import {
+  DESKTOP_IDENTIFIER,
+  DESKTOP_PUBLISHER,
+  DESKTOP_WIX_UPGRADE_CODE,
+  readDesktopReleaseContract,
+  validateDesktopReleaseTag,
+} from './validate-release.mjs';
 import {
   isForeignNativePackage,
   stageStandalone,
@@ -43,11 +52,15 @@ test('pins Node sidecar downloads to compile-time SHA-256 digests', () => {
   assert.throws(() => resolvePinnedNodeVersion('99.0.0'), /Unpinned desktop Node version/);
   assert.equal(
     pinnedArchiveSha256('22.23.1', 'node-v22.23.1-linux-x64.tar.xz'),
-    NODE_SIDECAR_PINS['22.23.1']['node-v22.23.1-linux-x64.tar.xz'],
+    NODE_SIDECAR_PINS['22.23.1']['node-v22.23.1-linux-x64.tar.xz'].archiveSha256,
   );
   assert.equal(
     pinnedArchiveSha256('22.23.1', 'node-v22.23.1-win-x64.zip'),
     '7df0bc9375723f4a86b3aa1b7cc73342423d9677a8df4538aca31a049e309c29',
+  );
+  assert.equal(
+    pinnedBinarySha256('22.23.1', 'node-v22.23.1-win-x64.zip'),
+    'f8d162c0641dcee512132f3bcf8a68169c7ecb852efd8e1a46c9fec5a0f469ed',
   );
   assert.equal(
     nodeDistUrl('22.23.1', 'node-v22.23.1-linux-x64.tar.xz'),
@@ -70,6 +83,51 @@ test('pins Node sidecar downloads to compile-time SHA-256 digests', () => {
     crypto.createHash('sha256').update('mcop-desktop-pin-probe\n').digest('hex'),
   );
   fs.rmSync(pinProbe, { recursive: true, force: true });
+});
+
+test('trusts only v2 Node sidecar manifests whose executable still matches', () => {
+  const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'mcop-sidecar-cache-'));
+  const outputBinary = path.join(temp, 'node-x86_64-pc-windows-msvc.exe');
+  const runtimeManifest = path.join(temp, 'node-x86_64-pc-windows-msvc.json');
+  const binaryContents = 'verified desktop sidecar\n';
+  const binarySha256 = crypto.createHash('sha256').update(binaryContents).digest('hex');
+  const expected = {
+    outputBinary,
+    runtimeManifest,
+    nodeVersion: '22.23.1',
+    target: 'x86_64-pc-windows-msvc',
+    archive: 'node-v22.23.1-win-x64.zip',
+    archiveSha256: 'a'.repeat(64),
+    binarySha256,
+  };
+
+  fs.writeFileSync(outputBinary, binaryContents);
+  fs.writeFileSync(
+    runtimeManifest,
+    JSON.stringify({
+      schema: 'mcop.desktop.node-sidecar/v1',
+      nodeVersion: expected.nodeVersion,
+      target: expected.target,
+      archive: expected.archive,
+      sha256: expected.archiveSha256,
+    }),
+  );
+  assert.equal(verifyCachedSidecar(expected), null, 'v1 archive-only manifests must be rejected');
+
+  const v2Manifest = {
+    schema: 'mcop.desktop.node-sidecar/v2',
+    nodeVersion: expected.nodeVersion,
+    target: expected.target,
+    archive: expected.archive,
+    archiveSha256: expected.archiveSha256,
+    binarySha256: expected.binarySha256,
+  };
+  fs.writeFileSync(runtimeManifest, JSON.stringify(v2Manifest));
+  assert.deepEqual(verifyCachedSidecar(expected), v2Manifest);
+
+  fs.appendFileSync(outputBinary, 'tampered\n');
+  assert.equal(verifyCachedSidecar(expected), null, 'a modified cached executable must be rejected');
+  fs.rmSync(temp, { recursive: true, force: true });
 });
 
 test('classifies optional native packages for glibc Linux packaging hosts', () => {
@@ -187,6 +245,20 @@ test('desktop shell config owns a bundled Node sidecar and installer targets', (
   assert.equal(capability.permissions.some((permission) => /shell|process|fs:/.test(permission)), false);
   const nextConfig = fs.readFileSync(path.join(repoRoot, 'next.config.ts'), 'utf8');
   assert.match(nextConfig, /connect-src 'self' ipc: http:\/\/ipc\.localhost/);
+});
+
+test('desktop release identity and tag contract stay aligned across manifests', () => {
+  const contract = readDesktopReleaseContract(repoRoot);
+  const version = contract.versions.root;
+  assert.deepEqual(new Set(Object.values(contract.versions)), new Set([version]));
+  assert.equal(contract.identifier, DESKTOP_IDENTIFIER);
+  assert.equal(contract.publisher, DESKTOP_PUBLISHER);
+  assert.equal(contract.wixUpgradeCode, DESKTOP_WIX_UPGRADE_CODE);
+  assert.equal(validateDesktopReleaseTag(`desktop-v${version}`, repoRoot).version, version);
+  assert.throws(
+    () => validateDesktopReleaseTag(`desktop-v${version}-invalid`, repoRoot),
+    /does not match configured version/,
+  );
 });
 
 test('desktop Node sidecar entry is relative (space-safe Windows install paths)', () => {

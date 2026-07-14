@@ -9,7 +9,7 @@ function escapeRegExp(value: string): string {
 }
 
 function stepBlock(name: string): string {
-  const header = new RegExp(`^ {6}- name: ${escapeRegExp(name)}\\n`, 'm');
+  const header = new RegExp(`^ {6}- name: ${escapeRegExp(name)}\\r?\\n`, 'm');
   const match = header.exec(workflow);
   if (!match || match.index === undefined) {
     throw new Error(`Step not found in publish-npm.yml: ${name}`);
@@ -63,7 +63,7 @@ describe('npm publish workflow regression guards', () => {
     const skipDuplicate = stepBlock('Skip npm publish for already-published version');
 
     expect(compact(publish)).toContain(
-      "(github.event_name == 'workflow_dispatch' && inputs.dry_run == false) || ((github.event_name == 'release' || github.event_name == 'push') && steps.npm_registry.outputs.version_published != 'true')",
+      "(github.event_name == 'release' || github.event_name == 'push') && steps.npm_registry.outputs.version_published != 'true'",
     );
     expect(publish).toContain("sed -i '/_authToken/d'");
     expect(publish).toContain('env -u NODE_AUTH_TOKEN npm publish');
@@ -73,5 +73,47 @@ describe('npm publish workflow regression guards', () => {
       "(github.event_name == 'release' || github.event_name == 'push') && steps.npm_registry.outputs.version_published == 'true'",
     );
     expect(skipDuplicate).toContain('is already present on npm; treating this duplicate release path as successful.');
+  });
+
+  it('rejects untagged manual uploads so every production publish owns an npm-v release', () => {
+    const rejection = stepBlock('Reject untagged manual production publish');
+    const publish = stepBlock('Publish to npm (trusted publishing + automatic provenance)');
+
+    expect(compact(rejection)).toContain(
+      "if: github.event_name == 'workflow_dispatch' && inputs.dry_run == false",
+    );
+    expect(rejection).toContain('Manual npm uploads are disabled');
+    expect(rejection).toContain('npm-v<package-version>');
+    expect(publish).not.toContain('inputs.dry_run == false');
+  });
+
+  it('uploads exact SBOMs to a draft before publishing an immutable npm release', () => {
+    const preflight = stepBlock('Preflight immutable npm GitHub release state');
+    const createDraft = stepBlock('Create fresh npm draft release');
+    const uploadAndPublish = stepBlock(
+      'Upload and verify npm release SBOMs before publishing',
+    );
+    const finalVerification = stepBlock('Verify final immutable npm release assets');
+
+    expect(preflight).toContain("gh release view \"$TAG\"");
+    expect(preflight).toContain('published releases are never deleted');
+    expect(preflight).toContain('already has the exact verified SBOM assets; preserving it');
+    expect(preflight).toContain('different asset set or digest');
+    expect(workflow.indexOf('Preflight immutable npm GitHub release state')).toBeLessThan(
+      workflow.indexOf('Publish to npm (trusted publishing + automatic provenance)'),
+    );
+    expect(createDraft).toContain('gh release create "$TAG"');
+    expect(workflow.indexOf('Publish to npm (trusted publishing + automatic provenance)')).toBeLessThan(
+      workflow.indexOf('Create fresh npm draft release'),
+    );
+    expect(createDraft).toContain('--draft --verify-tag');
+    expect(uploadAndPublish).toContain('gh release upload "$TAG"');
+    expect(uploadAndPublish).toContain("test \"$(jq -r '.isDraft'");
+    expect(uploadAndPublish).toContain('Draft npm release assets do not match');
+    expect(uploadAndPublish.indexOf('Draft npm release assets do not match')).toBeLessThan(
+      uploadAndPublish.indexOf('gh release edit "$TAG"'),
+    );
+    expect(finalVerification).toContain("= 'false'");
+    expect(workflow).not.toContain('Attach SBOMs to GitHub Release');
   });
 });

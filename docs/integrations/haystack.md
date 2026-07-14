@@ -20,10 +20,11 @@ upstream PRs verbatim.
 ## TypeScript usage
 
 ```ts
+// Source checkout only; this shim is not a public npm subpath.
 import {
   createMCOPHaystackDocumentStore,
   mcopHaystackDocumentFromContent,
-} from '@kullailabs/mcop-core/integrations/haystack';
+} from './src/integrations/haystack';
 
 const store = createMCOPHaystackDocumentStore({ resonanceThreshold: 0.05 });
 await store.writeDocuments([

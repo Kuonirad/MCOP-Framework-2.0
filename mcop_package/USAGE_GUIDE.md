@@ -1,4 +1,4 @@
-# M-COP v3.1 Complete Usage Guide
+# MCOP Python 4.0 Usage Guide
 
 ## Table of Contents
 1. [Quick Start](#quick-start)
@@ -20,11 +20,25 @@
 cd mcop_package
 pip install -e .
 
-# Or directly
-python setup.py install
+# Or from PyPI
+pip install mcop
 ```
 
-### Hello World
+### Deterministic Triad
+
+```python
+from mcop import HolographicEtch, NovaNeoEncoder, StigmergyV5
+
+encoder = NovaNeoEncoder(dimensions=64, normalize=True)
+context = encoder.encode("replayable memory")
+memory = StigmergyV5(resonance_threshold=0.55)
+trace = memory.record_trace(context, list(context), {"source": "guide"})
+etch = HolographicEtch(confidence_floor=0).apply_etch(context, list(context))
+
+print(trace.hash, memory.get_merkle_root(), etch.hash)
+```
+
+### Reasoning engine
 
 ```python
 from mcop import solve

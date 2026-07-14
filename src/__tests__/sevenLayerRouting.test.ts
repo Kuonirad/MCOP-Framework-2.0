@@ -13,6 +13,11 @@ describe('seven-layer routing map', () => {
       'src/core/driftSentinelKernel.ts',
       'src/hardware/CUDAHardwareLayer.ts',
     ]);
+    expect(SEVEN_LAYER_ROUTING.slice(0, 3).map((entry) => entry.packageSurface)).toEqual([
+      '@kullailabs/mcop-core (NovaNeoEncoder export)',
+      '@kullailabs/mcop-core (StigmergyV5 export)',
+      '@kullailabs/mcop-core (HolographicEtch export)',
+    ]);
   });
 
   it('retrieves a stable mapping entry by layer number', () => {

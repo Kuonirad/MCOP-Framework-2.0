@@ -53,6 +53,12 @@ export interface ResonanceQueryOptions {
 export interface RecordTraceOptions {
   /** Embedding tensor to seal alongside the hash tensor (dual-key trace). */
   semanticContext?: ContextTensor;
+  /**
+   * Optional caller-supplied UUID for deterministic replay and cross-runtime
+   * conformance fixtures. Production callers should normally omit this so the
+   * runtime generates a fresh UUID v4.
+   */
+  traceId?: string;
 }
 
 export interface ResonanceResult {

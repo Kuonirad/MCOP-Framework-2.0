@@ -98,11 +98,10 @@ class OpenSearchEvidenceRetriever(EvidenceRetriever):
 ## TypeScript usage
 
 ```ts
-import {
-  CouncilScorer,
-  InMemoryEvidenceRetriever,
-  GuardianMetaReasoner,
-} from '@kullailabs/mcop-core';
+// Source checkout only; these application utilities are not public npm exports.
+import { CouncilScorer } from './src/utils/councilScorer';
+import { InMemoryEvidenceRetriever } from './src/utils/evidenceRetriever';
+import { GuardianMetaReasoner } from './src/utils/guardianMetaReasoner';
 
 const retriever = new InMemoryEvidenceRetriever(
   [{ content: '…peer-reviewed claim…', evidenceType: 'peer_reviewed', weight: 0.9 }],

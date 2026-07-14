@@ -59,7 +59,8 @@ defensible only on high-stakes paths.
 ## Minimal usage
 
 ```ts
-import { DriftSentinelKernel } from '@kuonirad/mcop-framework';
+// Source checkout only; run this example from the repository root.
+import { DriftSentinelKernel } from './src/core/driftSentinelKernel';
 
 const sentinel = new DriftSentinelKernel({
   baseSensitivity: 0.15,

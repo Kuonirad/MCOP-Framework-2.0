@@ -185,9 +185,10 @@ human-readable `reason` string the orchestrator can write to its audit
 log.
 
 ```ts
+// Source checkout only; run this example from the repository root.
 import {
   chooseProviderAcrossGrokAndQwen,
-} from '@kuonirad/mcop-framework';
+} from './src/adapters/multiProviderRouter';
 
 const decision = chooseProviderAcrossGrokAndQwen(
   { entropy: 0.82, resonance: 0.4 },

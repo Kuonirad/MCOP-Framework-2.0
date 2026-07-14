@@ -8,6 +8,14 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased] — Automated Evidence Retrieval & Guardian v0.2
 
 ### Changed
+- **Python `mcop` 4.0 now ships the flagship Deterministic Triad.** The PyPI
+  distribution exports `NovaNeoEncoder`, `StigmergyV5`, and
+  `HolographicEtch` alongside the established reasoning engine, with an
+  explicit `TRIAD_PROTOCOL_VERSION = "2.4.0"`. Cross-language fixtures now
+  execute the public npm build and Python APIs over hash, embedding,
+  calibration, growth-ledger, optional-field, and Unicode edge cases. The
+  package release line is intentionally independent from the triad protocol
+  version.
 - **Byte-identity as the headline claim — identical cognition state across four
   runtimes.** Reframes the reproducibility story away from ops/sec (which invites
   hardware quibbles) to the property a referee can falsify in ninety seconds: the

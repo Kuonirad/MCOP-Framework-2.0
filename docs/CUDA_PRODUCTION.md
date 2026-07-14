@@ -8,7 +8,8 @@
 ## TL;DR — enable CUDA in 3 lines
 
 ```ts
-import { resolveHardwareLayer } from '@kuonirad/mcop-framework';
+// Source checkout only; hardware orchestration is not a public npm export.
+import { resolveHardwareLayer } from './src/hardware';
 
 const { accelerator, cudaLayer, resolved } = await resolveHardwareLayer();
 // `resolved` is sealed audit-ready provenance:

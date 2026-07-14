@@ -5,14 +5,22 @@ on:
   pull_request:
     branches: [main]
     paths:
+      - '.github/actions/setup-project/**'
       - '.github/workflows/desktop.yml'
       - 'apps/desktop/**'
       - 'scripts/desktop/**'
-      - 'src/app/desktop/**'
+      - 'src/**'
+      - 'public/**'
+      - 'packages/**'
+      - '.nvmrc'
       - 'next.config.ts'
+      - 'postcss.config.mjs'
+      - 'tsconfig*.json'
       - 'package.json'
+      - 'package-lock.json'
       - 'pnpm-lock.yaml'
       - 'pnpm-workspace.yaml'
+      - 'rust-toolchain.toml'
   push:
     tags:
       - 'desktop-v*'
@@ -55,19 +63,41 @@ jobs:
         shell: bash
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf xdg-utils
+          sudo apt-get install -y \
+            build-essential \
+            curl \
+            file \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            libssl-dev \
+            libwebkit2gtk-4.1-dev \
+            libxdo-dev \
+            patchelf \
+            wget \
+            xdg-utils
 
       - name: Setup project environment
         uses: ./.github/actions/setup-project
         with:
           node-version: 22.23.1
 
-      - name: Install Rust stable
+      - name: Install pinned Rust toolchain
         shell: bash
         run: |
-          rustup toolchain install stable --profile minimal
-          rustup default stable
+          rustup toolchain install 1.97.0 --profile minimal --component clippy --component rustfmt
+          rustup default 1.97.0
           rustc --version
+
+      - name: Prepare verified Node sidecar for Rust contract builds
+        run: node scripts/desktop/prepare-node-runtime.mjs
+
+      - name: Verify Rust formatting, tests, and lints
+        shell: bash
+        working-directory: apps/desktop/src-tauri
+        run: |
+          cargo fmt --check
+          cargo test --locked
+          cargo clippy --locked --all-targets -- -D warnings
 
       - name: Cargo audit (desktop lockfile)
         # Enforces apps/desktop/src-tauri/.cargo/audit.toml: fixable advisories
@@ -120,9 +150,31 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
+      attestations: read
       contents: write
 
     steps:
+      - name: Checkout tagged source and release scripts
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
+
+      - name: Validate tag, version, identity, and main ancestry
+        env:
+          TAG: ${{ github.ref_name }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/desktop/validate-release.mjs "$TAG"
+          git fetch --no-tags origin main:refs/remotes/origin/main
+          tag_commit=$(git rev-parse "$TAG^{commit}")
+          head_commit=$(git rev-parse 'HEAD^{commit}')
+          test "$tag_commit" = "$head_commit"
+          if ! git merge-base --is-ancestor "$tag_commit" refs/remotes/origin/main; then
+            echo "Refusing to publish: $TAG ($tag_commit) is not contained in origin/main" >&2
+            exit 1
+          fi
+
       - name: Download installer artifacts
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
@@ -130,18 +182,95 @@ jobs:
           path: artifacts
           merge-multiple: true
 
-      - name: Create draft release and upload installers
+      - name: Stage and verify exact release assets
+        run: node scripts/desktop/stage-release-assets.mjs artifacts release-assets
+
+      - name: Verify installer build provenance
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          verified=0
+          while IFS= read -r -d '' installer; do
+            gh attestation verify "$installer" \
+              --repo "$GITHUB_REPOSITORY" \
+              --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/desktop.yml" \
+              --source-ref "$GITHUB_REF" \
+              --source-digest "$GITHUB_SHA"
+            verified=$((verified + 1))
+          done < <(find release-assets -maxdepth 1 -type f \
+            \( -iname '*.msi' -o -iname '*.exe' -o -iname '*.AppImage' -o -iname '*.deb' \) \
+            -print0)
+          test "$verified" -eq 4
+
+      - name: Reconcile the desktop release state
+        id: release_state
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ github.ref_name }}
         shell: bash
         run: |
           set -euo pipefail
-          if ! gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --draft --verify-tag \
-              --title "MCOP Desktop ${TAG#desktop-v}" \
-              --notes "Native Windows and Linux installers. No system Node or Python runtime is required. Verify downloads with SHA256SUMS and GitHub artifact attestations."
+          remote_sha=$(gh api "repos/${GITHUB_REPOSITORY}/commits/${TAG}" --jq '.sha')
+          if test "$remote_sha" != "$GITHUB_SHA"; then
+            echo "Refusing to publish: $TAG moved to $remote_sha; expected $GITHUB_SHA" >&2
+            exit 1
           fi
-          mapfile -d '' files < <(find artifacts -type f -print0)
-          test "${#files[@]}" -gt 0
-          gh release upload "$TAG" --repo "$GITHUB_REPOSITORY" --clobber "${files[@]}"
+
+          create_release=true
+          if release_json=$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json isDraft,assets 2>/dev/null); then
+            if test "$(jq -r '.isDraft' <<<"$release_json")" = 'true'; then
+              echo "Removing incomplete draft release for $TAG; published releases are never deleted."
+              gh release delete "$TAG" --repo "$GITHUB_REPOSITORY" --yes --cleanup-tag=false
+            else
+              RELEASE_JSON="$release_json" node --input-type=module -e "import path from 'node:path'; import { assertReleaseAssetsMatch } from './scripts/desktop/stage-release-assets.mjs'; const release=JSON.parse(process.env.RELEASE_JSON); assertReleaseAssetsMatch(path.resolve('release-assets'), release.assets);"
+              echo "Published release $TAG already has the exact six verified assets; preserving it."
+              create_release=false
+            fi
+          fi
+          echo "create_release=$create_release" >> "$GITHUB_OUTPUT"
+
+      - name: Create a fresh desktop draft release
+        if: steps.release_state.outputs.create_release == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --draft --verify-tag --latest=false \
+            --title "MCOP Desktop ${TAG#desktop-v}" \
+            --notes "Native Windows (NSIS/MSI) and Linux (AppImage/deb) installers. No system Node or Python runtime is required. Verify downloads with the SHA-256 manifests and GitHub Sigstore build provenance. These installers are not Authenticode-signed, and no Tauri updater feed or updater signing key is published."
+
+      - name: Upload verified assets and publish the desktop release
+        if: steps.release_state.outputs.create_release == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -d '' files < <(find release-assets -maxdepth 1 -type f -print0)
+          test "${#files[@]}" -eq 6
+          gh release upload "$TAG" --repo "$GITHUB_REPOSITORY" "${files[@]}"
+
+          # Immutable Releases make a post-publish mismatch irreversible. Read
+          # GitHub's stored asset digests while this release is still a draft
+          # and refuse to publish unless all six names and hashes match.
+          release_json=$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json isDraft,assets)
+          test "$(jq -r '.isDraft' <<<"$release_json")" = 'true'
+          RELEASE_JSON="$release_json" node --input-type=module -e "import path from 'node:path'; import { assertReleaseAssetsMatch } from './scripts/desktop/stage-release-assets.mjs'; const release=JSON.parse(process.env.RELEASE_JSON); assertReleaseAssetsMatch(path.resolve('release-assets'), release.assets);"
+
+          gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false --latest=false
+
+      - name: Verify the final published desktop release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          release_json=$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json isDraft,assets)
+          test "$(jq -r '.isDraft' <<<"$release_json")" = 'false'
+          RELEASE_JSON="$release_json" node --input-type=module -e "import path from 'node:path'; import { assertReleaseAssetsMatch } from './scripts/desktop/stage-release-assets.mjs'; const release=JSON.parse(process.env.RELEASE_JSON); assertReleaseAssetsMatch(path.resolve('release-assets'), release.assets);"

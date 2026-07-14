@@ -611,14 +611,15 @@ or `B` (bad signature), reconfigure before opening a PR.
 
 ### Verifying the Sigstore provenance on `@kullailabs/mcop-core`
 
-Both registry uploads use **OIDC-only trusted publishing** — no long-lived
-tokens are stored anywhere. Every release is signed by Sigstore's keyless
-signing pipeline (Fulcio short-lived cert → Rekor transparency log) and
-ships a [SLSA v1.0](https://slsa.dev/spec/v1.0/provenance) build provenance
-attestation that cryptographically binds the tarball to:
+Canonical npm and PyPI workflow uploads use **OIDC-only trusted publishing** —
+no long-lived registry tokens are stored. Every npm release produced by the
+trusted workflow carries Sigstore keyless provenance (Fulcio short-lived cert
+→ Rekor transparency log) and a
+[SLSA v1.0](https://slsa.dev/spec/v1.0/provenance) build attestation that
+cryptographically binds the tarball to:
 
 - The **source repository** — `Kuonirad/MCOP-Framework-2.0`.
-- The **commit / tag** — e.g. `refs/tags/npm-v0.1.1`.
+- The **commit / tag** — e.g. `refs/tags/npm-v2.4.0`.
 - The **workflow file** — `.github/workflows/publish-npm.yml`.
 - The **GitHub-hosted runner** — `https://github.com/actions/runner/github-hosted`.
 - The **specific run id** — e.g. `actions/runs/24964396730/attempts/1`.
@@ -665,15 +666,11 @@ non-`main` branch), do not trust the artifact.
 
 #### PyPI parity
 
-The Python package follows the same pattern: PyPI's Trusted Publishing
-issues attestations via the same Sigstore stack. Verify with:
-
-```bash
-pip install --require-hashes --upgrade mcop  # honors PyPI's signed metadata
-```
-
-or inspect the per-release "Verified" badge on the
-[mcop project page](https://pypi.org/project/mcop/).
+The Python package uses PyPI Trusted Publishing and registry-hosted
+attestations. Inspect the provenance for the selected release file on the
+[mcop project page](https://pypi.org/project/mcop/). Ordinary `pip install`
+does not verify PyPI publish attestations; pip's `--require-hashes` mode is a
+separate dependency-integrity control that requires caller-supplied hashes.
 
 #### Bootstrap (one-time, completed)
 

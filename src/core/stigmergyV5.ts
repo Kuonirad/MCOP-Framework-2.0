@@ -159,7 +159,7 @@ export class StigmergyV5 {
     });
     try {
       const parentHash = this.traces.last()?.hash;
-      const id = randomUuidV4();
+      const id = options?.traceId ?? randomUuidV4();
 
       const contextMag = magnitude(context);
       const synthesisMag = magnitude(synthesisVector);

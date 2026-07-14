@@ -20,10 +20,11 @@ verbatim.
 ## TypeScript usage
 
 ```ts
+// Source checkout only; this shim is not a public npm subpath.
 import {
   createMCOPLlamaIndexVectorStore,
   mcopLlamaIndexNodeFromText,
-} from '@kullailabs/mcop-core/integrations/llamaIndex';
+} from './src/integrations/llamaIndex';
 
 const store = createMCOPLlamaIndexVectorStore({ resonanceThreshold: 0.05 });
 await store.add([

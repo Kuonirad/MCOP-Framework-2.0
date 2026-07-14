@@ -1,4 +1,5 @@
 export * from './types';
+export * from './triadProtocol';
 export * from './novaNeoEncoder';
 export * from './stigmergyV5';
 export * from './resonanceCalibration';

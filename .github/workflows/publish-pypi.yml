@@ -1,7 +1,7 @@
 name: Publish Python to PyPI
 
 # Builds and publishes the `mcop` Python distribution on every push of a tag
-# starting with `py-v` (e.g. `py-v3.2.0`). Uses PyPI Trusted Publishing via
+# starting with `py-v` (e.g. `py-v4.0.0`). Uses PyPI Trusted Publishing via
 # OIDC — no long-lived API tokens. Configure the trusted publisher at
 # https://pypi.org/manage/account/publishing/ (or pending-publisher for the
 # very first release) with:
@@ -13,11 +13,10 @@ name: Publish Python to PyPI
 # The `pypi` environment also gates the release behind branch protection and
 # reviewer rules you can set under repo Settings → Environments.
 #
-# This workflow OWNS the GitHub Release for the tag — do not pre-create a
-# Release object via the API or UI. The workflow creates it as a draft,
-# attaches the CycloneDX SBOMs, then publishes it. This is required because
-# GitHub's Immutable Releases setting locks released artefacts at publish
-# time, blocking post-publish asset uploads.
+# This workflow owns the GitHub Release lifecycle for the tag. It creates new
+# releases as drafts, attaches the CycloneDX SBOMs, then publishes them. Exact
+# existing published releases are accepted on retry; published releases are
+# never deleted or modified.
 
 on:
   push:
@@ -33,12 +32,19 @@ on:
         options:
           - testpypi
           - pypi
+      release_tag:
+        description: 'Existing py-v* tag to publish (required for target=pypi; must point at the dispatched main SHA)'
+        required: false
+        default: ''
+        type: string
 
 permissions:
   contents: read
 
 concurrency:
-  group: publish-pypi-${{ github.ref }}
+  # A manual production retry and the original tag-push run must serialize on
+  # the same release tag. TestPyPI dispatches fall back to their selected ref.
+  group: publish-pypi-${{ (github.event_name == 'workflow_dispatch' && inputs.release_tag) || github.ref_name }}
   cancel-in-progress: false
 
 jobs:
@@ -55,12 +61,16 @@ jobs:
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'push' && startsWith(github.ref_name, 'py-v'))
     timeout-minutes: 15
+    outputs:
+      release_tag: ${{ steps.release_contract.outputs.release_tag }}
+      release_sha: ${{ steps.release_contract.outputs.release_sha }}
     permissions:
       contents: read
     steps:
       - name: Checkout repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
+          fetch-depth: 0
           persist-credentials: false
 
       - name: Setup Python
@@ -73,11 +83,59 @@ jobs:
         # OpenSSF Scorecard's Pinned-Dependencies check.
         run: python -m pip install --require-hashes --no-deps -r .github/requirements/pip-bootstrap.txt
 
-      - name: Verify package version matches release tag
-        if: startsWith(github.ref_name, 'py-v')
+      - name: Install hash-pinned test and runtime dependencies
+        run: python -m pip install --require-hashes -r .github/requirements/mcop-package-dev.txt
+
+      - name: Install the release candidate without resolving new dependencies
         working-directory: mcop_package
+        run: python -m pip install --no-deps -e '.'
+
+      - name: Resolve and validate the production release ref
+        id: release_contract
+        if: >-
+          (github.event_name == 'push' && startsWith(github.ref_name, 'py-v')) ||
+          (github.event_name == 'workflow_dispatch' && inputs.target == 'pypi')
+        env:
+          DISPATCH_RELEASE_TAG: ${{ inputs.release_tag }}
+        shell: bash
         run: |
-          tag="${GITHUB_REF_NAME#py-v}"
+          set -euo pipefail
+          if [ "$GITHUB_EVENT_NAME" = 'push' ]; then
+            release_tag="$GITHUB_REF_NAME"
+          else
+            release_tag="$DISPATCH_RELEASE_TAG"
+          fi
+
+          if [[ ! "$release_tag" =~ ^py-v[0-9A-Za-z][0-9A-Za-z._+-]*$ ]]; then
+            echo "::error::Production PyPI releases require a safe py-v* release tag; got '$release_tag'."
+            exit 1
+          fi
+
+          git fetch --force --no-tags origin main:refs/remotes/origin/main
+          git fetch --force --no-tags origin "refs/tags/${release_tag}:refs/tags/${release_tag}"
+          release_sha=$(git rev-parse "${release_tag}^{commit}")
+          if [ "$release_sha" != "$GITHUB_SHA" ]; then
+            echo "::error::Release tag ${release_tag} points to ${release_sha}, not this run's ${GITHUB_SHA}."
+            exit 1
+          fi
+          if ! git merge-base --is-ancestor "$release_sha" refs/remotes/origin/main; then
+            echo "::error::Production PyPI releases must point to a commit on main."
+            exit 1
+          fi
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ] && [ "$GITHUB_REF" != "refs/heads/main" ]; then
+            echo "::error::Manual production publishes must be dispatched from main."
+            exit 1
+          fi
+          echo "release_tag=$release_tag" >> "$GITHUB_OUTPUT"
+          echo "release_sha=$release_sha" >> "$GITHUB_OUTPUT"
+
+      - name: Verify package version matches release tag
+        if: steps.release_contract.outputs.release_tag != ''
+        working-directory: mcop_package
+        env:
+          RELEASE_TAG: ${{ steps.release_contract.outputs.release_tag }}
+        run: |
+          tag="${RELEASE_TAG#py-v}"
           pkg_version=$(python -c "import tomllib,pathlib; print(tomllib.loads(pathlib.Path('pyproject.toml').read_text())['project']['version'])")
           echo "tag version : $tag"
           echo "pkg version : $pkg_version"
@@ -86,9 +144,44 @@ jobs:
             exit 1
           fi
 
+      - name: Verify Python protocol metadata matches the npm flagship
+        run: |
+          python - <<'PY'
+          import re
+          from pathlib import Path
+          import mcop
+
+          protocol_source = Path('packages/core/src/triadProtocol.ts').read_text()
+          match = re.fullmatch(
+              r"(?:/\*[\s\S]*?\*/\s*)?export const TRIAD_PROTOCOL_VERSION = ['\"]([^'\"]+)['\"] as const;\s*",
+              protocol_source,
+          )
+          assert match, 'Could not read the exported TypeScript triad protocol constant'
+          typescript_protocol = match.group(1)
+          barrel = Path('packages/core/src/index.ts').read_text()
+          assert "export * from './triadProtocol';" in barrel
+          assert mcop.TRIAD_PROTOCOL_VERSION == typescript_protocol, (
+              f"Python protocol {mcop.TRIAD_PROTOCOL_VERSION} != npm protocol {typescript_protocol}"
+          )
+          from mcop import HolographicEtch, NovaNeoEncoder, StigmergyV5
+          assert all(callable(value) for value in (HolographicEtch, NovaNeoEncoder, StigmergyV5))
+          PY
+
+      - name: Run the Python release test suite
+        working-directory: mcop_package
+        run: python -m pytest -q
+
       - name: Build sdist and wheel
         working-directory: mcop_package
-        run: python -m build
+        run: python -m build --no-isolation
+
+      - name: Smoke-test the wheel outside the source tree
+        shell: bash
+        run: |
+          target="$RUNNER_TEMP/mcop-release-wheel"
+          python -m pip install --no-deps --target "$target" mcop_package/dist/*.whl
+          cd "$RUNNER_TEMP"
+          PYTHONPATH="$target" python -c "from mcop import HolographicEtch, NovaNeoEncoder, StigmergyV5; tensor=NovaNeoEncoder(dimensions=64, normalize=True).encode('release'); assert StigmergyV5(resonance_threshold=0).record_trace(tensor, tensor).hash; assert HolographicEtch(confidence_floor=0).apply_etch(tensor, tensor, 'release').hash"
 
       - name: Upload distribution artifacts
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -172,10 +265,10 @@ jobs:
     # PARP CS #10 (TokenPermissionsID, informational):
     #   `contents: write` is REQUIRED on this `publish-pypi` job because the
     #   repo has Immutable Releases enabled: assets cannot be added after a
-    #   Release is published. The job therefore (1) deletes any prior
-    #   already-published release for the tag, (2) creates a *draft* release
-    #   with the CycloneDX SBOMs already attached, then (3) flips the draft
-    #   to published. All three operations require `contents: write`.
+    #   Release is published. The job therefore creates new Releases as
+    #   drafts with the CycloneDX SBOMs attached before publishing. On retry,
+    #   incomplete drafts may be recreated, while exact published Releases
+    #   are preserved. These lifecycle operations require `contents: write`.
     #   The workflow declares `contents: read` at the top level (line 37-38)
     #   and the build/testpypi jobs each declare their own minimum scope, so
     #   only this final publish job carries the write capability.
@@ -196,6 +289,50 @@ jobs:
           name: cyclonedx-sbom
           path: sbom/
 
+      - name: Preflight immutable GitHub release state
+        id: release_state
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.build.outputs.release_tag }}
+          RELEASE_SHA: ${{ needs.build.outputs.release_sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$TAG"
+          test -n "$RELEASE_SHA"
+
+          remote_sha=$(gh api "repos/${GITHUB_REPOSITORY}/commits/${TAG}" --jq '.sha')
+          if [ "$remote_sha" != "$RELEASE_SHA" ]; then
+            echo "::error::Release tag ${TAG} moved to ${remote_sha}; expected ${RELEASE_SHA}."
+            exit 1
+          fi
+
+          assets=(sbom/mcop-core.cdx.json sbom/mcop-framework.cdx.json)
+          for asset in "${assets[@]}"; do test -f "$asset"; done
+          expected=$(
+            for asset in "${assets[@]}"; do
+              printf '%s sha256:%s\n' "$(basename "$asset")" "$(sha256sum "$asset" | awk '{print $1}')"
+            done | LC_ALL=C sort
+          )
+
+          create_release=true
+          if release_json=$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json isDraft,assets 2>/dev/null); then
+            if [ "$(jq -r '.isDraft' <<<"$release_json")" = 'true' ]; then
+              echo "Removing incomplete draft release for ${TAG}; published releases are never deleted."
+              gh release delete "$TAG" --repo "$GITHUB_REPOSITORY" --yes --cleanup-tag=false
+            else
+              actual=$(jq -r '.assets[] | "\(.name) \(.digest // \"\")"' <<<"$release_json" | LC_ALL=C sort)
+              if [ "$actual" != "$expected" ]; then
+                echo "::error::Published release ${TAG} exists with a different asset set or digest."
+                diff -u <(printf '%s\n' "$expected") <(printf '%s\n' "$actual") || true
+                exit 1
+              fi
+              echo "Published release ${TAG} already has the exact verified SBOM assets; preserving it."
+              create_release=false
+            fi
+          fi
+          echo "create_release=$create_release" >> "$GITHUB_OUTPUT"
+
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b # v1.14.0
         with:
@@ -212,38 +349,22 @@ jobs:
           print-hash: true
 
       # ------------------------------------------------------------------
-      # GitHub Release management. The repo has Immutable Releases enabled,
-      # which locks released artefacts at publish time and rejects all
-      # post-publish asset uploads. To get the CycloneDX SBOMs attached we
-      # therefore have to (1) make sure no released-and-locked release
-      # exists for this tag yet, (2) create a draft with the SBOMs as
-      # assets, then (3) flip the draft to published so it inherits the
-      # immutability lock with the SBOMs already in place.
+      # GitHub Release management. Published immutable releases are accepted
+      # only when their exact asset names and GitHub-computed SHA-256 digests
+      # match this run. Drafts are safe to recreate; published releases are
+      # never deleted or modified.
       # ------------------------------------------------------------------
-      - name: Remove any prior published release for this tag
-        if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.target == 'pypi')
-        env:
-          GH_TOKEN: ${{ github.token }}
-          TAG: ${{ github.ref_name }}
-        run: |
-          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            echo "Existing release found for tag $TAG — deleting (Immutable Releases blocks asset uploads after publish)"
-            gh release delete "$TAG" --repo "$GITHUB_REPOSITORY" --yes --cleanup-tag=false
-          else
-            echo "No existing release for tag $TAG — proceeding to create"
-          fi
-
       - name: Create draft release with SBOMs attached
         id: draft_release
-        if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.target == 'pypi')
+        if: steps.release_state.outputs.create_release == 'true'
         uses: softprops/action-gh-release@718ea10b132b3b2eba29c1007bb80653f286566b # v3.0.1
         with:
-          tag_name: ${{ github.ref_name }}
-          name: "Python mcop ${{ github.ref_name }}"
+          tag_name: ${{ needs.build.outputs.release_tag }}
+          name: "Python mcop ${{ needs.build.outputs.release_tag }}"
           draft: true
           generate_release_notes: true
           body: |
-            **Python `mcop` ${{ github.ref_name }}** — published to PyPI via Trusted Publishing (OIDC, automatic Sigstore provenance).
+            **Python `mcop` ${{ needs.build.outputs.release_tag }}** — published to PyPI via Trusted Publishing (OIDC, automatic Sigstore provenance).
 
             - PyPI: https://pypi.org/project/mcop/
             - Framework release notes: see the corresponding `v*` framework Release for the full feature set.
@@ -255,10 +376,49 @@ jobs:
           fail_on_unmatched_files: true
 
       - name: Publish the release (lifts draft, becomes immutable with SBOMs in place)
-        if: steps.draft_release.outputs.id != ''
+        if: steps.release_state.outputs.create_release == 'true' && steps.draft_release.outputs.id != ''
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_ID: ${{ steps.draft_release.outputs.id }}
+          TAG: ${{ needs.build.outputs.release_tag }}
         run: |
+          set -euo pipefail
+          # Verify GitHub's stored names and digests before immutability makes a
+          # bad upload irreversible. The final check below remains as a guard
+          # that publishing itself did not change the asset set.
+          release_json=$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json isDraft,assets)
+          test "$(jq -r '.isDraft' <<<"$release_json")" = 'true'
+          expected=$(
+            for asset in sbom/mcop-core.cdx.json sbom/mcop-framework.cdx.json; do
+              printf '%s sha256:%s\n' "$(basename "$asset")" "$(sha256sum "$asset" | awk '{print $1}')"
+            done | LC_ALL=C sort
+          )
+          actual=$(jq -r '.assets[] | "\(.name) \(.digest // \"\")"' <<<"$release_json" | LC_ALL=C sort)
+          if [ "$actual" != "$expected" ]; then
+            echo "::error::Draft release assets do not match the verified SBOMs; refusing to publish an immutable release."
+            diff -u <(printf '%s\n' "$expected") <(printf '%s\n' "$actual") || true
+            exit 1
+          fi
           gh api -X PATCH "/repos/${GITHUB_REPOSITORY}/releases/${RELEASE_ID}" -F draft=false -F make_latest=false
-          echo "Release ${RELEASE_ID} (tag ${{ github.ref_name }}) is now published."
+          echo "Release ${RELEASE_ID} (tag ${{ needs.build.outputs.release_tag }}) is now published."
+
+      - name: Verify the final immutable release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.build.outputs.release_tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          release_json=$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json isDraft,assets)
+          test "$(jq -r '.isDraft' <<<"$release_json")" = 'false'
+          expected=$(
+            for asset in sbom/mcop-core.cdx.json sbom/mcop-framework.cdx.json; do
+              printf '%s sha256:%s\n' "$(basename "$asset")" "$(sha256sum "$asset" | awk '{print $1}')"
+            done | LC_ALL=C sort
+          )
+          actual=$(jq -r '.assets[] | "\(.name) \(.digest // \"\")"' <<<"$release_json" | LC_ALL=C sort)
+          if [ "$actual" != "$expected" ]; then
+            echo "::error::Final release assets do not match the verified SBOMs."
+            diff -u <(printf '%s\n' "$expected") <(printf '%s\n' "$actual") || true
+            exit 1
+          fi

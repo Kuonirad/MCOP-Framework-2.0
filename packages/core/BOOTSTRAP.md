@@ -1,16 +1,18 @@
 # Bootstrap `@kullailabs/mcop-core` on npm
 
-> One-time setup. After this is done, every future `npm-v*` GitHub Release
-> publishes automatically via the existing `.github/workflows/publish-npm.yml`
-> workflow — no tokens, no manual steps.
+> One-time setup. After this is done, future version-matched `npm-v*` tag
+> pushes publish via the existing
+> `.github/workflows/publish-npm.yml` workflow — no tokens or manual registry
+> upload steps.
 
 > **Status (2026-04-26):** ✅ Bootstrap complete. `@kullailabs/mcop-core@0.1.0`
 > was published from a local checkout using a short-lived granular access
 > token with the `Bypass 2FA` flag enabled. The package and `@kullailabs`
 > scope are now live on the registry, so the steps below are kept only as
 > a reference for ever needing to re-bootstrap (e.g. moving to a new scope).
-> Future releases happen automatically when a `npm-v*` GitHub Release is
-> cut, via OIDC trusted publishing — no token required.
+> Future releases happen when a version-matched `npm-v*` tag push runs the
+> OIDC trusted-publishing workflow — no token required. The workflow creates
+> the draft GitHub Release, verifies its SBOM assets, and then publishes it.
 
 ## Why this is needed
 
@@ -85,14 +87,18 @@ The package now exists at <https://www.npmjs.com/package/@kullailabs/mcop-core>.
 From now on:
 
 ```bash
-# bump version in packages/core/package.json, commit, push, then:
-gh release create npm-v0.1.1 --generate-notes
+# bump version in packages/core/package.json, commit, merge to main, then push
+# the matching tag. Do not pre-create the GitHub Release; the workflow owns its
+# draft -> asset verification -> publication lifecycle.
+version=$(node -p "require('./package.json').version")
+git tag "npm-v${version}"
+git push origin "npm-v${version}"
 ```
 
-`publish-npm.yml` runs on the `release` event, the pre-flight probe sees
-the package on the registry, OIDC publishes the new version, and Sigstore
-provenance is attached automatically. **No `NPM_TOKEN` is ever stored in
-this repo.**
+`publish-npm.yml` runs on the tag push, the pre-flight probe sees the package
+on the registry, OIDC publishes the new version, and Sigstore provenance is
+attached automatically. It then creates and verifies the GitHub Release before
+publishing it. **No `NPM_TOKEN` is ever stored in this repo.**
 
 ---
 
@@ -104,5 +110,6 @@ If you want to validate the build + dry-run pipeline without uploading:
 gh workflow run publish-npm.yml -f dry_run=true
 ```
 
-The dry-run path skips the registry probe (it's only enforced on the
-`release` event) so it works even before bootstrap.
+The dry-run validates the registry bootstrap and package version first. For an
+already-published version it uses `npm pack --dry-run`; for an unpublished
+version it uses `npm publish --dry-run` without uploading.
