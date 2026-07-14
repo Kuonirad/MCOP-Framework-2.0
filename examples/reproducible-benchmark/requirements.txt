@@ -6,3 +6,7 @@ nbconvert==7.17.1
 pandas==2.2.3
 matplotlib==3.9.2
 jsonschema==4.23.0
+
+# Security floor: pillow <12.3.0 is PYSEC-2026-2253..2257; setuptools <83 is PYSEC-2026-3447.
+pillow>=12.3.0
+setuptools>=83.0.0
