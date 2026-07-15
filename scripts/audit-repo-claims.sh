@@ -582,7 +582,8 @@ run_proof_gates() {
 
   run_pnpm_script_required "build"
 
-  run_cmd "pnpm audit high+" pnpm audit --audit-level=high
+  # npm CLI bulk advisories (pnpm 9 audit hits retired registry 410 endpoints)
+  run_cmd "npm audit high+" npm audit --audit-level=high
 
   if has_pnpm_script "sbom"; then
     run_cmd "pnpm script: sbom" pnpm run sbom
