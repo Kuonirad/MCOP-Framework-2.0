@@ -139,8 +139,12 @@ jobs:
         with:
           node-version: 22.23.1
 
+      # npm retired legacy /-/npm/v1/security/audits{,/quick} on 2026-07-15
+      # (HTTP 410). pnpm 9/10 still call those endpoints (pnpm/pnpm#13033).
+      # npm CLI uses /-/npm/v1/security/advisories/bulk against package-lock.json.
+      # Revisit when packageManager moves to pnpm ≥11 (bulk audit client).
       - name: Run security audit
-        run: pnpm audit --audit-level=high
+        run: npm audit --audit-level=high
 
       - name: Run lint security checks
         run: pnpm lint
