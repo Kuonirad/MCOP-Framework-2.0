@@ -117,6 +117,42 @@ Or re-run Scorecard after the filter merge; a clean SARIF upload auto-closes the
 
 ---
 
+## Dependabot — glib (Tauri / wry GTK3 stack)
+
+| Alert | Package | Advisory | Manifest |
+|---|---|---|---|
+| [#169](https://github.com/Kuonirad/MCOP-Framework-2.0/security/dependabot/169) | `glib` **0.18.5** | [GHSA-wrw7-89jp-8q8g](https://github.com/advisories/GHSA-wrw7-89jp-8q8g) / [RUSTSEC-2024-0429](https://rustsec.org/advisories/RUSTSEC-2024-0429.html) | `apps/desktop/src-tauri/Cargo.lock` |
+
+### Why this cannot be version-bumped away
+
+Same blocker as Scorecard alert [#30](#ossf-scorecard--vulnerabilitiesid-tauri--wry-gtk3-stack):
+
+- Patched floor is **glib ≥ 0.20.0** (gtk4-rs line).
+- Desktop lockfile is pinned to the **gtk-rs 0.18** graph via `wry` → `webkit2gtk` → `gtk` / `gio` / `glib` (Linux WebView).
+- Mixing glib 0.20 into that graph is not possible on crates.io today; upstream migration is tracked at [wry#1474](https://github.com/tauri-apps/wry/issues/1474) and [tauri#12561](https://github.com/tauri-apps/tauri/issues/12561).
+
+### Controls already in place
+
+| Control | Location |
+|---|---|
+| cargo-audit allowlist | [`apps/desktop/src-tauri/.cargo/audit.toml`](../apps/desktop/src-tauri/.cargo/audit.toml) (`RUSTSEC-2024-0429`) |
+| OSV-Scanner ignore | [`apps/desktop/src-tauri/osv-scanner.toml`](../apps/desktop/src-tauri/osv-scanner.toml) |
+| Scorecard SARIF filter | [`scripts/scorecard-filter-accepted-rust-vulns.mjs`](../scripts/scorecard-filter-accepted-rust-vulns.mjs) |
+| Desktop packaging notes | [`docs/DESKTOP_APP.md`](DESKTOP_APP.md) |
+
+### Dismissal (Dependabot)
+
+```bash
+gh api -X PATCH /repos/Kuonirad/MCOP-Framework-2.0/dependabot/alerts/169 \
+  -f state=dismissed \
+  -f dismissed_reason=tolerable_risk \
+  -f dismissed_comment="Accepted: glib 0.18 forced by Tauri/wry webkit2gtk (gtk-rs 0.18). Fix needs glib>=0.20/gtk4 (wry#1474). Allowlisted in .cargo/audit.toml + osv-scanner.toml. See docs/SECURITY-POSTURE-NOTES.md."
+```
+
+Re-open or re-evaluate when wry/tauri ship a gtk4 / webkit6 stack that can pull glib ≥ 0.20.
+
+---
+
 ## OSSF Scorecard — owner-only repository settings (cannot fix via code)
 
 Two open alerts cannot be addressed by code changes because they depend on repository-level settings only the repository owner can modify:
