@@ -255,13 +255,273 @@ describe('Φ4 verifiedDevice gate — pure-ESM soak harness parity', () => {
       expect(record.firstGhostGPUStep).toBe(500);
       expect(record.canary).toBe(500);
       expect((record.ghostGpuEvents as unknown[])).toHaveLength(1);
-      const event = (record.ghostGpuEvents as Array<{ step: number; verifiedProvider: string; canary: boolean }>)[0];
+      const event = (record.ghostGpuEvents as Array<{
+        step: number;
+        op: string;
+        verifiedProvider: string;
+        canary: boolean;
+        canaryVariant: string;
+      }>)[0];
       expect(event.step).toBe(500);
-      expect(event.verifiedProvider).toBe('CPUExecutionProvider');
+      // Op-aware: step 500 % 6 → holographicUpdate → DmlExecutionProvider
+      expect(event.op).toBe(CUDA_KERNEL_OPS[500 % CUDA_KERNEL_OPS.length]);
+      expect(event.verifiedProvider).not.toBe('CUDAExecutionProvider');
+      expect(event.verifiedProvider).toBe('DmlExecutionProvider');
+      expect(event.canaryVariant).toBe('dml-execution-provider');
       expect(event.canary).toBe(true);
       expect((record.targets as { phi4ZeroGhostGPUEvents: boolean }).phi4ZeroGhostGPUEvents).toBe(false);
     } finally {
       rmSync(tmp, { recursive: true, force: true });
     }
   }, 30_000);
+
+  it('multi-canary list records every ghost without early halt (full-trace detection)', () => {
+    const tmp = mkdtempSync(join(tmpdir(), 'cuda-soak-'));
+    const out = join(tmp, 'soak_multi_canary.json');
+    const steps = [3, 7, 11, 17];
+    try {
+      execFileSync(
+        process.execPath,
+        [HARNESS, '--steps=24', `--canary=${steps.join(',')}`, '--mode=smoke', `--out=${out}`],
+        {
+          cwd: REPO_ROOT,
+          env: { ...process.env, MCOP_BENCH_CAPTURED_AT: '2026-05-07T20:30:00.000Z' },
+          stdio: ['ignore', 'ignore', 'pipe'],
+        },
+      );
+      const record = JSON.parse(readFileSync(out, 'utf8')) as Record<string, unknown>;
+      expect(record.halted).toBe(false);
+      expect(record.continueOnGhost).toBe(true);
+      expect(record.completedSteps).toBe(24);
+      expect(record.firstGhostGPUStep).toBe(3);
+      expect(record.canarySteps).toEqual(steps);
+      const events = record.ghostGpuEvents as Array<{
+        step: number;
+        op: string;
+        verifiedProvider: string;
+        canary: boolean;
+        canaryVariant: string;
+      }>;
+      expect(events).toHaveLength(steps.length);
+      expect(events.map((e) => e.step)).toEqual(steps);
+      for (const e of events) {
+        expect(e.canary).toBe(true);
+        expect(e.verifiedProvider).not.toBe('CUDAExecutionProvider');
+        expect(e.op).toBe(CUDA_KERNEL_OPS[e.step % CUDA_KERNEL_OPS.length]);
+      }
+      // Distinct variants across ops prove op-aware vocabulary coverage.
+      const variants = new Set(events.map((e) => e.canaryVariant));
+      expect(variants.size).toBeGreaterThanOrEqual(3);
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  }, 30_000);
+
+  it('canary-every cadence injects at regular intervals and records all ghosts', () => {
+    const tmp = mkdtempSync(join(tmpdir(), 'cuda-soak-'));
+    const out = join(tmp, 'soak_canary_every.json');
+    try {
+      execFileSync(
+        process.execPath,
+        [HARNESS, '--steps=20', '--canary-every=5', '--mode=smoke', `--out=${out}`],
+        {
+          cwd: REPO_ROOT,
+          env: { ...process.env, MCOP_BENCH_CAPTURED_AT: '2026-05-07T20:30:00.000Z' },
+          stdio: ['ignore', 'ignore', 'pipe'],
+        },
+      );
+      const record = JSON.parse(readFileSync(out, 'utf8')) as Record<string, unknown>;
+      expect(record.canaryEvery).toBe(5);
+      expect(record.continueOnGhost).toBe(true);
+      expect(record.halted).toBe(false);
+      expect(record.canarySteps).toEqual([5, 10, 15]);
+      expect((record.ghostGpuEvents as unknown[])).toHaveLength(3);
+      for (const e of record.ghostGpuEvents as Array<{ verifiedProvider: string }>) {
+        expect(e.verifiedProvider).not.toBe('CUDAExecutionProvider');
+      }
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  }, 30_000);
+});
+
+/**
+ * Drive pure-ESM harness internals via a child Node process.
+ * Jest's CJS transform cannot `import()` scripts/*.mjs, so we keep
+ * vocabulary / fuzz / Merkle checks in this suite via `node --input-type=module`.
+ */
+function runHarnessModuleEval(source: string): string {
+  return execFileSync(
+    process.execPath,
+    ['--input-type=module', '-e', source],
+    {
+      cwd: REPO_ROOT,
+      encoding: 'utf8',
+      env: { ...process.env },
+      stdio: ['ignore', 'pipe', 'pipe'],
+      maxBuffer: 4 * 1024 * 1024,
+    },
+  );
+}
+
+describe('Φ4 verifiedDevice gate — adversarial payload vocabulary + parser properties', () => {
+  it('buildProfilerPayload variants hit distinct parseExecutionProvider branches', () => {
+    const out = runHarnessModuleEval(`
+      import { pathToFileURL } from 'node:url';
+      import { join } from 'node:path';
+      const m = await import(pathToFileURL(join(process.cwd(), 'scripts/cuda-verified-device-soak.mjs')).href);
+      const { buildProfilerPayload, parseExecutionProvider, CANARY_VARIANT_EXPECTED } = m.__soakInternals;
+      const cases = [
+        'cpu-args-provider','cpu-mixed-schema','tensorrt-single','dml-execution-provider',
+        'malformed-truncated','truncated-json','newline-cpu','empty-string','null-payload',
+        'mixed-cuda-cpu','clean-cuda',
+      ];
+      const results = {};
+      for (const variant of cases) {
+        const payload = buildProfilerPayload('encode', 'CPUExecutionProvider', 0, variant);
+        const verified = parseExecutionProvider(payload);
+        results[variant] = verified;
+        const expected = CANARY_VARIANT_EXPECTED[variant] ?? (variant === 'clean-cuda' ? 'CUDAExecutionProvider' : null);
+        if (expected && verified !== expected) {
+          console.log(JSON.stringify({ ok: false, variant, verified, expected }));
+          process.exit(1);
+        }
+        if (variant !== 'clean-cuda' && variant !== 'mixed-cuda-cpu' && verified === 'CUDAExecutionProvider') {
+          console.log(JSON.stringify({ ok: false, reason: 'false-cuda', variant }));
+          process.exit(1);
+        }
+      }
+      console.log(JSON.stringify({ ok: true, results }));
+    `);
+    const parsed = JSON.parse(out.trim()) as { ok: boolean; results: Record<string, string> };
+    expect(parsed.ok).toBe(true);
+    expect(parsed.results['tensorrt-single']).toBe('TensorrtExecutionProvider');
+    expect(parsed.results['dml-execution-provider']).toBe('DmlExecutionProvider');
+    expect(parsed.results['empty-string']).toBe('unknown');
+    expect(parsed.results['clean-cuda']).toBe('CUDAExecutionProvider');
+    expect(parsed.results['mixed-cuda-cpu']).toBe('CUDAExecutionProvider');
+  });
+
+  it('op-aware canary variants cover all six KERNEL_NAMES', () => {
+    const out = runHarnessModuleEval(`
+      import { pathToFileURL } from 'node:url';
+      import { join } from 'node:path';
+      const m = await import(pathToFileURL(join(process.cwd(), 'scripts/cuda-verified-device-soak.mjs')).href);
+      const { KERNEL_NAMES, CANARY_VARIANT_BY_OP, buildProfilerPayload, parseExecutionProvider, CANARY_VARIANT_EXPECTED } = m.__soakInternals;
+      const ops = [...KERNEL_NAMES].sort();
+      const keys = Object.keys(CANARY_VARIANT_BY_OP).sort();
+      if (JSON.stringify(ops) !== JSON.stringify(keys)) {
+        console.log(JSON.stringify({ ok: false, ops, keys }));
+        process.exit(1);
+      }
+      const byOp = {};
+      for (const op of KERNEL_NAMES) {
+        const variant = CANARY_VARIANT_BY_OP[op];
+        const verified = parseExecutionProvider(buildProfilerPayload(op, 'CPUExecutionProvider', 0, variant));
+        byOp[op] = { variant, verified };
+        if (verified !== CANARY_VARIANT_EXPECTED[variant] || verified === 'CUDAExecutionProvider') {
+          console.log(JSON.stringify({ ok: false, op, variant, verified, expected: CANARY_VARIANT_EXPECTED[variant] }));
+          process.exit(1);
+        }
+      }
+      console.log(JSON.stringify({ ok: true, byOp }));
+    `);
+    const parsed = JSON.parse(out.trim()) as {
+      ok: boolean;
+      byOp: Record<string, { variant: string; verified: string }>;
+    };
+    expect(parsed.ok).toBe(true);
+    expect(Object.keys(parsed.byOp).sort()).toEqual([...CUDA_KERNEL_OPS].sort());
+    expect(parsed.byOp.encode.verified).toBe('CPUExecutionProvider');
+    expect(parsed.byOp.homeostasis.verified).toBe('unknown');
+  });
+
+  it('parseExecutionProvider never throws and never returns CUDA unless a CUDA token is present (fuzz)', () => {
+    const out = runHarnessModuleEval(`
+      import { pathToFileURL } from 'node:url';
+      import { join } from 'node:path';
+      const m = await import(pathToFileURL(join(process.cwd(), 'scripts/cuda-verified-device-soak.mjs')).href);
+      const { parseExecutionProvider } = m;
+      const samples = [
+        '', '   ', 'not json', '{', '[{', null, undefined, '[]', '{}',
+        '[{"args":{}}]', '[{"args":{"provider":""}}]', '[{"args":{"provider":123}}]',
+        '[{"provider":"CPUExecutionProvider"}]',
+        '[{"args":{"execution_provider":"TensorrtExecutionProvider"}}]',
+        '[{"args":{"provider":"DmlExecutionProvider"}},{"args":{"provider":"CPUExecutionProvider"}}]',
+        ('{"args":{"provider":"CPUExecutionProvider"}}\\n').repeat(5),
+        JSON.stringify([{ args: { provider: 'CPUExecutionProvider' }, nested: { deep: { a: 1 } } }]),
+        JSON.stringify([{ args: { provider: 'CUDAExecutionProvider', provider_dup: 'x' } }]),
+        JSON.stringify({ args: { provider: 'CUDAExecutionProvider' } }),
+        JSON.stringify(Array.from({ length: 20 }, (_, i) => ({
+          name: 'evt_' + i,
+          args: i % 3 === 0
+            ? { provider: 'CPUExecutionProvider' }
+            : { execution_provider: 'WebGPUExecutionProvider' },
+        }))),
+        JSON.stringify([[{ args: { provider: 'CPUExecutionProvider' } }]]),
+        '{"args":{"provider":"CPUExecutionProvider","provider":"CPUExecutionProvider"}}',
+      ];
+      let rng = 0xC0FFEE;
+      const next = () => { rng = (Math.imul(rng, 1664525) + 1013904223) >>> 0; return rng; };
+      const build = (d) => {
+        if (d === 0) {
+          const pick = next() % 5;
+          if (pick === 0) return { args: { provider: 'CPUExecutionProvider' } };
+          if (pick === 1) return { args: { execution_provider: 'TensorrtExecutionProvider' } };
+          if (pick === 2) return { provider: 'DmlExecutionProvider' };
+          if (pick === 3) return { args: { provider: next() % 7 === 0 ? 'CUDAExecutionProvider' : 'CPUExecutionProvider' } };
+          return { noise: next(), args: {} };
+        }
+        if (next() % 2 === 0) return Array.from({ length: 1 + (next() % 3) }, () => build(d - 1));
+        return { child: build(d - 1), args: next() % 3 === 0 ? { provider: 'CPUExecutionProvider' } : {} };
+      };
+      for (let i = 0; i < 40; i++) {
+        samples.push(JSON.stringify(build(1 + (next() % 4))));
+        const full = JSON.stringify(build(2));
+        samples.push(full.slice(0, Math.max(1, next() % full.length)));
+      }
+      let checked = 0;
+      for (const sample of samples) {
+        let result;
+        try { result = parseExecutionProvider(sample); }
+        catch (err) {
+          console.log(JSON.stringify({ ok: false, reason: 'threw', sample: String(sample).slice(0, 80), err: String(err) }));
+          process.exit(1);
+        }
+        const raw = sample == null ? '' : String(sample);
+        if (!raw.includes('CUDAExecutionProvider') && result === 'CUDAExecutionProvider') {
+          console.log(JSON.stringify({ ok: false, reason: 'false-cuda', sample: raw.slice(0, 120), result }));
+          process.exit(1);
+        }
+        if (typeof result !== 'string') {
+          console.log(JSON.stringify({ ok: false, reason: 'non-string', result }));
+          process.exit(1);
+        }
+        checked++;
+      }
+      console.log(JSON.stringify({ ok: true, checked }));
+    `);
+    const parsed = JSON.parse(out.trim()) as { ok: boolean; checked: number };
+    expect(parsed.ok).toBe(true);
+    expect(parsed.checked).toBeGreaterThan(50);
+  });
+
+  it('clean soak Merkle root is unchanged when canary path is unused (stability contract)', () => {
+    const committed = JSON.parse(readFileSync(COMMITTED, 'utf8')) as { merkleRoot: string };
+    const out = runHarnessModuleEval(`
+      import { pathToFileURL } from 'node:url';
+      import { join } from 'node:path';
+      const m = await import(pathToFileURL(join(process.cwd(), 'scripts/cuda-verified-device-soak.mjs')).href);
+      const clean = m.runSoak({ steps: 1000, seed: 0xC0FFEE });
+      console.log(JSON.stringify({
+        halted: clean.halted,
+        ghosts: clean.ghostGpuEvents.length,
+        merkle: clean.merkleAccumulator,
+      }));
+    `);
+    const parsed = JSON.parse(out.trim()) as { halted: boolean; ghosts: number; merkle: string };
+    expect(parsed.halted).toBe(false);
+    expect(parsed.ghosts).toBe(0);
+    expect(parsed.merkle).toBe(committed.merkleRoot);
+  });
 });

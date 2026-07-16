@@ -91,6 +91,55 @@ describe('parseExecutionProvider', () => {
     const custom = JSON.stringify([{ args: { provider: 'WebGPUExecutionProvider' } }]);
     expect(parseExecutionProvider(custom)).toBe('WebGPUExecutionProvider');
   });
+
+  it('never throws and never returns CUDA unless a CUDA token is present (property)', () => {
+    // Lightweight fuzz sibling of the soak-harness property test — same safety
+    // invariant on the TypeScript parseExecutionProvider implementation.
+    const samples: unknown[] = [
+      '',
+      'not json',
+      '{',
+      null,
+      undefined,
+      '[]',
+      '{}',
+      JSON.stringify([{ args: { provider: 'CPUExecutionProvider' } }]),
+      JSON.stringify([{ args: { execution_provider: 'TensorrtExecutionProvider' } }]),
+      JSON.stringify([{ args: { provider: 'DmlExecutionProvider' } }]),
+      JSON.stringify([
+        { args: { provider: 'CPUExecutionProvider' } },
+        { args: { provider: 'CUDAExecutionProvider' } },
+      ]),
+      JSON.stringify([[{ args: { provider: 'CPUExecutionProvider' } }]]),
+      '[{"args":{"provider":"CPUExecutionProvider"}}\n{"args":{"provider":"CPUExecutionProvider"}}]',
+    ];
+    let rng = 0xA5A5_5A5A;
+    const next = () => {
+      rng = (Math.imul(rng, 1664525) + 1013904223) >>> 0;
+      return rng;
+    };
+    for (let i = 0; i < 30; i += 1) {
+      const body = JSON.stringify({
+        args: {
+          provider: next() % 5 === 0 ? 'CUDAExecutionProvider' : 'CPUExecutionProvider',
+        },
+        nest: Array.from({ length: next() % 4 }, (_, j) => ({ id: j, args: { provider: 'CPUExecutionProvider' } })),
+      });
+      samples.push(body);
+      samples.push(body.slice(0, 1 + (next() % Math.max(1, body.length))));
+    }
+    for (const sample of samples) {
+      let result = 'sentinel';
+      expect(() => {
+        result = parseExecutionProvider(sample as string);
+      }).not.toThrow();
+      const raw = sample == null ? '' : String(sample);
+      if (!raw.includes('CUDAExecutionProvider')) {
+        expect(result).not.toBe('CUDAExecutionProvider');
+      }
+      expect(typeof result).toBe('string');
+    }
+  });
 });
 
 /* ------------------------------------------------------------------ */

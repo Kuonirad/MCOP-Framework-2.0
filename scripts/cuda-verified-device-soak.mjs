@@ -11,17 +11,25 @@
  *      `graphAggregate`, `holographicUpdate`, `cosineRecall`,
  *      `evolveScore`, `homeostasis`) via `step % 6`.
  *   2. Synthesises a mock `endProfiling()` payload tagged
- *      `CUDAExecutionProvider`.
+ *      `CUDAExecutionProvider` (clean path — byte-stable Merkle fold).
  *   3. Runs the verifiedDevice parser, asserts the gate accepts the leaf,
  *      and seals a Merkle leaf via canonical-encoding parity.
- *   4. Optionally — when `--canary=<step>` is passed — flips the profile
- *      for one specific step to `CPUExecutionProvider`. The harness then
- *      asserts the gate halts at exactly that step and records the halt
- *      under `firstGhostGPUStep` in the output record.
+ *   4. Optionally — when `--canary=` / `--canary-every=` is passed —
+ *      injects adversarial (ghost-GPU) profiler payloads at selected
+ *      steps. Canaries exercise the full `parseExecutionProvider` branch
+ *      vocabulary (CPU, TensorRT/DML, mixed, malformed, empty, null).
+ *      Multi-canary / cadence modes record **every** ghost event without
+ *      breaking early so detection is asserted across the whole trace.
  *
  * The Merkle root is computed over the canonical sequence of `(step, op,
  * verifiedDevice, leafDigest)` tuples plus the run metadata, so a single
  * step regression invalidates the root.
+ *
+ * **Merkle stability contract**: clean (non-canary) leaves always use the
+ * historical two-event CUDA payload shape. Canary-only payload variants and
+ * continue-on-ghost bookkeeping must not alter the clean fold. Changing the
+ * clean shape requires re-committing
+ * `docs/benchmarks/cuda_verified_device_soak.json` and a schema bump.
  *
  * Environment knobs:
  *   MCOP_BENCH_CAPTURED_AT     Pin the ISO timestamp in the output JSON
@@ -32,11 +40,16 @@
  *   --seed=<u32>               PRNG seed (currently used as a salt only;
  *                              the soak's verifiedDevice gate is purely
  *                              structural). Default 0xC0FFEE.
- *   --canary=<step>            If set, the verifiedDevice profile at this
- *                              step flips to CPUExecutionProvider so the
- *                              gate halts there. Used by the regression
- *                              test to prove ghost-GPU detection fires
- *                              at exactly the canonical step.
+ *   --canary=<step[,step...]>  Canary step(s). Single step preserves
+ *                              legacy halt-on-first-ghost behaviour.
+ *                              Comma-separated list injects at each step
+ *                              and continues recording every ghost event.
+ *   --canary-every=<N>         Inject a canary every N steps (N>0). Implies
+ *                              continue-on-ghost for full-trace detection.
+ *   --halt-on-ghost            Force halt on first ghost (overrides multi-
+ *                              canary continue default).
+ *   --continue-on-ghost        Force continue after ghost (overrides single-
+ *                              canary halt default).
  *   --out=<path>               Output JSON path. Default
  *                              docs/benchmarks/cuda_verified_device_soak.json.
  *   --mode=full|smoke          Smoke mode strips host info for byte-stable
@@ -67,6 +80,43 @@ const KERNEL_TO_OPERATION = Object.freeze({
   cosineRecall: 'cosine-recall',
   evolveScore: 'nova-evolve-score',
   homeostasis: 'homeostasis',
+});
+
+/**
+ * Op-aware adversarial canary vocabulary.
+ * Each kernel gets a distinct payload shape so multi-canary runs exercise
+ * every major `parseExecutionProvider` branch:
+ *   - clean CPU (args.provider)
+ *   - providers.size === 1 non-CUDA (TensorRT / DML)
+ *   - mixed CUDA+CPU (CUDA preference path — NOT a ghost when CUDA present;
+ *     cosineRecall uses pure CPU mixed-schema instead)
+ *   - malformed / truncated JSON → JSON-lines / unknown fallback
+ *   - empty / null → unknown default
+ *
+ * Expected verified provider after parse (must NOT be CUDAExecutionProvider
+ * for the gate to fire as a ghost).
+ */
+const CANARY_VARIANT_BY_OP = Object.freeze({
+  encode: 'cpu-args-provider',
+  graphAggregate: 'tensorrt-single',
+  holographicUpdate: 'dml-execution-provider',
+  cosineRecall: 'cpu-mixed-schema',
+  evolveScore: 'malformed-truncated',
+  homeostasis: 'empty-string',
+});
+
+/** Expected parser result for each canary variant (for tests / diagnostics). */
+const CANARY_VARIANT_EXPECTED = Object.freeze({
+  'cpu-args-provider': 'CPUExecutionProvider',
+  'tensorrt-single': 'TensorrtExecutionProvider',
+  'dml-execution-provider': 'DmlExecutionProvider',
+  'cpu-mixed-schema': 'CPUExecutionProvider',
+  'malformed-truncated': 'unknown',
+  'empty-string': 'unknown',
+  'null-payload': 'unknown',
+  'newline-cpu': 'CPUExecutionProvider',
+  'mixed-cuda-cpu': 'CUDAExecutionProvider', // CUDA wins — not a ghost
+  'truncated-json': 'unknown',
 });
 
 /* ------------------------------------------------------------------ */
@@ -149,24 +199,150 @@ export function parseExecutionProvider(profilerOutput) {
 /* ------------------------------------------------------------------ */
 
 /**
- * Build a profiler payload identical in shape to ORT's
- * `endProfiling()` output, tagged with the requested provider. Two
- * canonical event shapes are exercised so the parser path covers both
- * `args.provider` and `args.execution_provider` fields seen in real
- * ORT builds.
+ * Historical clean CUDA payload — **do not change shape** without
+ * re-committing the Φ4 Merkle baseline JSON and bumping schema.
+ * Two canonical event shapes so the parser covers both `args.provider`
+ * and `args.execution_provider` fields seen in real ORT builds.
  */
-function buildProfilerPayload(op, provider, step) {
+function buildCleanCudaProfilerPayload(op, step) {
   const events = [
     {
       name: `${op}_kernel_${step}`,
-      args: { provider },
+      args: { provider: 'CUDAExecutionProvider' },
     },
     {
       name: `${op}_dispatch_${step}`,
-      args: { execution_provider: provider },
+      args: { execution_provider: 'CUDAExecutionProvider' },
     },
   ];
   return JSON.stringify(events);
+}
+
+/**
+ * Adversarial / canary payload vocabulary. Each variant hits a distinct
+ * branch of `parseExecutionProvider` (JSON parse, newline-delimited,
+ * providers.size === 1, CUDA preference, empty → unknown).
+ *
+ * @param {string} op
+ * @param {string} provider  Logical provider label (for variants that take one)
+ * @param {number} step
+ * @param {string} [variant='cpu-args-provider']
+ * @returns {string|null|undefined}
+ */
+export function buildProfilerPayload(op, provider, step, variant = 'cpu-args-provider') {
+  switch (variant) {
+    case 'clean-cuda':
+      return buildCleanCudaProfilerPayload(op, step);
+
+    case 'cpu-args-provider':
+      return JSON.stringify([
+        { name: `${op}_kernel_${step}`, args: { provider: provider || 'CPUExecutionProvider' } },
+        { name: `${op}_dispatch_${step}`, args: { execution_provider: provider || 'CPUExecutionProvider' } },
+      ]);
+
+    case 'cpu-mixed-schema':
+      // One event uses args.provider, one top-level provider — both CPU.
+      return JSON.stringify([
+        { name: `${op}_kernel_${step}`, args: { provider: 'CPUExecutionProvider' } },
+        { name: `${op}_dispatch_${step}`, provider: 'CPUExecutionProvider' },
+      ]);
+
+    case 'tensorrt-single':
+      return JSON.stringify([
+        { name: `${op}_kernel_${step}`, args: { provider: 'TensorrtExecutionProvider' } },
+      ]);
+
+    case 'dml-execution-provider':
+      return JSON.stringify([
+        { name: `${op}_kernel_${step}`, args: { execution_provider: 'DmlExecutionProvider' } },
+      ]);
+
+    case 'mixed-cuda-cpu':
+      // CUDA preference path — parser must return CUDA (NOT a ghost).
+      return JSON.stringify([
+        { args: { provider: 'CPUExecutionProvider' } },
+        { args: { provider: 'CUDAExecutionProvider' } },
+      ]);
+
+    case 'malformed-truncated':
+      // Truncated JSON forces catch → newline-delimited path → empty → unknown.
+      return `[{"name":"${op}_kernel_${step}","args":{"provider":"CPUExecutionProvider"`;
+
+    case 'truncated-json':
+      return '{"args":{"provider":"CPUExecutionProvider"';
+
+    case 'newline-cpu':
+      return [
+        JSON.stringify({ name: `${op}_kernel_${step}`, args: { provider: 'CPUExecutionProvider' } }),
+        JSON.stringify({ name: `${op}_dispatch_${step}`, args: { execution_provider: 'CPUExecutionProvider' } }),
+      ].join('\n');
+
+    case 'empty-string':
+      return '';
+
+    case 'null-payload':
+      return null;
+
+    case 'undefined-payload':
+      return undefined;
+
+    default:
+      return JSON.stringify([
+        { name: `${op}_kernel_${step}`, args: { provider: provider || 'CPUExecutionProvider' } },
+      ]);
+  }
+}
+
+/**
+ * Resolve canary step set from scalar, list, and/or cadence.
+ * @param {{ canary?: number|number[]|null, canaryEvery?: number|null, steps: number }} opts
+ * @returns {Set<number>}
+ */
+export function resolveCanarySteps({ canary = null, canaryEvery = null, steps }) {
+  const set = new Set();
+  if (canary !== null && canary !== undefined) {
+    const list = Array.isArray(canary) ? canary : [canary];
+    for (const s of list) {
+      const n = Number(s);
+      if (Number.isInteger(n) && n >= 0 && n < steps) set.add(n);
+    }
+  }
+  if (canaryEvery !== null && canaryEvery !== undefined) {
+    const every = Number(canaryEvery);
+    if (Number.isInteger(every) && every > 0) {
+      for (let s = every; s < steps; s += every) set.add(s);
+      // Also include step 0 only if every divides and user wants full cadence
+      // from 0 — standard is every N starting at N (first injection after warm-up).
+      // Include 0 when every === 1 so single-step denseness is complete.
+      if (every === 1) set.add(0);
+    }
+  }
+  return set;
+}
+
+/**
+ * @param {string|undefined} raw  CLI --canary value
+ * @returns {number|number[]|null}
+ */
+export function parseCanaryArg(raw) {
+  if (raw === undefined || raw === null || raw === '') return null;
+  if (String(raw).includes(',')) {
+    return String(raw)
+      .split(',')
+      .map((p) => Number.parseInt(p.trim(), 10))
+      .filter((n) => Number.isInteger(n) && n >= 0);
+  }
+  const n = Number.parseInt(String(raw), 10);
+  return Number.isInteger(n) ? n : null;
+}
+
+function shouldContinueOnGhost({ canarySteps, canaryEvery, haltOnGhost, continueOnGhost }) {
+  if (haltOnGhost === true) return false;
+  if (continueOnGhost === true) return true;
+  // Cadence mode always walks the full trace so every injection is recorded.
+  if (canaryEvery !== null && canaryEvery !== undefined && Number(canaryEvery) > 0) return true;
+  // Default: single canary → halt (legacy); multi-step list → continue.
+  return canarySteps.size > 1;
 }
 
 /* ------------------------------------------------------------------ */
@@ -177,19 +353,51 @@ function buildProfilerPayload(op, provider, step) {
  * Runs the verifiedDevice gate for `steps` iterations. Returns a
  * Merkle-rooted record. Throws nothing — ghost-GPU detections are
  * recorded structurally so the canary regression can assert on them.
+ *
+ * @param {object} opts
+ * @param {number} [opts.steps]
+ * @param {number} [opts.seed]
+ * @param {number|number[]|null} [opts.canary]  Single step or list
+ * @param {number|null} [opts.canaryEvery]      Cadence
+ * @param {boolean} [opts.haltOnGhost]
+ * @param {boolean} [opts.continueOnGhost]
+ * @param {string} [opts.device]
+ * @param {string} [opts.streams]
  */
-export function runSoak({ steps = DEFAULT_STEPS, seed = DEFAULT_SEED, canary = null, device = 'cuda:0', streams = 'per-op' } = {}) {
+export function runSoak({
+  steps = DEFAULT_STEPS,
+  seed = DEFAULT_SEED,
+  canary = null,
+  canaryEvery = null,
+  haltOnGhost,
+  continueOnGhost,
+  device = 'cuda:0',
+  streams = 'per-op',
+} = {}) {
   const ghostGpuEvents = [];
   let merkleAccumulator = canonicalDigest({ type: 'MCOP_VERIFIED_DEVICE_SOAK_INIT', seed: `0x${seed.toString(16).toUpperCase()}`, device, streams });
   let firstGhostGPUStep = null;
   let lastVerified = null;
   let halted = false;
 
+  const canarySteps = resolveCanarySteps({ canary, canaryEvery, steps });
+  const cont = shouldContinueOnGhost({ canarySteps, canaryEvery, haltOnGhost, continueOnGhost });
+  let sealedSteps = 0;
+
   for (let step = 0; step < steps; step += 1) {
     const op = KERNEL_NAMES[step % KERNEL_NAMES.length];
-    const isCanary = canary !== null && step === canary;
-    const provider = isCanary ? 'CPUExecutionProvider' : 'CUDAExecutionProvider';
-    const profilerOutput = buildProfilerPayload(op, provider, step);
+    const isCanary = canarySteps.has(step);
+
+    let profilerOutput;
+    let canaryVariant = null;
+    if (isCanary) {
+      canaryVariant = CANARY_VARIANT_BY_OP[op] ?? 'cpu-args-provider';
+      profilerOutput = buildProfilerPayload(op, 'CPUExecutionProvider', step, canaryVariant);
+    } else {
+      // Clean path — fixed historical shape (Merkle stability).
+      profilerOutput = buildCleanCudaProfilerPayload(op, step);
+    }
+
     const verified = parseExecutionProvider(profilerOutput);
     lastVerified = verified;
 
@@ -200,12 +408,18 @@ export function runSoak({ steps = DEFAULT_STEPS, seed = DEFAULT_SEED, canary = n
         kernel: KERNEL_TO_OPERATION[op],
         verifiedProvider: verified,
         canary: isCanary,
+        canaryVariant,
       });
       if (firstGhostGPUStep === null) firstGhostGPUStep = step;
-      halted = true;
-      break;
+      if (!cont) {
+        halted = true;
+        break;
+      }
+      // Continue-on-ghost: do not seal a CUDA leaf for this step; skip fold.
+      continue;
     }
 
+    sealedSteps += 1;
     // Canonical leaf includes the run-relative invariants only — no
     // wall-clock timestamps, no host info — so the Merkle root is
     // byte-stable across machines.
@@ -226,12 +440,24 @@ export function runSoak({ steps = DEFAULT_STEPS, seed = DEFAULT_SEED, canary = n
     });
   }
 
-  const completedSteps = halted ? firstGhostGPUStep : steps;
+  // Legacy: completedSteps is the first ghost step when halted, else full steps.
+  const completedSteps = halted && firstGhostGPUStep !== null ? firstGhostGPUStep : steps;
+  // Coverage counts sealed CUDA leaves only (parity with historical halt-before-canary).
   const opCoverage = {};
-  for (let i = 0; i < completedSteps; i += 1) {
-    const op = KERNEL_NAMES[i % KERNEL_NAMES.length];
-    opCoverage[op] = (opCoverage[op] ?? 0) + 1;
+  if (halted && firstGhostGPUStep !== null) {
+    for (let i = 0; i < firstGhostGPUStep; i += 1) {
+      const op = KERNEL_NAMES[i % KERNEL_NAMES.length];
+      opCoverage[op] = (opCoverage[op] ?? 0) + 1;
+    }
+  } else {
+    for (let i = 0; i < steps; i += 1) {
+      if (canarySteps.has(i)) continue;
+      const op = KERNEL_NAMES[i % KERNEL_NAMES.length];
+      opCoverage[op] = (opCoverage[op] ?? 0) + 1;
+    }
   }
+  // sealedSteps kept for diagnostics (unused in public record; reserved).
+  void sealedSteps;
 
   return {
     steps,
@@ -242,6 +468,8 @@ export function runSoak({ steps = DEFAULT_STEPS, seed = DEFAULT_SEED, canary = n
     opCoverage,
     lastVerifiedDevice: lastVerified,
     merkleAccumulator,
+    canarySteps: [...canarySteps].sort((a, b) => a - b),
+    continueOnGhost: cont,
   };
 }
 
@@ -253,17 +481,29 @@ export function runVerifiedDeviceSoak({
   steps = DEFAULT_STEPS,
   seed = DEFAULT_SEED,
   canary = null,
+  canaryEvery = null,
+  haltOnGhost,
+  continueOnGhost,
   device = 'cuda:0',
   streams = 'per-op',
   capturedAt,
   mode = 'smoke',
   log = () => {},
 } = {}) {
-  log(`MCOP CUDA Φ4 verifiedDevice soak — steps=${steps} seed=0x${seed.toString(16)} canary=${canary} device=${device} streams=${streams}`);
-  const soak = runSoak({ steps, seed, canary, device, streams });
+  const canaryLabel = canaryEvery != null
+    ? `every=${canaryEvery}${canary != null ? `,steps=${Array.isArray(canary) ? canary.join(',') : canary}` : ''}`
+    : (Array.isArray(canary) ? canary.join(',') : canary);
+  log(`MCOP CUDA Φ4 verifiedDevice soak — steps=${steps} seed=0x${seed.toString(16)} canary=${canaryLabel} device=${device} streams=${streams}`);
+  const soak = runSoak({ steps, seed, canary, canaryEvery, haltOnGhost, continueOnGhost, device, streams });
   log(`completedSteps=${soak.completedSteps} halted=${soak.halted} firstGhostGPUStep=${soak.firstGhostGPUStep} ghostGpuEvents=${soak.ghostGpuEvents.length}`);
 
   const isFull = mode === 'full';
+  // Preserve legacy `canary` scalar for single-step mode so existing
+  // consumers / tests keep reading a number. Multi-canary exposes `canarySteps`.
+  const canaryField = Array.isArray(canary)
+    ? (canary.length === 1 ? canary[0] : canary)
+    : canary;
+
   const record = {
     schema: 'mcop-cuda-verified-device-soak/1.0',
     capturedAt: capturedAt ?? process.env.MCOP_BENCH_CAPTURED_AT ?? new Date().toISOString(),
@@ -273,7 +513,10 @@ export function runVerifiedDeviceSoak({
     completedSteps: soak.completedSteps,
     halted: soak.halted,
     firstGhostGPUStep: soak.firstGhostGPUStep,
-    canary,
+    canary: canaryField,
+    canaryEvery: canaryEvery ?? null,
+    canarySteps: soak.canarySteps,
+    continueOnGhost: soak.continueOnGhost,
     device,
     streams,
     kernelOps: KERNEL_NAMES,
@@ -292,8 +535,13 @@ export function runVerifiedDeviceSoak({
 export const __soakInternals = {
   KERNEL_NAMES,
   KERNEL_TO_OPERATION,
+  CANARY_VARIANT_BY_OP,
+  CANARY_VARIANT_EXPECTED,
   parseExecutionProvider,
   buildProfilerPayload,
+  buildCleanCudaProfilerPayload,
+  resolveCanarySteps,
+  parseCanaryArg,
   canonicalDigest,
   runSoak,
 };
@@ -318,13 +566,27 @@ async function main() {
   const args = parseArgs(process.argv.slice(2));
   const steps = Number.parseInt(args.steps ?? `${DEFAULT_STEPS}`, 10);
   const seed = Number.parseInt(args.seed ?? '0xC0FFEE', 16) >>> 0;
-  const canary = args.canary !== undefined ? Number.parseInt(args.canary, 10) : null;
+  const canary = parseCanaryArg(args.canary);
+  const canaryEvery = args['canary-every'] !== undefined
+    ? Number.parseInt(args['canary-every'], 10)
+    : null;
+  const haltOnGhost = args['halt-on-ghost'] === 'true' || args['halt-on-ghost'] === true;
+  const continueOnGhost = args['continue-on-ghost'] === 'true' || args['continue-on-ghost'] === true;
   const mode = args.mode === 'full' ? 'full' : 'smoke';
   const out = args.out
     ? resolve(process.cwd(), args.out)
     : resolve(process.cwd(), 'docs', 'benchmarks', 'cuda_verified_device_soak.json');
 
-  const record = runVerifiedDeviceSoak({ steps, seed, canary, mode, log: console.log });
+  const record = runVerifiedDeviceSoak({
+    steps,
+    seed,
+    canary,
+    canaryEvery: Number.isInteger(canaryEvery) ? canaryEvery : null,
+    haltOnGhost: haltOnGhost || undefined,
+    continueOnGhost: continueOnGhost || undefined,
+    mode,
+    log: console.log,
+  });
   mkdirSync(dirname(out), { recursive: true });
   writeFileSync(out, `${JSON.stringify(record, null, 2)}\n`, 'utf8');
   console.log(`wrote ${out} merkleRoot=${record.merkleRoot.slice(0, 16)} halted=${record.halted}`);
