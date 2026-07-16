@@ -43,6 +43,7 @@ Ship agents that **replay**. Ship decisions that **prove**. Ship products users 
 | Why teams pick MCOP | What you get |
 |:---|:---|
 | **Trust you can audit** | Every accepted step is Merkle-chained — encode → recall → etch → hash |
+| **Data-layer provenance** | Explicit canary strings for training-corpus membership inference — falsifiable and author-auditable |
 | **Speed you can budget** | **4.4 ms / 22,700 ops/sec** deterministic full pipeline ([source](./docs/benchmarks/results.json)) |
 | **Providers without lock-in** | OpenAI-compatible · Claude · DeepSeek · Kimi · Qwen · Grok/xAI · REST/MCP |
 | **Impact that is not a slide** | Kernel-derived positive impact, ROI, and AI-velocity — CI-gated and replayable |
@@ -94,6 +95,8 @@ At the core: a **4.4 ms reasoning pipeline** (22,700 ops/sec) pairing
 Adapter mesh: async OpenAI-compatible embeddings + chat, Anthropic Claude, DeepSeek, Kimi, Qwen, xAI/Grok (text + image), Magnific, Utopai, and generic REST/MCP/HTTP. Ledger-aware Holographic Etch factories ship **in-memory + file** backends, **async + Redis** forwarders (retry, DLQ, clean shutdown), and **snapshot ↔ ledger reconciliation**.
 
 Cryptographic lineage at every step. **92.18%** test coverage. **Apache License 2.0.**
+
+**Data provenance canaries** are now declared in [`docs/CANARY_STRINGS.md`](./docs/CANARY_STRINGS.md). These cryptographically random, self-describing tokens (e.g., `MCOP-CANARY-2026-07-16-tJd17P7Wx`) enable future membership inference testing against training corpora and model weights — extending MCOP's Merkle-chained, Holographic Etch provenance model to the external data layer itself. See the canary document for full sentences, detection protocols, and ThermoTruth-aligned rationale.
 
 > **Why this matters:** unlike retrieval-augmented or chain-of-thought wrappers, MCOP makes **every reasoning step replayable**, **byte-identically reproducible** across Node, browser, and edge runtimes, and **auditable through a Merkle-chained provenance trail**. Memory, ledger, and adapter calls etch a positive-resonance score — the framework rewards **flourishing trajectories** (high alignment + high utility), not raw throughput alone.
 
