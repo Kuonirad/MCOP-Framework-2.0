@@ -138,7 +138,7 @@
       "picomatch@2": "^2.3.2",
       "picomatch@4": "^4.0.4",
       "postcss@<8.5.10": "^8.5.10",
-      "systeminformation": "^5.31.6",
+      "systeminformation": "^5.31.7",
       "uuid": "^14.0.0",
       "fast-uri@<3.1.2": "^3.1.2",
       "cookie@<0.7.0": "^0.7.0",
@@ -163,7 +163,7 @@
   "overrides": {
     "postcss": "^8.5.10",
     "fast-uri": "^3.1.2",
-    "systeminformation": "^5.31.6",
+    "systeminformation": "^5.31.7",
     "brace-expansion@5": "^5.0.6",
     "markdown-it": "14.2.0",
     "js-yaml": "4.2.0",
