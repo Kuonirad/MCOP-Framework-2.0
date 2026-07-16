@@ -61,6 +61,8 @@
     "benchmark:cuda-ops:smoke": "node scripts/benchmark-cuda-graph.mjs --op=all --mode=smoke",
     "soak:cuda-verified-device": "node scripts/cuda-verified-device-soak.mjs --steps=1000 --mode=smoke",
     "soak:cuda-verified-device:canary": "node scripts/cuda-verified-device-soak.mjs --steps=1000 --canary=500 --mode=smoke",
+    "soak:cuda-verified-device:canary-multi": "node scripts/cuda-verified-device-soak.mjs --steps=1000 --canary=3,137,500,791 --mode=smoke",
+    "soak:cuda-verified-device:canary-every": "node scripts/cuda-verified-device-soak.mjs --steps=1000 --canary-every=100 --mode=smoke",
     "cuda:serve": "python3 -m mcop_cuda_server --port 8765 --device cuda:0",
     "ledger:serve": "node --experimental-strip-types services/ledger/src/server.ts",
     "ledger:verify": "node scripts/mcop-ledger-verify.mjs",
