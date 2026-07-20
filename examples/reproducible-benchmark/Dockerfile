@@ -16,7 +16,7 @@
 # ---------------------------------------------------------------------------
 
 # Pinned Node 22.23.1 to match .nvmrc + the org blueprint.
-FROM node:22.23.1-bookworm-slim@sha256:53ada149d435c38b14476cb57e4a7da73c15595aba79bd6971b547ceb6d018bf AS toolchain
+FROM node:22.23.1-bookworm-slim@sha256:6c74791e557ce11fc957704f6d4fe134a7bc8d6f5ca4403205b2966bd488f6b3 AS toolchain
 
 ENV PNPM_VERSION=9.15.0 \
     COREPACK_ENABLE_DOWNLOAD_PROMPT=0 \
