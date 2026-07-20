@@ -57,7 +57,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=9.0.3", "pytest-cov>=4", "tomli>=2.0; python_version < '3.11'"]
-llm = ["openai>=1.0"]
+llm = ["openai>=2.46.0"]
 
 [project.urls]
 Homepage = "https://github.com/Kuonirad/MCOP-Framework-2.0"
