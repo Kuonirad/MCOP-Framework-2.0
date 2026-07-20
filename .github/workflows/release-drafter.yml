@@ -38,4 +38,4 @@ jobs:
       # dispatch). v7 also makes `token:` an input that defaults to
       # `github.token`, so the legacy `env.GITHUB_TOKEN` is no longer
       # needed.
-      - uses: release-drafter/release-drafter@4d75298e00d9e34c483e5ff8c68d0ea1c1940c1e # v7.5.1
+      - uses: release-drafter/release-drafter@eada3c96a64734dd381cfbda23511034e328ddb0 # v7.6.0
