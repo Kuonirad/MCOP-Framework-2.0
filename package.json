@@ -101,7 +101,7 @@
     "web-vitals": "^5.2.0"
   },
   "devDependencies": {
-    "@cyclonedx/cdxgen": "^12.7.1",
+    "@cyclonedx/cdxgen": "^12.8.0",
     "@cyclonedx/cyclonedx-library": "^10",
     "@eslint/eslintrc": "^3.3.6",
     "@tailwindcss/postcss": "^4",
