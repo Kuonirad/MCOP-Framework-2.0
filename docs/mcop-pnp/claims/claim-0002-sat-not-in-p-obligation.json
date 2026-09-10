@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "id": "claim.sat-notin-p-obligation.0002",
+  "version": "0.1.0",
+  "state": "LEMMA",
+  "statement": {
+    "text": "A proof of SAT ∉ P in model.clay.uniform-tm closes the P versus NP Clay problem by model.cook-levin.",
+    "formalizationRef": "canonical-models/cook-levin.json",
+    "denotesClayTarget": false
+  },
+  "model": {
+    "id": "model.clay.uniform-tm",
+    "correspondsToClayUniformTm": true,
+    "substitutionNote": "No substitution to P/poly, nonuniform circuits, algebraic complexity, or other surrogate models is permitted without an explicit checked correspondence."
+  },
+  "assumptions": [],
+  "dependencies": [
+    {
+      "id": "model.cook-levin",
+      "hash": "d7e7680743da1aa6984211693d1462e52b20a47f"
+    }
+  ],
+  "axiomAudit": {
+    "untrackedAxioms": [],
+    "importedAxioms": [],
+    "sorryCount": 0
+  },
+  "modelAudit": {
+    "status": "CORRESPONDS",
+    "fromModel": "model.clay.uniform-tm",
+    "toModel": "model.clay.uniform-tm"
+  },
+  "barrierCertificates": [],
+  "replay": {
+    "independent": false,
+    "secondKernel": false,
+    "kernelNames": []
+  },
+  "provenance": {
+    "source": "MCOP-PNP Lower-Bound Forge v0",
+    "etchRequired": true
+  }
+}
