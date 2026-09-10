@@ -1,0 +1,45 @@
+{
+  "$schema": "../claim-schema.json",
+  "id": "claim.cook-levin-pnp-equivalence.0001",
+  "version": "0.1.0",
+  "state": "LEMMA",
+  "statement": {
+    "text": "For the canonical Boolean satisfiability problem SAT, SAT ∈ P if and only if P = NP; equivalently, SAT ∉ P if and only if P ≠ NP.",
+    "formalizationRef": "docs/mcop-pnp/canonical-models/cook-levin.json",
+    "denotesClayTarget": false
+  },
+  "model": {
+    "id": "model.clay.uniform-tm",
+    "correspondsToClayUniformTm": true,
+    "substitutionNote": "No substitution to nonuniform circuits, algebraic circuits, or P/poly is permitted by this claim."
+  },
+  "assumptions": [],
+  "dependencies": [
+    {
+      "id": "model.cook-levin",
+      "hash": "d7e7680743da1aa6984211693d1462e52b20a47f"
+    }
+  ],
+  "axiomAudit": {
+    "untrackedAxioms": [],
+    "importedAxioms": [],
+    "sorryCount": 0
+  },
+  "modelAudit": {
+    "status": "CORRESPONDS",
+    "fromModel": "model.clay.uniform-tm",
+    "toModel": "model.clay.uniform-tm",
+    "reductionId": "reduction.cook-levin"
+  },
+  "barrierCertificates": [],
+  "replay": {
+    "independent": false,
+    "secondKernel": false,
+    "kernelNames": []
+  },
+  "hypothesis": "Any proof of SAT ∉ P in the canonical uniform deterministic polynomial-time model would imply P ≠ NP; any proof of SAT ∈ P would imply P = NP.",
+  "provenance": {
+    "source": "MCOP-PNP Lower-Bound Forge v0 / Cook-Levin canonical model",
+    "etchRequired": true
+  }
+}
