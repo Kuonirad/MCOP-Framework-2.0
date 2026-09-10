@@ -1,0 +1,16 @@
+{
+  "id": "barrier.natural-proofs",
+  "version": "0.1.0",
+  "namedTheorem": "Razborov-Rudich 1994/1997",
+  "statement": "A combinatorial, constructive, large circuit-complexity property useful against P/poly would break strong pseudorandomness at that density.",
+  "appliesPrimarilyTo": "route.circuits",
+  "membershipTest": {
+    "question": "Is the proposed circuit property natural: large, constructive, and useful?",
+    "verdicts": ["IN_BARRIER", "EVADES", "UNKNOWN"]
+  },
+  "promotionRule": {
+    "IN_BARRIER": "label BARRIER; do not escalate",
+    "UNKNOWN": "not promotable",
+    "EVADES": "require a non-natural or non-constructive invariant with evasionProofId"
+  }
+}

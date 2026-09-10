@@ -1,0 +1,10 @@
+{
+  "id": "route.pseudorandomness",
+  "version": "0.1.0",
+  "closingTheorem": "Hardness-versus-randomness theorem that implies P ≠ NP unconditionally",
+  "clayDirect": false,
+  "requiredBarriers": ["barrier.natural-proofs"],
+  "knownObstruction": "Circular dependencies: PRGs often assume circuit lower bounds",
+  "mcopObjective": "Break circularity; otherwise label CONDITIONAL",
+  "illegalShortcut": "Assume a PRG to prove the lower bound that the PRG requires"
+}

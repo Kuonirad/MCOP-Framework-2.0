@@ -1,0 +1,11 @@
+{
+  "id": "route.uniform-tm",
+  "version": "0.1.0",
+  "closingTheorem": "Superpolynomial deterministic time lower bound for SAT on multi-tape TMs",
+  "clayDirect": true,
+  "requiredBarriers": ["barrier.relativization", "barrier.algebrization"],
+  "knownObstruction": "Relativization; algebrization",
+  "mcopObjective": "Find a non-relativizing, non-algebrizing ingredient, or label BARRIER",
+  "hardnessPreservation": "Direct: this is the Clay model",
+  "illegalShortcut": "Cite a circuit lower bound as if it were a TM lower bound"
+}

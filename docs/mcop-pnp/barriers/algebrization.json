@@ -1,0 +1,16 @@
+{
+  "id": "barrier.algebrization",
+  "version": "0.1.0",
+  "namedTheorem": "Aaronson-Wigderson 2008",
+  "statement": "Relativizing plus algebraic-extension techniques (algebrizing techniques) cannot settle P vs NP; there are oracles relative to which the classes collapse or separate even after algebraic extensions.",
+  "consequence": "Arithmetization that algebrizes is insufficient for Clay resolution.",
+  "membershipTest": {
+    "question": "Does the technique still hold after adding algebraic oracles / low-degree extensions?",
+    "verdicts": ["IN_BARRIER", "EVADES", "UNKNOWN"]
+  },
+  "promotionRule": {
+    "IN_BARRIER": "label BARRIER; do not escalate",
+    "UNKNOWN": "not promotable",
+    "EVADES": "require evasionProofId showing the technique is not algebrizing"
+  }
+}

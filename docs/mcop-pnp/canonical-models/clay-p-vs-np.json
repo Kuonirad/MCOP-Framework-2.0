@@ -1,0 +1,31 @@
+{
+  "id": "model.clay.uniform-tm",
+  "version": "0.1.0",
+  "status": "open",
+  "authority": "Clay Mathematics Institute Millennium Prize Problems",
+  "question": "P = NP?",
+  "objects": {
+    "languages": "Lsubseteq {0,1}*",
+    "P": "languages decided by a deterministic multi-tape Turing machine in time n^{O(1)}",
+    "NP": "languages with polynomial-time deterministic verifiers, equivalently decided by a nondeterministic TM in time n^{O(1)}"
+  },
+  "inclusions": ["Psubseteq NP"],
+  "clayTarget": true,
+  "uniform": true,
+  "nonuniformSubstitute": "P/poly",
+  "notes": [
+    "The Clay problem is uniform deterministic polynomial-time computation.",
+    "A proof of NP notsubseteq P/poly implies P ≠ NP but is strictly stronger.",
+    "Circuit-family lower bounds are not interchangeable with SAT notin P."
+  ],
+  "legalClosingStatements": [
+    "P ≠ NP",
+    "SAT notin P in this model"
+  ],
+  "illegalClosingStatements": [
+    "SAT is hard for current SAT solvers",
+    "there exist large circuits for some explicit functions in a restricted class",
+    "VP ≠ VNP",
+    "a Lean theorem whose type is not the Clay statement"
+  ]
+}

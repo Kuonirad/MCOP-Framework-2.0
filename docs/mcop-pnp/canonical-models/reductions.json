@@ -1,0 +1,35 @@
+{
+  "id": "model.reductions",
+  "version": "0.1.0",
+  "definitions": {
+    "karp": "polynomial-time many-one reduction",
+    "cookReduction": "polynomial-time Turing reduction",
+    "hardnessPreservation": "if A ≤_p B and B ∈ P then A ∈ P"
+  },
+  "modelCorrespondenceGate": {
+    "rule": "No complexity-model substitution without a checked reduction.",
+    "examples": [
+      {
+        "from": "SAT notin P",
+        "to": "SAT notin P/poly",
+        "status": "SUBSTITUTION_UNPROVEN unless a correspondence proof is supplied",
+        "note": "The latter is stronger than Clay."
+      },
+      {
+        "from": "SAT notin P",
+        "to": "VP ≠ VNP",
+        "status": "SURROGATE_MODEL without a Boolean reduction"
+      },
+      {
+        "from": "communication lower bound",
+        "to": "circuit-size lower bound",
+        "status": "SUBSTITUTION_UNPROVEN without a Karchmer-Wigderson-style theorem"
+      },
+      {
+        "from": "proof-complexity lower bound for system S",
+        "to": "SAT notin P",
+        "status": "CONDITIONAL unless S p-simulates polynomial-time computation"
+      }
+    ]
+  }
+}

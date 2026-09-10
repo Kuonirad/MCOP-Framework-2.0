@@ -1,0 +1,23 @@
+{
+  "id": "model.sat",
+  "version": "0.1.0",
+  "language": "SAT",
+  "definition": "{ <phi> | phi is a satisfiable Boolean formula; default encoding is CNF }",
+  "encoding": {
+    "alphabet": "{0,1}",
+    "default": "standard binary encoding of CNF formulas",
+    "allowedVariants": ["Circuit-SAT"],
+    "variantObligation": "Polynomial-time equivalence to CNF-SAT must be cited if a variant is used."
+  },
+  "complexity": {
+    "inNP": true,
+    "witness": "Boolean assignment of polynomial length",
+    "npComplete": true
+  },
+  "primaryTarget": "SAT notin P",
+  "notPrimaryTarget": [
+    "average-case SAT hardness",
+    "fine-grained k-SAT hypotheses",
+    "practical solver runtime"
+  ]
+}

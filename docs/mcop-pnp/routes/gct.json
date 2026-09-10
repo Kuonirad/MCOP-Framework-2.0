@@ -1,0 +1,11 @@
+{
+  "id": "route.gct",
+  "version": "0.1.0",
+  "closingTheorem": "Permanent versus determinant / VP vs VNP separation plus a Boolean correspondence to SAT notin P",
+  "clayDirect": false,
+  "neighboringProblem": "VP vs VNP",
+  "requiredBarriers": ["barrier.algebrization"],
+  "knownObstruction": "Occurrence-obstruction collapse and representation-theoretic gaps in GCT",
+  "mcopObjective": "Find a representation-theoretic invariant that survives known GCT obstructions, then reduce to the Clay Boolean model",
+  "illegalShortcut": "Label VP vs VNP as P vs NP"
+}

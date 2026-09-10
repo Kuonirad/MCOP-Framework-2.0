@@ -1,0 +1,22 @@
+{
+  "id": "model.cook-levin",
+  "version": "0.1.0",
+  "theorem": "SAT is NP-complete under polynomial-time many-one reductions.",
+  "consequences": {
+    "satInPIffPeqNP": true,
+    "satNotinPIffPneNP": true
+  },
+  "closesClayIf": "SAT notin P is proved in model.clay.uniform-tm",
+  "doesNotCloseClay": [
+    "mechanizing Cook-Levin",
+    "proving SAT NP-complete in a proof assistant",
+    "restricted-circuit lower bounds"
+  ],
+  "baselineFormalizations": [
+    {
+      "name": "Gaeher-Kunze Cook-Levin in Coq",
+      "role": "reusable infrastructure",
+      "claimStatus": "LEMMA infrastructure; not PROOF of P ≠ NP"
+    }
+  ]
+}

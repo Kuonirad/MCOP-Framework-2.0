@@ -1,0 +1,16 @@
+{
+  "id": "route.circuits",
+  "version": "0.1.0",
+  "closingTheorem": "Superpolynomial circuit-size lower bound for an NP language, i.e. NP notsubseteq P/poly",
+  "clayDirect": false,
+  "strongerThanClay": true,
+  "requiredBarriers": [
+    "barrier.natural-proofs",
+    "barrier.relativization",
+    "barrier.algebrization"
+  ],
+  "knownObstruction": "Natural proofs; relativization",
+  "mcopObjective": "Find a non-natural invariant, then prove model correspondence or keep the claim labeled as stronger-than-Clay",
+  "modelAudit": "SUBSTITUTION_UNPROVEN until a correspondence packet is attached",
+  "calibrationMark": "Williams ACC lower bounds are restricted-model progress, not a path to SAT notin P"
+}

@@ -1,0 +1,16 @@
+{
+  "id": "barrier.relativization",
+  "version": "0.1.0",
+  "namedTheorem": "Baker-Gill-Solovay 1975",
+  "statement": "There exist oracles A and B such that P^A = NP^A and P^B ≠ NP^B.",
+  "consequence": "Any proof technique that remains valid after arbitrary oracle relativization cannot settle P vs NP.",
+  "membershipTest": {
+    "question": "Does the proposed technique continue to work in the presence of an arbitrary oracle?",
+    "verdicts": ["IN_BARRIER", "EVADES", "UNKNOWN"]
+  },
+  "promotionRule": {
+    "IN_BARRIER": "label BARRIER; do not escalate",
+    "UNKNOWN": "not promotable",
+    "EVADES": "require evasionProofId citing the non-relativizing ingredient"
+  }
+}

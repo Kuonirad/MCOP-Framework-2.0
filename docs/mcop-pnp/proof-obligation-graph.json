@@ -1,0 +1,223 @@
+{
+  "id": "mcop-pnp.obligation-graph.v0",
+  "version": "0.1.0",
+  "engine": "MCOP-PNP/Lower-Bound Forge",
+  "clayStatus": "open",
+  "legalTerminalClaim": "PROOF of SAT notin P in the Clay uniform deterministic TM model, axiom-accounted and independently replayed",
+  "forbiddenEscalations": [
+    "kernel success on a surrogate statement",
+    "circuit lower bound without model correspondence",
+    "conditional hardness labeled as PROOF",
+    "empirical SAT-solver performance",
+    "algebraic VP vs VNP labeled as Clay resolution"
+  ],
+  "nodes": [
+    {
+      "id": "statement.clay.p-vs-np",
+      "type": "Statement",
+      "ref": "canonical-models/clay-p-vs-np.json",
+      "closesProblem": false,
+      "note": "The open Clay question; not a claim."
+    },
+    {
+      "id": "obligation.sat-notin-p",
+      "type": "Obligation",
+      "statement": "SAT notin P",
+      "closesProblem": true,
+      "requiresModel": "model.clay.uniform-tm",
+      "via": "model.cook-levin"
+    },
+    {
+      "id": "model.clay.uniform-tm",
+      "type": "Model",
+      "ref": "canonical-models/clay-p-vs-np.json"
+    },
+    {
+      "id": "model.sat",
+      "type": "Model",
+      "ref": "canonical-models/sat.json"
+    },
+    {
+      "id": "model.cook-levin",
+      "type": "Model",
+      "ref": "canonical-models/cook-levin.json"
+    },
+    {
+      "id": "model.reductions",
+      "type": "Model",
+      "ref": "canonical-models/reductions.json"
+    },
+    {
+      "id": "audit.axiom",
+      "type": "Audit",
+      "rejectsIf": ["untracked axioms", "sorry", "hidden classicality axioms"]
+    },
+    {
+      "id": "audit.model",
+      "type": "Audit",
+      "rejectsIf": ["uniform TM silently replaced by circuits", "P/poly labeled as Clay", "algebraic model unlabeled"]
+    },
+    {
+      "id": "audit.replay",
+      "type": "Audit",
+      "requires": ["independent second kernel or independent encoding"]
+    },
+    {
+      "id": "barrier.relativization",
+      "type": "Barrier",
+      "ref": "barriers/relativization.json"
+    },
+    {
+      "id": "barrier.natural-proofs",
+      "type": "Barrier",
+      "ref": "barriers/natural-proofs.json"
+    },
+    {
+      "id": "barrier.algebrization",
+      "type": "Barrier",
+      "ref": "barriers/algebrization.json"
+    },
+    {
+      "id": "route.uniform-tm",
+      "type": "Route",
+      "ref": "routes/uniform-tm.json"
+    },
+    {
+      "id": "route.circuits",
+      "type": "Route",
+      "ref": "routes/circuits.json"
+    },
+    {
+      "id": "route.proof-complexity",
+      "type": "Route",
+      "ref": "routes/proof-complexity.json"
+    },
+    {
+      "id": "route.communication",
+      "type": "Route",
+      "ref": "routes/communication.json"
+    },
+    {
+      "id": "route.gct",
+      "type": "Route",
+      "ref": "routes/gct.json"
+    },
+    {
+      "id": "route.pseudorandomness",
+      "type": "Route",
+      "ref": "routes/pseudorandomness.json"
+    },
+    {
+      "id": "route.meta-complexity",
+      "type": "Route",
+      "ref": "routes/meta-complexity.json"
+    },
+    {
+      "id": "status.claim",
+      "type": "ClaimStatus",
+      "legalProof": false,
+      "current": "open"
+    }
+  ],
+  "edges": [
+    {
+      "from": "statement.clay.p-vs-np",
+      "to": "model.clay.uniform-tm",
+      "obligation": "Pin the Clay TM model before any route."
+    },
+    {
+      "from": "model.clay.uniform-tm",
+      "to": "model.sat",
+      "obligation": "Fix SAT encoding in that model."
+    },
+    {
+      "from": "model.sat",
+      "to": "model.cook-levin",
+      "obligation": "Use Cook-Levin to equate SAT notin P with P ≠ NP."
+    },
+    {
+      "from": "model.cook-levin",
+      "to": "obligation.sat-notin-p",
+      "obligation": "Closing theorem is SAT notin P, not a surrogate."
+    },
+    {
+      "from": "model.reductions",
+      "to": "audit.model",
+      "obligation": "Every model change needs a hardness-preserving reduction."
+    },
+    {
+      "from": "route.uniform-tm",
+      "to": "barrier.relativization",
+      "obligation": "BarrierCertificate required before promotion."
+    },
+    {
+      "from": "route.uniform-tm",
+      "to": "barrier.algebrization",
+      "obligation": "BarrierCertificate required before promotion."
+    },
+    {
+      "from": "route.circuits",
+      "to": "barrier.natural-proofs",
+      "obligation": "BarrierCertificate required before promotion."
+    },
+    {
+      "from": "route.circuits",
+      "to": "audit.model",
+      "obligation": "NP notsubseteq P/poly is stronger than Clay; require correspondence."
+    },
+    {
+      "from": "route.proof-complexity",
+      "to": "audit.model",
+      "obligation": "Proof-system lower bound must p-simulate P or remain CONDITIONAL."
+    },
+    {
+      "from": "route.communication",
+      "to": "audit.model",
+      "obligation": "KW-style bound needs a checked reduction, not an analogy."
+    },
+    {
+      "from": "route.gct",
+      "to": "audit.model",
+      "obligation": "VP vs VNP is neighboring, not Clay, without a Boolean reduction."
+    },
+    {
+      "from": "route.pseudorandomness",
+      "to": "status.claim",
+      "obligation": "Circularity yields CONDITIONAL, never PROOF."
+    },
+    {
+      "from": "route.meta-complexity",
+      "to": "status.claim",
+      "obligation": "Fine-grained or oracle hypotheses yield CONDITIONAL."
+    },
+    {
+      "from": "obligation.sat-notin-p",
+      "to": "audit.axiom",
+      "obligation": "No untracked axioms."
+    },
+    {
+      "from": "audit.axiom",
+      "to": "audit.model",
+      "obligation": "Axiom-clean surrogate is still SURROGATE."
+    },
+    {
+      "from": "audit.model",
+      "to": "audit.replay",
+      "obligation": "Independent replay after both audits."
+    },
+    {
+      "from": "audit.replay",
+      "to": "status.claim",
+      "obligation": "Etch claim status; only then may state be PROOF."
+    }
+  ],
+  "routePromotionRule": {
+    "requiredCertificates": [
+      "barrier.relativization",
+      "barrier.natural-proofs",
+      "barrier.algebrization"
+    ],
+    "unknownIsNotPromotable": true,
+    "inBarrierWithoutEvasion": "label BARRIER; do not escalate"
+  }
+}

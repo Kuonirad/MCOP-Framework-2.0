@@ -1,0 +1,11 @@
+{
+  "id": "route.proof-complexity",
+  "version": "0.1.0",
+  "closingTheorem": "Exponential lower bound in a proof system S that polynomially simulates polynomial-time computation",
+  "clayDirect": false,
+  "requiredBarriers": ["barrier.relativization"],
+  "knownObstruction": "Translation / simulation gap",
+  "mcopObjective": "Identify an NP-complete proof system, or prove S p-simulates P; otherwise CONDITIONAL",
+  "hardnessPreservation": "A lower bound for a weak system does not imply SAT notin P",
+  "illegalShortcut": "Treat Resolution or cutting-planes lower bounds as Clay resolution"
+}

@@ -1,0 +1,10 @@
+{
+  "id": "route.meta-complexity",
+  "version": "0.1.0",
+  "closingTheorem": "Unconditional hardness for an MCSP-like problem strong enough to imply SAT notin P",
+  "clayDirect": false,
+  "requiredBarriers": ["barrier.relativization", "barrier.natural-proofs"],
+  "knownObstruction": "Fine-grained, oracle, or average-case assumptions",
+  "mcopObjective": "Seek an unconditional theorem; keep fine-grained implications as CONDITIONAL",
+  "illegalShortcut": "Promote MKTP/MCSP hypotheses to PROOF"
+}

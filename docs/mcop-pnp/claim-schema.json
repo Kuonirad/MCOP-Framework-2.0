@@ -1,0 +1,190 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mcop-pnp://claim-schema/v0.1.0",
+  "title": "MCOP-PNP Claim Packet",
+  "version": "0.1.0",
+  "description": "Seven-state research-control contract. Kernel success is not Clay resolution.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "version",
+    "state",
+    "statement",
+    "model",
+    "assumptions",
+    "dependencies",
+    "axiomAudit",
+    "modelAudit",
+    "barrierCertificates",
+    "replay",
+    "provenance"
+  ],
+  "properties": {
+    "id": { "type": "string", "minLength": 1 },
+    "version": { "const": "0.1.0" },
+    "state": {
+      "type": "string",
+      "enum": [
+        "PROOF",
+        "LEMMA",
+        "COUNTEREXAMPLE",
+        "BARRIER",
+        "DEAD_END",
+        "CONDITIONAL",
+        "SURROGATE"
+      ]
+    },
+    "statement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["text", "denotesClayTarget"],
+      "properties": {
+        "text": { "type": "string" },
+        "formalizationRef": { "type": "string" },
+        "denotesClayTarget": { "type": "boolean" }
+      }
+    },
+    "model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "correspondsToClayUniformTm"],
+      "properties": {
+        "id": { "type": "string" },
+        "correspondsToClayUniformTm": { "type": "boolean" },
+        "substitutionNote": { "type": "string" }
+      }
+    },
+    "assumptions": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "dependencies": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "hash"],
+        "properties": {
+          "id": { "type": "string" },
+          "hash": { "type": "string" }
+        }
+      }
+    },
+    "axiomAudit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["untrackedAxioms", "sorryCount", "importedAxioms"],
+      "properties": {
+        "untrackedAxioms": { "type": "array", "items": { "type": "string" } },
+        "importedAxioms": { "type": "array", "items": { "type": "string" } },
+        "sorryCount": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "modelAudit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status"],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["CORRESPONDS", "SUBSTITUTION_UNPROVEN", "SURROGATE_MODEL"]
+        },
+        "fromModel": { "type": "string" },
+        "toModel": { "type": "string" },
+        "reductionId": { "type": "string" }
+      }
+    },
+    "barrierCertificates": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/BarrierCertificate" }
+    },
+    "replay": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["independent", "secondKernel"],
+      "properties": {
+        "independent": { "type": "boolean" },
+        "secondKernel": { "type": "boolean" },
+        "kernelNames": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "hypothesis": { "type": "string" },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source", "etchRequired"],
+      "properties": {
+        "source": { "type": "string" },
+        "etchRequired": { "type": "boolean" },
+        "merkleParent": { "type": "string" }
+      }
+    }
+  },
+  "$defs": {
+    "BarrierCertificate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "barrierId",
+        "technique",
+        "membershipVerdict",
+        "evidence"
+      ],
+      "properties": {
+        "barrierId": {
+          "type": "string",
+          "enum": [
+            "barrier.relativization",
+            "barrier.natural-proofs",
+            "barrier.algebrization"
+          ]
+        },
+        "technique": { "type": "string" },
+        "membershipVerdict": {
+          "type": "string",
+          "enum": ["IN_BARRIER", "EVADES", "UNKNOWN"]
+        },
+        "evidence": { "type": "string" },
+        "evasionProofId": { "type": "string" }
+      }
+    }
+  },
+  "escalationRules": {
+    "PROOF": {
+      "requires": [
+        "statement.denotesClayTarget == true",
+        "model.correspondsToClayUniformTm == true",
+        "modelAudit.status == CORRESPONDS",
+        "axiomAudit.untrackedAxioms == []",
+        "axiomAudit.sorryCount == 0",
+        "assumptions == []",
+        "replay.independent == true",
+        "replay.secondKernel == true",
+        "every applicable BarrierCertificate.membershipVerdict != UNKNOWN",
+        "no generating agent may emit this state"
+      ],
+      "forbids": ["CONDITIONAL hypotheses", "SURROGATE statements", "P/poly substitution without reduction"]
+    },
+    "LEMMA": {
+      "requires": ["explicit assumptions", "dependency hashes"]
+    },
+    "COUNTEREXAMPLE": {
+      "effect": "freeze parent route"
+    },
+    "BARRIER": {
+      "requires": ["named theorem", "technique membership evidence"]
+    },
+    "DEAD_END": {
+      "effect": "archive; never delete"
+    },
+    "CONDITIONAL": {
+      "forbids": ["relabel to PROOF while hypothesis remains"]
+    },
+    "SURROGATE": {
+      "effect": "automatic reject for mission claims"
+    }
+  }
+}

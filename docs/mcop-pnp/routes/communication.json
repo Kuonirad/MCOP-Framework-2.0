@@ -1,0 +1,10 @@
+{
+  "id": "route.communication",
+  "version": "0.1.0",
+  "closingTheorem": "Communication lower bound that reduces, by a checked theorem, to a circuit or TM lower bound for SAT",
+  "clayDirect": false,
+  "requiredBarriers": ["barrier.relativization", "barrier.natural-proofs"],
+  "knownObstruction": "Model mismatch",
+  "mcopObjective": "Build a hardness-preserving reduction (e.g. Karchmer-Wigderson style) rather than an analogy",
+  "modelAudit": "SUBSTITUTION_UNPROVEN without the reduction"
+}
