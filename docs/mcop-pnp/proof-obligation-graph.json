@@ -48,6 +48,21 @@
       "ref": "canonical-models/reductions.json"
     },
     {
+      "id": "claim.cook-levin-equivalence.0001",
+      "type": "Claim",
+      "ref": "claims/claim-0001-cook-levin-consequence.json",
+      "state": "LEMMA",
+      "denotesClayTarget": false
+    },
+    {
+      "id": "claim.sat-notin-p-obligation.0002",
+      "type": "Claim",
+      "ref": "claims/claim-0002-sat-not-in-p-obligation.json",
+      "state": "LEMMA",
+      "denotesClayTarget": false,
+      "note": "Open closing obligation; not itself SAT notin P."
+    },
+    {
       "id": "audit.axiom",
       "type": "Audit",
       "rejectsIf": ["untracked axioms", "sorry", "hidden classicality axioms"]
@@ -134,6 +149,21 @@
       "from": "model.sat",
       "to": "model.cook-levin",
       "obligation": "Use Cook-Levin to equate SAT notin P with P ≠ NP."
+    },
+    {
+      "from": "model.cook-levin",
+      "to": "claim.cook-levin-equivalence.0001",
+      "obligation": "Record the Cook-Levin consequence as a LEMMA packet."
+    },
+    {
+      "from": "claim.cook-levin-equivalence.0001",
+      "to": "claim.sat-notin-p-obligation.0002",
+      "obligation": "Translate the equivalence into the open SAT notin P closing obligation without relabeling the lemma as the missing lower bound."
+    },
+    {
+      "from": "claim.sat-notin-p-obligation.0002",
+      "to": "obligation.sat-notin-p",
+      "obligation": "Track the unresolved terminal theorem as an explicit research obligation."
     },
     {
       "from": "model.cook-levin",
