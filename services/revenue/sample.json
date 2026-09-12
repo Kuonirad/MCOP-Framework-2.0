@@ -1,0 +1,1 @@
+{"title":"Sample agency workflow","events":[{"task":"Summarize client brief","status":"ok","cost_microusd":25000,"latency_ms":4200,"evidence_count":3},{"task":"Generate campaign outline","status":"error","cost_microusd":75000,"latency_ms":18000,"evidence_count":0},{"task":"Generate campaign outline","status":"ok","cost_microusd":80000,"latency_ms":12000,"evidence_count":0}]}

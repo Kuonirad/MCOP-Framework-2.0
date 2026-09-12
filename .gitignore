@@ -80,3 +80,6 @@ apps/desktop/src-tauri/resources/legal/
 apps/desktop/src-tauri/target/
 apps/desktop/src-tauri/gen/
 .cache/desktop-runtime/
+
+# Local MCOP revenue-service environment
+.venv-revenue/

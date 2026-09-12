@@ -1224,3 +1224,7 @@ See [LICENSE](./LICENSE) for full terms · [NOTICE.md](./NOTICE.md) for licensin
 *Recursive triad orchestration · Deterministic provenance · Positive-impact audits · Desktop product path*
 
 </div>
+
+## Paid workflow report service (preview)
+
+[MCOP Workflow Reports](./services/revenue/README.md) adds a customer storefront, Stripe checkout, persistent orders, automated report delivery, and verifiable MCOP receipts. The local demo is free; live billing requires operator configuration and deployment. The offer and CAD $29 reference price are unvalidated, and no revenue is guaranteed.
