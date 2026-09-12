@@ -1,0 +1,5 @@
+fastapi==0.141.1
+uvicorn==0.52.4
+stripe==15.6.1
+httpx==0.28.1
+rfc8785==0.1.4
